@@ -1,5 +1,3 @@
-HTML
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -116,22 +114,22 @@ HTML
     }
     .friday-inputs {
       display: grid;
-      grid-template-columns: 1fr 1fr auto;
+      grid-template-columns: 1fr auto;
       gap: 8px;
       align-items: center;
     }
     .friday-inputs input {
-      padding: 6px 8px;
+      padding: 8px 10px;
       font-size: 0.85rem;
     }
     .complete-btn {
       background: var(--accent);
       color: white;
       border: none;
-      padding: 8px 12px;
+      padding: 8px 14px;
       border-radius: 6px;
       font-weight: 600;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       cursor: pointer;
     }
 
@@ -265,7 +263,7 @@ HTML
     </div>
 
     <div class="form-group">
-      <label>大人メンバー選択 (タップで選択 / ×で削除)</label>
+      <label>メンバー選択 (タップで選択 / ×で削除)</label>
       <div class="pills-grid" id="memberPills">
         <!-- JSで生成 -->
       </div>
@@ -286,20 +284,9 @@ HTML
       </div>
     </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label>大人 会費単価 (円)</label>
-        <input type="number" id="adultRate" value="700" placeholder="700" onfocus="this.select()" oninput="updateCalculation()">
-      </div>
-      <div class="form-group">
-        <label>子供 人数 (名)</label>
-        <input type="number" id="childCount" value="0" min="0" onfocus="this.select()" oninput="updateCalculation()">
-      </div>
-    </div>
-
     <div class="form-group">
-      <label>子供 会費単価 (その都度入力/円)</label>
-      <input type="number" id="childRate" value="0" placeholder="例: 300" onfocus="this.select()" oninput="updateCalculation()">
+      <label>会費単価 (円)</label>
+      <input type="number" id="memberRate" value="700" placeholder="700" onfocus="this.select()" oninput="updateCalculation()">
     </div>
 
     <div class="calc-preview" id="feeSummaryPreview">
@@ -308,15 +295,9 @@ HTML
 
     <hr style="border:none; border-top:1px solid var(--border); margin:14px 0;">
 
-    <div class="form-row">
-      <div class="form-group">
-        <label>コート1 料金 (円)</label>
-        <input type="number" id="court1Fee" value="0" onfocus="this.select()">
-      </div>
-      <div class="form-group">
-        <label>コート2 料金 (円)</label>
-        <input type="number" id="court2Fee" value="0" onfocus="this.select()">
-      </div>
+    <div class="form-group">
+      <label>コート代 (円)</label>
+      <input type="number" id="courtFee" value="0" placeholder="0" onfocus="this.select()">
     </div>
 
     <div class="form-row">
@@ -420,8 +401,7 @@ HTML
             <span>📅 ${dateStr} (金)</span>
           </div>
           <div class="friday-inputs">
-            <input type="number" id="f_c1_${dateStr}" placeholder="コート1代" onfocus="this.select()">
-            <input type="number" id="f_c2_${dateStr}" placeholder="コート2代" onfocus="this.select()">
+            <input type="number" id="f_court_${dateStr}" placeholder="コート代 (円)" onfocus="this.select()">
             <button class="complete-btn" onclick="completeFridayReservation('${dateStr}')">予約完了</button>
           </div>
         `;
@@ -436,9 +416,7 @@ HTML
   }
 
   function completeFridayReservation(dateStr) {
-    const c1 = Number(document.getElementById(`f_c1_${dateStr}`).value) || 0;
-    const c2 = Number(document.getElementById(`f_c2_${dateStr}`).value) || 0;
-    const totalCourt = c1 + c2;
+    const courtExpense = Number(document.getElementById(`f_court_${dateStr}`).value) || 0;
 
     completedFridays.push(dateStr);
     localStorage.setItem('badminton_completed_fridays', JSON.stringify(completedFridays));
@@ -448,12 +426,11 @@ HTML
       date: dateStr,
       time: '金曜枠',
       isReserved: true,
-      courtExpense: totalCourt,
+      courtExpense: courtExpense,
       shuttleExpense: 0,
-      adultCount: 0,
-      childCount: 0,
+      memberCount: 0,
       income: 0,
-      net: -totalCourt
+      net: -courtExpense
     };
 
     records.unshift(item);
@@ -512,17 +489,12 @@ HTML
   }
 
   function updateCalculation() {
-    const adultCount = selectedMembers.length;
-    const adultRate = Number(document.getElementById('adultRate').value) || 0;
-    const childCount = Number(document.getElementById('childCount').value) || 0;
-    const childRate = Number(document.getElementById('childRate').value) || 0;
-
-    const adultTotal = adultCount * adultRate;
-    const childTotal = childCount * childRate;
-    const grandTotal = adultTotal + childTotal;
+    const count = selectedMembers.length;
+    const rate = Number(document.getElementById('memberRate').value) || 0;
+    const total = count * rate;
 
     document.getElementById('feeSummaryPreview').textContent = 
-      `会費収入合計: ${grandTotal.toLocaleString()} 円 (大人 ${adultCount}名 × ${adultRate}円 + 子供 ${childCount}名 × ${childRate}円)`;
+      `会費収入合計: ${total.toLocaleString()} 円 (${count}名 × ${rate}円)`;
   }
 
   function calcShuttleUnit() {
@@ -542,16 +514,12 @@ HTML
   function addRecord() {
     const date = document.getElementById('eventDate').value;
     const time = document.getElementById('timeSlot').value;
-    const c1 = Number(document.getElementById('court1Fee').value) || 0;
-    const c2 = Number(document.getElementById('court2Fee').value) || 0;
+    const courtExpense = Number(document.getElementById('courtFee').value) || 0;
 
-    const adultCount = selectedMembers.length;
-    const adultRate = Number(document.getElementById('adultRate').value) || 0;
-    const childCount = Number(document.getElementById('childCount').value) || 0;
-    const childRate = Number(document.getElementById('childRate').value) || 0;
+    const count = selectedMembers.length;
+    const rate = Number(document.getElementById('memberRate').value) || 0;
 
-    const income = (adultCount * adultRate) + (childCount * childRate);
-    const courtExpense = c1 + c2;
+    const income = count * rate;
     const shuttleExpense = Number(document.getElementById('shuttleFee').value) || 0;
     const net = income - courtExpense - shuttleExpense;
 
@@ -562,8 +530,7 @@ HTML
       isReserved: true,
       courtExpense,
       shuttleExpense,
-      adultCount,
-      childCount,
+      memberCount: count,
       income,
       net
     };
@@ -573,11 +540,8 @@ HTML
     
     // リセット
     selectedMembers = [];
-    document.getElementById('adultRate').value = 700;
-    document.getElementById('childCount').value = 0;
-    document.getElementById('childRate').value = 0;
-    document.getElementById('court1Fee').value = 0;
-    document.getElementById('court2Fee').value = 0;
+    document.getElementById('memberRate').value = 700;
+    document.getElementById('courtFee').value = 0;
     document.getElementById('shuttleFee').value = 0;
     document.getElementById('shuttleDozens').value = 0;
     document.getElementById('shuttleUnitText').textContent = '';
@@ -600,7 +564,7 @@ HTML
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${r.date.slice(5)}</td>
-        <td>大人${r.adultCount}/子${r.childCount}</td>
+        <td>${r.memberCount}名</td>
         <td>${r.courtExpense.toLocaleString()}円</td>
         <td>${r.shuttleExpense > 0 ? r.shuttleExpense.toLocaleString() + '円' : '-'}</td>
         <td style="font-weight:bold; color:${r.net >= 0 ? 'var(--accent)' : 'var(--danger)'};">
