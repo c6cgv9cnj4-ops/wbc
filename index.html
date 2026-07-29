@@ -5,18 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WBC 管理アプリ</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 15px; background: #f5f5f7; color: #333; }
-    h1 { font-size: 20px; text-align: center; margin-bottom: 15px; }
-    .card { background: #fff; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    :root { --primary: #007aff; --bg: #f2f2f7; --card: #ffffff; --text: #1c1c1e; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+    header { background: var(--card); padding: 15px; text-align: center; font-weight: bold; font-size: 18px; border-bottom: 1px solid #e5e5ea; position: sticky; top: 0; z-index: 10; }
+    #sync-status { font-size: 12px; color: #34c759; margin-top: 4px; font-weight: normal; }
+    nav { display: flex; background: var(--card); border-bottom: 1px solid #e5e5ea; overflow-x: auto; }
+    nav button { flex: 1; min-width: 80px; padding: 12px 5px; border: none; background: none; font-size: 13px; color: #8e8e93; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+    nav button.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-content { display: none; padding: 15px; }
+    .tab-content.active { display: block; }
+    .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    h2 { font-size: 16px; margin-top: 0; margin-bottom: 12px; color: #3a3a3c; }
     .input-group { display: flex; gap: 8px; margin-bottom: 10px; }
-    input[type="text"] { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
-    button { padding: 10px 15px; border: none; border-radius: 6px; background: #007aff; color: white; font-weight: bold; font-size: 15px; cursor: pointer; }
-    button:active { opacity: 0.8; }
+    input[type="text"], input[type="date"], input[type="time"], select { flex: 1; padding: 10px; border: 1px solid #c7c7cc; border-radius: 8px; font-size: 15px; background: #fff; }
+    .btn { padding: 10px 16px; border: none; border-radius: 8px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; font-size: 14px; }
     .btn-danger { background: #ff3b30; }
     ul { list-style: none; padding: 0; margin: 0; }
-    li { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+    li { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e5ea; }
     li:last-child { border-bottom: none; }
-    #sync-status { text-align: center; font-size: 12px; color: #666; margin-bottom: 10px; }
   </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -24,19 +30,56 @@
 </head>
 <body>
 
-  <h1>WBC メンバー管理</h1>
-  <div id="sync-status">同期状態: 接続中...</div>
+  <header>
+    WBC 管理アプリ
+    <div id="sync-status">● リアルタイム同期中</div>
+  </header>
 
-  <div class="card">
-    <div class="input-group">
-      <input type="text" id="memberName" placeholder="メンバー名を入力">
-      <button onclick="addMember()">追加</button>
+  <nav>
+    <button class="active" onclick="switchTab('members')">メンバー</button>
+    <button onclick="switchTab('reservations')">コート予約</button>
+    <button onclick="switchTab('analytics')">自動集計・分析</button>
+  </nav>
+
+  <!-- メンバー管理タブ -->
+  <div id="tab-members" class="tab-content active">
+    <div class="card">
+      <h2>メンバー追加</h2>
+      <div class="input-group">
+        <input type="text" id="memberName" placeholder="名前を入力">
+        <button class="btn" onclick="addMember()">追加</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>メンバー一覧</h2>
+      <ul id="memberList"></ul>
     </div>
   </div>
 
-  <div class="card">
-    <h3>メンバー一覧</h3>
-    <ul id="memberList"></ul>
+  <!-- コート予約タブ -->
+  <div id="tab-reservations" class="tab-content">
+    <div class="card">
+      <h2>新規予約登録</h2>
+      <div class="input-group" style="flex-direction: column;">
+        <input type="date" id="resDate">
+        <input type="time" id="resTime">
+        <input type="text" id="resCourt" placeholder="コート名・場所">
+        <button class="btn" onclick="addReservation()">予約を追加</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>予約一覧</h2>
+      <ul id="reservationList"></ul>
+    </div>
+  </div>
+
+  <!-- 自動集計・分析タブ -->
+  <div id="tab-analytics" class="tab-content">
+    <div class="card">
+      <h2>データ概要</h2>
+      <p>登録メンバー数: <strong id="totalMembers">0</strong> 名</p>
+      <p>コート予約件数: <strong id="totalReservations">0</strong> 件</p>
+    </div>
   </div>
 
   <script>
@@ -49,48 +92,94 @@
       storageBucket: "wbc-app-cf99c.firebasestorage.app"
     };
 
-    // 初期化
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.database().ref("members");
+    const dbMembers = firebase.database().ref("members");
+    const dbReservations = firebase.database().ref("reservations");
 
-    const statusEl = document.getElementById("sync-status");
+    // タブ切り替え
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + tabName).classList.add('active');
+      event.target.classList.add('active');
+    }
 
-    // リアルタイム同期（データが変更されると自動実行）
-    db.on("value", (snapshot) => {
+    // メンバーリアルタイム読み込み
+    dbMembers.on("value", (snapshot) => {
       const listEl = document.getElementById("memberList");
       listEl.innerHTML = "";
       const data = snapshot.val();
-      
-      statusEl.textContent = "同期状態: リアルタイム同期中 ✓";
-      statusEl.style.color = "#34c759";
+      let count = 0;
 
       if (data) {
         Object.keys(data).forEach((key) => {
+          count++;
           const li = document.createElement("li");
           li.innerHTML = `
             <span>${data[key].name}</span>
-            <button class="btn-danger" onclick="removeMember('${key}')">削除</button>
+            <button class="btn btn-danger" onclick="removeMember('${key}')">削除</button>
           `;
           listEl.appendChild(li);
         });
       } else {
-        listEl.innerHTML = "<li style='color:#999;'>メンバーが登録されていません</li>";
+        listEl.innerHTML = "<li style='color:#8e8e93;'>メンバーが登録されていません</li>";
       }
+      document.getElementById("totalMembers").textContent = count;
     });
 
-    // メンバー追加
     function addMember() {
       const input = document.getElementById("memberName");
       const name = input.value.trim();
       if (name) {
-        db.push({ name: name });
+        dbMembers.push({ name: name });
         input.value = "";
       }
     }
 
-    // メンバー削除
     function removeMember(key) {
-      db.child(key).remove();
+      dbMembers.child(key).remove();
+    }
+
+    // 予約リアルタイム読み込み
+    dbReservations.on("value", (snapshot) => {
+      const listEl = document.getElementById("reservationList");
+      listEl.innerHTML = "";
+      const data = snapshot.val();
+      let count = 0;
+
+      if (data) {
+        Object.keys(data).forEach((key) => {
+          count++;
+          const item = data[key];
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <div>
+              <strong>${item.date} ${item.time}</strong><br>
+              <small>${item.court}</small>
+            </div>
+            <button class="btn btn-danger" onclick="removeReservation('${key}')">削除</button>
+          `;
+          listEl.appendChild(li);
+        });
+      } else {
+        listEl.innerHTML = "<li style='color:#8e8e93;'>予約はありません</li>";
+      }
+      document.getElementById("totalReservations").textContent = count;
+    });
+
+    function addReservation() {
+      const date = document.getElementById("resDate").value;
+      const time = document.getElementById("resTime").value;
+      const court = document.getElementById("resCourt").value.trim();
+
+      if (date && time && court) {
+        dbReservations.push({ date, time, court });
+        document.getElementById("resCourt").value = "";
+      }
+    }
+
+    function removeReservation(key) {
+      dbReservations.child(key).remove();
     }
   </script>
 </body>
