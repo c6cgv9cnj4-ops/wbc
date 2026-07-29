@@ -1,3 +1,5 @@
+HTML
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -15,6 +17,7 @@
       --text-sec: #8e8e93;
       --border: #e5e5ea;
       --danger: #ff3b30;
+      --warning: #ff9500;
       --card-radius: 12px;
     }
     body {
@@ -34,7 +37,7 @@
       font-size: 1.4rem;
       font-weight: 700;
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
     .section-card {
       background: var(--card-bg);
@@ -47,10 +50,10 @@
       font-size: 1rem;
       font-weight: 600;
       margin-top: 0;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      justify-content: space-between;
       color: #1c1c1e;
       border-bottom: 1px solid var(--border);
       padding-bottom: 8px;
@@ -86,6 +89,27 @@
       border-color: var(--accent);
       background-color: #fff;
     }
+
+    /* 3ヶ月先予約チェックボックスリスト */
+    .future-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .future-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f9f9fb;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .future-item .month-label {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
     /* iOSスタイル トグル */
     .toggle-row {
       display: flex;
@@ -200,9 +224,20 @@
 <div class="container">
   <h1>🏸 バドミントン管理</h1>
 
-  <!-- 1. 予約管理 -->
+  <!-- 0. 3ヶ月先予約リスト（新設） -->
   <div class="section-card">
-    <div class="section-title">📅 1. 予約設定</div>
+    <div class="section-title">
+      <span>📌 3ヶ月先のコート予約状況</span>
+      <small style="font-size:0.75rem; color:var(--text-sec);">予約忘れ防止</small>
+    </div>
+    <div class="future-grid" id="futureReservationGrid">
+      <!-- JSで動的描画（当月・翌月・翌々月） -->
+    </div>
+  </div>
+
+  <!-- 1. 当日の予約設定 -->
+  <div class="section-card">
+    <div class="section-title">📅 1. 予約設定（今回の活動）</div>
     
     <div class="form-row">
       <div class="form-group">
@@ -253,7 +288,6 @@
     <div class="form-row" style="margin-top:10px;">
       <div class="form-group">
         <label>大人 会費単価 (円)</label>
-        <!-- 初期値700円。フォーカス時に全選択され、そのまま消去・上書きが可能 -->
         <input type="number" id="adultRate" value="700" placeholder="700" onfocus="this.select()" oninput="updateCalculation()">
       </div>
       <div class="form-group">
@@ -337,14 +371,47 @@
   let defaultMembers = ['細川', '田中', '鈴木', '佐藤', '高橋', '渡辺'];
   let selectedMembers = [];
   let records = JSON.parse(localStorage.getItem('badminton_app_records')) || [];
+  let futureStatus = JSON.parse(localStorage.getItem('badminton_future_res')) || {};
   let chartInstance = null;
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('eventDate').valueAsDate = new Date();
+    renderFutureReservations();
     renderPills();
     updateCalculation();
     renderHistoryAndCharts();
   });
+
+  // 3ヶ月先の予約リスト生成
+  function renderFutureReservations() {
+    const container = document.getElementById('futureReservationGrid');
+    container.innerHTML = '';
+
+    const today = new Date();
+    for (let i = 0; i < 3; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+      const yearMonthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const monthLabel = `${d.getFullYear()}年${d.getMonth() + 1}月分（${i === 0 ? '今月' : i === 1 ? '来月' : '3ヶ月先'}）`;
+      
+      const isDone = futureStatus[yearMonthKey] || false;
+
+      const div = document.createElement('div');
+      div.className = 'future-item';
+      div.innerHTML = `
+        <span class="month-label">${monthLabel}</span>
+        <label class="switch">
+          <input type="checkbox" ${isDone ? 'checked' : ''} onchange="toggleFutureRes('${yearMonthKey}', this.checked)">
+          <span class="slider"></span>
+        </label>
+      `;
+      container.appendChild(div);
+    }
+  }
+
+  function toggleFutureRes(key, isChecked) {
+    futureStatus[key] = isChecked;
+    localStorage.setItem('badminton_future_res', JSON.stringify(futureStatus));
+  }
 
   function renderPills() {
     const container = document.getElementById('memberPills');
@@ -429,7 +496,7 @@
     records.unshift(item);
     localStorage.setItem('badminton_app_records', JSON.stringify(records));
     
-    // リセット (大人会費は700円を保持)
+    // リセット
     selectedMembers = [];
     document.getElementById('adultRate').value = 700;
     document.getElementById('childCount').value = 0;
