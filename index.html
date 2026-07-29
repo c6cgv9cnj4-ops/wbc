@@ -3,26 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WBC 管理アプリ</title>
+  <title>WBC 管理システム</title>
   <style>
-    :root { --primary: #007aff; --bg: #f2f2f7; --card: #ffffff; --text: #1c1c1e; }
+    :root { --primary: #007aff; --bg: #f2f2f7; --card: #ffffff; --text: #1c1c1e; --border: #e5e5ea; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; background: var(--bg); color: var(--text); }
-    header { background: var(--card); padding: 15px; text-align: center; font-weight: bold; font-size: 18px; border-bottom: 1px solid #e5e5ea; position: sticky; top: 0; z-index: 10; }
-    #sync-status { font-size: 12px; color: #34c759; margin-top: 4px; font-weight: normal; }
-    nav { display: flex; background: var(--card); border-bottom: 1px solid #e5e5ea; overflow-x: auto; }
-    nav button { flex: 1; min-width: 80px; padding: 12px 5px; border: none; background: none; font-size: 13px; color: #8e8e93; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+    header { background: var(--card); padding: 12px 15px; text-align: center; font-weight: bold; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+    #sync-status { font-size: 11px; color: #34c759; font-weight: normal; margin-top: 2px; }
+    nav { display: flex; background: var(--card); border-bottom: 1px solid var(--border); overflow-x: auto; }
+    nav button { flex: 1; min-width: 90px; padding: 12px 8px; border: none; background: none; font-size: 13px; color: #8e8e93; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
     nav button.active { color: var(--primary); border-bottom-color: var(--primary); }
     .tab-content { display: none; padding: 15px; }
     .tab-content.active { display: block; }
     .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     h2 { font-size: 16px; margin-top: 0; margin-bottom: 12px; color: #3a3a3c; }
     .input-group { display: flex; gap: 8px; margin-bottom: 10px; }
-    input[type="text"], input[type="date"], input[type="time"], select { flex: 1; padding: 10px; border: 1px solid #c7c7cc; border-radius: 8px; font-size: 15px; background: #fff; }
+    input[type="text"], input[type="number"], select { flex: 1; padding: 10px; border: 1px solid #c7c7cc; border-radius: 8px; font-size: 15px; background: #fff; }
     .btn { padding: 10px 16px; border: none; border-radius: 8px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; font-size: 14px; }
     .btn-danger { background: #ff3b30; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 6px; }
     ul { list-style: none; padding: 0; margin: 0; }
-    li { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e5ea; }
+    li { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
     li:last-child { border-bottom: none; }
+    .calendar-day { border-bottom: 1px solid var(--border); padding: 10px 0; }
+    .calendar-day-header { font-weight: bold; font-size: 14px; margin-bottom: 6px; color: var(--primary); }
+    .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+    .slot-card { border: 1px dashed #c7c7cc; border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; background: #fff; }
+    .slot-card.booked { border-style: solid; border-color: #34c759; background: #e8f9ed; }
+    .fee-badge { font-size: 11px; color: #666; margin-top: 2px; }
   </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -31,8 +38,8 @@
 <body>
 
   <header>
-    WBC 管理アプリ
-    <div id="sync-status">● リアルタイム同期中</div>
+    WBC 管理システム
+    <div id="sync-status">● リアルタイム同期中 (Mac ⇄ iPhone)</div>
   </header>
 
   <nav>
@@ -41,12 +48,12 @@
     <button onclick="switchTab('analytics')">自動集計・分析</button>
   </nav>
 
-  <!-- メンバー管理タブ -->
+  <!-- 1. メンバー管理 -->
   <div id="tab-members" class="tab-content active">
     <div class="card">
-      <h2>メンバー追加</h2>
+      <h2>メンバー登録</h2>
       <div class="input-group">
-        <input type="text" id="memberName" placeholder="名前を入力">
+        <input type="text" id="memberName" placeholder="メンバー名を入力">
         <button class="btn" onclick="addMember()">追加</button>
       </div>
     </div>
@@ -56,34 +63,36 @@
     </div>
   </div>
 
-  <!-- コート予約タブ -->
+  <!-- 2. コート予約（3ヶ月展開・タップ予約＆消去・料金連動） -->
   <div id="tab-reservations" class="tab-content">
     <div class="card">
-      <h2>新規予約登録</h2>
-      <div class="input-group" style="flex-direction: column;">
-        <input type="date" id="resDate">
-        <input type="time" id="resTime">
-        <input type="text" id="resCourt" placeholder="コート名・場所">
-        <button class="btn" onclick="addReservation()">予約を追加</button>
+      <h2>コート料金設定 (1時間あたり)</h2>
+      <div class="input-group">
+        <input type="number" id="courtFeeInput" placeholder="料金 (円)" value="1000">
+        <button class="btn" onclick="saveCourtFee()">設定保存</button>
       </div>
+      <div id="currentFeeDisplay" style="font-size:12px; color:#666;">現在の基本料金: 1,000円 / 時間</div>
     </div>
+
     <div class="card">
-      <h2>予約一覧</h2>
-      <ul id="reservationList"></ul>
+      <h2>予約一覧 (今後3ヶ月分)</h2>
+      <p style="font-size: 12px; color: #666; margin-top: -8px;">※ 枠をタップ/クリックで「予約 ⇄ キャンセル（消去）」が切り替わります。</p>
+      <div id="threeMonthCalendar"></div>
     </div>
   </div>
 
-  <!-- 自動集計・分析タブ -->
+  <!-- 3. 自動集計・分析 -->
   <div id="tab-analytics" class="tab-content">
     <div class="card">
-      <h2>データ概要</h2>
+      <h2>全体集計</h2>
       <p>登録メンバー数: <strong id="totalMembers">0</strong> 名</p>
-      <p>コート予約件数: <strong id="totalReservations">0</strong> 件</p>
+      <p>予約枠数 (総計): <strong id="totalReservations">0</strong> 枠</p>
+      <p>想定コート代合計: <strong id="totalCourtFees">0</strong> 円</p>
     </div>
   </div>
 
   <script>
-    // Firebase設定
+    // Firebase 設定
     const firebaseConfig = {
       apiKey: "AIzaSyDY1ibVIx1tYfsK2MXxQwOLOhrQWtlc6Nk",
       authDomain: "wbc-app-cf99c.firebaseapp.com",
@@ -95,8 +104,11 @@
     firebase.initializeApp(firebaseConfig);
     const dbMembers = firebase.database().ref("members");
     const dbReservations = firebase.database().ref("reservations");
+    const dbSettings = firebase.database().ref("settings");
 
-    // タブ切り替え
+    let currentFee = 1000;
+    let reservationData = {};
+
     function switchTab(tabName) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
@@ -104,7 +116,7 @@
       event.target.classList.add('active');
     }
 
-    // メンバーリアルタイム読み込み
+    // --- メンバー処理 ---
     dbMembers.on("value", (snapshot) => {
       const listEl = document.getElementById("memberList");
       listEl.innerHTML = "";
@@ -117,7 +129,7 @@
           const li = document.createElement("li");
           li.innerHTML = `
             <span>${data[key].name}</span>
-            <button class="btn btn-danger" onclick="removeMember('${key}')">削除</button>
+            <button class="btn btn-danger btn-sm" onclick="removeMember('${key}')">削除</button>
           `;
           listEl.appendChild(li);
         });
@@ -140,46 +152,95 @@
       dbMembers.child(key).remove();
     }
 
-    // 予約リアルタイム読み込み
-    dbReservations.on("value", (snapshot) => {
-      const listEl = document.getElementById("reservationList");
-      listEl.innerHTML = "";
-      const data = snapshot.val();
-      let count = 0;
-
-      if (data) {
-        Object.keys(data).forEach((key) => {
-          count++;
-          const item = data[key];
-          const li = document.createElement("li");
-          li.innerHTML = `
-            <div>
-              <strong>${item.date} ${item.time}</strong><br>
-              <small>${item.court}</small>
-            </div>
-            <button class="btn btn-danger" onclick="removeReservation('${key}')">削除</button>
-          `;
-          listEl.appendChild(li);
-        });
-      } else {
-        listEl.innerHTML = "<li style='color:#8e8e93;'>予約はありません</li>";
+    // --- 料金設定処理 ---
+    dbSettings.child("courtFee").on("value", (snapshot) => {
+      if (snapshot.exists()) {
+        currentFee = snapshot.val();
       }
-      document.getElementById("totalReservations").textContent = count;
+      document.getElementById("currentFeeDisplay").textContent = `現在の基本料金: ${currentFee.toLocaleString()}円 / 時間`;
+      document.getElementById("courtFeeInput").value = currentFee;
+      renderCalendar();
+      updateAnalytics();
     });
 
-    function addReservation() {
-      const date = document.getElementById("resDate").value;
-      const time = document.getElementById("resTime").value;
-      const court = document.getElementById("resCourt").value.trim();
-
-      if (date && time && court) {
-        dbReservations.push({ date, time, court });
-        document.getElementById("resCourt").value = "";
+    function saveCourtFee() {
+      const val = parseInt(document.getElementById("courtFeeInput").value, 10);
+      if (!isNaN(val) && val >= 0) {
+        dbSettings.child("courtFee").set(val);
       }
     }
 
-    function removeReservation(key) {
-      dbReservations.child(key).remove();
+    // --- 3ヶ月カレンダー＆タップ予約・消去処理 ---
+    dbReservations.on("value", (snapshot) => {
+      reservationData = snapshot.val() || {};
+      renderCalendar();
+      updateAnalytics();
+    });
+
+    function toggleSlot(slotKey) {
+      if (reservationData[slotKey]) {
+        // 既に予約があればタップで消去・キャンセル
+        dbReservations.child(slotKey).remove();
+      } else {
+        // 未予約ならタップで予約登録
+        dbReservations.child(slotKey).set({
+          timestamp: Date.now(),
+          fee: currentFee
+        });
+      }
+    }
+
+    function renderCalendar() {
+      const container = document.getElementById("threeMonthCalendar");
+      container.innerHTML = "";
+
+      const today = new Date();
+      const timeSlots = ["09:00-11:00", "11:00-13:00", "13:00-15:00", "15:00-17:00", "17:00-19:00", "19:00-21:00"];
+
+      // 今後90日分（約3ヶ月先まで）を展開
+      for (let i = 0; i < 90; i++) {
+        const d = new Date();
+        d.setDate(today.getDate() + i);
+
+        const dateStr = d.toISOString().split('T')[0];
+        const dateDisplay = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} (${['日','月','火','水','木','金','土'][d.getDay()]})`;
+
+        const dayEl = document.createElement("div");
+        dayEl.className = "calendar-day";
+
+        let slotsHtml = `<div class="calendar-day-header">${dateDisplay}</div><div class="slot-grid">`;
+
+        timeSlots.forEach(slot => {
+          const slotKey = `${dateStr}_${slot.replace(':', '')}`;
+          const isBooked = !!reservationData[slotKey];
+          const feeVal = isBooked ? (reservationData[slotKey].fee || currentFee) : currentFee;
+
+          slotsHtml += `
+            <div class="slot-card ${isBooked ? 'booked' : ''}" onclick="toggleSlot('${slotKey}')">
+              <div style="font-weight:bold; font-size:12px;">${slot}</div>
+              <div style="font-size:12px; margin-top:4px;">${isBooked ? '予約済み ✓' : '+ 予約する'}</div>
+              <div class="fee-badge">${feeVal.toLocaleString()}円</div>
+            </div>
+          `;
+        });
+
+        slotsHtml += `</div>`;
+        dayEl.innerHTML = slotsHtml;
+        container.appendChild(dayEl);
+      }
+    }
+
+    function updateAnalytics() {
+      const bookedKeys = Object.keys(reservationData);
+      const totalCount = bookedKeys.length;
+      let totalFee = 0;
+
+      bookedKeys.forEach(k => {
+        totalFee += (reservationData[k].fee || currentFee);
+      });
+
+      document.getElementById("totalReservations").textContent = totalCount;
+      document.getElementById("totalCourtFees").textContent = totalFee.toLocaleString();
     }
   </script>
 </body>
