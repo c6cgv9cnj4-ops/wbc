@@ -2,280 +2,376 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>バドミントン活動・予約・収支管理</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>バドミントン管理</title>
   <!-- Chart.js グラフライブラリ -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --bg: #f2f2f7;
+      --system-bg: #f2f2f7;
       --card-bg: #ffffff;
       --accent: #34c759;
-      --text: #000000;
-      --text-sec: #8e8e93;
-      --border: #e5e5ea;
+      --accent-blue: #007aff;
+      --text-primary: #000000;
+      --text-secondary: #8e8e93;
+      --border-color: rgba(60, 60, 67, 0.12);
       --danger: #ff3b30;
-      --warning: #ff9500;
-      --card-radius: 12px;
+      --radius: 14px;
     }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--system-bg);
+      color: var(--text-primary);
       margin: 0;
-      padding: 16px;
-      padding-bottom: 40px;
+      padding: 20px 16px 40px;
       -webkit-font-smoothing: antialiased;
     }
+
     .container {
-      max-width: 600px;
+      max-width: 500px;
       margin: 0 auto;
     }
-    h1 {
-      font-size: 1.4rem;
+
+    /* Header */
+    .app-header {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+    .app-header h1 {
+      font-size: 28px;
       font-weight: 700;
-      text-align: center;
-      margin-bottom: 16px;
+      letter-spacing: -0.5px;
+      margin: 0;
     }
-    .section-card {
+    .app-header p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin: 4px 0 0;
+    }
+
+    /* iOS Style Card */
+    .ios-card {
       background: var(--card-bg);
-      border-radius: var(--card-radius);
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 20px;
+      border: 0.5px solid var(--border-color);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.03);
     }
-    .section-title {
-      font-size: 1rem;
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 0.5px solid var(--border-color);
+    }
+    .card-title {
+      font-size: 16px;
       font-weight: 600;
-      margin-top: 0;
-      margin-bottom: 12px;
+      letter-spacing: -0.2px;
+      margin: 0;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      color: #1c1c1e;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 8px;
+      gap: 6px;
     }
+    .card-subtitle {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    /* Form Controls */
     .form-group {
-      margin-bottom: 12px;
+      margin-bottom: 14px;
       display: flex;
       flex-direction: column;
     }
     .form-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-sec);
-      margin-bottom: 4px;
-      text-transform: uppercase;
-      letter-spacing: -0.2px;
-    }
-    input, select {
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      font-size: 0.95rem;
-      background-color: #f9f9fb;
-      appearance: none;
-      outline: none;
-    }
-    input:focus, select:focus {
-      border-color: var(--accent);
-      background-color: #fff;
+      gap: 12px;
     }
 
-    /* 毎週金曜日の予約リスト */
+    label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-bottom: 6px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    select {
+      font-family: inherit;
+      font-size: 16px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background-color: #f9f9fb;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.2s, background-color 0.2s;
+      width: 100%;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent-blue);
+      background-color: #ffffff;
+    }
+
+    /* 予約カード（スライド・消去アニメーション対応） */
     .friday-list {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      max-height: 280px;
+      max-height: 320px;
       overflow-y: auto;
-    }
-    .friday-card {
-      background: #f9f9fb;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .friday-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 700;
-      font-size: 0.9rem;
-    }
-    .friday-inputs {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 8px;
-      align-items: center;
-    }
-    .friday-inputs input {
-      padding: 8px 10px;
-      font-size: 0.85rem;
-    }
-    .complete-btn {
-      background: var(--accent);
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      cursor: pointer;
+      padding-right: 2px;
     }
 
-    /* ピルボタン選択 ＆ 削除機能 */
-    .pills-grid {
+    .friday-item {
+      background: #f9f9fb;
+      border: 0.5px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .friday-item.fade-out {
+      opacity: 0;
+      transform: translateX(100px);
+      max-height: 0;
+      padding: 0;
+      margin: 0;
+      border: none;
+      overflow: hidden;
+    }
+
+    .friday-date {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+    }
+
+    .friday-action {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+    }
+
+    .btn-done {
+      background: var(--accent);
+      color: #ffffff;
+      border: none;
+      padding: 0 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .btn-done:active {
+      opacity: 0.7;
+    }
+
+    /* メンバーピル（カプセルUI） */
+    .member-pills {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       margin-top: 4px;
     }
-    .pill-wrapper {
+
+    .pill {
       display: inline-flex;
       align-items: center;
+      background: #e9e9ed;
       border-radius: 20px;
-      background: #f0f0f4;
-      padding: 4px 8px 4px 12px;
-      font-size: 0.85rem;
+      padding: 6px 10px 6px 14px;
+      font-size: 14px;
       font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s;
       user-select: none;
-      transition: all 0.2s ease;
-      border: 1px solid transparent;
     }
-    .pill-wrapper.active {
+
+    .pill.active {
       background: var(--accent);
-      color: white;
+      color: #ffffff;
       font-weight: 600;
     }
-    .pill-label {
-      cursor: pointer;
-      margin-right: 6px;
-    }
-    .pill-del-btn {
+
+    .pill-remove {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       width: 18px;
       height: 18px;
       border-radius: 50%;
-      background: rgba(0,0,0,0.15);
-      color: #fff;
-      font-size: 0.75rem;
-      cursor: pointer;
+      background: rgba(0, 0, 0, 0.15);
+      color: #ffffff;
+      font-size: 10px;
+      margin-left: 6px;
       line-height: 1;
     }
-    .pill-wrapper.active .pill-del-btn {
-      background: rgba(255,255,255,0.3);
+
+    .pill.active .pill-remove {
+      background: rgba(255, 255, 255, 0.3);
     }
 
-    .calc-preview {
-      background: #f4f1f9;
-      border-radius: 8px;
-      padding: 10px;
-      font-size: 0.85rem;
-      color: #3a3a3c;
-      margin-top: 8px;
+    /* プレビュー領域 */
+    .preview-box {
+      background: #f4f4f6;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 13px;
+      color: var(--text-primary);
       font-weight: 500;
+      text-align: center;
+      margin-top: 10px;
     }
 
-    .submit-btn {
+    /* アクションボタン */
+    .primary-btn {
       width: 100%;
-      background: var(--accent);
-      color: white;
+      background: var(--accent-blue);
+      color: #ffffff;
       border: none;
       padding: 14px;
-      border-radius: 10px;
-      font-size: 1rem;
+      border-radius: 12px;
+      font-size: 16px;
       font-weight: 600;
       cursor: pointer;
+      transition: opacity 0.2s;
       margin-top: 10px;
-      box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
     }
 
-    /* サマリー・グラフ */
+    .primary-btn:active {
+      opacity: 0.8;
+    }
+
+    /* サマリーグリッド */
     .summary-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 10px;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
-    .summary-card {
+
+    .summary-box {
       background: #f9f9fb;
-      padding: 10px;
-      border-radius: 8px;
+      border: 0.5px solid var(--border-color);
+      padding: 12px;
+      border-radius: 10px;
       text-align: center;
     }
-    .summary-card .val { font-size: 1.1rem; font-weight: 700; margin-top: 2px; }
-    .summary-card .lbl { font-size: 0.7rem; color: var(--text-sec); }
 
-    .chart-container {
+    .summary-val {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      margin-top: 2px;
+    }
+
+    .summary-lbl {
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* グラフ */
+    .chart-box {
       position: relative;
-      height: 200px;
+      height: 180px;
       margin-top: 12px;
     }
 
+    /* テーブル */
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.8rem;
+      font-size: 13px;
     }
-    th, td { padding: 8px 4px; border-bottom: 1px solid var(--border); text-align: left; }
-    th { color: var(--text-sec); font-weight: 600; }
+
+    th, td {
+      padding: 10px 4px;
+      border-bottom: 0.5px solid var(--border-color);
+      text-align: left;
+    }
+
+    th {
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h1>🏸 バドミントン管理</h1>
+  
+  <header class="app-header">
+    <h1>バドミントン管理</h1>
+    <p>予約・メンバー・収支のオールインワンツール</p>
+  </header>
 
-  <!-- 1. 3ヶ月先までの金曜日コート予約リスト -->
-  <div class="section-card">
-    <div class="section-title">
-      <span>📅 今後3ヶ月の金曜予約リスト</span>
-      <small style="font-size:0.75rem; color:var(--text-sec);">コート代入力で完了・消去</small>
+  <!-- 1. 3ヶ月先の金曜予約 -->
+  <section class="ios-card">
+    <div class="card-header">
+      <h2 class="card-title">📅 今後3ヶ月の金曜予約</h2>
+      <span class="card-subtitle">入力で完了・消去</span>
     </div>
     <div class="friday-list" id="fridayListContainer">
-      <!-- JSで動的生成 -->
+      <!-- JSで動的描画 -->
     </div>
-  </div>
+  </section>
 
-  <!-- 2. メンバー管理 ＆ 今回の活動記録 -->
-  <div class="section-card">
-    <div class="section-title">👥 メンバーと金額設定</div>
+  <!-- 2. メンバー ＆ 活動記録 -->
+  <section class="ios-card">
+    <div class="card-header">
+      <h2 class="card-title">👥 メンバー ＆ 活動登録</h2>
+    </div>
 
-    <!-- メンバー追加入力欄 -->
+    <!-- メンバー追加 -->
     <div class="form-group">
       <label>メンバー追加</label>
       <div style="display:flex; gap:8px;">
-        <input type="text" id="newMemberName" placeholder="名前を入力..." style="flex:1;">
-        <button type="button" onclick="addNewMember()" style="background:#007aff; color:white; border:none; border-radius:8px; padding:0 14px; font-weight:600;">登録</button>
+        <input type="text" id="newMemberName" placeholder="名前を入力...">
+        <button type="button" onclick="addNewMember()" style="background:var(--accent-blue); color:white; border:none; border-radius:10px; padding:0 16px; font-weight:600; font-size:14px; white-space:nowrap;">登録</button>
       </div>
     </div>
 
+    <!-- メンバー選択 -->
     <div class="form-group">
-      <label>メンバー選択 (タップで選択 / ×で削除)</label>
-      <div class="pills-grid" id="memberPills">
-        <!-- JSで生成 -->
+      <label>参加メンバー（タップで選択 / ✕で削除）</label>
+      <div class="member-pills" id="memberPills">
+        <!-- JSで動的描画 -->
       </div>
     </div>
 
-    <div class="form-row" style="margin-top:10px;">
+    <div class="form-row" style="margin-top: 14px;">
       <div class="form-group">
         <label>開催年月日</label>
         <input type="date" id="eventDate">
       </div>
       <div class="form-group">
-        <label>時間帯 (金曜)</label>
+        <label>時間帯</label>
         <select id="timeSlot">
           <option value="20:00〜22:00">20:00〜22:00 (2h)</option>
           <option value="19:00〜22:00">19:00〜22:00 (3h)</option>
@@ -289,11 +385,11 @@
       <input type="number" id="memberRate" value="700" placeholder="700" onfocus="this.select()" oninput="updateCalculation()">
     </div>
 
-    <div class="calc-preview" id="feeSummaryPreview">
+    <div class="preview-box" id="feeSummaryPreview">
       会費収入合計: 0 円
     </div>
 
-    <hr style="border:none; border-top:1px solid var(--border); margin:14px 0;">
+    <hr style="border:none; border-top:0.5px solid var(--border-color); margin: 16px 0;">
 
     <div class="form-group">
       <label>コート代 (円)</label>
@@ -310,53 +406,56 @@
         <input type="number" id="shuttleDozens" value="0" onfocus="this.select()" oninput="calcShuttleUnit()">
       </div>
     </div>
-    <div id="shuttleUnitText" style="font-size:0.75rem; color:var(--text-sec); margin-bottom:8px;"></div>
+    <div id="shuttleUnitText" style="font-size:12px; color:var(--text-secondary); margin-bottom:8px;"></div>
 
-    <button type="button" class="submit-btn" onclick="addRecord()">今回の活動・収支を保存する</button>
-  </div>
+    <button type="button" class="primary-btn" onclick="addRecord()">今回の活動・収支を保存</button>
+  </section>
 
-  <!-- 3. 収支＆グラフ -->
-  <div class="section-card">
-    <div class="section-title">📊 3. 収支＆グラフ</div>
+  <!-- 3. 収支 ＆ グラフ -->
+  <section class="ios-card">
+    <div class="card-header">
+      <h2 class="card-title">📊 収支 ＆ トレンド</h2>
+    </div>
 
     <div class="summary-grid">
-      <div class="summary-card">
-        <div class="lbl">手元繰越残高</div>
-        <div class="val" id="totalBalance" style="color:var(--accent);">0 円</div>
+      <div class="summary-box">
+        <div class="summary-lbl">手元繰越残高</div>
+        <div class="summary-val" id="totalBalance" style="color:var(--accent);">0 円</div>
       </div>
-      <div class="summary-card">
-        <div class="lbl">累計収入</div>
-        <div class="val" id="totalIncome">0 円</div>
+      <div class="summary-card summary-box">
+        <div class="summary-lbl">累計収入</div>
+        <div class="summary-val" id="totalIncome">0 円</div>
       </div>
-      <div class="summary-card">
-        <div class="lbl">累計コート代</div>
-        <div class="val" id="totalCourt">0 円</div>
+      <div class="summary-card summary-box">
+        <div class="summary-lbl">累計コート代</div>
+        <div class="summary-val" id="totalCourt">0 円</div>
       </div>
-      <div class="summary-card">
-        <div class="lbl">累計シャトル代</div>
-        <div class="val" id="totalShuttle">0 円</div>
+      <div class="summary-card summary-box">
+        <div class="summary-lbl">累計シャトル代</div>
+        <div class="summary-val" id="totalShuttle">0 円</div>
       </div>
     </div>
 
-    <div class="chart-container">
+    <div class="chart-box">
       <canvas id="balanceChart"></canvas>
     </div>
 
-    <div style="margin-top:16px; overflow-x:auto;">
+    <div style="margin-top:20px; overflow-x:auto;">
       <table>
         <thead>
           <tr>
             <th>日付</th>
             <th>人数</th>
             <th>コート代</th>
-            <th>シャトル代</th>
-            <th>単回収支</th>
+            <th>シャトル</th>
+            <th>収支</th>
           </tr>
         </thead>
         <tbody id="historyBody"></tbody>
       </table>
     </div>
-  </div>
+  </section>
+
 </div>
 
 <script>
@@ -374,7 +473,7 @@
     renderHistoryAndCharts();
   });
 
-  // 1. 今後3ヶ月の金曜日リストを生成＆描画
+  // 3ヶ月の金曜予約リスト描画
   function renderFridayList() {
     const container = document.getElementById('fridayListContainer');
     container.innerHTML = '';
@@ -394,53 +493,60 @@
 
       if (!completedFridays.includes(dateStr)) {
         count++;
-        const card = document.createElement('div');
-        card.className = 'friday-card';
-        card.innerHTML = `
-          <div class="friday-header">
-            <span>📅 ${dateStr} (金)</span>
-          </div>
-          <div class="friday-inputs">
+        const item = document.createElement('div');
+        item.className = 'friday-item';
+        item.id = `friday-item-${dateStr}`;
+        item.innerHTML = `
+          <div class="friday-date">📅 ${dateStr} (金)</div>
+          <div class="friday-action">
             <input type="number" id="f_court_${dateStr}" placeholder="コート代 (円)" onfocus="this.select()">
-            <button class="complete-btn" onclick="completeFridayReservation('${dateStr}')">予約完了</button>
+            <button class="btn-done" onclick="completeFridayReservation('${dateStr}')">完了</button>
           </div>
         `;
-        container.appendChild(card);
+        container.appendChild(item);
       }
       cur.setDate(cur.getDate() + 7);
     }
 
     if (count === 0) {
-      container.innerHTML = '<div style="font-size:0.85rem; color:var(--text-sec); text-align:center; padding:12px;">3ヶ月先までの予約はすべて完了しています</div>';
+      container.innerHTML = '<div style="font-size:13px; color:var(--text-secondary); text-align:center; padding:12px;">3ヶ月先までの予約はすべて完了しています</div>';
     }
   }
 
+  // 予約完了（アニメーション付き消去＆収支連動）
   function completeFridayReservation(dateStr) {
     const courtExpense = Number(document.getElementById(`f_court_${dateStr}`).value) || 0;
+    const itemEl = document.getElementById(`friday-item-${dateStr}`);
 
-    completedFridays.push(dateStr);
-    localStorage.setItem('badminton_completed_fridays', JSON.stringify(completedFridays));
+    if (itemEl) {
+      itemEl.classList.add('fade-out');
+    }
 
-    const item = {
-      id: Date.now(),
-      date: dateStr,
-      time: '金曜枠',
-      isReserved: true,
-      courtExpense: courtExpense,
-      shuttleExpense: 0,
-      memberCount: 0,
-      income: 0,
-      net: -courtExpense
-    };
+    setTimeout(() => {
+      completedFridays.push(dateStr);
+      localStorage.setItem('badminton_completed_fridays', JSON.stringify(completedFridays));
 
-    records.unshift(item);
-    localStorage.setItem('badminton_app_records', JSON.stringify(records));
+      const item = {
+        id: Date.now(),
+        date: dateStr,
+        time: '金曜枠',
+        isReserved: true,
+        courtExpense: courtExpense,
+        shuttleExpense: 0,
+        memberCount: 0,
+        income: 0,
+        net: -courtExpense
+      };
 
-    renderFridayList();
-    renderHistoryAndCharts();
+      records.unshift(item);
+      localStorage.setItem('badminton_app_records', JSON.stringify(records));
+
+      renderFridayList();
+      renderHistoryAndCharts();
+    }, 300);
   }
 
-  // メンバー登録（追加）
+  // メンバー追加
   function addNewMember() {
     const input = document.getElementById('newMemberName');
     const name = input.value.trim();
@@ -468,13 +574,13 @@
     container.innerHTML = '';
     memberList.forEach(name => {
       const isSelected = selectedMembers.includes(name);
-      const wrapper = document.createElement('div');
-      wrapper.className = `pill-wrapper ${isSelected ? 'active' : ''}`;
-      wrapper.innerHTML = `
-        <span class="pill-label" onclick="toggleMember('${name}')">${name}</span>
-        <span class="pill-del-btn" onclick="event.stopPropagation(); removeMember('${name}')">✕</span>
+      const pill = document.createElement('div');
+      pill.className = `pill ${isSelected ? 'active' : ''}`;
+      pill.innerHTML = `
+        <span onclick="toggleMember('${name}')">${name}</span>
+        <span class="pill-remove" onclick="event.stopPropagation(); removeMember('${name}')">✕</span>
       `;
-      container.appendChild(wrapper);
+      container.appendChild(pill);
     });
   }
 
@@ -537,8 +643,7 @@
 
     records.unshift(item);
     localStorage.setItem('badminton_app_records', JSON.stringify(records));
-    
-    // リセット
+
     selectedMembers = [];
     document.getElementById('memberRate').value = 700;
     document.getElementById('courtFee').value = 0;
@@ -580,7 +685,6 @@
     document.getElementById('totalCourt').textContent = sumCourt.toLocaleString() + ' 円';
     document.getElementById('totalShuttle').textContent = sumShuttle.toLocaleString() + ' 円';
 
-    // グラフ描画
     const recent = [...records].reverse().slice(-6);
     const labels = recent.map(r => r.date.slice(5));
     const dataVals = recent.map(r => r.net);
@@ -596,13 +700,17 @@
           label: '単回収支 (円)',
           data: dataVals,
           backgroundColor: dataVals.map(v => v >= 0 ? '#34c759' : '#ff3b30'),
-          borderRadius: 4
+          borderRadius: 6
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } }
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false } },
+          y: { grid: { color: 'rgba(60, 60, 67, 0.08)' } }
+        }
       }
     });
   }
