@@ -252,18 +252,6 @@
 <div class="container">
   <h1>🏸 バドミントン管理</h1>
 
-  <!-- 0. スマホ・PC間のデータ同期（新設） -->
-  <div class="section-card">
-    <div class="section-title">
-      <span>🔄 PC・スマホ間のメンバー＆データ同期</span>
-    </div>
-    <div style="display:flex; gap:8px; margin-bottom:8px;">
-      <button type="button" class="sync-btn" onclick="exportData()">PC側: データをコピー</button>
-      <button type="button" class="sync-btn" style="background:#5856d6;" onclick="importData()">スマホ側: 復元読み込み</button>
-    </div>
-    <textarea id="syncDataArea" rows="2" placeholder="ここに同期コードが生成されます（貼り付けて復元可能）" style="width:100%; font-size:0.75rem;"></textarea>
-  </div>
-
   <!-- 1. 3ヶ月先までの金曜日コート予約リスト -->
   <div class="section-card">
     <div class="section-title">
@@ -383,6 +371,19 @@
       </table>
     </div>
   </div>
+
+  <!-- 4. スマホ・PC間のデータ同期（一番下に配置） -->
+  <div class="section-card">
+    <div class="section-title">
+      <span>🔄 PC・スマホ間のメンバー＆データ同期</span>
+    </div>
+    <div style="display:flex; gap:8px; margin-bottom:8px;">
+      <button type="button" class="sync-btn" onclick="exportData()">PC側: データをコピー</button>
+      <button type="button" class="sync-btn" style="background:#5856d6;" onclick="importData()">スマホ側: 復元読み込み</button>
+    </div>
+    <textarea id="syncDataArea" rows="2" placeholder="ここに同期コードが生成されます（貼り付けて復元可能）" style="width:100%; font-size:0.75rem;"></textarea>
+  </div>
+
 </div>
 
 <script>
