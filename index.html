@@ -17,19 +17,19 @@
     .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     h2 { font-size: 16px; margin-top: 0; margin-bottom: 12px; color: #3a3a3c; }
     .input-group { display: flex; gap: 8px; margin-bottom: 10px; }
-    input[type="text"], input[type="number"], select { flex: 1; padding: 10px; border: 1px solid #c7c7cc; border-radius: 8px; font-size: 15px; background: #fff; }
+    input[type="text"], input[type="number"] { flex: 1; padding: 10px; border: 1px solid #c7c7cc; border-radius: 8px; font-size: 15px; background: #fff; }
     .btn { padding: 10px 16px; border: none; border-radius: 8px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; font-size: 14px; }
     .btn-danger { background: #ff3b30; }
     .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 6px; }
     ul { list-style: none; padding: 0; margin: 0; }
     li { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
     li:last-child { border-bottom: none; }
-    .calendar-day { border-bottom: 1px solid var(--border); padding: 10px 0; }
-    .calendar-day-header { font-weight: bold; font-size: 14px; margin-bottom: 6px; color: var(--primary); }
-    .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
-    .slot-card { border: 1px dashed #c7c7cc; border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; background: #fff; }
+    .calendar-day { border-bottom: 1px solid var(--border); padding: 12px 0; }
+    .calendar-day-header { font-weight: bold; font-size: 15px; margin-bottom: 8px; color: #007aff; }
+    .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+    .slot-card { border: 1px dashed #c7c7cc; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; background: #fff; }
     .slot-card.booked { border-style: solid; border-color: #34c759; background: #e8f9ed; }
-    .fee-badge { font-size: 11px; color: #666; margin-top: 2px; }
+    .fee-badge { font-size: 12px; color: #666; margin-top: 4px; font-weight: bold; }
   </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -44,7 +44,7 @@
 
   <nav>
     <button class="active" onclick="switchTab('members')">メンバー</button>
-    <button onclick="switchTab('reservations')">コート予約</button>
+    <button onclick="switchTab('reservations')">金曜サークル予約</button>
     <button onclick="switchTab('analytics')">自動集計・分析</button>
   </nav>
 
@@ -63,21 +63,21 @@
     </div>
   </div>
 
-  <!-- 2. コート予約（3ヶ月展開・タップ予約＆消去・料金連動） -->
+  <!-- 2. 金曜サークル予約（今後3ヶ月の毎週金曜日のみ・コート面数で予約/消去） -->
   <div id="tab-reservations" class="tab-content">
     <div class="card">
-      <h2>コート料金設定 (1時間あたり)</h2>
+      <h2>コート1面あたりの代金設定</h2>
       <div class="input-group">
-        <input type="number" id="courtFeeInput" placeholder="料金 (円)" value="1000">
+        <input type="number" id="courtFeeInput" placeholder="料金 (円)" value="2000">
         <button class="btn" onclick="saveCourtFee()">設定保存</button>
       </div>
-      <div id="currentFeeDisplay" style="font-size:12px; color:#666;">現在の基本料金: 1,000円 / 時間</div>
+      <div id="currentFeeDisplay" style="font-size:12px; color:#666;">現在のコート代: 2,000円 / 面</div>
     </div>
 
     <div class="card">
-      <h2>予約一覧 (今後3ヶ月分)</h2>
-      <p style="font-size: 12px; color: #666; margin-top: -8px;">※ 枠をタップ/クリックで「予約 ⇄ キャンセル（消去）」が切り替わります。</p>
-      <div id="threeMonthCalendar"></div>
+      <h2>毎週金曜日のコート予約 (今後3ヶ月分)</h2>
+      <p style="font-size: 12px; color: #666; margin-top: -8px;">※ コート枠をタップ/クリックで「予約 ⇄ キャンセル（消去）」が切り替わります。</p>
+      <div id="fridayCalendar"></div>
     </div>
   </div>
 
@@ -86,8 +86,8 @@
     <div class="card">
       <h2>全体集計</h2>
       <p>登録メンバー数: <strong id="totalMembers">0</strong> 名</p>
-      <p>予約枠数 (総計): <strong id="totalReservations">0</strong> 枠</p>
-      <p>想定コート代合計: <strong id="totalCourtFees">0</strong> 円</p>
+      <p>予約コート総面数: <strong id="totalReservations">0</strong> 面</p>
+      <p>累計コート代合計: <strong id="totalCourtFees">0</strong> 円</p>
     </div>
   </div>
 
@@ -106,7 +106,7 @@
     const dbReservations = firebase.database().ref("reservations");
     const dbSettings = firebase.database().ref("settings");
 
-    let currentFee = 1000;
+    let currentFee = 2000;
     let reservationData = {};
 
     function switchTab(tabName) {
@@ -157,9 +157,9 @@
       if (snapshot.exists()) {
         currentFee = snapshot.val();
       }
-      document.getElementById("currentFeeDisplay").textContent = `現在の基本料金: ${currentFee.toLocaleString()}円 / 時間`;
+      document.getElementById("currentFeeDisplay").textContent = `現在のコート代: ${currentFee.toLocaleString()}円 / 面`;
       document.getElementById("courtFeeInput").value = currentFee;
-      renderCalendar();
+      renderFridayCalendar();
       updateAnalytics();
     });
 
@@ -170,16 +170,16 @@
       }
     }
 
-    // --- 3ヶ月カレンダー＆タップ予約・消去処理 ---
+    // --- 金曜日限定カレンダー＆タップ予約・消去処理 ---
     dbReservations.on("value", (snapshot) => {
       reservationData = snapshot.val() || {};
-      renderCalendar();
+      renderFridayCalendar();
       updateAnalytics();
     });
 
     function toggleSlot(slotKey) {
       if (reservationData[slotKey]) {
-        // 既に予約があればタップで消去・キャンセル
+        // 既に予約があればタップで消去
         dbReservations.child(slotKey).remove();
       } else {
         // 未予約ならタップで予約登録
@@ -190,43 +190,46 @@
       }
     }
 
-    function renderCalendar() {
-      const container = document.getElementById("threeMonthCalendar");
+    function renderFridayCalendar() {
+      const container = document.getElementById("fridayCalendar");
       container.innerHTML = "";
 
       const today = new Date();
-      const timeSlots = ["09:00-11:00", "11:00-13:00", "13:00-15:00", "15:00-17:00", "17:00-19:00", "19:00-21:00"];
+      const courts = ["第1コート", "第2コート", "第3コート"];
 
-      // 今後90日分（約3ヶ月先まで）を展開
+      // 今後90日間のうち「金曜日」だけを抽出して表示
       for (let i = 0; i < 90; i++) {
         const d = new Date();
         d.setDate(today.getDate() + i);
 
-        const dateStr = d.toISOString().split('T')[0];
-        const dateDisplay = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} (${['日','月','火','水','木','金','土'][d.getDay()]})`;
+        // 金曜日（d.getDay() === 5）のみ処理
+        if (d.getDay() === 5) {
+          const dateStr = d.toISOString().split('T')[0];
+          const dateDisplay = `${d.getFullYear()}年 ${d.getMonth()+1}月${d.getDate()}日 (金)`;
 
-        const dayEl = document.createElement("div");
-        dayEl.className = "calendar-day";
+          const dayEl = document.createElement("div");
+          dayEl.className = "calendar-day";
 
-        let slotsHtml = `<div class="calendar-day-header">${dateDisplay}</div><div class="slot-grid">`;
+          let slotsHtml = `<div class="calendar-day-header">📅 ${dateDisplay}</div><div class="slot-grid">`;
 
-        timeSlots.forEach(slot => {
-          const slotKey = `${dateStr}_${slot.replace(':', '')}`;
-          const isBooked = !!reservationData[slotKey];
-          const feeVal = isBooked ? (reservationData[slotKey].fee || currentFee) : currentFee;
+          courts.forEach(court => {
+            const slotKey = `${dateStr}_${court}`;
+            const isBooked = !!reservationData[slotKey];
+            const feeVal = isBooked ? (reservationData[slotKey].fee || currentFee) : currentFee;
 
-          slotsHtml += `
-            <div class="slot-card ${isBooked ? 'booked' : ''}" onclick="toggleSlot('${slotKey}')">
-              <div style="font-weight:bold; font-size:12px;">${slot}</div>
-              <div style="font-size:12px; margin-top:4px;">${isBooked ? '予約済み ✓' : '+ 予約する'}</div>
-              <div class="fee-badge">${feeVal.toLocaleString()}円</div>
-            </div>
-          `;
-        });
+            slotsHtml += `
+              <div class="slot-card ${isBooked ? 'booked' : ''}" onclick="toggleSlot('${slotKey}')">
+                <div style="font-weight:bold; font-size:14px;">${court}</div>
+                <div style="font-size:12px; margin-top:4px;">${isBooked ? '予約済み ✓' : '+ 予約する'}</div>
+                <div class="fee-badge">${feeVal.toLocaleString()}円</div>
+              </div>
+            `;
+          });
 
-        slotsHtml += `</div>`;
-        dayEl.innerHTML = slotsHtml;
-        container.appendChild(dayEl);
+          slotsHtml += `</div>`;
+          dayEl.innerHTML = slotsHtml;
+          container.appendChild(dayEl);
+        }
       }
     }
 
