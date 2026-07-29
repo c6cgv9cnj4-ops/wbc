@@ -3,354 +3,501 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>バドミントンサークル管理・収支ツール</title>
+  <title>バドミントン活動・予約・収支管理</title>
+  <!-- Chart.js グラフライブラリ -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --primary: #2e7d32;
-      --bg: #f4f6f8;
-      --card: #ffffff;
-      --text: #333333;
-      --border: #e0e0e0;
-      --danger: #d32f2f;
-      --success: #388e3c;
+      --bg: #f2f2f7;
+      --card-bg: #ffffff;
+      --accent: #34c759;
+      --text: #000000;
+      --text-sec: #8e8e93;
+      --border: #e5e5ea;
+      --danger: #ff3b30;
+      --card-radius: 12px;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
       background-color: var(--bg);
       color: var(--text);
       margin: 0;
       padding: 16px;
-      line-height: 1.5;
+      padding-bottom: 40px;
+      -webkit-font-smoothing: antialiased;
     }
     .container {
-      max-width: 900px;
+      max-width: 600px;
       margin: 0 auto;
     }
     h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
       text-align: center;
-      color: var(--primary);
-      font-size: 1.5rem;
       margin-bottom: 20px;
     }
-    .card {
-      background: var(--card);
-      border-radius: 8px;
+    .section-card {
+      background: var(--card-bg);
+      border-radius: var(--card-radius);
       padding: 16px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
-    .card h2 {
-      font-size: 1.1rem;
+    .section-title {
+      font-size: 1rem;
+      font-weight: 600;
       margin-top: 0;
-      margin-bottom: 12px;
-      border-bottom: 2px solid var(--primary);
-      padding-bottom: 6px;
-      color: var(--primary);
-    }
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 12px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #1c1c1e;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
     }
     .form-group {
+      margin-bottom: 12px;
       display: flex;
       flex-direction: column;
     }
-    .form-group.full {
-      grid-column: 1 / -1;
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
     }
     label {
-      font-size: 0.85rem;
-      font-weight: bold;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-sec);
       margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: -0.2px;
     }
-    input, select, textarea {
-      padding: 8px 12px;
+    input, select {
+      padding: 10px 12px;
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 8px;
       font-size: 0.95rem;
+      background-color: #f9f9fb;
+      appearance: none;
+      outline: none;
     }
-    button {
-      background-color: var(--primary);
+    input:focus, select:focus {
+      border-color: var(--accent);
+      background-color: #fff;
+    }
+    /* iOSスタイル トグル */
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 28px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #e9e9ea; transition: .3s; border-radius: 28px;
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 24px; width: 24px; left: 2px; bottom: 2px;
+      background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    input:checked + .slider { background-color: var(--accent); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    /* ピルボタン選択 */
+    .pills-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .pill-btn {
+      padding: 8px 14px;
+      border-radius: 20px;
+      background: #f0f0f4;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+    .pill-btn.active {
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+
+    .calc-preview {
+      background: #f4f1f9;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 0.85rem;
+      color: #3a3a3c;
+      margin-top: 8px;
+      font-weight: 500;
+    }
+
+    .submit-btn {
+      width: 100%;
+      background: var(--accent);
       color: white;
       border: none;
-      padding: 10px 16px;
-      font-size: 0.95rem;
-      font-weight: bold;
-      border-radius: 4px;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
       cursor: pointer;
+      margin-top: 10px;
+      box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
+    }
+
+    /* サマリー・グラフ */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .summary-card {
+      background: #f9f9fb;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .summary-card .val { font-size: 1.1rem; font-weight: 700; margin-top: 2px; }
+    .summary-card .lbl { font-size: 0.7rem; color: var(--text-sec); }
+
+    .chart-container {
+      position: relative;
+      height: 200px;
       margin-top: 12px;
-      width: 100%;
     }
-    button:hover {
-      opacity: 0.9;
-    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 12px;
-      font-size: 0.85rem;
-    }
-    th, td {
-      border: 1px solid var(--border);
-      padding: 8px;
-      text-align: left;
-    }
-    th {
-      background-color: #f0f4f1;
-    }
-    .summary-box {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 10px;
-      text-align: center;
-    }
-    .summary-item {
-      background: #f9f9f9;
-      padding: 12px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-    }
-    .summary-item .title {
       font-size: 0.8rem;
-      color: #666;
     }
-    .summary-item .value {
-      font-size: 1.2rem;
-      font-weight: bold;
-      margin-top: 4px;
+    th, td { padding: 8px 4px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { color: var(--text-sec); font-weight: 600; }
+    .badge {
+      font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: 600;
     }
-    .positive { color: var(--success); }
-    .negative { color: var(--danger); }
-    .status-badge {
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: bold;
-    }
-    .status-done { background: #e8f5e9; color: var(--success); }
-    .status-pending { background: #ffebee; color: var(--danger); }
-    .del-btn {
-      background: #ff5252;
-      padding: 4px 8px;
-      font-size: 0.75rem;
-      width: auto;
-      margin: 0;
-    }
+    .badge-ok { background: #e4f9e8; color: var(--accent); }
+    .badge-wait { background: #ffebeb; color: var(--danger); }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h1>🏸 バドミントン活動・予約・収支管理</h1>
+  <h1>🏸 バドミントン管理</h1>
 
-  <!-- 全体収支サマリー -->
-  <div class="card">
-    <h2>📊 全体累計収支</h2>
-    <div class="summary-box">
-      <div class="summary-item">
-        <div class="title">累計参加費収入 (700円/人)</div>
-        <div class="value" id="totalIncome">0 円</div>
+  <!-- 1. 予約管理 -->
+  <div class="section-card">
+    <div class="section-title">📅 1. 予約設定</div>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label>開催年月日</label>
+        <input type="date" id="eventDate">
       </div>
-      <div class="summary-item">
-        <div class="title">累計コート代支出</div>
-        <div class="value" id="totalCourtExpense">0 円</div>
+      <div class="form-group">
+        <label>時間帯 (金曜)</label>
+        <select id="timeSlot">
+          <option value="20:00〜22:00">20:00〜22:00 (2h)</option>
+          <option value="19:00〜22:00">19:00〜22:00 (3h)</option>
+          <option value="18:00〜22:00">18:00〜22:00 (4h)</option>
+        </select>
       </div>
-      <div class="summary-item">
-        <div class="title">累計シャトル代支出</div>
-        <div class="value" id="totalShuttleExpense">0 円</div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>コート1 料金 (円)</label>
+        <input type="number" id="court1Fee" value="0" onfocus="this.select()">
       </div>
-      <div class="summary-item">
-        <div class="title">繰越残高 (現在の手元資金)</div>
-        <div class="value" id="netBalance">0 円</div>
+      <div class="form-group">
+        <label>コート2 料金 (円)</label>
+        <input type="number" id="court2Fee" value="0" onfocus="this.select()">
       </div>
+    </div>
+
+    <div class="toggle-row">
+      <span style="font-size:0.9rem; font-weight:600;">予約完了ステータス</span>
+      <label class="switch">
+        <input type="checkbox" id="resStatusToggle" checked>
+        <span class="slider"></span>
+      </label>
     </div>
   </div>
 
-  <!-- 新規入力フォーム -->
-  <div class="card">
-    <h2>＋ 活動・予約の新規登録</h2>
-    <form id="recordForm">
-      <div class="form-grid">
-        <div class="form-group">
-          <label for="date">開催年月日</label>
-          <input type="date" id="date" required>
-        </div>
-        <div class="form-group">
-          <label for="time">時間帯 (金曜日)</label>
-          <select id="time">
-            <option value="20:00〜22:00 (2h)">20:00〜22:00 (2h)</option>
-            <option value="19:00〜22:00 (3h)">19:00〜22:00 (3h)</option>
-            <option value="18:00〜22:00 (4h)">18:00〜22:00 (4h)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="status">予約状況</label>
-          <select id="status">
-            <option value="予約済み">予約済み</option>
-            <option value="未予約（予約待ち）">未予約（予約待ち）</option>
-          </select>
-        </div>
+  <!-- 2. メンバーと金額 -->
+  <div class="section-card">
+    <div class="section-title">👥 2. メンバーと金額</div>
 
-        <div class="form-group">
-          <label for="courtA">コート1 (場所・金額)</label>
-          <input type="number" id="courtA" placeholder="金額 (円)" value="0">
-        </div>
-        <div class="form-group">
-          <label for="courtB">コート2 (場所・金額)</label>
-          <input type="number" id="courtB" placeholder="金額 (円)" value="0">
-        </div>
-
-        <div class="form-group">
-          <label for="membersCount">参加人数 (最大12名想定)</label>
-          <input type="number" id="membersCount" value="12" min="0" max="30">
-        </div>
-
-        <div class="form-group full">
-          <label for="memberNames">参加メンバー名 (カンマ区切り)</label>
-          <input type="text" id="memberNames" placeholder="例: 細川, 田中, 鈴木...">
-        </div>
-
-        <div class="form-group full">
-          <label for="shuttleExpense">シャトル購入代金（購入時のみ入力）</label>
-          <input type="number" id="shuttleExpense" value="0" placeholder="0">
-        </div>
+    <div class="form-group">
+      <label>大人メンバー選択 (ポチポチタップ)</label>
+      <div class="pills-grid" id="memberPills">
+        <!-- JSで生成 -->
       </div>
-      <button type="submit">記録を追加・保存する</button>
-    </form>
+    </div>
+
+    <div class="form-row" style="margin-top:10px;">
+      <div class="form-group">
+        <label>大人 会費単価 (円)</label>
+        <!-- 初期値700円。フォーカス時に全選択され、そのまま消去・上書きが可能 -->
+        <input type="number" id="adultRate" value="700" placeholder="700" onfocus="this.select()" oninput="updateCalculation()">
+      </div>
+      <div class="form-group">
+        <label>子供 人数 (名)</label>
+        <input type="number" id="childCount" value="0" min="0" onfocus="this.select()" oninput="updateCalculation()">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>子供 会費単価 (その都度入力/円)</label>
+      <input type="number" id="childRate" value="0" placeholder="例: 300" onfocus="this.select()" oninput="updateCalculation()">
+    </div>
+
+    <div class="calc-preview" id="feeSummaryPreview">
+      会費収入合計: 0 円 (大人 0名 × 700円 + 子供 0名 × 0円)
+    </div>
+
+    <hr style="border:none; border-top:1px solid var(--border); margin:14px 0;">
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>シャトル購入額 (円)</label>
+        <input type="number" id="shuttleFee" value="0" onfocus="this.select()" oninput="calcShuttleUnit()">
+      </div>
+      <div class="form-group">
+        <label>購入数 (ダース)</label>
+        <input type="number" id="shuttleDozens" value="0" onfocus="this.select()" oninput="calcShuttleUnit()">
+      </div>
+    </div>
+    <div id="shuttleUnitText" style="font-size:0.75rem; color:var(--text-sec); margin-bottom:8px;"></div>
+
+    <button type="button" class="submit-btn" onclick="addRecord()">記録を保存する</button>
   </div>
 
-  <!-- 履歴・一覧表示 -->
-  <div class="card">
-    <h2>📜 活動・収支履歴</h2>
-    <div style="overflow-x: auto;">
-      <table id="recordsTable">
+  <!-- 3. 収支＆グラフ -->
+  <div class="section-card">
+    <div class="section-title">📊 3. 収支＆グラフ</div>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="lbl">手元繰越残高</div>
+        <div class="val" id="totalBalance" style="color:var(--accent);">0 円</div>
+      </div>
+      <div class="summary-card">
+        <div class="lbl">累計収入</div>
+        <div class="val" id="totalIncome">0 円</div>
+      </div>
+      <div class="summary-card">
+        <div class="lbl">累計コート代</div>
+        <div class="val" id="totalCourt">0 円</div>
+      </div>
+      <div class="summary-card">
+        <div class="lbl">累計シャトル代</div>
+        <div class="val" id="totalShuttle">0 円</div>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <canvas id="balanceChart"></canvas>
+    </div>
+
+    <div style="margin-top:16px; overflow-x:auto;">
+      <table>
         <thead>
           <tr>
             <th>日付</th>
-            <th>時間</th>
             <th>予約</th>
-            <th>参加者</th>
+            <th>人数</th>
             <th>コート代</th>
             <th>シャトル代</th>
-            <th>会費収入</th>
             <th>単回収支</th>
-            <th>操作</th>
           </tr>
         </thead>
-        <tbody>
-          <!-- 動的挿入 -->
-        </tbody>
+        <tbody id="historyBody"></tbody>
       </table>
     </div>
   </div>
 </div>
 
 <script>
-  let records = JSON.parse(localStorage.getItem('badminton_records')) || [];
+  let defaultMembers = ['細川', '田中', '鈴木', '佐藤', '高橋', '渡辺'];
+  let selectedMembers = [];
+  let records = JSON.parse(localStorage.getItem('badminton_app_records')) || [];
+  let chartInstance = null;
 
-  const form = document.getElementById('recordForm');
-  const tableBody = document.querySelector('#recordsTable tbody');
-
-  // 初期化・保存データの描画
   document.addEventListener('DOMContentLoaded', () => {
-    // 今日の日付をセット
-    document.getElementById('date').valueAsDate = new Date();
-    render();
+    document.getElementById('eventDate').valueAsDate = new Date();
+    renderPills();
+    updateCalculation();
+    renderHistoryAndCharts();
   });
 
-  // フォーム送信
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
+  function renderPills() {
+    const container = document.getElementById('memberPills');
+    container.innerHTML = '';
+    defaultMembers.forEach(name => {
+      const btn = document.createElement('div');
+      btn.className = `pill-btn ${selectedMembers.includes(name) ? 'active' : ''}`;
+      btn.textContent = name;
+      btn.onclick = () => toggleMember(name);
+      container.appendChild(btn);
+    });
+  }
 
-    const date = document.getElementById('date').value;
-    const time = document.getElementById('time').value;
-    const status = document.getElementById('status').value;
-    const courtA = Number(document.getElementById('courtA').value) || 0;
-    const courtB = Number(document.getElementById('courtB').value) || 0;
-    const membersCount = Number(document.getElementById('membersCount').value) || 0;
-    const memberNames = document.getElementById('memberNames').value || '未入力';
-    const shuttleExpense = Number(document.getElementById('shuttleExpense').value) || 0;
+  function toggleMember(name) {
+    if (selectedMembers.includes(name)) {
+      selectedMembers = selectedMembers.filter(m => m !== name);
+    } else {
+      selectedMembers.push(name);
+    }
+    renderPills();
+    updateCalculation();
+  }
 
-    const totalCourt = courtA + courtB;
-    const totalIncome = membersCount * 700; // 会費700円固定
-    const net = totalIncome - totalCourt - shuttleExpense;
+  function updateCalculation() {
+    const adultCount = selectedMembers.length;
+    const adultRate = Number(document.getElementById('adultRate').value) || 0;
+    const childCount = Number(document.getElementById('childCount').value) || 0;
+    const childRate = Number(document.getElementById('childRate').value) || 0;
 
-    const newRecord = {
-      id: Date.now(),
-      date,
-      time,
-      status,
-      courtA,
-      courtB,
-      totalCourt,
-      membersCount,
-      memberNames,
-      shuttleExpense,
-      totalIncome,
-      net
-    };
+    const adultTotal = adultCount * adultRate;
+    const childTotal = childCount * childRate;
+    const grandTotal = adultTotal + childTotal;
 
-    records.unshift(newRecord); // 新しいものを上にする
-    saveAndRender();
-    
-    // 入力リセット（シャトル等は0に戻す）
-    document.getElementById('shuttleExpense').value = 0;
-  });
+    document.getElementById('feeSummaryPreview').textContent = 
+      `会費収入合計: ${grandTotal.toLocaleString()} 円 (大人 ${adultCount}名 × ${adultRate}円 + 子供 ${childCount}名 × ${childRate}円)`;
+  }
 
-  function deleteRecord(id) {
-    if (confirm('この記録を削除してもよろしいですか？')) {
-      records = records.filter(r => r.id !== id);
-      saveAndRender();
+  function calcShuttleUnit() {
+    const fee = Number(document.getElementById('shuttleFee').value) || 0;
+    const doz = Number(document.getElementById('shuttleDozens').value) || 0;
+    const txt = document.getElementById('shuttleUnitText');
+
+    if (fee > 0 && doz > 0) {
+      const pcs = doz * 12;
+      const unit = (fee / pcs).toFixed(1);
+      txt.textContent = `💡 1本あたりの単価: 約 ${unit} 円 (${pcs}本)`;
+    } else {
+      txt.textContent = '';
     }
   }
 
-  function saveAndRender() {
-    localStorage.setItem('badminton_records', JSON.stringify(records));
-    render();
+  function addRecord() {
+    const date = document.getElementById('eventDate').value;
+    const time = document.getElementById('timeSlot').value;
+    const c1 = Number(document.getElementById('court1Fee').value) || 0;
+    const c2 = Number(document.getElementById('court2Fee').value) || 0;
+    const isReserved = document.getElementById('resStatusToggle').checked;
+
+    const adultCount = selectedMembers.length;
+    const adultRate = Number(document.getElementById('adultRate').value) || 0;
+    const childCount = Number(document.getElementById('childCount').value) || 0;
+    const childRate = Number(document.getElementById('childRate').value) || 0;
+
+    const income = (adultCount * adultRate) + (childCount * childRate);
+    const courtExpense = c1 + c2;
+    const shuttleExpense = Number(document.getElementById('shuttleFee').value) || 0;
+    const net = income - courtExpense - shuttleExpense;
+
+    const item = {
+      id: Date.now(),
+      date,
+      time,
+      isReserved,
+      courtExpense,
+      shuttleExpense,
+      adultCount,
+      childCount,
+      income,
+      net
+    };
+
+    records.unshift(item);
+    localStorage.setItem('badminton_app_records', JSON.stringify(records));
+    
+    // リセット (大人会費は700円を保持)
+    selectedMembers = [];
+    document.getElementById('adultRate').value = 700;
+    document.getElementById('childCount').value = 0;
+    document.getElementById('childRate').value = 0;
+    document.getElementById('shuttleFee').value = 0;
+    document.getElementById('shuttleDozens').value = 0;
+    document.getElementById('shuttleUnitText').textContent = '';
+    renderPills();
+    updateCalculation();
+    renderHistoryAndCharts();
   }
 
-  function render() {
-    tableBody.innerHTML = '';
+  function renderHistoryAndCharts() {
+    const tbody = document.getElementById('historyBody');
+    tbody.innerHTML = '';
 
-    let cumIncome = 0;
-    let cumCourt = 0;
-    let cumShuttle = 0;
+    let sumInc = 0, sumCourt = 0, sumShuttle = 0;
 
     records.forEach(r => {
-      cumIncome += r.totalIncome;
-      cumCourt += r.totalCourt;
-      cumShuttle += r.shuttleExpense;
+      sumInc += r.income;
+      sumCourt += r.courtExpense;
+      sumShuttle += r.shuttleExpense;
 
       const tr = document.createElement('tr');
-      const isDone = r.status === '予約済み';
-      
       tr.innerHTML = `
-        <td>${r.date}</td>
-        <td>${r.time}</td>
-        <td><span class="status-badge ${isDone ? 'status-done' : 'status-pending'}">${r.status}</span></td>
-        <td>${r.membersCount}名<br><small style="color:#666;">${r.memberNames}</small></td>
-        <td>${r.totalCourt.toLocaleString()}円</td>
+        <td>${r.date.slice(5)}</td>
+        <td><span class="badge ${r.isReserved ? 'badge-ok' : 'badge-wait'}">${r.isReserved ? '完了' : '未'}</span></td>
+        <td>大人${r.adultCount}/子${r.childCount}</td>
+        <td>${r.courtExpense.toLocaleString()}円</td>
         <td>${r.shuttleExpense > 0 ? r.shuttleExpense.toLocaleString() + '円' : '-'}</td>
-        <td>${r.totalIncome.toLocaleString()}円</td>
-        <td class="${r.net >= 0 ? 'positive' : 'negative'}" style="font-weight:bold;">
+        <td style="font-weight:bold; color:${r.net >= 0 ? 'var(--accent)' : 'var(--danger)'};">
           ${r.net >= 0 ? '+' : ''}${r.net.toLocaleString()}円
         </td>
-        <td><button class="del-btn" onclick="deleteRecord(${r.id})">削除</button></td>
       `;
-      tableBody.appendChild(tr);
+      tbody.appendChild(tr);
     });
 
-    // サマリー計算
-    const netBalance = cumIncome - cumCourt - cumShuttle;
+    const netBal = sumInc - sumCourt - sumShuttle;
+    document.getElementById('totalBalance').textContent = (netBal >= 0 ? '+' : '') + netBal.toLocaleString() + ' 円';
+    document.getElementById('totalIncome').textContent = sumInc.toLocaleString() + ' 円';
+    document.getElementById('totalCourt').textContent = sumCourt.toLocaleString() + ' 円';
+    document.getElementById('totalShuttle').textContent = sumShuttle.toLocaleString() + ' 円';
 
-    document.getElementById('totalIncome').textContent = cumIncome.toLocaleString() + ' 円';
-    document.getElementById('totalCourtExpense').textContent = cumCourt.toLocaleString() + ' 円';
-    document.getElementById('totalShuttleExpense').textContent = cumShuttle.toLocaleString() + ' 円';
-    
-    const netEl = document.getElementById('netBalance');
-    netEl.textContent = (netBalance >= 0 ? '+' : '') + netBalance.toLocaleString() + ' 円';
-    netEl.className = 'value ' + (netBalance >= 0 ? 'positive' : 'negative');
+    // グラフ描画
+    const recent = [...records].reverse().slice(-6);
+    const labels = recent.map(r => r.date.slice(5));
+    const dataVals = recent.map(r => r.net);
+
+    const ctx = document.getElementById('balanceChart').getContext('2d');
+    if (chartInstance) chartInstance.destroy();
+
+    chartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: '単回収支 (円)',
+          data: dataVals,
+          backgroundColor: dataVals.map(v => v >= 0 ? '#34c759' : '#ff3b30'),
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } }
+      }
+    });
   }
 </script>
 
