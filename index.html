@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>バドミントン活動・予約・収支管理</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #f2f2f7;
+      --card-bg: #ffffff;
+      --accent: #34c759;
+      --accent-blue: #007aff;
+      --text: #000000;
+      --text-sec: #8e8e93;
+      --border: #e5e5ea;
+      --danger: #ff3b30;
+      --warning: #ff9500;
+      --card-radius: 12px;
+    }
+    * { 
+      box-sizing: border-box; 
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 16px;
+      padding-bottom: 40px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    
+    .section-card {
+      background: var(--card-bg);
+      border-radius: var(--card-radius);
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #1c1c1e;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+    .form-group {
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-sec);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: -0.2px;
+    }
+    input, select, textarea {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      background-color: #f9f9fb;
+      appearance: none;
+      outline: none;
+      font-family: inherit;
+      min-height: 44px;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      background-color: #fff;
+    }
+
+    .friday-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 320px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-right: 2px;
+    }
+    .friday-card {
+      background: #f9f9fb;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .friday-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+    .friday-inputs {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+    .friday-inputs input {
+      padding: 8px 10px;
+      font-size: 0.9rem;
+      min-height: 40px;
+    }
+    .complete-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 0 16px;
+      height: 40px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .undo-btn {
+      background: #ff9500;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.75rem;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .completed-box {
+      margin-top: 12px;
+      border-top: 1px dashed var(--border);
+      padding-top: 10px;
+    }
+
+    .pills-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .pill-wrapper {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 20px;
+      background: #f0f0f4;
+      padding: 6px 10px 6px 14px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      user-select: none;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+      touch-action: manipulation;
+    }
+    .pill-wrapper.active {
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    .pill-label {
+      cursor: pointer;
+      margin-right: 6px;
+    }
+    .pill-del-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.15);
+      color: #fff;
+      font-size: 0.75rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .pill-wrapper.active .pill-del-btn {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .calc-preview {
+      background: #f4f1f9;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 0.85rem;
+      color: #3a3a3c;
+      margin-top: 8px;
+      font-weight: 500;
+    }
+
+    .submit-btn {
+      width: 100%;
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+      box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
+      min-height: 48px;
+      touch-action: manipulation;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .summary-card {
+      background: #f9f9fb;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .summary-card .val { font-size: 1.1rem; font-weight: 700; margin-top: 2px; }
+    .summary-card .lbl { font-size: 0.7rem; color: var(--text-sec); }
+
+    .chart-container {
+      position: relative;
+      height: 220px;
+      margin-top: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.75rem;
+    }
+    th, td { padding: 8px 2px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { color: var(--text-sec); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🏸 バドミントン管理</h1>
+
+  <div class="section-card">
+    <div class="section-title">👥 メンバーと金額設定</div>
+
+    <div class="form-group">
+      <label>メンバー追加</label>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="newMemberName" placeholder="名前を入力..." style="flex:1;">
+        <button type="button" onclick="addNewMember()" style="background:#007aff; color:white; border:none; border-radius:8px; padding:0 14px; font-weight:600; min-height:44px;">登録</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>メンバー選択 (タップで選択 / ×で削除)</label>
+      <div class="pills-grid" id="memberPills"></div>
+    </div>
+
+    <div class="form-row" style="margin-top:10px;">
+      <div class="form-group">
+        <label>開催年月日</label>
+        <input type="date" id="eventDate">
+      </div>
+      <div class="form-group">
+        <label>時間帯 (金曜)</label>
+        <select id="timeSlot">
+          <option value="20:00〜22:00">20:00〜22:00 (2h)</option>
+          <option value="19:00〜22:00">19:00〜22:00 (3h)</option>
+          <option value="18:00〜22:00">18:00〜22:00 (4h)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>会費単価 (円)</label>
+      <input type="number" id="memberRate" value="700" placeholder="700" onfocus="this.select()" oninput="updateCalculation()">
+    </div>
+
+    <div class="calc-preview" id="feeSummaryPreview">会費収入合計: 0 円</div>
+
+    <hr style="border:none; border-top:1px solid var(--border); margin:14px 0;">
+
+    <div class="form-group">
+      <label>コート代 (円)</label>
+      <input type="number" id="courtFee" value="0" placeholder="0" onfocus="this.select()">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>シャトル購入額 (円)</label>
+        <input type="number" id="shuttleFee" value="0" onfocus="this.select()" oninput="calcShuttleUnit()">
+      </div>
+      <div class="form-group">
+        <label>購入数 (ダース)</label>
+        <input type="number" id="shuttleDozens" value="0" onfocus="this.select()" oninput="calcShuttleUnit()">
+      </div>
+    </div>
+    <div id="shuttleUnitText" style="font-size:0.75rem; color:var(--text-sec); margin-bottom:8px;"></div>
+
+    <button type="button" class="submit-btn" onclick="addRecord()">今回の活動・収支を保存する</button>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">📊 収支＆グラフ</div>
+
+    <div class="form-group" style="background:#f4f1f9; padding:10px; border-radius:8px; margin-bottom:14px;">
+      <label style="color:#1c1c1e;">💰 初期残高（スタート時の手元金・円）</label>
+      <input type="number" id="initialBalanceInput" value="0" onchange="updateInitialBalance()" onfocus="this.select()" style="background:#fff; border-color:#d1d1d6; margin-top:4px;">
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="lbl">現在の残高</div>
+        <div class="val" id="totalBalance" style="color:var(--accent);">0 円</div>
+      </div>
+      <div class="summary-card">
+        <div class="lbl">純活動利益（累計）</div>
+        <div class="val" id="activityNet">0 円</div>
+      </div>
+      <div class="summary-card">
+        <div class="lbl">累計コート代</div>
+        <div class="val" id="totalCourt">0 円</div>
+      </div>
+      <div class="summary-card">
+        <div class="lbl">累計シャトル代</div>
+        <div class="val" id="totalShuttle">0 円</div>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <canvas id="balanceChart"></canvas>
+    </div>
+
+    <div style="margin-top:16px; overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>日付</th>
+            <th>人数</th>
+            <th>コート</th>
+            <th>シャトル</th>
+            <th>収支</th>
+            <th>残高</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">
+      <span>📅 今後3ヶ月の金曜予約リスト</span>
+      <small style="font-size:0.75rem; color:var(--text-sec);">コート代入力で完了・消去</small>
+    </div>
+    
+    <div class="friday-list" id="fridayListContainer"></div>
+
+    <div class="completed-box">
+      <div style="font-size:0.75rem; font-weight:600; color:var(--text-sec); margin-bottom:6px;">
+        ✅ 予約完了済み（押し間違いは「元に戻す」で復活）
+      </div>
+      <div id="completedFridayContainer" style="display:flex; flex-direction:column; gap:6px;"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwOQiowu4mNU7w4KvDVCvoACgb0QEWteyP4vlSuG0go8CtLQqpA21axTBv3HubV9naZpw/exec';
+
+  let initialBalance = 0; 
+  let memberList = [];
+  let selectedMembers = [];
+  let records = [];
+  let completedFridays = [];
+  let chartInstance = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('eventDate').valueAsDate = new Date();
+    
+    loadFromLocalStorage();
+    fetchCloudData();
+
+    const nameInput = document.getElementById('newMemberName');
+    if (nameInput) {
+      nameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          addNewMember();
+        }
+      });
+    }
+  });
+
+  function saveToLocalStorage() {
+    const data = {
+      initialBalance,
+      memberList,
+      records,
+      completedFridays
+    };
+    localStorage.setItem('badminton_cache', JSON.stringify(data));
+  }
+
+  function loadFromLocalStorage() {
+    const cached = localStorage.getItem('badminton_cache');
+    if (cached) {
+      try {
+        const data = JSON.parse(cached);
+        if (data && typeof data === 'object') {
+          memberList = Array.isArray(data.members) ? data.members : (Array.isArray(data.memberList) ? data.memberList : []);
+          records = Array.isArray(data.records) ? data.records : [];
+          completedFridays = Array.isArray(data.completedFridays) ? data.completedFridays.map(String) : [];
+          if (data.initialBalance !== undefined) {
+            initialBalance = Number(data.initialBalance) || 0;
+          }
+          const initInput = document.getElementById('initialBalanceInput');
+          if(initInput) initInput.value = initialBalance;
+          renderAll();
+        }
+      } catch(e) {
+        console.error('Cache load error:', e);
+      }
+    }
+  }
+
+  function updateInitialBalance() {
+    initialBalance = Number(document.getElementById('initialBalanceInput').value) || 0;
+    saveToLocalStorage();
+    renderAll();
+    pushCloudData();
+  }
+
+  // JSONP方式によるデータ取得（CORSブロック完全回避）
+  function fetchCloudData() {
+    const callbackName = 'jsonp_fetch_' + Math.round(100000 * Math.random());
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      
+      if (data && typeof data === 'object') {
+        memberList = Array.isArray(data.members) ? data.members : [];
+        records = Array.isArray(data.records) ? data.records : [];
+        completedFridays = Array.isArray(data.completedFridays) ? data.completedFridays.map(String) : [];
+        if (data.initialBalance !== undefined) {
+          initialBalance = Number(data.initialBalance) || 0;
+        }
+        const initInput = document.getElementById('initialBalanceInput');
+        if(initInput) initInput.value = initialBalance;
+        
+        saveToLocalStorage();
+        renderAll();
+      } else {
+        renderAll();
+      }
+    };
+
+    const script = document.createElement('script');
+    script.src = `${GAS_URL}?callback=${callbackName}&t=${Date.now()}`;
+    script.onerror = function() {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      renderAll();
+    };
+    document.body.appendChild(script);
+  }
+
+  // JSONP方式によるデータ保存（CORSブロック完全回避）
+  function pushCloudData() {
+    saveToLocalStorage();
+
+    const payload = {
+      initialBalance: initialBalance,
+      members: memberList,
+      records: records,
+      completedFridays: completedFridays
+    };
+
+    const jsonString = JSON.stringify(payload);
+    const callbackName = 'jsonp_push_' + Math.round(100000 * Math.random());
+    
+    window[callbackName] = function(res) {
+      delete window[callbackName];
+      document.body.removeChild(script);
+    };
+
+    const script = document.createElement('script');
+    script.src = `${GAS_URL}?data=${encodeURIComponent(jsonString)}&callback=${callbackName}&t=${Date.now()}`;
+    script.onerror = function() {
+      delete window[callbackName];
+      document.body.removeChild(script);
+    };
+    document.body.appendChild(script);
+  }
+
+  function renderAll() {
+    renderFridayList();
+    renderPills();
+    updateCalculation();
+    renderHistoryAndCharts();
+  }
+
+  function formatDateStr(d) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function renderFridayList() {
+    const container = document.getElementById('fridayListContainer');
+    const completedContainer = document.getElementById('completedFridayContainer');
+    if(!container || !completedContainer) return;
+    
+    container.innerHTML = '';
+    completedContainer.innerHTML = '';
+
+    const today = new Date();
+    const threeMonthsLater = new Date();
+    threeMonthsLater.setMonth(today.getMonth() + 3);
+
+    let cur = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    while (cur.getDay() !== 5) {
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    let count = 0;
+    while (cur <= threeMonthsLater) {
+      const dateStr = formatDateStr(cur);
+
+      if (!completedFridays.includes(dateStr)) {
+        count++;
+        const card = document.createElement('div');
+        card.className = 'friday-card';
+        card.innerHTML = `
+          <div class="friday-header">
+            <span>📅 ${dateStr} (金)</span>
+          </div>
+          <div class="friday-inputs">
+            <input type="number" id="f_court_${dateStr}" placeholder="コート代 (円)" onfocus="this.select()">
+            <button type="button" class="complete-btn" onclick="completeFridayReservation('${dateStr}')">予約完了</button>
+          </div>
+        `;
+        container.appendChild(card);
+
+        setTimeout(() => {
+          const inputField = document.getElementById(`f_court_${dateStr}`);
+          if (inputField) {
+            inputField.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                completeFridayReservation(dateStr);
+              }
+            });
+          }
+        }, 0);
+
+      } else {
+        const compDiv = document.createElement('div');
+        compDiv.style.cssText = "display:flex; justify-content:space-between; align-items:center; background:#f0f0f4; padding:6px 10px; border-radius:6px; font-size:0.8rem;";
+        compDiv.innerHTML = `
+          <span>📅 ${dateStr} (金) - 完了済み</span>
+          <button type="button" class="undo-btn" onclick="undoFridayReservation('${dateStr}')">元に戻す</button>
+        `;
+        completedContainer.appendChild(compDiv);
+      }
+      cur.setDate(cur.getDate() + 7);
+    }
+
+    if (count === 0) {
+      container.innerHTML = '<div style="font-size:0.85rem; color:var(--text-sec); text-align:center; padding:12px;">3ヶ月先までの予約はすべて完了しています</div>';
+    }
+    if (completedContainer.children.length === 0) {
+      completedContainer.innerHTML = '<div style="font-size:0.75rem; color:var(--text-sec);">完了済みの予約はありません</div>';
+    }
+  }
+
+  function completeFridayReservation(dateStr) {
+    const inputElem = document.getElementById(`f_court_${dateStr}`);
+    const courtExpense = inputElem ? (Number(inputElem.value) || 0) : 0;
+    
+    if (!completedFridays.includes(dateStr)) {
+      completedFridays.push(dateStr);
+    }
+
+    const item = {
+      id: Date.now(),
+      date: dateStr,
+      time: '金曜枠',
+      isReserved: true,
+      courtExpense: courtExpense,
+      shuttleExpense: 0,
+      memberCount: 0,
+      income: 0,
+      net: -courtExpense
+    };
+
+    records.push(item);
+    renderAll();
+    pushCloudData();
+  }
+
+  function undoFridayReservation(dateStr) {
+    completedFridays = completedFridays.filter(d => d !== dateStr);
+    records = records.filter(r => !(r.date === dateStr && r.time === '金曜枠' && r.income === 0));
+    renderAll();
+    pushCloudData();
+  }
+
+  function addNewMember() {
+    const input = document.getElementById('newMemberName');
+    const name = input.value.trim();
+    if (name && !memberList.includes(name)) {
+      memberList.push(name);
+      input.value = '';
+      renderPills();
+      pushCloudData();
+    }
+  }
+
+  function removeMember(name) {
+    if (confirm(`「${name}」さんをメンバーから削除しますか？`)) {
+      memberList = memberList.filter(m => m !== name);
+      selectedMembers = selectedMembers.filter(m => m !== name);
+      renderPills();
+      updateCalculation();
+      pushCloudData();
+    }
+  }
+
+  function renderPills() {
+    const container = document.getElementById('memberPills');
+    if(!container) return;
+    container.innerHTML = '';
+    memberList.forEach(name => {
+      const isSelected = selectedMembers.includes(name);
+      const wrapper = document.createElement('div');
+      wrapper.className = `pill-wrapper ${isSelected ? 'active' : ''}`;
+      wrapper.innerHTML = `
+        <span class="pill-label" onclick="toggleMember('${name}')">${name}</span>
+        <span class="pill-del-btn" onclick="event.stopPropagation(); removeMember('${name}')">✕</span>
+      `;
+      container.appendChild(wrapper);
+    });
+  }
+
+  function toggleMember(name) {
+    if (selectedMembers.includes(name)) {
+      selectedMembers = selectedMembers.filter(m => m !== name);
+    } else {
+      selectedMembers.push(name);
+    }
+    renderPills();
+    updateCalculation();
+  }
+
+  function updateCalculation() {
+    const count = selectedMembers.length;
+    const rate = Number(document.getElementById('memberRate').value) || 0;
+    const total = count * rate;
+    const preview = document.getElementById('feeSummaryPreview');
+    if(preview) preview.textContent = `会費収入合計: ${total.toLocaleString()} 円 (${count}名 × ${rate}円)`;
+  }
+
+  function calcShuttleUnit() {
+    const fee = Number(document.getElementById('shuttleFee').value) || 0;
+    const doz = Number(document.getElementById('shuttleDozens').value) || 0;
+    const txt = document.getElementById('shuttleUnitText');
+    if(txt) {
+      if (fee > 0 && doz > 0) {
+        const pcs = doz * 12;
+        const unit = (fee / pcs).toFixed(1);
+        txt.textContent = `💡 1本あたりの単価: 約 ${unit} 円 (${pcs}本)`;
+      } else {
+        txt.textContent = '';
+      }
+    }
+  }
+
+  function addRecord() {
+    const date = document.getElementById('eventDate').value;
+    const time = document.getElementById('timeSlot').value;
+    const courtExpense = Number(document.getElementById('courtFee').value) || 0;
+    const count = selectedMembers.length;
+    const rate = Number(document.getElementById('memberRate').value) || 0;
+    const income = count * rate;
+    const shuttleExpense = Number(document.getElementById('shuttleFee').value) || 0;
+    const net = income - courtExpense - shuttleExpense;
+
+    const item = {
+      id: Date.now(),
+      date,
+      time,
+      isReserved: true,
+      courtExpense,
+      shuttleExpense,
+      memberCount: count,
+      income,
+      net
+    };
+
+    records.push(item);
+    
+    selectedMembers = [];
+    document.getElementById('memberRate').value = 700;
+    document.getElementById('courtFee').value = 0;
+    document.getElementById('shuttleFee').value = 0;
+    document.getElementById('shuttleDozens').value = 0;
+    document.getElementById('shuttleUnitText').textContent = '';
+    
+    renderAll();
+    pushCloudData();
+  }
+
+  function renderHistoryAndCharts() {
+    const tbody = document.getElementById('historyBody');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+
+    records.sort((a, b) => {
+      const dateDiff = new Date(a.date) - new Date(b.date);
+      return dateDiff !== 0 ? dateDiff : a.id - b.id;
+    });
+
+    let sumInc = 0, sumCourt = 0, sumShuttle = 0;
+    let currentBal = initialBalance;
+
+    records.forEach(r => {
+      r.runningBalance = currentBal + r.net;
+      currentBal = r.runningBalance;
+      
+      sumInc += r.income;
+      sumCourt += r.courtExpense;
+      sumShuttle += r.shuttleExpense;
+    });
+
+    records.sort((a, b) => {
+      const dateDiff = new Date(b.date) - new Date(a.date);
+      return dateDiff !== 0 ? dateDiff : b.id - a.id;
+    });
+
+    records.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.date.slice(5)}</td>
+        <td>${r.memberCount}名</td>
+        <td>${r.courtExpense.toLocaleString()}</td>
+        <td>${r.shuttleExpense > 0 ? r.shuttleExpense.toLocaleString() : '-'}</td>
+        <td style="font-weight:bold; color:${r.net >= 0 ? 'var(--accent)' : 'var(--danger)'};">
+          ${r.net >= 0 ? '+' : ''}${r.net.toLocaleString()}
+        </td>
+        <td style="font-weight:bold; color:#1c1c1e;">${r.runningBalance.toLocaleString()}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    const totalActivityNet = sumInc - sumCourt - sumShuttle;
+    const finalBalance = initialBalance + totalActivityNet;
+
+    const tBal = document.getElementById('totalBalance');
+    const aNet = document.getElementById('activityNet');
+    const tCourt = document.getElementById('totalCourt');
+    const tShuttle = document.getElementById('totalShuttle');
+
+    if(tBal) tBal.textContent = finalBalance.toLocaleString() + ' 円';
+    if(aNet) aNet.textContent = (totalActivityNet >= 0 ? '+' : '') + totalActivityNet.toLocaleString() + ' 円';
+    if(tCourt) tCourt.textContent = sumCourt.toLocaleString() + ' 円';
+    if(tShuttle) tShuttle.textContent = sumShuttle.toLocaleString() + ' 円';
+
+    const recentForChart = [...records].slice(0, 6).reverse();
+    const labels = recentForChart.map(r => r.date.slice(5));
+    const barData = recentForChart.map(r => r.net);
+    const lineData = recentForChart.map(r => r.runningBalance);
+
+    const canvas = document.getElementById('balanceChart');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    if (chartInstance) chartInstance.destroy();
+
+    chartInstance = new Chart(ctx, {
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            type: 'line',
+            label: '残高推移 (円)',
+            data: lineData,
+            borderColor: '#007aff',
+            backgroundColor: '#007aff',
+            borderWidth: 2,
+            pointRadius: 4,
+            yAxisID: 'y1',
+            tension: 0.1
+          },
+          {
+            type: 'bar',
+            label: '単回収支 (円)',
+            data: barData,
+            backgroundColor: barData.map(v => v >= 0 ? '#34c759' : '#ff3b30'),
+            borderRadius: 4,
+            yAxisID: 'y'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            grid: { display: false }
+          },
+          y: {
+            type: 'linear',
+            display: true,
+            position: 'left',
+            title: { display: true, text: '単回収支', font: {size: 10} }
+          },
+          y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            title: { display: true, text: '残高', font: {size: 10} },
+            grid: { drawOnChartArea: false }
+          }
+        }
+      }
+    });
+  }
+</script>
+
+<!-- Firebase SDK の追加 -->
+<script type="module">
+  // Firebase SDK のインポート
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+
+  // あなたのプロジェクトの Firebase 設定
+  const firebaseConfig = {
+    apiKey: "AIzaSyCldmf_WfKx2BubIg91vc79cLzlGrAzpH4",
+    authDomain: "newwbc-a6e29.firebaseapp.com",
+    projectId: "newwbc-a6e29",
+    storageBucket: "newwbc-a6e29.firebasestorage.app",
+    messagingSenderId: "1022221182643",
+    appId: "1:1022221182643:web:b73a31c9aa447bdb7bf2c6"
+  };
+
+  // Firebase の初期化
+  const app = initializeApp(firebaseConfig);
+  console.log("Firebase initialized successfully!");
+</script>
+
+</body>
+</html>
