@@ -174,7 +174,7 @@
       padding-top: 10px;
     }
 
-    /* ピルボタン選択 ＆ 削除機能 */
+    /* ピルボタン選択 */
     .pills-grid {
       display: flex;
       flex-wrap: wrap;
@@ -261,16 +261,17 @@
 
     .chart-container {
       position: relative;
-      height: 200px;
+      height: 220px;
       margin-top: 12px;
     }
 
+    /* テーブル */
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.8rem;
+      font-size: 0.75rem; /* スマホで列が増えるため少し小さく */
     }
-    th, td { padding: 8px 4px; border-bottom: 1px solid var(--border); text-align: left; }
+    th, td { padding: 8px 2px; border-bottom: 1px solid var(--border); text-align: left; }
     th { color: var(--text-sec); font-weight: 600; }
   </style>
 </head>
@@ -354,14 +355,20 @@
   <div class="section-card">
     <div class="section-title">📊 収支＆グラフ</div>
 
+    <!-- 初期残高設定枠 -->
+    <div class="form-group" style="background:#f4f1f9; padding:10px; border-radius:8px; margin-bottom:14px;">
+      <label style="color:#1c1c1e;">💰 初期残高（スタート時の手元金・円）</label>
+      <input type="number" id="initialBalanceInput" value="0" onchange="updateInitialBalance()" onfocus="this.select()" style="background:#fff; border-color:#d1d1d6; margin-top:4px;">
+    </div>
+
     <div class="summary-grid">
       <div class="summary-card">
-        <div class="lbl">手元繰越残高</div>
+        <div class="lbl">現在の残高</div>
         <div class="val" id="totalBalance" style="color:var(--accent);">0 円</div>
       </div>
       <div class="summary-card">
-        <div class="lbl">累計収入</div>
-        <div class="val" id="totalIncome">0 円</div>
+        <div class="lbl">純活動利益（累計）</div>
+        <div class="val" id="activityNet">0 円</div>
       </div>
       <div class="summary-card">
         <div class="lbl">累計コート代</div>
@@ -383,9 +390,10 @@
           <tr>
             <th>日付</th>
             <th>人数</th>
-            <th>コート代</th>
-            <th>シャトル代</th>
-            <th>単回収支</th>
+            <th>コート</th>
+            <th>シャトル</th>
+            <th>収支</th>
+            <th>残高</th>
           </tr>
         </thead>
         <tbody id="historyBody"></tbody>
@@ -421,6 +429,7 @@
   const BIN_ID = '66ab3d82acd3cb34a86f912a'; 
   const API_KEY = '$2a$10$9cO4r0P3vNf40.7P00Rk/O6eBq7e5W9w9/J1u3x8p9W7x9y0z1234';
 
+  let initialBalance = 0; // 初期残高（手元金）
   let memberList = ['細川', '田中', '鈴木', '佐藤', '高橋', '渡辺'];
   let selectedMembers = [];
   let records = [];
@@ -433,6 +442,13 @@
     // 15秒ごとにバックグラウンドで自動同期
     setInterval(fetchCloudData, 15000);
   });
+
+  // 初期残高の更新処理
+  function updateInitialBalance() {
+    initialBalance = Number(document.getElementById('initialBalanceInput').value) || 0;
+    renderAll();
+    pushCloudData();
+  }
 
   // クラウドから最新データを読み込み
   async function fetchCloudData() {
@@ -448,6 +464,10 @@
           memberList = recordData.members || memberList;
           records = recordData.records || [];
           completedFridays = recordData.completedFridays || [];
+          if (recordData.initialBalance !== undefined) {
+            initialBalance = recordData.initialBalance;
+          }
+          document.getElementById('initialBalanceInput').value = initialBalance;
           renderAll();
           updateSyncStatus('完全同期完了', '#34c759');
         }
@@ -463,11 +483,13 @@
   async function pushCloudData() {
     updateSyncStatus('送信中...', '#007aff');
     const payload = {
+      initialBalance: initialBalance,
       members: memberList,
       records: records,
       completedFridays: completedFridays
     };
 
+    localStorage.setItem('badminton_initial_balance', initialBalance);
     localStorage.setItem('badminton_members_list', JSON.stringify(memberList));
     localStorage.setItem('badminton_app_records', JSON.stringify(records));
     localStorage.setItem('badminton_completed_fridays', JSON.stringify(completedFridays));
@@ -490,9 +512,14 @@
   }
 
   function fallbackLocalStorage() {
+    const storedBal = localStorage.getItem('badminton_initial_balance');
+    if (storedBal !== null) initialBalance = Number(storedBal);
+    document.getElementById('initialBalanceInput').value = initialBalance;
+
     memberList = JSON.parse(localStorage.getItem('badminton_members_list')) || memberList;
     records = JSON.parse(localStorage.getItem('badminton_app_records')) || [];
     completedFridays = JSON.parse(localStorage.getItem('badminton_completed_fridays')) || [];
+    
     renderAll();
     updateSyncStatus('オフラインモード', '#8e8e93');
   }
@@ -509,7 +536,7 @@
     renderHistoryAndCharts();
   }
 
-  // 今後3ヶ月の金曜日リスト生成
+  // 予約リスト生成
   function renderFridayList() {
     const container = document.getElementById('fridayListContainer');
     const completedContainer = document.getElementById('completedFridayContainer');
@@ -563,10 +590,8 @@
     }
   }
 
-  // 予約完了処理（残高・収支を直接連動更新）
   function completeFridayReservation(dateStr) {
     const courtExpense = Number(document.getElementById(`f_court_${dateStr}`).value) || 0;
-
     completedFridays.push(dateStr);
 
     const item = {
@@ -582,20 +607,17 @@
     };
 
     records.unshift(item);
-    renderAll(); // 画面全体（残高・グラフ・リスト）を即座に再描画
+    renderAll();
     pushCloudData();
   }
 
-  // 復活処理（残高・収支を直接連動更新）
   function undoFridayReservation(dateStr) {
     completedFridays = completedFridays.filter(d => d !== dateStr);
     records = records.filter(r => !(r.date === dateStr && r.time === '金曜枠' && r.income === 0));
-
-    renderAll(); // 画面全体（残高・グラフ・リスト）を即座に再描画
+    renderAll();
     pushCloudData();
   }
 
-  // メンバー追加
   function addNewMember() {
     const input = document.getElementById('newMemberName');
     const name = input.value.trim();
@@ -607,7 +629,6 @@
     }
   }
 
-  // メンバー削除
   function removeMember(name) {
     if (confirm(`「${name}」さんをメンバーから削除しますか？`)) {
       memberList = memberList.filter(m => m !== name);
@@ -647,16 +668,13 @@
     const count = selectedMembers.length;
     const rate = Number(document.getElementById('memberRate').value) || 0;
     const total = count * rate;
-
-    document.getElementById('feeSummaryPreview').textContent = 
-      `会費収入合計: ${total.toLocaleString()} 円 (${count}名 × ${rate}円)`;
+    document.getElementById('feeSummaryPreview').textContent = `会費収入合計: ${total.toLocaleString()} 円 (${count}名 × ${rate}円)`;
   }
 
   function calcShuttleUnit() {
     const fee = Number(document.getElementById('shuttleFee').value) || 0;
     const doz = Number(document.getElementById('shuttleDozens').value) || 0;
     const txt = document.getElementById('shuttleUnitText');
-
     if (fee > 0 && doz > 0) {
       const pcs = doz * 12;
       const unit = (fee / pcs).toFixed(1);
@@ -670,10 +688,8 @@
     const date = document.getElementById('eventDate').value;
     const time = document.getElementById('timeSlot').value;
     const courtExpense = Number(document.getElementById('courtFee').value) || 0;
-
     const count = selectedMembers.length;
     const rate = Number(document.getElementById('memberRate').value) || 0;
-
     const income = count * rate;
     const shuttleExpense = Number(document.getElementById('shuttleFee').value) || 0;
     const net = income - courtExpense - shuttleExpense;
@@ -708,53 +724,101 @@
     tbody.innerHTML = '';
 
     let sumInc = 0, sumCourt = 0, sumShuttle = 0;
+    
+    // 過去（配列の後ろ）から順に「現在の残高」を計算する
+    let reversedRecords = [...records].reverse();
+    let currentBal = initialBalance;
 
-    records.forEach(r => {
+    reversedRecords.forEach(r => {
+      r.runningBalance = currentBal + r.net;
+      currentBal = r.runningBalance;
+      
       sumInc += r.income;
       sumCourt += r.courtExpense;
       sumShuttle += r.shuttleExpense;
+    });
 
+    // 計算後に再び最新順に戻してテーブルに出力
+    reversedRecords.reverse().forEach(r => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${r.date.slice(5)}</td>
         <td>${r.memberCount}名</td>
-        <td>${r.courtExpense.toLocaleString()}円</td>
-        <td>${r.shuttleExpense > 0 ? r.shuttleExpense.toLocaleString() + '円' : '-'}</td>
+        <td>${r.courtExpense.toLocaleString()}</td>
+        <td>${r.shuttleExpense > 0 ? r.shuttleExpense.toLocaleString() : '-'}</td>
         <td style="font-weight:bold; color:${r.net >= 0 ? 'var(--accent)' : 'var(--danger)'};">
-          ${r.net >= 0 ? '+' : ''}${r.net.toLocaleString()}円
+          ${r.net >= 0 ? '+' : ''}${r.net.toLocaleString()}
         </td>
+        <td style="font-weight:bold; color:#1c1c1e;">${r.runningBalance.toLocaleString()}</td>
       `;
       tbody.appendChild(tr);
     });
 
-    const netBal = sumInc - sumCourt - sumShuttle;
-    document.getElementById('totalBalance').textContent = (netBal >= 0 ? '+' : '') + netBal.toLocaleString() + ' 円';
-    document.getElementById('totalIncome').textContent = sumInc.toLocaleString() + ' 円';
+    const totalActivityNet = sumInc - sumCourt - sumShuttle;
+    const finalBalance = initialBalance + totalActivityNet;
+
+    document.getElementById('totalBalance').textContent = finalBalance.toLocaleString() + ' 円';
+    document.getElementById('activityNet').textContent = (totalActivityNet >= 0 ? '+' : '') + totalActivityNet.toLocaleString() + ' 円';
     document.getElementById('totalCourt').textContent = sumCourt.toLocaleString() + ' 円';
     document.getElementById('totalShuttle').textContent = sumShuttle.toLocaleString() + ' 円';
 
-    const recent = [...records].reverse().slice(-6);
-    const labels = recent.map(r => r.date.slice(5));
-    const dataVals = recent.map(r => r.net);
+    // グラフ描画用データ（古い順で最大6件）
+    const recentForChart = [...reversedRecords].slice(0, 6).reverse();
+    const labels = recentForChart.map(r => r.date.slice(5));
+    const barData = recentForChart.map(r => r.net);
+    const lineData = recentForChart.map(r => r.runningBalance);
 
     const ctx = document.getElementById('balanceChart').getContext('2d');
     if (chartInstance) chartInstance.destroy();
 
+    // 複合グラフ（棒：単回収支、折れ線：残高推移）
     chartInstance = new Chart(ctx, {
-      type: 'bar',
       data: {
         labels: labels,
-        datasets: [{
-          label: '単回収支 (円)',
-          data: dataVals,
-          backgroundColor: dataVals.map(v => v >= 0 ? '#34c759' : '#ff3b30'),
-          borderRadius: 4
-        }]
+        datasets: [
+          {
+            type: 'line',
+            label: '残高推移 (円)',
+            data: lineData,
+            borderColor: '#007aff',
+            backgroundColor: '#007aff',
+            borderWidth: 2,
+            pointRadius: 4,
+            yAxisID: 'y1',
+            tension: 0.1
+          },
+          {
+            type: 'bar',
+            label: '単回収支 (円)',
+            data: barData,
+            backgroundColor: barData.map(v => v >= 0 ? '#34c759' : '#ff3b30'),
+            borderRadius: 4,
+            yAxisID: 'y'
+          }
+        ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } }
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            grid: { display: false }
+          },
+          y: {
+            type: 'linear',
+            display: true,
+            position: 'left',
+            title: { display: true, text: '単回収支', font: {size: 10} }
+          },
+          y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            title: { display: true, text: '残高', font: {size: 10} },
+            grid: { drawOnChartArea: false } // 右軸の横線を消す
+          }
+        }
       }
     });
   }
