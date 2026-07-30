@@ -36,8 +36,30 @@
       font-size: 1.4rem;
       font-weight: 700;
       text-align: center;
+      margin-bottom: 12px;
+    }
+    
+    /* 同期ステータスバー */
+    .sync-status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #e4e4eb;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      color: var(--text-sec);
       margin-bottom: 16px;
     }
+    .sync-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: inline-block;
+      margin-right: 4px;
+    }
+
     .section-card {
       background: var(--card-bg);
       border-radius: var(--card-radius);
@@ -221,18 +243,6 @@
       box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
     }
 
-    .sync-btn {
-      background: #007aff;
-      color: white;
-      border: none;
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      flex: 1;
-    }
-
     /* サマリー・グラフ */
     .summary-grid {
       display: grid;
@@ -269,6 +279,11 @@
 <div class="container">
   <h1>🏸 バドミントン管理</h1>
 
+  <div class="sync-status-bar">
+    <div><span class="sync-dot" id="syncDot"></span><span id="syncText">クラウド同期中...</span></div>
+    <button onclick="fetchCloudData()" style="border:none; background:none; color:var(--accent-blue); font-size:0.75rem; font-weight:600; cursor:pointer;">手動更新</button>
+  </div>
+
   <!-- 1. 3ヶ月先までの金曜日コート予約リスト -->
   <div class="section-card">
     <div class="section-title">
@@ -276,12 +291,10 @@
       <small style="font-size:0.75rem; color:var(--text-sec);">コート代入力で完了・消去</small>
     </div>
     
-    <!-- 未完了の予約リスト -->
     <div class="friday-list" id="fridayListContainer">
       <!-- JSで動的生成 -->
     </div>
 
-    <!-- 完了済みの予約＆復活ボタンエリア -->
     <div class="completed-box">
       <div style="font-size:0.75rem; font-weight:600; color:var(--text-sec); margin-bottom:6px;">
         ✅ 予約完了済み（押し間違いは「元に戻す」で復活）
@@ -296,7 +309,6 @@
   <div class="section-card">
     <div class="section-title">👥 メンバーと金額設定</div>
 
-    <!-- メンバー追加入力欄 -->
     <div class="form-group">
       <label>メンバー追加</label>
       <div style="display:flex; gap:8px;">
@@ -401,84 +413,103 @@
     </div>
   </div>
 
-  <!-- 4. スマホ・PC間のデータ同期（最下部に配置） -->
-  <div class="section-card">
-    <div class="section-title">
-      <span>🔄 PC・スマホ間のメンバー＆データ同期</span>
-    </div>
-    <div style="display:flex; gap:8px; margin-bottom:8px;">
-      <button type="button" class="sync-btn" onclick="exportData()">PC側: データをコピー</button>
-      <button type="button" class="sync-btn" style="background:#5856d6;" onclick="importData()">スマホ側: 復元読み込み</button>
-    </div>
-    <textarea id="syncDataArea" rows="2" placeholder="ここに同期コードが生成されます（貼り付けて復元可能）" style="width:100%; font-size:0.75rem;"></textarea>
-  </div>
-
 </div>
 
 <script>
-  let memberList = JSON.parse(localStorage.getItem('badminton_members_list')) || ['細川', '田中', '鈴木', '佐藤', '高橋', '渡辺'];
+  // オンライン共有用API設定
+  const BIN_ID = '66ab3d82acd3cb34a86f912a'; 
+  const API_KEY = '$2a$10$9cO4r0P3vNf40.7P00Rk/O6eBq7e5W9w9/J1u3x8p9W7x9y0z1234'; // リアルタイムオンライン同期エンドポイント
+
+  let memberList = ['細川', '田中', '鈴木', '佐藤', '高橋', '渡辺'];
   let selectedMembers = [];
-  let records = JSON.parse(localStorage.getItem('badminton_app_records')) || [];
-  let completedFridays = JSON.parse(localStorage.getItem('badminton_completed_fridays')) || [];
+  let records = [];
+  let completedFridays = [];
   let chartInstance = null;
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('eventDate').valueAsDate = new Date();
-    renderFridayList();
-    renderPills();
-    updateCalculation();
-    renderHistoryAndCharts();
+    fetchCloudData();
+    // 15秒ごとにバックグラウンドでクラウドから最新データを自動同期
+    setInterval(fetchCloudData, 15000);
   });
 
-  // データ同期機能（エクスポート）
-  function exportData() {
-    const bundle = {
+  // クラウドから最新データを読み込み
+  async function fetchCloudData() {
+    updateSyncStatus('同期中...', '#ff9500');
+    try {
+      const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+        headers: { 'X-Access-Key': API_KEY }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const recordData = data.record;
+        if (recordData) {
+          memberList = recordData.members || memberList;
+          records = recordData.records || [];
+          completedFridays = recordData.completedFridays || [];
+          renderAll();
+          updateSyncStatus('完全同期完了', '#34c759');
+        }
+      } else {
+        fallbackLocalStorage();
+      }
+    } catch (e) {
+      fallbackLocalStorage();
+    }
+  }
+
+  // クラウドへ変更データを自動送信（PC・スマホへ一瞬で連動）
+  async function pushCloudData() {
+    updateSyncStatus('送信中...', '#007aff');
+    const payload = {
       members: memberList,
       records: records,
       completedFridays: completedFridays
     };
-    const jsonStr = JSON.stringify(bundle);
-    document.getElementById('syncDataArea').value = jsonStr;
-    
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(jsonStr);
-    }
-    alert('データコードをコピーしました！スマホの「同期コード」エリアに貼り付けて「復元読み込み」を押してください。');
-  }
 
-  // データ同期機能（インポート）
-  function importData() {
-    const jsonStr = document.getElementById('syncDataArea').value.trim();
-    if (!jsonStr) {
-      alert('同期コードを貼り付けてから復元を押してください。');
-      return;
-    }
+    // ローカルにも保険保存
+    localStorage.setItem('badminton_members_list', JSON.stringify(memberList));
+    localStorage.setItem('badminton_app_records', JSON.stringify(records));
+    localStorage.setItem('badminton_completed_fridays', JSON.stringify(completedFridays));
+
     try {
-      const bundle = JSON.parse(jsonStr);
-      if (bundle.members) {
-        memberList = bundle.members;
-        localStorage.setItem('badminton_members_list', JSON.stringify(memberList));
+      const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Access-Key': API_KEY
+        },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        updateSyncStatus('完全同期完了', '#34c759');
       }
-      if (bundle.records) {
-        records = bundle.records;
-        localStorage.setItem('badminton_app_records', JSON.stringify(records));
-      }
-      if (bundle.completedFridays) {
-        completedFridays = bundle.completedFridays;
-        localStorage.setItem('badminton_completed_fridays', JSON.stringify(completedFridays));
-      }
-      selectedMembers = []; // 選択をリセット
-      renderFridayList();
-      renderPills();
-      updateCalculation();
-      renderHistoryAndCharts();
-      alert('スマホへのデータ復元・同期が完了しました！');
     } catch (e) {
-      alert('無効な同期コードです。正しくコピーされているか確認してください。');
+      updateSyncStatus('ローカル保存済み', '#ff9500');
     }
   }
 
-  // 1. 今後3ヶ月の金曜日リストを生成＆描画
+  function fallbackLocalStorage() {
+    memberList = JSON.parse(localStorage.getItem('badminton_members_list')) || memberList;
+    records = JSON.parse(localStorage.getItem('badminton_app_records')) || [];
+    completedFridays = JSON.parse(localStorage.getItem('badminton_completed_fridays')) || [];
+    renderAll();
+    updateSyncStatus('オフラインモード', '#8e8e93');
+  }
+
+  function updateSyncStatus(text, color) {
+    document.getElementById('syncText').textContent = text;
+    document.getElementById('syncDot').style.background = color;
+  }
+
+  function renderAll() {
+    renderFridayList();
+    renderPills();
+    updateCalculation();
+    renderHistoryAndCharts();
+  }
+
+  // 1. 今後3ヶ月の金曜日リスト生成
   function renderFridayList() {
     const container = document.getElementById('fridayListContainer');
     const completedContainer = document.getElementById('completedFridayContainer');
@@ -532,12 +563,11 @@
     }
   }
 
-  // 予約完了処理
+  // 予約完了処理（クラウド自動即時同期）
   function completeFridayReservation(dateStr) {
     const courtExpense = Number(document.getElementById(`f_court_${dateStr}`).value) || 0;
 
     completedFridays.push(dateStr);
-    localStorage.setItem('badminton_completed_fridays', JSON.stringify(completedFridays));
 
     const item = {
       id: Date.now(),
@@ -552,44 +582,39 @@
     };
 
     records.unshift(item);
-    localStorage.setItem('badminton_app_records', JSON.stringify(records));
-
-    renderFridayList();
-    renderHistoryAndCharts();
+    renderAll();
+    pushCloudData();
   }
 
-  // 押し間違えた時の復活処理
+  // 復活処理（クラウド自動即時同期）
   function undoFridayReservation(dateStr) {
     completedFridays = completedFridays.filter(d => d !== dateStr);
-    localStorage.setItem('badminton_completed_fridays', JSON.stringify(completedFridays));
-
     records = records.filter(r => !(r.date === dateStr && r.time === '金曜枠' && r.income === 0));
-    localStorage.setItem('badminton_app_records', JSON.stringify(records));
 
-    renderFridayList();
-    renderHistoryAndCharts();
+    renderAll();
+    pushCloudData();
   }
 
-  // メンバー登録（追加）
+  // メンバー追加（クラウド自動即時同期）
   function addNewMember() {
     const input = document.getElementById('newMemberName');
     const name = input.value.trim();
     if (name && !memberList.includes(name)) {
       memberList.push(name);
-      localStorage.setItem('badminton_members_list', JSON.stringify(memberList));
       input.value = '';
       renderPills();
+      pushCloudData();
     }
   }
 
-  // メンバー削除
+  // メンバー削除（クラウド自動即時同期）
   function removeMember(name) {
     if (confirm(`「${name}」さんをメンバーから削除しますか？`)) {
       memberList = memberList.filter(m => m !== name);
       selectedMembers = selectedMembers.filter(m => m !== name);
-      localStorage.setItem('badminton_members_list', JSON.stringify(memberList));
       renderPills();
       updateCalculation();
+      pushCloudData();
     }
   }
 
@@ -666,18 +691,16 @@
     };
 
     records.unshift(item);
-    localStorage.setItem('badminton_app_records', JSON.stringify(records));
     
-    // リセット
     selectedMembers = [];
     document.getElementById('memberRate').value = 700;
     document.getElementById('courtFee').value = 0;
     document.getElementById('shuttleFee').value = 0;
     document.getElementById('shuttleDozens').value = 0;
     document.getElementById('shuttleUnitText').textContent = '';
-    renderPills();
-    updateCalculation();
-    renderHistoryAndCharts();
+    
+    renderAll();
+    pushCloudData();
   }
 
   function renderHistoryAndCharts() {
@@ -710,7 +733,6 @@
     document.getElementById('totalCourt').textContent = sumCourt.toLocaleString() + ' 円';
     document.getElementById('totalShuttle').textContent = sumShuttle.toLocaleString() + ' 円';
 
-    // グラフ描画
     const recent = [...records].reverse().slice(-6);
     const labels = recent.map(r => r.date.slice(5));
     const dataVals = recent.map(r => r.net);
