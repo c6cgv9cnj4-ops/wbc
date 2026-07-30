@@ -134,6 +134,23 @@
       font-size: 0.85rem;
       cursor: pointer;
     }
+    .undo-btn {
+      background: #ff9500;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    /* 完了済みリスト */
+    .completed-box {
+      margin-top: 12px;
+      border-top: 1px dashed var(--border);
+      padding-top: 10px;
+    }
 
     /* ピルボタン選択 ＆ 削除機能 */
     .pills-grid {
@@ -252,26 +269,26 @@
 <div class="container">
   <h1>🏸 バドミントン管理</h1>
 
-  <!-- 0. スマホ・PC間のデータ同期（新設） -->
-  <div class="section-card">
-    <div class="section-title">
-      <span>🔄 PC・スマホ間のメンバー＆データ同期</span>
-    </div>
-    <div style="display:flex; gap:8px; margin-bottom:8px;">
-      <button type="button" class="sync-btn" onclick="exportData()">PC側: データをコピー</button>
-      <button type="button" class="sync-btn" style="background:#5856d6;" onclick="importData()">スマホ側: 復元読み込み</button>
-    </div>
-    <textarea id="syncDataArea" rows="2" placeholder="ここに同期コードが生成されます（貼り付けて復元可能）" style="width:100%; font-size:0.75rem;"></textarea>
-  </div>
-
   <!-- 1. 3ヶ月先までの金曜日コート予約リスト -->
   <div class="section-card">
     <div class="section-title">
       <span>📅 今後3ヶ月の金曜予約リスト</span>
       <small style="font-size:0.75rem; color:var(--text-sec);">コート代入力で完了・消去</small>
     </div>
+    
+    <!-- 未完了の予約リスト -->
     <div class="friday-list" id="fridayListContainer">
       <!-- JSで動的生成 -->
+    </div>
+
+    <!-- 完了済みの予約＆復活ボタンエリア -->
+    <div class="completed-box">
+      <div style="font-size:0.75rem; font-weight:600; color:var(--text-sec); margin-bottom:6px;">
+        ✅ 予約完了済み（押し間違いは「元に戻す」で復活）
+      </div>
+      <div id="completedFridayContainer" style="display:flex; flex-direction:column; gap:6px;">
+        <!-- JSで動的生成 -->
+      </div>
     </div>
   </div>
 
@@ -383,6 +400,19 @@
       </table>
     </div>
   </div>
+
+  <!-- 4. スマホ・PC間のデータ同期（最下部に配置） -->
+  <div class="section-card">
+    <div class="section-title">
+      <span>🔄 PC・スマホ間のメンバー＆データ同期</span>
+    </div>
+    <div style="display:flex; gap:8px; margin-bottom:8px;">
+      <button type="button" class="sync-btn" onclick="exportData()">PC側: データをコピー</button>
+      <button type="button" class="sync-btn" style="background:#5856d6;" onclick="importData()">スマホ側: 復元読み込み</button>
+    </div>
+    <textarea id="syncDataArea" rows="2" placeholder="ここに同期コードが生成されます（貼り付けて復元可能）" style="width:100%; font-size:0.75rem;"></textarea>
+  </div>
+
 </div>
 
 <script>
@@ -409,8 +439,11 @@
     };
     const jsonStr = JSON.stringify(bundle);
     document.getElementById('syncDataArea').value = jsonStr;
-    navigator.clipboard.writeText(jsonStr);
-    alert('データコードをコピーしました！スマホの「同期コード」エリアに貼り付けて復元できます。');
+    
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(jsonStr);
+    }
+    alert('データコードをコピーしました！スマホの「同期コード」エリアに貼り付けて「復元読み込み」を押してください。');
   }
 
   // データ同期機能（インポート）
@@ -434,20 +467,23 @@
         completedFridays = bundle.completedFridays;
         localStorage.setItem('badminton_completed_fridays', JSON.stringify(completedFridays));
       }
+      selectedMembers = []; // 選択をリセット
       renderFridayList();
       renderPills();
       updateCalculation();
       renderHistoryAndCharts();
       alert('スマホへのデータ復元・同期が完了しました！');
     } catch (e) {
-      alert('無効な同期コードです。コピーし直してください。');
+      alert('無効な同期コードです。正しくコピーされているか確認してください。');
     }
   }
 
   // 1. 今後3ヶ月の金曜日リストを生成＆描画
   function renderFridayList() {
     const container = document.getElementById('fridayListContainer');
+    const completedContainer = document.getElementById('completedFridayContainer');
     container.innerHTML = '';
+    completedContainer.innerHTML = '';
 
     const today = new Date();
     const threeMonthsLater = new Date();
@@ -476,6 +512,14 @@
           </div>
         `;
         container.appendChild(card);
+      } else {
+        const compDiv = document.createElement('div');
+        compDiv.style.cssText = "display:flex; justify-content:space-between; align-items:center; background:#f0f0f4; padding:6px 10px; border-radius:6px; font-size:0.8rem;";
+        compDiv.innerHTML = `
+          <span>📅 ${dateStr} (金) - 完了済み</span>
+          <button class="undo-btn" onclick="undoFridayReservation('${dateStr}')">元に戻す</button>
+        `;
+        completedContainer.appendChild(compDiv);
       }
       cur.setDate(cur.getDate() + 7);
     }
@@ -483,8 +527,12 @@
     if (count === 0) {
       container.innerHTML = '<div style="font-size:0.85rem; color:var(--text-sec); text-align:center; padding:12px;">3ヶ月先までの予約はすべて完了しています</div>';
     }
+    if (completedContainer.children.length === 0) {
+      completedContainer.innerHTML = '<div style="font-size:0.75rem; color:var(--text-sec);">完了済みの予約はありません</div>';
+    }
   }
 
+  // 予約完了処理
   function completeFridayReservation(dateStr) {
     const courtExpense = Number(document.getElementById(`f_court_${dateStr}`).value) || 0;
 
@@ -504,6 +552,18 @@
     };
 
     records.unshift(item);
+    localStorage.setItem('badminton_app_records', JSON.stringify(records));
+
+    renderFridayList();
+    renderHistoryAndCharts();
+  }
+
+  // 押し間違えた時の復活処理
+  function undoFridayReservation(dateStr) {
+    completedFridays = completedFridays.filter(d => d !== dateStr);
+    localStorage.setItem('badminton_completed_fridays', JSON.stringify(completedFridays));
+
+    records = records.filter(r => !(r.date === dateStr && r.time === '金曜枠' && r.income === 0));
     localStorage.setItem('badminton_app_records', JSON.stringify(records));
 
     renderFridayList();
