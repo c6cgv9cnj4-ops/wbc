@@ -425,11 +425,9 @@
 </div>
 
 <script>
-  // ==========================================
-  // 【重要】ここで取得したご自身のキーに書き換えてください
-  // ==========================================
-  const BIN_ID = 'ここに_BIN_ID_を貼り付け'; 
-  const API_KEY = 'ここに_API_KEY_を貼り付け';
+  // オンライン共有用API設定（取得キー設定済み）
+  const BIN_ID = '6a6afba0f5f4af5e29d47fc4'; 
+  const API_KEY = '$2a$10$1uvxc4uvTgLkae65XBIYLOGW2XER3zGhhARfl88DTbUhJz/xPHZ1G';
 
   let initialBalance = 0; 
   let memberList = ['細川', '田中', '鈴木', '佐藤', '高橋', '渡辺'];
@@ -453,11 +451,6 @@
 
   async function fetchCloudData() {
     updateSyncStatus('同期中...', '#ff9500');
-    // ダミーキーの場合は通信せずローカルモードへ移行
-    if(BIN_ID === 'ここに_BIN_ID_を貼り付け') {
-      fallbackLocalStorage();
-      return;
-    }
     try {
       const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
         headers: { 'X-Access-Key': API_KEY }
@@ -493,16 +486,10 @@
       completedFridays: completedFridays
     };
 
-    // ローカルにも保存
     localStorage.setItem('badminton_initial_balance', initialBalance);
     localStorage.setItem('badminton_members_list', JSON.stringify(memberList));
     localStorage.setItem('badminton_app_records', JSON.stringify(records));
     localStorage.setItem('badminton_completed_fridays', JSON.stringify(completedFridays));
-
-    if(BIN_ID === 'ここに_BIN_ID_を貼り付け') {
-      updateSyncStatus('ローカル保存(APIキー未設定)', '#ff9500');
-      return;
-    }
 
     try {
       const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
@@ -531,12 +518,7 @@
     completedFridays = JSON.parse(localStorage.getItem('badminton_completed_fridays')) || [];
     
     renderAll();
-    // もしキーが設定されていなければステータスに案内を出す
-    if(BIN_ID === 'ここに_BIN_ID_を貼り付け') {
-      updateSyncStatus('キー未設定(ローカル保存中)', '#8e8e93');
-    } else {
-      updateSyncStatus('オフラインモード', '#8e8e93');
-    }
+    updateSyncStatus('オフラインモード', '#8e8e93');
   }
 
   function updateSyncStatus(text, color) {
@@ -551,7 +533,6 @@
     renderHistoryAndCharts();
   }
 
-  // 予約リスト生成
   function renderFridayList() {
     const container = document.getElementById('fridayListContainer');
     const completedContainer = document.getElementById('completedFridayContainer');
@@ -621,7 +602,7 @@
       net: -courtExpense
     };
 
-    records.push(item); // 降順ソート処理があるためpushでOK
+    records.push(item);
     renderAll();
     pushCloudData();
   }
@@ -734,15 +715,13 @@
     pushCloudData();
   }
 
-  // ★ 日付の降順（新しいものが上）に確実に並び替える処理 ★
   function renderHistoryAndCharts() {
     const tbody = document.getElementById('historyBody');
     tbody.innerHTML = '';
 
-    // 1. まず日付の「昇順（古い順）」で並び替えて残高を計算する
+    // 1. 日付の昇順（古い順）で残高を累積計算
     records.sort((a, b) => {
       const dateDiff = new Date(a.date) - new Date(b.date);
-      // 日付が同じなら作成された時間(id)の古い順
       return dateDiff !== 0 ? dateDiff : a.id - b.id;
     });
 
@@ -758,13 +737,12 @@
       sumShuttle += r.shuttleExpense;
     });
 
-    // 2. 表示用に「降順（新しい順）」に並び替える
+    // 2. 表示用に日付の降順（新しい順）へソート
     records.sort((a, b) => {
       const dateDiff = new Date(b.date) - new Date(a.date);
       return dateDiff !== 0 ? dateDiff : b.id - a.id;
     });
 
-    // テーブルの描画
     records.forEach(r => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -788,7 +766,7 @@
     document.getElementById('totalCourt').textContent = sumCourt.toLocaleString() + ' 円';
     document.getElementById('totalShuttle').textContent = sumShuttle.toLocaleString() + ' 円';
 
-    // 3. グラフ描画（グラフのX軸は左から古い順にするため、最新から6件を取って反転させる）
+    // 3. グラフ用データ準備
     const recentForChart = [...records].slice(0, 6).reverse();
     const labels = recentForChart.map(r => r.date.slice(5));
     const barData = recentForChart.map(r => r.net);
