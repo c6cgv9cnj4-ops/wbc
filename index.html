@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>バドミントン活動・予約・収支管理</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -17,6 +17,10 @@
       --danger: #ff3b30;
       --warning: #ff9500;
       --card-radius: 12px;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
@@ -104,6 +108,7 @@
       appearance: none;
       outline: none;
       font-family: inherit;
+      min-height: 44px; /* スマホ用タップサイズ確保 */
     }
     input:focus, select:focus, textarea:focus {
       border-color: var(--accent);
@@ -114,14 +119,16 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      max-height: 280px;
+      max-height: 320px;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch; /* iOSスクロール滑らか化 */
+      padding-right: 2px;
     }
     .friday-card {
       background: #f9f9fb;
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 10px 12px;
+      padding: 12px;
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -141,17 +148,20 @@
     }
     .friday-inputs input {
       padding: 8px 10px;
-      font-size: 0.85rem;
+      font-size: 0.9rem;
+      min-height: 40px;
     }
     .complete-btn {
       background: var(--accent);
       color: white;
       border: none;
-      padding: 8px 14px;
+      padding: 0 16px;
+      height: 40px;
       border-radius: 6px;
       font-weight: 600;
       font-size: 0.85rem;
       cursor: pointer;
+      touch-action: manipulation;
     }
     .undo-btn {
       background: #ff9500;
@@ -162,6 +172,7 @@
       font-weight: 600;
       font-size: 0.75rem;
       cursor: pointer;
+      touch-action: manipulation;
     }
 
     .completed-box {
@@ -181,12 +192,13 @@
       align-items: center;
       border-radius: 20px;
       background: #f0f0f4;
-      padding: 4px 8px 4px 12px;
+      padding: 6px 10px 6px 14px;
       font-size: 0.85rem;
       font-weight: 500;
       user-select: none;
       transition: all 0.2s ease;
       border: 1px solid transparent;
+      touch-action: manipulation;
     }
     .pill-wrapper.active {
       background: var(--accent);
@@ -201,8 +213,8 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       background: rgba(0,0,0,0.15);
       color: #fff;
@@ -236,6 +248,8 @@
       cursor: pointer;
       margin-top: 10px;
       box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
+      min-height: 48px;
+      touch-action: manipulation;
     }
 
     .summary-grid {
@@ -274,8 +288,8 @@
   <h1>🏸 バドミントン管理</h1>
 
   <div class="sync-status-bar">
-    <div><span class="sync-dot" id="syncDot"></span><span id="syncText">Google Sheets 接続中...</span></div>
-    <button onclick="fetchCloudData()" style="border:none; background:none; color:var(--accent-blue); font-size:0.75rem; font-weight:600; cursor:pointer;">手動更新</button>
+    <div><span class="sync-dot" id="syncDot"></span><span id="syncText">接続確認中...</span></div>
+    <button onclick="fetchCloudData()" style="border:none; background:none; color:var(--accent-blue); font-size:0.75rem; font-weight:600; cursor:pointer; padding:8px;">手動更新</button>
   </div>
 
   <div class="section-card">
@@ -285,7 +299,7 @@
       <label>メンバー追加</label>
       <div style="display:flex; gap:8px;">
         <input type="text" id="newMemberName" placeholder="名前を入力..." style="flex:1;">
-        <button type="button" onclick="addNewMember()" style="background:#007aff; color:white; border:none; border-radius:8px; padding:0 14px; font-weight:600;">登録</button>
+        <button type="button" onclick="addNewMember()" style="background:#007aff; color:white; border:none; border-radius:8px; padding:0 14px; font-weight:600; min-height:44px;">登録</button>
       </div>
     </div>
 
@@ -389,14 +403,14 @@
   <div class="section-card">
     <div class="section-title">
       <span>📅 今後3ヶ月の金曜予約リスト</span>
-      <small style="font-size:0.75rem; color:var(--text-sec);">コート代入力で完了・消去</small>
+      <small style="font-size:0.75rem; color:var(--text-sec);">コート代入力で完了</small>
     </div>
     
     <div class="friday-list" id="fridayListContainer"></div>
 
     <div class="completed-box">
       <div style="font-size:0.75rem; font-weight:600; color:var(--text-sec); margin-bottom:6px;">
-        ✅ 予約完了済み（押し間違いは「元に戻す」で復活）
+        ✅ 予約完了済み
       </div>
       <div id="completedFridayContainer" style="display:flex; flex-direction:column; gap:6px;"></div>
     </div>
@@ -416,7 +430,6 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('eventDate').valueAsDate = new Date();
-    localStorage.clear();
     fetchCloudData();
     setInterval(fetchCloudData, 15000);
   });
@@ -427,14 +440,19 @@
     pushCloudData();
   }
 
-  function fetchCloudData() {
+  async function fetchCloudData() {
     updateSyncStatus('同期中...', '#ff9500');
-    const callbackName = 'gasCallback_' + Date.now();
-    window[callbackName] = function(data) {
-      delete window[callbackName];
-      const scriptElem = document.getElementById(callbackName);
-      if (scriptElem) scriptElem.remove();
-      
+
+    try {
+      const response = await fetch(`${GAS_URL}?t=${Date.now()}`, {
+        method: 'GET',
+        redirect: 'follow'
+      });
+
+      if (!response.ok) throw new Error('ネットワークエラー');
+
+      const data = await response.json();
+
       if (data && typeof data === 'object' && data.members) {
         memberList = Array.isArray(data.members) ? data.members : [];
         records = Array.isArray(data.records) ? data.records : [];
@@ -450,15 +468,10 @@
         renderAll();
         pushCloudData();
       }
-    };
-
-    const script = document.createElement('script');
-    script.id = callbackName;
-    script.src = `${GAS_URL}?callback=${callbackName}`;
-    script.onerror = function() {
+    } catch (error) {
+      console.error('Fetch error:', error);
       updateSyncStatus('接続エラー', '#ff3b30');
-    };
-    document.body.appendChild(script);
+    }
   }
 
   function pushCloudData() {
@@ -534,16 +547,16 @@
           </div>
           <div class="friday-inputs">
             <input type="number" id="f_court_${dateStr}" placeholder="コート代 (円)" onfocus="this.select()">
-            <button class="complete-btn" onclick="completeFridayReservation('${dateStr}')">予約完了</button>
+            <button type="button" class="complete-btn" onclick="completeFridayReservation('${dateStr}')">予約完了</button>
           </div>
         `;
         container.appendChild(card);
       } else {
         const compDiv = document.createElement('div');
-        compDiv.style.cssText = "display:flex; justify-content:space-between; align-items:center; background:#f0f0f4; padding:6px 10px; border-radius:6px; font-size:0.8rem;";
+        compDiv.style.cssText = "display:flex; justify-content:space-between; align-items:center; background:#f0f0f4; padding:8px 10px; border-radius:6px; font-size:0.8rem;";
         compDiv.innerHTML = `
           <span>📅 ${dateStr} (金) - 完了済み</span>
-          <button class="undo-btn" onclick="undoFridayReservation('${dateStr}')">元に戻す</button>
+          <button type="button" class="undo-btn" onclick="undoFridayReservation('${dateStr}')">元に戻す</button>
         `;
         completedContainer.appendChild(compDiv);
       }
@@ -559,7 +572,9 @@
   }
 
   function completeFridayReservation(dateStr) {
-    const courtExpense = Number(document.getElementById(`f_court_${dateStr}`).value) || 0;
+    const inputElem = document.getElementById(`f_court_${dateStr}`);
+    const courtExpense = inputElem ? (Number(inputElem.value) || 0) : 0;
+    
     if (!completedFridays.includes(dateStr)) {
       completedFridays.push(dateStr);
     }
@@ -693,7 +708,6 @@
     const tbody = document.getElementById('historyBody');
     tbody.innerHTML = '';
 
-    // 1. 日付の昇順（古い順）で累積残高を正しく計算
     records.sort((a, b) => {
       const dateDiff = new Date(a.date) - new Date(b.date);
       return dateDiff !== 0 ? dateDiff : a.id - b.id;
@@ -711,7 +725,6 @@
       sumShuttle += r.shuttleExpense;
     });
 
-    // 2. 表示用に日付の降順（新しい順：10-16 -> 10-09 ...）に確実にソート
     records.sort((a, b) => {
       const dateDiff = new Date(b.date) - new Date(a.date);
       return dateDiff !== 0 ? dateDiff : b.id - a.id;
@@ -740,7 +753,6 @@
     document.getElementById('totalCourt').textContent = sumCourt.toLocaleString() + ' 円';
     document.getElementById('totalShuttle').textContent = sumShuttle.toLocaleString() + ' 円';
 
-    // 3. グラフ用データ準備（元の配列順序を崩さないよう [...] でシャローコピー）
     const recentForChart = [...records].slice(0, 6).reverse();
     const labels = recentForChart.map(r => r.date.slice(5));
     const barData = recentForChart.map(r => r.net);
