@@ -279,34 +279,13 @@
 <div class="container">
   <h1>🏸 バドミントン管理</h1>
 
-  <!-- クラウド自動同期ステータス -->
+  <!-- クラウド自動同期ステータスバー -->
   <div class="sync-status-bar">
     <div><span class="sync-dot" id="syncDot"></span><span id="syncText">クラウド同期中...</span></div>
     <button onclick="fetchCloudData()" style="border:none; background:none; color:var(--accent-blue); font-size:0.75rem; font-weight:600; cursor:pointer;">手動更新</button>
   </div>
 
-  <!-- 1. 3ヶ月先までの金曜日コート予約リスト -->
-  <div class="section-card">
-    <div class="section-title">
-      <span>📅 今後3ヶ月の金曜予約リスト</span>
-      <small style="font-size:0.75rem; color:var(--text-sec);">コート代入力で完了・消去</small>
-    </div>
-    
-    <div class="friday-list" id="fridayListContainer">
-      <!-- JSで動的生成 -->
-    </div>
-
-    <div class="completed-box">
-      <div style="font-size:0.75rem; font-weight:600; color:var(--text-sec); margin-bottom:6px;">
-        ✅ 予約完了済み（押し間違いは「元に戻す」で復活）
-      </div>
-      <div id="completedFridayContainer" style="display:flex; flex-direction:column; gap:6px;">
-        <!-- JSで動的生成 -->
-      </div>
-    </div>
-  </div>
-
-  <!-- 2. メンバー管理 ＆ 今回の活動記録 -->
+  <!-- 【1番目】👥 メンバーと金額設定 -->
   <div class="section-card">
     <div class="section-title">👥 メンバーと金額設定</div>
 
@@ -371,9 +350,9 @@
     <button type="button" class="submit-btn" onclick="addRecord()">今回の活動・収支を保存する</button>
   </div>
 
-  <!-- 3. 収支＆グラフ -->
+  <!-- 【2番目】📊 収支＆グラフ -->
   <div class="section-card">
-    <div class="section-title">📊 3. 収支＆グラフ</div>
+    <div class="section-title">📊 収支＆グラフ</div>
 
     <div class="summary-grid">
       <div class="summary-card">
@@ -411,6 +390,27 @@
         </thead>
         <tbody id="historyBody"></tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- 【3番目】📅 今後3ヶ月の金曜予約リスト -->
+  <div class="section-card">
+    <div class="section-title">
+      <span>📅 今後3ヶ月の金曜予約リスト</span>
+      <small style="font-size:0.75rem; color:var(--text-sec);">コート代入力で完了・消去</small>
+    </div>
+    
+    <div class="friday-list" id="fridayListContainer">
+      <!-- JSで動的生成 -->
+    </div>
+
+    <div class="completed-box">
+      <div style="font-size:0.75rem; font-weight:600; color:var(--text-sec); margin-bottom:6px;">
+        ✅ 予約完了済み（押し間違いは「元に戻す」で復活）
+      </div>
+      <div id="completedFridayContainer" style="display:flex; flex-direction:column; gap:6px;">
+        <!-- JSで動的生成 -->
+      </div>
     </div>
   </div>
 
@@ -509,7 +509,7 @@
     renderHistoryAndCharts();
   }
 
-  // 1. 今後3ヶ月の金曜日リスト生成
+  // 今後3ヶ月の金曜日リスト生成
   function renderFridayList() {
     const container = document.getElementById('fridayListContainer');
     const completedContainer = document.getElementById('completedFridayContainer');
