@@ -405,16 +405,66 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('eventDate').valueAsDate = new Date();
+    
+    // 起動時にまずブラウザのローカル保存（バックアップ）から即座に表示して消えを防ぐ
+    loadFromLocalStorage();
+    
+    // その後クラウドから最新データを取得
     fetchCloudData();
+
+    // ★名前入力欄でEnterキーが押されたら登録を実行する処理を追加
+    const nameInput = document.getElementById('newMemberName');
+    if (nameInput) {
+      nameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault(); // フォームの意図しない送信を防止
+          addNewMember();
+        }
+      });
+    }
   });
+
+  // ブラウザのローカルストレージに一時保存する関数
+  function saveToLocalStorage() {
+    const data = {
+      initialBalance,
+      memberList,
+      records,
+      completedFridays
+    };
+    localStorage.setItem('badminton_cache', JSON.stringify(data));
+  }
+
+  // ブラウザのローカルストレージから読み込む関数
+  function loadFromLocalStorage() {
+    const cached = localStorage.getItem('badminton_cache');
+    if (cached) {
+      try {
+        const data = JSON.parse(cached);
+        if (data && typeof data === 'object') {
+          memberList = Array.isArray(data.members) ? data.members : (Array.isArray(data.memberList) ? data.memberList : []);
+          records = Array.isArray(data.records) ? data.records : [];
+          completedFridays = Array.isArray(data.completedFridays) ? data.completedFridays.map(String) : [];
+          if (data.initialBalance !== undefined) {
+            initialBalance = Number(data.initialBalance) || 0;
+          }
+          const initInput = document.getElementById('initialBalanceInput');
+          if(initInput) initInput.value = initialBalance;
+          renderAll();
+        }
+      } catch(e) {
+        console.error('Cache load error:', e);
+      }
+    }
+  }
 
   function updateInitialBalance() {
     initialBalance = Number(document.getElementById('initialBalanceInput').value) || 0;
+    saveToLocalStorage();
     renderAll();
     pushCloudData();
   }
 
-  // 混乱を招くステータス表示を完全撤廃し、スプレッドシートと確実に通信する関数
   function fetchCloudData() {
     fetch(`${GAS_URL}?t=${Date.now()}`, {
       method: 'GET',
@@ -434,6 +484,9 @@
         }
         const initInput = document.getElementById('initialBalanceInput');
         if(initInput) initInput.value = initialBalance;
+        
+        // 取得した最新データをローカルにも保存
+        saveToLocalStorage();
         renderAll();
       } else {
         renderAll();
@@ -446,6 +499,9 @@
   }
 
   function pushCloudData() {
+    // 送信データを作る前にローカルに即時保存
+    saveToLocalStorage();
+
     const payload = {
       initialBalance: initialBalance,
       members: memberList,
