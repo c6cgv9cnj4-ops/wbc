@@ -269,7 +269,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.75rem; /* スマホで列が増えるため少し小さく */
+      font-size: 0.75rem;
     }
     th, td { padding: 8px 2px; border-bottom: 1px solid var(--border); text-align: left; }
     th { color: var(--text-sec); font-weight: 600; }
@@ -425,11 +425,13 @@
 </div>
 
 <script>
-  // オンライン共有用API設定
-  const BIN_ID = '66ab3d82acd3cb34a86f912a'; 
-  const API_KEY = '$2a$10$9cO4r0P3vNf40.7P00Rk/O6eBq7e5W9w9/J1u3x8p9W7x9y0z1234';
+  // ==========================================
+  // 【重要】ここで取得したご自身のキーに書き換えてください
+  // ==========================================
+  const BIN_ID = 'ここに_BIN_ID_を貼り付け'; 
+  const API_KEY = 'ここに_API_KEY_を貼り付け';
 
-  let initialBalance = 0; // 初期残高（手元金）
+  let initialBalance = 0; 
   let memberList = ['細川', '田中', '鈴木', '佐藤', '高橋', '渡辺'];
   let selectedMembers = [];
   let records = [];
@@ -443,16 +445,19 @@
     setInterval(fetchCloudData, 15000);
   });
 
-  // 初期残高の更新処理
   function updateInitialBalance() {
     initialBalance = Number(document.getElementById('initialBalanceInput').value) || 0;
     renderAll();
     pushCloudData();
   }
 
-  // クラウドから最新データを読み込み
   async function fetchCloudData() {
     updateSyncStatus('同期中...', '#ff9500');
+    // ダミーキーの場合は通信せずローカルモードへ移行
+    if(BIN_ID === 'ここに_BIN_ID_を貼り付け') {
+      fallbackLocalStorage();
+      return;
+    }
     try {
       const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
         headers: { 'X-Access-Key': API_KEY }
@@ -479,7 +484,6 @@
     }
   }
 
-  // クラウドへ変更データを自動送信
   async function pushCloudData() {
     updateSyncStatus('送信中...', '#007aff');
     const payload = {
@@ -489,10 +493,16 @@
       completedFridays: completedFridays
     };
 
+    // ローカルにも保存
     localStorage.setItem('badminton_initial_balance', initialBalance);
     localStorage.setItem('badminton_members_list', JSON.stringify(memberList));
     localStorage.setItem('badminton_app_records', JSON.stringify(records));
     localStorage.setItem('badminton_completed_fridays', JSON.stringify(completedFridays));
+
+    if(BIN_ID === 'ここに_BIN_ID_を貼り付け') {
+      updateSyncStatus('ローカル保存(APIキー未設定)', '#ff9500');
+      return;
+    }
 
     try {
       const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
@@ -521,7 +531,12 @@
     completedFridays = JSON.parse(localStorage.getItem('badminton_completed_fridays')) || [];
     
     renderAll();
-    updateSyncStatus('オフラインモード', '#8e8e93');
+    // もしキーが設定されていなければステータスに案内を出す
+    if(BIN_ID === 'ここに_BIN_ID_を貼り付け') {
+      updateSyncStatus('キー未設定(ローカル保存中)', '#8e8e93');
+    } else {
+      updateSyncStatus('オフラインモード', '#8e8e93');
+    }
   }
 
   function updateSyncStatus(text, color) {
@@ -606,7 +621,7 @@
       net: -courtExpense
     };
 
-    records.unshift(item);
+    records.push(item); // 降順ソート処理があるためpushでOK
     renderAll();
     pushCloudData();
   }
@@ -706,7 +721,7 @@
       net
     };
 
-    records.unshift(item);
+    records.push(item);
     
     selectedMembers = [];
     document.getElementById('memberRate').value = 700;
@@ -719,17 +734,22 @@
     pushCloudData();
   }
 
+  // ★ 日付の降順（新しいものが上）に確実に並び替える処理 ★
   function renderHistoryAndCharts() {
     const tbody = document.getElementById('historyBody');
     tbody.innerHTML = '';
 
+    // 1. まず日付の「昇順（古い順）」で並び替えて残高を計算する
+    records.sort((a, b) => {
+      const dateDiff = new Date(a.date) - new Date(b.date);
+      // 日付が同じなら作成された時間(id)の古い順
+      return dateDiff !== 0 ? dateDiff : a.id - b.id;
+    });
+
     let sumInc = 0, sumCourt = 0, sumShuttle = 0;
-    
-    // 過去（配列の後ろ）から順に「現在の残高」を計算する
-    let reversedRecords = [...records].reverse();
     let currentBal = initialBalance;
 
-    reversedRecords.forEach(r => {
+    records.forEach(r => {
       r.runningBalance = currentBal + r.net;
       currentBal = r.runningBalance;
       
@@ -738,8 +758,14 @@
       sumShuttle += r.shuttleExpense;
     });
 
-    // 計算後に再び最新順に戻してテーブルに出力
-    reversedRecords.reverse().forEach(r => {
+    // 2. 表示用に「降順（新しい順）」に並び替える
+    records.sort((a, b) => {
+      const dateDiff = new Date(b.date) - new Date(a.date);
+      return dateDiff !== 0 ? dateDiff : b.id - a.id;
+    });
+
+    // テーブルの描画
+    records.forEach(r => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${r.date.slice(5)}</td>
@@ -762,8 +788,8 @@
     document.getElementById('totalCourt').textContent = sumCourt.toLocaleString() + ' 円';
     document.getElementById('totalShuttle').textContent = sumShuttle.toLocaleString() + ' 円';
 
-    // グラフ描画用データ（古い順で最大6件）
-    const recentForChart = [...reversedRecords].slice(0, 6).reverse();
+    // 3. グラフ描画（グラフのX軸は左から古い順にするため、最新から6件を取って反転させる）
+    const recentForChart = [...records].slice(0, 6).reverse();
     const labels = recentForChart.map(r => r.date.slice(5));
     const barData = recentForChart.map(r => r.net);
     const lineData = recentForChart.map(r => r.runningBalance);
@@ -771,7 +797,6 @@
     const ctx = document.getElementById('balanceChart').getContext('2d');
     if (chartInstance) chartInstance.destroy();
 
-    // 複合グラフ（棒：単回収支、折れ線：残高推移）
     chartInstance = new Chart(ctx, {
       data: {
         labels: labels,
@@ -816,7 +841,7 @@
             display: true,
             position: 'right',
             title: { display: true, text: '残高', font: {size: 10} },
-            grid: { drawOnChartArea: false } // 右軸の横線を消す
+            grid: { drawOnChartArea: false }
           }
         }
       }
