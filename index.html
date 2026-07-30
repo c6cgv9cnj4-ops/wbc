@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>バドミントン活動・予約・収支管理</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -18,7 +18,10 @@
       --warning: #ff9500;
       --card-radius: 12px;
     }
-    * { box-sizing: border-box; }
+    * { 
+      box-sizing: border-box; 
+      -webkit-tap-highlight-color: transparent;
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
       background-color: var(--bg);
@@ -105,6 +108,7 @@
       appearance: none;
       outline: none;
       font-family: inherit;
+      min-height: 44px; /* スマホタップ対応 */
     }
     input:focus, select:focus, textarea:focus {
       border-color: var(--accent);
@@ -115,14 +119,16 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      max-height: 280px;
+      max-height: 320px;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch; /* スマホでのスクロール不具合を解消 */
+      padding-right: 2px;
     }
     .friday-card {
       background: #f9f9fb;
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 10px 12px;
+      padding: 12px;
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -142,17 +148,20 @@
     }
     .friday-inputs input {
       padding: 8px 10px;
-      font-size: 0.85rem;
+      font-size: 0.9rem;
+      min-height: 40px;
     }
     .complete-btn {
       background: var(--accent);
       color: white;
       border: none;
-      padding: 8px 14px;
+      padding: 0 16px;
+      height: 40px;
       border-radius: 6px;
       font-weight: 600;
       font-size: 0.85rem;
       cursor: pointer;
+      touch-action: manipulation;
     }
     .undo-btn {
       background: #ff9500;
@@ -163,6 +172,7 @@
       font-weight: 600;
       font-size: 0.75rem;
       cursor: pointer;
+      touch-action: manipulation;
     }
 
     .completed-box {
@@ -182,12 +192,13 @@
       align-items: center;
       border-radius: 20px;
       background: #f0f0f4;
-      padding: 4px 8px 4px 12px;
+      padding: 6px 10px 6px 14px;
       font-size: 0.85rem;
       font-weight: 500;
       user-select: none;
       transition: all 0.2s ease;
       border: 1px solid transparent;
+      touch-action: manipulation;
     }
     .pill-wrapper.active {
       background: var(--accent);
@@ -202,8 +213,8 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       background: rgba(0,0,0,0.15);
       color: #fff;
@@ -237,6 +248,8 @@
       cursor: pointer;
       margin-top: 10px;
       box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
+      min-height: 48px;
+      touch-action: manipulation;
     }
 
     .summary-grid {
@@ -276,7 +289,7 @@
 
   <div class="sync-status-bar">
     <div><span class="sync-dot" id="syncDot"></span><span id="syncText">Google Sheets 接続中...</span></div>
-    <button onclick="fetchCloudData()" style="border:none; background:none; color:var(--accent-blue); font-size:0.75rem; font-weight:600; cursor:pointer;">手動更新</button>
+    <button onclick="fetchCloudData()" style="border:none; background:none; color:var(--accent-blue); font-size:0.75rem; font-weight:600; cursor:pointer; padding:8px;">手動更新</button>
   </div>
 
   <div class="section-card">
@@ -286,12 +299,12 @@
       <label>メンバー追加</label>
       <div style="display:flex; gap:8px;">
         <input type="text" id="newMemberName" placeholder="名前を入力..." style="flex:1;">
-        <button type="button" onclick="addNewMember()" style="background:#007aff; color:white; border:none; border-radius:8px; padding:0 14px; font-weight:600;">登録</button>
+        <button type="button" onclick="addNewMember()" style="background:#007aff; color:white; border:none; border-radius:8px; padding:0 14px; font-weight:600; min-height:44px;">登録</button>
       </div>
     </div>
 
     <div class="form-group">
-      <label>メンバー選択 (クリックで選択 / ×で削除)</label>
+      <label>メンバー選択 (タップで選択 / ×で削除)</label>
       <div class="pills-grid" id="memberPills"></div>
     </div>
 
@@ -427,16 +440,19 @@
     pushCloudData();
   }
 
-  // GAS用のJSONP通信（通信エラー・CORS問題を回避）
+  // ★一番最初に細川さんが書いていた正解の通信コードに完全復元しました★
   function fetchCloudData() {
     updateSyncStatus('同期中...', '#ff9500');
-    const callbackName = 'gasCallback_' + Date.now();
-    
-    window[callbackName] = function(data) {
-      delete window[callbackName];
-      const scriptElem = document.getElementById(callbackName);
-      if (scriptElem) scriptElem.remove();
-      
+
+    fetch(`${GAS_URL}?t=${Date.now()}`, {
+      method: 'GET',
+      redirect: 'follow'
+    })
+    .then(response => {
+      if (!response.ok) throw new Error('ネットワークエラー');
+      return response.json();
+    })
+    .then(data => {
       if (data && typeof data === 'object' && data.members) {
         memberList = Array.isArray(data.members) ? data.members : [];
         records = Array.isArray(data.records) ? data.records : [];
@@ -449,17 +465,13 @@
         updateSyncStatus('完全同期完了', '#34c759');
       } else {
         renderAll();
-        updateSyncStatus('データ読み込み完了', '#34c759');
+        updateSyncStatus('データ形式エラー', '#ff3b30');
       }
-    };
-
-    const script = document.createElement('script');
-    script.id = callbackName;
-    script.src = `${GAS_URL}?callback=${callbackName}&t=${Date.now()}`;
-    script.onerror = function() {
+    })
+    .catch(error => {
+      console.error('Fetch error:', error);
       updateSyncStatus('接続エラー', '#ff3b30');
-    };
-    document.body.appendChild(script);
+    });
   }
 
   function pushCloudData() {
