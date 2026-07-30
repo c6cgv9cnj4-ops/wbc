@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>バドミントン活動・予約・収支管理</title>
-  <!-- Chart.js グラフライブラリ -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
@@ -39,7 +38,6 @@
       margin-bottom: 12px;
     }
     
-    /* 同期ステータスバー */
     .sync-status-bar {
       display: flex;
       align-items: center;
@@ -112,7 +110,6 @@
       background-color: #fff;
     }
 
-    /* 毎週金曜日の予約リスト */
     .friday-list {
       display: flex;
       flex-direction: column;
@@ -167,14 +164,12 @@
       cursor: pointer;
     }
 
-    /* 完了済みリスト */
     .completed-box {
       margin-top: 12px;
       border-top: 1px dashed var(--border);
       padding-top: 10px;
     }
 
-    /* ピルボタン選択 */
     .pills-grid {
       display: flex;
       flex-wrap: wrap;
@@ -243,7 +238,6 @@
       box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
     }
 
-    /* サマリー・グラフ */
     .summary-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -265,7 +259,6 @@
       margin-top: 12px;
     }
 
-    /* テーブル */
     table {
       width: 100%;
       border-collapse: collapse;
@@ -280,13 +273,11 @@
 <div class="container">
   <h1>🏸 バドミントン管理</h1>
 
-  <!-- クラウド自動同期ステータスバー -->
   <div class="sync-status-bar">
     <div><span class="sync-dot" id="syncDot"></span><span id="syncText">Google Sheets 接続中...</span></div>
     <button onclick="fetchCloudData()" style="border:none; background:none; color:var(--accent-blue); font-size:0.75rem; font-weight:600; cursor:pointer;">手動更新</button>
   </div>
 
-  <!-- 【1番目】👥 メンバーと金額設定 -->
   <div class="section-card">
     <div class="section-title">👥 メンバーと金額設定</div>
 
@@ -300,9 +291,7 @@
 
     <div class="form-group">
       <label>メンバー選択 (タップで選択 / ×で削除)</label>
-      <div class="pills-grid" id="memberPills">
-        <!-- JSで生成 -->
-      </div>
+      <div class="pills-grid" id="memberPills"></div>
     </div>
 
     <div class="form-row" style="margin-top:10px;">
@@ -325,9 +314,7 @@
       <input type="number" id="memberRate" value="700" placeholder="700" onfocus="this.select()" oninput="updateCalculation()">
     </div>
 
-    <div class="calc-preview" id="feeSummaryPreview">
-      会費収入合計: 0 円
-    </div>
+    <div class="calc-preview" id="feeSummaryPreview">会費収入合計: 0 円</div>
 
     <hr style="border:none; border-top:1px solid var(--border); margin:14px 0;">
 
@@ -351,11 +338,9 @@
     <button type="button" class="submit-btn" onclick="addRecord()">今回の活動・収支を保存する</button>
   </div>
 
-  <!-- 【2番目】📊 収支＆グラフ -->
   <div class="section-card">
     <div class="section-title">📊 収支＆グラフ</div>
 
-    <!-- 初期残高設定枠 -->
     <div class="form-group" style="background:#f4f1f9; padding:10px; border-radius:8px; margin-bottom:14px;">
       <label style="color:#1c1c1e;">💰 初期残高（スタート時の手元金・円）</label>
       <input type="number" id="initialBalanceInput" value="0" onchange="updateInitialBalance()" onfocus="this.select()" style="background:#fff; border-color:#d1d1d6; margin-top:4px;">
@@ -401,31 +386,25 @@
     </div>
   </div>
 
-  <!-- 【3番目】📅 今後3ヶ月の金曜予約リスト -->
   <div class="section-card">
     <div class="section-title">
       <span>📅 今後3ヶ月の金曜予約リスト</span>
       <small style="font-size:0.75rem; color:var(--text-sec);">コート代入力で完了・消去</small>
     </div>
     
-    <div class="friday-list" id="fridayListContainer">
-      <!-- JSで動的生成 -->
-    </div>
+    <div class="friday-list" id="fridayListContainer"></div>
 
     <div class="completed-box">
       <div style="font-size:0.75rem; font-weight:600; color:var(--text-sec); margin-bottom:6px;">
         ✅ 予約完了済み（押し間違いは「元に戻す」で復活）
       </div>
-      <div id="completedFridayContainer" style="display:flex; flex-direction:column; gap:6px;">
-        <!-- JSで動的生成 -->
-      </div>
+      <div id="completedFridayContainer" style="display:flex; flex-direction:column; gap:6px;"></div>
     </div>
   </div>
 
 </div>
 
 <script>
-  // Google Apps Script URL
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbwLs8W3F6qK4JVqbv4iCMpkf3jwLsxdkq3m8t_aZF5c_Bg_fubvntv2zrpVpDGUvjamCA/exec';
 
   let initialBalance = 0; 
@@ -438,7 +417,6 @@
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('eventDate').valueAsDate = new Date();
     fetchCloudData();
-    // 15秒ごとにバックグラウンドで自動同期
     setInterval(fetchCloudData, 15000);
   });
 
@@ -448,35 +426,38 @@
     pushCloudData();
   }
 
-  async function fetchCloudData() {
+  // JSONP通信によるデータ取得（CORSブロック回避）
+  function fetchCloudData() {
     updateSyncStatus('同期中...', '#ff9500');
-    try {
-      const res = await fetch(GAS_URL);
-      if (res.ok) {
-        const data = await res.json();
-        if (data && Object.keys(data).length > 0) {
-          memberList = data.members || memberList;
-          records = data.records || [];
-          completedFridays = data.completedFridays || [];
-          if (data.initialBalance !== undefined) {
-            initialBalance = data.initialBalance;
-          }
-          document.getElementById('initialBalanceInput').value = initialBalance;
-          renderAll();
-          updateSyncStatus('完全同期完了', '#34c759');
-        } else {
-          // 初回でスプレッドシートが空の場合は、初期データを書き込み
-          pushCloudData();
+    const callbackName = 'gasCallback_' + Date.now();
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      if (data && Object.keys(data).length > 0) {
+        memberList = data.members || memberList;
+        records = data.records || [];
+        completedFridays = data.completedFridays || [];
+        if (data.initialBalance !== undefined) {
+          initialBalance = data.initialBalance;
         }
+        document.getElementById('initialBalanceInput').value = initialBalance;
+        renderAll();
+        updateSyncStatus('完全同期完了', '#34c759');
       } else {
-        fallbackLocalStorage();
+        pushCloudData();
       }
-    } catch (e) {
+    };
+
+    const script = document.createElement('script');
+    script.src = `${GAS_URL}?callback=${callbackName}`;
+    script.onerror = function() {
       fallbackLocalStorage();
-    }
+    };
+    document.body.appendChild(script);
   }
 
-  async function pushCloudData() {
+  // フォームデータ形式でのデータ送信（GAS側確実に受信処理）
+  function pushCloudData() {
     updateSyncStatus('送信中...', '#007aff');
     const payload = {
       initialBalance: initialBalance,
@@ -490,19 +471,20 @@
     localStorage.setItem('badminton_app_records', JSON.stringify(records));
     localStorage.setItem('badminton_completed_fridays', JSON.stringify(completedFridays));
 
-    try {
-      await fetch(GAS_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-          'Content-Type': 'text/plain'
-        },
-        body: JSON.stringify(payload)
-      });
+    const formData = new URLSearchParams();
+    formData.append('data', JSON.stringify(payload));
+
+    fetch(GAS_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: formData.toString()
+    }).then(() => {
       updateSyncStatus('完全同期完了', '#34c759');
-    } catch (e) {
+    }).catch(() => {
       updateSyncStatus('ローカル保存済み', '#ff9500');
-    }
+    });
   }
 
   function fallbackLocalStorage() {
@@ -716,7 +698,6 @@
     const tbody = document.getElementById('historyBody');
     tbody.innerHTML = '';
 
-    // 日付昇順で累積計算
     records.sort((a, b) => {
       const dateDiff = new Date(a.date) - new Date(b.date);
       return dateDiff !== 0 ? dateDiff : a.id - b.id;
@@ -734,7 +715,6 @@
       sumShuttle += r.shuttleExpense;
     });
 
-    // 表示用に日付降順（新しい順）
     records.sort((a, b) => {
       const dateDiff = new Date(b.date) - new Date(a.date);
       return dateDiff !== 0 ? dateDiff : b.id - a.id;
@@ -763,7 +743,6 @@
     document.getElementById('totalCourt').textContent = sumCourt.toLocaleString() + ' 円';
     document.getElementById('totalShuttle').textContent = sumShuttle.toLocaleString() + ' 円';
 
-    // グラフ描画
     const recentForChart = [...records].slice(0, 6).reverse();
     const labels = recentForChart.map(r => r.date.slice(5));
     const barData = recentForChart.map(r => r.net);
