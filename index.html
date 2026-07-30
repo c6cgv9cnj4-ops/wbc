@@ -279,6 +279,7 @@
 <div class="container">
   <h1>🏸 バドミントン管理</h1>
 
+  <!-- クラウド自動同期ステータス -->
   <div class="sync-status-bar">
     <div><span class="sync-dot" id="syncDot"></span><span id="syncText">クラウド同期中...</span></div>
     <button onclick="fetchCloudData()" style="border:none; background:none; color:var(--accent-blue); font-size:0.75rem; font-weight:600; cursor:pointer;">手動更新</button>
@@ -418,7 +419,7 @@
 <script>
   // オンライン共有用API設定
   const BIN_ID = '66ab3d82acd3cb34a86f912a'; 
-  const API_KEY = '$2a$10$9cO4r0P3vNf40.7P00Rk/O6eBq7e5W9w9/J1u3x8p9W7x9y0z1234'; // リアルタイムオンライン同期エンドポイント
+  const API_KEY = '$2a$10$9cO4r0P3vNf40.7P00Rk/O6eBq7e5W9w9/J1u3x8p9W7x9y0z1234';
 
   let memberList = ['細川', '田中', '鈴木', '佐藤', '高橋', '渡辺'];
   let selectedMembers = [];
@@ -429,7 +430,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('eventDate').valueAsDate = new Date();
     fetchCloudData();
-    // 15秒ごとにバックグラウンドでクラウドから最新データを自動同期
+    // 15秒ごとにバックグラウンドで自動同期
     setInterval(fetchCloudData, 15000);
   });
 
@@ -458,7 +459,7 @@
     }
   }
 
-  // クラウドへ変更データを自動送信（PC・スマホへ一瞬で連動）
+  // クラウドへ変更データを自動送信
   async function pushCloudData() {
     updateSyncStatus('送信中...', '#007aff');
     const payload = {
@@ -467,7 +468,6 @@
       completedFridays: completedFridays
     };
 
-    // ローカルにも保険保存
     localStorage.setItem('badminton_members_list', JSON.stringify(memberList));
     localStorage.setItem('badminton_app_records', JSON.stringify(records));
     localStorage.setItem('badminton_completed_fridays', JSON.stringify(completedFridays));
@@ -563,7 +563,7 @@
     }
   }
 
-  // 予約完了処理（クラウド自動即時同期）
+  // 予約完了処理
   function completeFridayReservation(dateStr) {
     const courtExpense = Number(document.getElementById(`f_court_${dateStr}`).value) || 0;
 
@@ -586,7 +586,7 @@
     pushCloudData();
   }
 
-  // 復活処理（クラウド自動即時同期）
+  // 復活処理
   function undoFridayReservation(dateStr) {
     completedFridays = completedFridays.filter(d => d !== dateStr);
     records = records.filter(r => !(r.date === dateStr && r.time === '金曜枠' && r.income === 0));
@@ -595,7 +595,7 @@
     pushCloudData();
   }
 
-  // メンバー追加（クラウド自動即時同期）
+  // メンバー追加
   function addNewMember() {
     const input = document.getElementById('newMemberName');
     const name = input.value.trim();
@@ -607,7 +607,7 @@
     }
   }
 
-  // メンバー削除（クラウド自動即時同期）
+  // メンバー削除
   function removeMember(name) {
     if (confirm(`「${name}」さんをメンバーから削除しますか？`)) {
       memberList = memberList.filter(m => m !== name);
