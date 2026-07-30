@@ -288,7 +288,7 @@
   <h1>🏸 バドミントン管理</h1>
 
   <div class="sync-status-bar">
-    <div><span class="sync-dot" id="syncDot"></span><span id="syncText">アプリ準備中...</span></div>
+    <div><span class="sync-dot" id="syncDot"></span><span id="syncText">Google Sheets 接続中...</span></div>
     <button onclick="fetchCloudData()" style="border:none; background:none; color:var(--accent-blue); font-size:0.75rem; font-weight:600; cursor:pointer; padding:8px;">手動更新</button>
   </div>
 
@@ -422,8 +422,8 @@
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbwLs8W3F6qK4JVqbv4iCMpkf3jwLsxdkq3m8t_aZF5c_Bg_fubvntv2zrpVpDGUvjamCA/exec';
 
   let initialBalance = 0; 
-  // ★重要★: 最初からデフォルトメンバーをセットし、画面が真っ白になるのを防ぐ
-  let memberList = ['細川', '田中', '鈴木', '佐藤', '高橋', '渡辺'];
+  // 直書きしたメンバーは削除し、初期状態は空にします
+  let memberList = [];
   let selectedMembers = [];
   let records = [];
   let completedFridays = [];
@@ -431,8 +431,6 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('eventDate').valueAsDate = new Date();
-    // ★重要★: 通信の前にまず画面を100%確実に描画する
-    renderAll();
     fetchCloudData();
     setInterval(fetchCloudData, 15000);
   });
@@ -443,27 +441,24 @@
     pushCloudData();
   }
 
-  // Google Apps Script用に最適化されたJSONP通信
+  // 最初に提示いただいた一番正しく動いていた状態に完全に戻しました
   function fetchCloudData() {
     updateSyncStatus('同期中...', '#ff9500');
-    const callbackName = 'gasCallback_' + Date.now();
 
-    window[callbackName] = function(data) {
-      delete window[callbackName];
-      const scriptElem = document.getElementById(callbackName);
-      if (scriptElem) scriptElem.remove();
-
-      if (data && typeof data === 'object') {
-        // クラウドにデータがあれば上書き、無ければデフォルト維持
-        if (Array.isArray(data.members) && data.members.length > 0) {
-          memberList = data.members;
-        }
-        if (Array.isArray(data.records)) {
-          records = data.records;
-        }
-        if (Array.isArray(data.completedFridays)) {
-          completedFridays = data.completedFridays.map(String);
-        }
+    // キャッシュを回避するためにタイムスタンプを付与して fetch で取得
+    fetch(`${GAS_URL}?t=${Date.now()}`, {
+      method: 'GET',
+      redirect: 'follow'
+    })
+    .then(response => {
+      if (!response.ok) throw new Error('ネットワークエラー');
+      return response.json();
+    })
+    .then(data => {
+      if (data && typeof data === 'object' && data.members) {
+        memberList = Array.isArray(data.members) ? data.members : [];
+        records = Array.isArray(data.records) ? data.records : [];
+        completedFridays = Array.isArray(data.completedFridays) ? data.completedFridays.map(String) : [];
         if (data.initialBalance !== undefined) {
           initialBalance = Number(data.initialBalance) || 0;
         }
@@ -474,17 +469,11 @@
         renderAll();
         updateSyncStatus('データ形式エラー', '#ff3b30');
       }
-    };
-
-    const script = document.createElement('script');
-    script.id = callbackName;
-    script.src = `${GAS_URL}?callback=${callbackName}&t=${Date.now()}`;
-    script.onerror = function() {
-      // エラーが起きても画面は絶対に残す
-      renderAll();
+    })
+    .catch(error => {
+      console.error('Fetch error:', error);
       updateSyncStatus('接続エラー', '#ff3b30');
-    };
-    document.body.appendChild(script);
+    });
   }
 
   function pushCloudData() {
@@ -499,10 +488,8 @@
     const formData = new URLSearchParams();
     formData.append('data', JSON.stringify(payload));
 
-    // ★重要★: mode 'no-cors' でGAS特有の送信エラー表示を回避
     fetch(GAS_URL, {
       method: 'POST',
-      mode: 'no-cors',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
