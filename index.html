@@ -42,26 +42,6 @@
       margin-bottom: 12px;
     }
     
-    .sync-status-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #e4e4eb;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      color: var(--text-sec);
-      margin-bottom: 16px;
-    }
-    .sync-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--warning);
-      display: inline-block;
-      margin-right: 4px;
-    }
-
     .section-card {
       background: var(--card-bg);
       border-radius: var(--card-radius);
@@ -287,11 +267,6 @@
 <div class="container">
   <h1>🏸 バドミントン管理</h1>
 
-  <div class="sync-status-bar">
-    <div><span class="sync-dot" id="syncDot"></span><span id="syncText">Google Sheets 接続中...</span></div>
-    <button onclick="fetchCloudData()" style="border:none; background:none; color:var(--accent-blue); font-size:0.75rem; font-weight:600; cursor:pointer; padding:8px;">手動更新</button>
-  </div>
-
   <div class="section-card">
     <div class="section-title">👥 メンバーと金額設定</div>
 
@@ -422,7 +397,6 @@
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbwLs8W3F6qK4JVqbv4iCMpkf3jwLsxdkq3m8t_aZF5c_Bg_fubvntv2zrpVpDGUvjamCA/exec';
 
   let initialBalance = 0; 
-  // 直書きしたメンバーは削除し、初期状態は空にします
   let memberList = [];
   let selectedMembers = [];
   let records = [];
@@ -432,7 +406,6 @@
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('eventDate').valueAsDate = new Date();
     fetchCloudData();
-    setInterval(fetchCloudData, 15000);
   });
 
   function updateInitialBalance() {
@@ -441,11 +414,8 @@
     pushCloudData();
   }
 
-  // 最初に提示いただいた一番正しく動いていた状態に完全に戻しました
+  // 混乱を招くステータス表示を完全撤廃し、スプレッドシートと確実に通信する関数
   function fetchCloudData() {
-    updateSyncStatus('同期中...', '#ff9500');
-
-    // キャッシュを回避するためにタイムスタンプを付与して fetch で取得
     fetch(`${GAS_URL}?t=${Date.now()}`, {
       method: 'GET',
       redirect: 'follow'
@@ -455,29 +425,27 @@
       return response.json();
     })
     .then(data => {
-      if (data && typeof data === 'object' && data.members) {
+      if (data && typeof data === 'object') {
         memberList = Array.isArray(data.members) ? data.members : [];
         records = Array.isArray(data.records) ? data.records : [];
         completedFridays = Array.isArray(data.completedFridays) ? data.completedFridays.map(String) : [];
         if (data.initialBalance !== undefined) {
           initialBalance = Number(data.initialBalance) || 0;
         }
-        document.getElementById('initialBalanceInput').value = initialBalance;
+        const initInput = document.getElementById('initialBalanceInput');
+        if(initInput) initInput.value = initialBalance;
         renderAll();
-        updateSyncStatus('完全同期完了', '#34c759');
       } else {
         renderAll();
-        updateSyncStatus('データ形式エラー', '#ff3b30');
       }
     })
     .catch(error => {
       console.error('Fetch error:', error);
-      updateSyncStatus('接続エラー', '#ff3b30');
+      renderAll();
     });
   }
 
   function pushCloudData() {
-    updateSyncStatus('送信中...', '#007aff');
     const payload = {
       initialBalance: initialBalance,
       members: memberList,
@@ -494,16 +462,9 @@
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: formData.toString()
-    }).then(() => {
-      updateSyncStatus('完全同期完了', '#34c759');
-    }).catch(() => {
-      updateSyncStatus('送信失敗', '#ff3b30');
+    }).catch(error => {
+      console.error('Push error:', error);
     });
-  }
-
-  function updateSyncStatus(text, color) {
-    document.getElementById('syncText').textContent = text;
-    document.getElementById('syncDot').style.background = color;
   }
 
   function renderAll() {
@@ -757,10 +718,15 @@
     const totalActivityNet = sumInc - sumCourt - sumShuttle;
     const finalBalance = initialBalance + totalActivityNet;
 
-    document.getElementById('totalBalance').textContent = finalBalance.toLocaleString() + ' 円';
-    document.getElementById('activityNet').textContent = (totalActivityNet >= 0 ? '+' : '') + totalActivityNet.toLocaleString() + ' 円';
-    document.getElementById('totalCourt').textContent = sumCourt.toLocaleString() + ' 円';
-    document.getElementById('totalShuttle').textContent = sumShuttle.toLocaleString() + ' 円';
+    const tBal = document.getElementById('totalBalance');
+    const aNet = document.getElementById('activityNet');
+    const tCourt = document.getElementById('totalCourt');
+    const tShuttle = document.getElementById('totalShuttle');
+
+    if(tBal) tBal.textContent = finalBalance.toLocaleString() + ' 円';
+    if(aNet) aNet.textContent = (totalActivityNet >= 0 ? '+' : '') + totalActivityNet.toLocaleString() + ' 円';
+    if(tCourt) tCourt.textContent = sumCourt.toLocaleString() + ' 円';
+    if(tShuttle) tShuttle.textContent = sumShuttle.toLocaleString() + ' 円';
 
     const recentForChart = [...records].slice(0, 6).reverse();
     const labels = recentForChart.map(r => r.date.slice(5));
