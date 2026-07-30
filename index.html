@@ -408,7 +408,7 @@
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbwLs8W3F6qK4JVqbv4iCMpkf3jwLsxdkq3m8t_aZF5c_Bg_fubvntv2zrpVpDGUvjamCA/exec';
 
   let initialBalance = 0; 
-  let memberList = ['細川', '田中', '鈴木', '佐藤', '高橋', '渡辺'];
+  let memberList = [];
   let selectedMembers = [];
   let records = [];
   let completedFridays = [];
@@ -416,6 +416,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('eventDate').valueAsDate = new Date();
+    localStorage.clear();
     fetchCloudData();
     setInterval(fetchCloudData, 15000);
   });
@@ -434,10 +435,10 @@
       const scriptElem = document.getElementById(callbackName);
       if (scriptElem) scriptElem.remove();
       
-      if (data && typeof data === 'object') {
-        memberList = Array.isArray(data.members) ? data.members : memberList;
+      if (data && typeof data === 'object' && data.members) {
+        memberList = Array.isArray(data.members) ? data.members : [];
         records = Array.isArray(data.records) ? data.records : [];
-        completedFridays = Array.isArray(data.completedFridays) ? data.completedFridays : [];
+        completedFridays = Array.isArray(data.completedFridays) ? data.completedFridays.map(String) : [];
         if (data.initialBalance !== undefined) {
           initialBalance = Number(data.initialBalance) || 0;
         }
@@ -445,6 +446,8 @@
         renderAll();
         updateSyncStatus('完全同期完了', '#34c759');
       } else {
+        memberList = ['細川', '田中', '鈴木', '佐藤', '高橋', '渡辺'];
+        renderAll();
         pushCloudData();
       }
     };
@@ -453,7 +456,7 @@
     script.id = callbackName;
     script.src = `${GAS_URL}?callback=${callbackName}`;
     script.onerror = function() {
-      fallbackLocalStorage();
+      updateSyncStatus('接続エラー', '#ff3b30');
     };
     document.body.appendChild(script);
   }
@@ -467,11 +470,6 @@
       completedFridays: completedFridays
     };
 
-    localStorage.setItem('badminton_initial_balance', initialBalance);
-    localStorage.setItem('badminton_members_list', JSON.stringify(memberList));
-    localStorage.setItem('badminton_app_records', JSON.stringify(records));
-    localStorage.setItem('badminton_completed_fridays', JSON.stringify(completedFridays));
-
     const formData = new URLSearchParams();
     formData.append('data', JSON.stringify(payload));
 
@@ -484,21 +482,8 @@
     }).then(() => {
       updateSyncStatus('完全同期完了', '#34c759');
     }).catch(() => {
-      updateSyncStatus('ローカル保存済み', '#ff9500');
+      updateSyncStatus('送信失敗', '#ff3b30');
     });
-  }
-
-  function fallbackLocalStorage() {
-    const storedBal = localStorage.getItem('badminton_initial_balance');
-    if (storedBal !== null) initialBalance = Number(storedBal);
-    document.getElementById('initialBalanceInput').value = initialBalance;
-
-    memberList = JSON.parse(localStorage.getItem('badminton_members_list')) || memberList;
-    records = JSON.parse(localStorage.getItem('badminton_app_records')) || [];
-    completedFridays = JSON.parse(localStorage.getItem('badminton_completed_fridays')) || [];
-    
-    renderAll();
-    updateSyncStatus('オフラインモード', '#8e8e93');
   }
 
   function updateSyncStatus(text, color) {
@@ -513,6 +498,13 @@
     renderHistoryAndCharts();
   }
 
+  function formatDateStr(d) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   function renderFridayList() {
     const container = document.getElementById('fridayListContainer');
     const completedContainer = document.getElementById('completedFridayContainer');
@@ -523,14 +515,14 @@
     const threeMonthsLater = new Date();
     threeMonthsLater.setMonth(today.getMonth() + 3);
 
-    let cur = new Date(today);
+    let cur = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     while (cur.getDay() !== 5) {
       cur.setDate(cur.getDate() + 1);
     }
 
     let count = 0;
     while (cur <= threeMonthsLater) {
-      const dateStr = cur.toISOString().split('T')[0];
+      const dateStr = formatDateStr(cur);
 
       if (!completedFridays.includes(dateStr)) {
         count++;
@@ -701,6 +693,7 @@
     const tbody = document.getElementById('historyBody');
     tbody.innerHTML = '';
 
+    // 1. 日付の昇順（古い順）で累積残高を正しく計算
     records.sort((a, b) => {
       const dateDiff = new Date(a.date) - new Date(b.date);
       return dateDiff !== 0 ? dateDiff : a.id - b.id;
@@ -718,6 +711,7 @@
       sumShuttle += r.shuttleExpense;
     });
 
+    // 2. 表示用に日付の降順（新しい順：10-16 -> 10-09 ...）に確実にソート
     records.sort((a, b) => {
       const dateDiff = new Date(b.date) - new Date(a.date);
       return dateDiff !== 0 ? dateDiff : b.id - a.id;
@@ -746,6 +740,7 @@
     document.getElementById('totalCourt').textContent = sumCourt.toLocaleString() + ' 円';
     document.getElementById('totalShuttle').textContent = sumShuttle.toLocaleString() + ' 円';
 
+    // 3. グラフ用データ準備（元の配列順序を崩さないよう [...] でシャローコピー）
     const recentForChart = [...records].slice(0, 6).reverse();
     const labels = recentForChart.map(r => r.date.slice(5));
     const barData = recentForChart.map(r => r.net);
