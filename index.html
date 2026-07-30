@@ -6,9 +6,6 @@
   <title>バドミントン活動・予約・収支管理</title>
   <!-- Chart.js グラフライブラリ -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Firebase (Google リアルタイムデータベース) -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
     :root {
       --bg: #f2f2f7;
@@ -285,8 +282,8 @@
 
   <!-- クラウド自動同期ステータスバー -->
   <div class="sync-status-bar">
-    <div><span class="sync-dot" id="syncDot"></span><span id="syncText">リアルタイム接続中...</span></div>
-    <span style="font-size:0.7rem; color:var(--text-sec);">Google Realtime Cloud</span>
+    <div><span class="sync-dot" id="syncDot"></span><span id="syncText">Google Sheets 接続中...</span></div>
+    <button onclick="fetchCloudData()" style="border:none; background:none; color:var(--accent-blue); font-size:0.75rem; font-weight:600; cursor:pointer;">手動更新</button>
   </div>
 
   <!-- 【1番目】👥 メンバーと金額設定 -->
@@ -428,16 +425,8 @@
 </div>
 
 <script>
-  // Firebase リアルタイム通信設定
-  const firebaseConfig = {
-    databaseURL: "https://badminton-app-default-rtdb.asia-southeast1.firebasedatabase.app/"
-  };
-  
-  // 初期化（エラー防止のためのパブリックDB構成）
-  if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-  }
-  const db = firebase.database().ref('badminton_shared_data');
+  // Google Apps Script URL
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwLs8W3F6qK4JVqbv4iCMpkf3jwLsxdkq3m8t_aZF5c_Bg_fubvntv2zrpVpDGUvjamCA/exec';
 
   let initialBalance = 0; 
   let memberList = ['細川', '田中', '鈴木', '佐藤', '高橋', '渡辺'];
@@ -448,27 +437,9 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('eventDate').valueAsDate = new Date();
-    
-    // リアルタイムリスナー設定（相手が更新した瞬間に画面が変わる）
-    db.on('value', (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        memberList = data.members || memberList;
-        records = data.records || [];
-        completedFridays = data.completedFridays || [];
-        if (data.initialBalance !== undefined) {
-          initialBalance = data.initialBalance;
-        }
-        document.getElementById('initialBalanceInput').value = initialBalance;
-        renderAll();
-        updateSyncStatus('リアルタイム同期中', '#34c759');
-      } else {
-        // クラウドが空の場合、最初のデータを送信して初期化
-        pushCloudData();
-      }
-    }, (error) => {
-      updateSyncStatus('オフラインモード', '#8e8e93');
-    });
+    fetchCloudData();
+    // 15秒ごとにバックグラウンドで自動同期
+    setInterval(fetchCloudData, 15000);
   });
 
   function updateInitialBalance() {
@@ -477,8 +448,36 @@
     pushCloudData();
   }
 
-  function pushCloudData() {
-    updateSyncStatus('同期中...', '#007aff');
+  async function fetchCloudData() {
+    updateSyncStatus('同期中...', '#ff9500');
+    try {
+      const res = await fetch(GAS_URL);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Object.keys(data).length > 0) {
+          memberList = data.members || memberList;
+          records = data.records || [];
+          completedFridays = data.completedFridays || [];
+          if (data.initialBalance !== undefined) {
+            initialBalance = data.initialBalance;
+          }
+          document.getElementById('initialBalanceInput').value = initialBalance;
+          renderAll();
+          updateSyncStatus('完全同期完了', '#34c759');
+        } else {
+          // 初回でスプレッドシートが空の場合は、初期データを書き込み
+          pushCloudData();
+        }
+      } else {
+        fallbackLocalStorage();
+      }
+    } catch (e) {
+      fallbackLocalStorage();
+    }
+  }
+
+  async function pushCloudData() {
+    updateSyncStatus('送信中...', '#007aff');
     const payload = {
       initialBalance: initialBalance,
       members: memberList,
@@ -486,11 +485,37 @@
       completedFridays: completedFridays
     };
 
-    db.set(payload).then(() => {
-      updateSyncStatus('リアルタイム同期中', '#34c759');
-    }).catch(err => {
-      console.error(err);
-    });
+    localStorage.setItem('badminton_initial_balance', initialBalance);
+    localStorage.setItem('badminton_members_list', JSON.stringify(memberList));
+    localStorage.setItem('badminton_app_records', JSON.stringify(records));
+    localStorage.setItem('badminton_completed_fridays', JSON.stringify(completedFridays));
+
+    try {
+      await fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'text/plain'
+        },
+        body: JSON.stringify(payload)
+      });
+      updateSyncStatus('完全同期完了', '#34c759');
+    } catch (e) {
+      updateSyncStatus('ローカル保存済み', '#ff9500');
+    }
+  }
+
+  function fallbackLocalStorage() {
+    const storedBal = localStorage.getItem('badminton_initial_balance');
+    if (storedBal !== null) initialBalance = Number(storedBal);
+    document.getElementById('initialBalanceInput').value = initialBalance;
+
+    memberList = JSON.parse(localStorage.getItem('badminton_members_list')) || memberList;
+    records = JSON.parse(localStorage.getItem('badminton_app_records')) || [];
+    completedFridays = JSON.parse(localStorage.getItem('badminton_completed_fridays')) || [];
+    
+    renderAll();
+    updateSyncStatus('オフラインモード', '#8e8e93');
   }
 
   function updateSyncStatus(text, color) {
@@ -691,7 +716,7 @@
     const tbody = document.getElementById('historyBody');
     tbody.innerHTML = '';
 
-    // 日付昇順ソートで累積計算
+    // 日付昇順で累積計算
     records.sort((a, b) => {
       const dateDiff = new Date(a.date) - new Date(b.date);
       return dateDiff !== 0 ? dateDiff : a.id - b.id;
