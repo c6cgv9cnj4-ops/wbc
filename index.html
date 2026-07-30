@@ -406,25 +406,21 @@
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('eventDate').valueAsDate = new Date();
     
-    // 起動時にまずブラウザのローカル保存（バックアップ）から即座に表示して消えを防ぐ
     loadFromLocalStorage();
-    
-    // その後クラウドから最新データを取得
     fetchCloudData();
 
-    // ★名前入力欄でEnterキーが押されたら登録を実行する処理を追加
+    // メンバー追加欄のEnterキー対応
     const nameInput = document.getElementById('newMemberName');
     if (nameInput) {
       nameInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
-          e.preventDefault(); // フォームの意図しない送信を防止
+          e.preventDefault();
           addNewMember();
         }
       });
     }
   });
 
-  // ブラウザのローカルストレージに一時保存する関数
   function saveToLocalStorage() {
     const data = {
       initialBalance,
@@ -435,7 +431,6 @@
     localStorage.setItem('badminton_cache', JSON.stringify(data));
   }
 
-  // ブラウザのローカルストレージから読み込む関数
   function loadFromLocalStorage() {
     const cached = localStorage.getItem('badminton_cache');
     if (cached) {
@@ -485,7 +480,6 @@
         const initInput = document.getElementById('initialBalanceInput');
         if(initInput) initInput.value = initialBalance;
         
-        // 取得した最新データをローカルにも保存
         saveToLocalStorage();
         renderAll();
       } else {
@@ -499,7 +493,6 @@
   }
 
   function pushCloudData() {
-    // 送信データを作る前にローカルに即時保存
     saveToLocalStorage();
 
     const payload = {
@@ -572,6 +565,20 @@
           </div>
         `;
         container.appendChild(card);
+
+        // ★追加：3ヶ月先予約リストのコート代入力欄でEnterキーが押されたら予約完了を実行
+        setTimeout(() => {
+          const inputField = document.getElementById(`f_court_${dateStr}`);
+          if (inputField) {
+            inputField.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                completeFridayReservation(dateStr);
+              }
+            });
+          }
+        }, 0);
+
       } else {
         const compDiv = document.createElement('div');
         compDiv.style.cssText = "display:flex; justify-content:space-between; align-items:center; background:#f0f0f4; padding:6px 10px; border-radius:6px; font-size:0.8rem;";
@@ -836,6 +843,7 @@
           },
           y1: {
             type: 'linear',
+            display: type = 'linear',
             display: true,
             position: 'right',
             title: { display: true, text: '残高', font: {size: 10} },
