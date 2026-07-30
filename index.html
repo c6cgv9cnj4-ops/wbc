@@ -394,7 +394,7 @@
 </div>
 
 <script>
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwLs8W3F6qK4JVqbv4iCMpkf3jwLsxdkq3m8t_aZF5c_Bg_fubvntv2zrpVpDGUvjamCA/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwOQiowu4mNU7w4KvDVCvoACgb0QEWteyP4vlSuG0go8CtLQqpA21axTBv3HubV9naZpw/exec';
 
   let initialBalance = 0; 
   let memberList = [];
@@ -409,7 +409,6 @@
     loadFromLocalStorage();
     fetchCloudData();
 
-    // メンバー追加欄のEnterキー対応
     const nameInput = document.getElementById('newMemberName');
     if (nameInput) {
       nameInput.addEventListener('keydown', (e) => {
@@ -566,7 +565,6 @@
         `;
         container.appendChild(card);
 
-        // ★追加：3ヶ月先予約リストのコート代入力欄でEnterキーが押されたら予約完了を実行
         setTimeout(() => {
           const inputField = document.getElementById(`f_court_${dateStr}`);
           if (inputField) {
@@ -843,7 +841,6 @@
           },
           y1: {
             type: 'linear',
-            display: type = 'linear',
             display: true,
             position: 'right',
             title: { display: true, text: '残高', font: {size: 10} },
