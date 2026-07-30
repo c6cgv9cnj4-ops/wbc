@@ -459,16 +459,13 @@
     pushCloudData();
   }
 
+  // JSONP方式によるデータ取得（CORSブロック完全回避）
   function fetchCloudData() {
-    fetch(`${GAS_URL}?t=${Date.now()}`, {
-      method: 'GET',
-      redirect: 'follow'
-    })
-    .then(response => {
-      if (!response.ok) throw new Error('ネットワークエラー');
-      return response.json();
-    })
-    .then(data => {
+    const callbackName = 'jsonp_fetch_' + Math.round(100000 * Math.random());
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      
       if (data && typeof data === 'object') {
         memberList = Array.isArray(data.members) ? data.members : [];
         records = Array.isArray(data.records) ? data.records : [];
@@ -484,13 +481,19 @@
       } else {
         renderAll();
       }
-    })
-    .catch(error => {
-      console.error('Fetch error:', error);
+    };
+
+    const script = document.createElement('script');
+    script.src = `${GAS_URL}?callback=${callbackName}&t=${Date.now()}`;
+    script.onerror = function() {
+      delete window[callbackName];
+      document.body.removeChild(script);
       renderAll();
-    });
+    };
+    document.body.appendChild(script);
   }
 
+  // JSONP方式によるデータ保存（CORSブロック完全回避）
   function pushCloudData() {
     saveToLocalStorage();
 
@@ -501,18 +504,21 @@
       completedFridays: completedFridays
     };
 
-    const formData = new URLSearchParams();
-    formData.append('data', JSON.stringify(payload));
+    const jsonString = JSON.stringify(payload);
+    const callbackName = 'jsonp_push_' + Math.round(100000 * Math.random());
+    
+    window[callbackName] = function(res) {
+      delete window[callbackName];
+      document.body.removeChild(script);
+    };
 
-    fetch(GAS_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: formData.toString()
-    }).catch(error => {
-      console.error('Push error:', error);
-    });
+    const script = document.createElement('script');
+    script.src = `${GAS_URL}?data=${encodeURIComponent(jsonString)}&callback=${callbackName}&t=${Date.now()}`;
+    script.onerror = function() {
+      delete window[callbackName];
+      document.body.removeChild(script);
+    };
+    document.body.appendChild(script);
   }
 
   function renderAll() {
