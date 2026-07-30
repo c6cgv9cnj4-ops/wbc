@@ -425,7 +425,7 @@
 </div>
 
 <script>
-  // オンライン共有用API設定（取得キー設定済み）
+  // オンライン共有用API設定
   const BIN_ID = '6a6afba0f5f4af5e29d47fc4'; 
   const API_KEY = '$2a$10$1uvxc4uvTgLkae65XBIYLOGW2XER3zGhhARfl88DTbUhJz/xPHZ1G';
 
@@ -452,8 +452,11 @@
   async function fetchCloudData() {
     updateSyncStatus('同期中...', '#ff9500');
     try {
+      // 読み込み時も Master-Key を送信してパーミッションエラーを回避
       const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-        headers: { 'X-Access-Key': API_KEY }
+        headers: { 
+          'X-Master-Key': API_KEY 
+        }
       });
       if (res.ok) {
         const data = await res.json();
@@ -496,7 +499,7 @@
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'X-Access-Key': API_KEY
+          'X-Master-Key': API_KEY
         },
         body: JSON.stringify(payload)
       });
