@@ -18,8 +18,8 @@
       --warning: #ff9500;
       --card-radius: 12px;
     }
-    * { 
-      box-sizing: border-box; 
+    * {
+      box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
     }
     body {
@@ -108,7 +108,7 @@
       appearance: none;
       outline: none;
       font-family: inherit;
-      min-height: 44px;
+      min-height: 44px; /* スマホ用タップサイズ確保 */
     }
     input:focus, select:focus, textarea:focus {
       border-color: var(--accent);
@@ -121,7 +121,7 @@
       gap: 10px;
       max-height: 320px;
       overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
+      -webkit-overflow-scrolling: touch; /* iOSスクロール滑らか化 */
       padding-right: 2px;
     }
     .friday-card {
@@ -288,7 +288,7 @@
   <h1>🏸 バドミントン管理</h1>
 
   <div class="sync-status-bar">
-    <div><span class="sync-dot" id="syncDot"></span><span id="syncText">アプリ準備中...</span></div>
+    <div><span class="sync-dot" id="syncDot"></span><span id="syncText">接続確認中...</span></div>
     <button onclick="fetchCloudData()" style="border:none; background:none; color:var(--accent-blue); font-size:0.75rem; font-weight:600; cursor:pointer; padding:8px;">手動更新</button>
   </div>
 
@@ -403,14 +403,14 @@
   <div class="section-card">
     <div class="section-title">
       <span>📅 今後3ヶ月の金曜予約リスト</span>
-      <small style="font-size:0.75rem; color:var(--text-sec);">コート代入力で完了・消去</small>
+      <small style="font-size:0.75rem; color:var(--text-sec);">コート代入力で完了</small>
     </div>
     
     <div class="friday-list" id="fridayListContainer"></div>
 
     <div class="completed-box">
       <div style="font-size:0.75rem; font-weight:600; color:var(--text-sec); margin-bottom:6px;">
-        ✅ 予約完了済み（押し間違いは「元に戻す」で復活）
+        ✅ 予約完了済み
       </div>
       <div id="completedFridayContainer" style="display:flex; flex-direction:column; gap:6px;"></div>
     </div>
@@ -422,8 +422,7 @@
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbwLs8W3F6qK4JVqbv4iCMpkf3jwLsxdkq3m8t_aZF5c_Bg_fubvntv2zrpVpDGUvjamCA/exec';
 
   let initialBalance = 0; 
-  // ★重要★: 最初からデフォルトメンバーをセットし、画面が真っ白になるのを防ぐ
-  let memberList = ['細川', '田中', '鈴木', '佐藤', '高橋', '渡辺'];
+  let memberList = [];
   let selectedMembers = [];
   let records = [];
   let completedFridays = [];
@@ -431,8 +430,6 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('eventDate').valueAsDate = new Date();
-    // ★重要★: 通信の前にまず画面を100%確実に描画する
-    renderAll();
     fetchCloudData();
     setInterval(fetchCloudData, 15000);
   });
@@ -443,27 +440,23 @@
     pushCloudData();
   }
 
-  // Google Apps Script用に最適化されたJSONP通信
-  function fetchCloudData() {
+  async function fetchCloudData() {
     updateSyncStatus('同期中...', '#ff9500');
-    const callbackName = 'gasCallback_' + Date.now();
 
-    window[callbackName] = function(data) {
-      delete window[callbackName];
-      const scriptElem = document.getElementById(callbackName);
-      if (scriptElem) scriptElem.remove();
+    try {
+      const response = await fetch(`${GAS_URL}?t=${Date.now()}`, {
+        method: 'GET',
+        redirect: 'follow'
+      });
 
-      if (data && typeof data === 'object') {
-        // クラウドにデータがあれば上書き、無ければデフォルト維持
-        if (Array.isArray(data.members) && data.members.length > 0) {
-          memberList = data.members;
-        }
-        if (Array.isArray(data.records)) {
-          records = data.records;
-        }
-        if (Array.isArray(data.completedFridays)) {
-          completedFridays = data.completedFridays.map(String);
-        }
+      if (!response.ok) throw new Error('ネットワークエラー');
+
+      const data = await response.json();
+
+      if (data && typeof data === 'object' && data.members) {
+        memberList = Array.isArray(data.members) ? data.members : [];
+        records = Array.isArray(data.records) ? data.records : [];
+        completedFridays = Array.isArray(data.completedFridays) ? data.completedFridays.map(String) : [];
         if (data.initialBalance !== undefined) {
           initialBalance = Number(data.initialBalance) || 0;
         }
@@ -471,20 +464,14 @@
         renderAll();
         updateSyncStatus('完全同期完了', '#34c759');
       } else {
+        memberList = ['細川', '田中', '鈴木', '佐藤', '高橋', '渡辺'];
         renderAll();
-        updateSyncStatus('データ形式エラー', '#ff3b30');
+        pushCloudData();
       }
-    };
-
-    const script = document.createElement('script');
-    script.id = callbackName;
-    script.src = `${GAS_URL}?callback=${callbackName}&t=${Date.now()}`;
-    script.onerror = function() {
-      // エラーが起きても画面は絶対に残す
-      renderAll();
+    } catch (error) {
+      console.error('Fetch error:', error);
       updateSyncStatus('接続エラー', '#ff3b30');
-    };
-    document.body.appendChild(script);
+    }
   }
 
   function pushCloudData() {
@@ -499,10 +486,8 @@
     const formData = new URLSearchParams();
     formData.append('data', JSON.stringify(payload));
 
-    // ★重要★: mode 'no-cors' でGAS特有の送信エラー表示を回避
     fetch(GAS_URL, {
       method: 'POST',
-      mode: 'no-cors',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
@@ -536,8 +521,6 @@
   function renderFridayList() {
     const container = document.getElementById('fridayListContainer');
     const completedContainer = document.getElementById('completedFridayContainer');
-    if(!container || !completedContainer) return;
-    
     container.innerHTML = '';
     completedContainer.innerHTML = '';
 
@@ -570,7 +553,7 @@
         container.appendChild(card);
       } else {
         const compDiv = document.createElement('div');
-        compDiv.style.cssText = "display:flex; justify-content:space-between; align-items:center; background:#f0f0f4; padding:6px 10px; border-radius:6px; font-size:0.8rem;";
+        compDiv.style.cssText = "display:flex; justify-content:space-between; align-items:center; background:#f0f0f4; padding:8px 10px; border-radius:6px; font-size:0.8rem;";
         compDiv.innerHTML = `
           <span>📅 ${dateStr} (金) - 完了済み</span>
           <button type="button" class="undo-btn" onclick="undoFridayReservation('${dateStr}')">元に戻す</button>
@@ -643,7 +626,6 @@
 
   function renderPills() {
     const container = document.getElementById('memberPills');
-    if(!container) return;
     container.innerHTML = '';
     memberList.forEach(name => {
       const isSelected = selectedMembers.includes(name);
@@ -671,22 +653,19 @@
     const count = selectedMembers.length;
     const rate = Number(document.getElementById('memberRate').value) || 0;
     const total = count * rate;
-    const preview = document.getElementById('feeSummaryPreview');
-    if(preview) preview.textContent = `会費収入合計: ${total.toLocaleString()} 円 (${count}名 × ${rate}円)`;
+    document.getElementById('feeSummaryPreview').textContent = `会費収入合計: ${total.toLocaleString()} 円 (${count}名 × ${rate}円)`;
   }
 
   function calcShuttleUnit() {
     const fee = Number(document.getElementById('shuttleFee').value) || 0;
     const doz = Number(document.getElementById('shuttleDozens').value) || 0;
     const txt = document.getElementById('shuttleUnitText');
-    if(txt) {
-      if (fee > 0 && doz > 0) {
-        const pcs = doz * 12;
-        const unit = (fee / pcs).toFixed(1);
-        txt.textContent = `💡 1本あたりの単価: 約 ${unit} 円 (${pcs}本)`;
-      } else {
-        txt.textContent = '';
-      }
+    if (fee > 0 && doz > 0) {
+      const pcs = doz * 12;
+      const unit = (fee / pcs).toFixed(1);
+      txt.textContent = `💡 1本あたりの単価: 約 ${unit} 円 (${pcs}本)`;
+    } else {
+      txt.textContent = '';
     }
   }
 
@@ -727,7 +706,6 @@
 
   function renderHistoryAndCharts() {
     const tbody = document.getElementById('historyBody');
-    if(!tbody) return;
     tbody.innerHTML = '';
 
     records.sort((a, b) => {
@@ -780,10 +758,7 @@
     const barData = recentForChart.map(r => r.net);
     const lineData = recentForChart.map(r => r.runningBalance);
 
-    const canvas = document.getElementById('balanceChart');
-    if(!canvas) return;
-    const ctx = canvas.getContext('2d');
-    
+    const ctx = document.getElementById('balanceChart').getContext('2d');
     if (chartInstance) chartInstance.destroy();
 
     chartInstance = new Chart(ctx, {
