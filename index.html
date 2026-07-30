@@ -426,19 +426,20 @@
     pushCloudData();
   }
 
-  // JSONP通信によるデータ取得（CORSブロック回避）
   function fetchCloudData() {
     updateSyncStatus('同期中...', '#ff9500');
     const callbackName = 'gasCallback_' + Date.now();
     window[callbackName] = function(data) {
       delete window[callbackName];
-      document.body.removeChild(script);
-      if (data && Object.keys(data).length > 0) {
-        memberList = data.members || memberList;
-        records = data.records || [];
-        completedFridays = data.completedFridays || [];
+      const scriptElem = document.getElementById(callbackName);
+      if (scriptElem) scriptElem.remove();
+      
+      if (data && typeof data === 'object') {
+        memberList = Array.isArray(data.members) ? data.members : memberList;
+        records = Array.isArray(data.records) ? data.records : [];
+        completedFridays = Array.isArray(data.completedFridays) ? data.completedFridays : [];
         if (data.initialBalance !== undefined) {
-          initialBalance = data.initialBalance;
+          initialBalance = Number(data.initialBalance) || 0;
         }
         document.getElementById('initialBalanceInput').value = initialBalance;
         renderAll();
@@ -449,6 +450,7 @@
     };
 
     const script = document.createElement('script');
+    script.id = callbackName;
     script.src = `${GAS_URL}?callback=${callbackName}`;
     script.onerror = function() {
       fallbackLocalStorage();
@@ -456,7 +458,6 @@
     document.body.appendChild(script);
   }
 
-  // フォームデータ形式でのデータ送信（GAS側確実に受信処理）
   function pushCloudData() {
     updateSyncStatus('送信中...', '#007aff');
     const payload = {
@@ -567,7 +568,9 @@
 
   function completeFridayReservation(dateStr) {
     const courtExpense = Number(document.getElementById(`f_court_${dateStr}`).value) || 0;
-    completedFridays.push(dateStr);
+    if (!completedFridays.includes(dateStr)) {
+      completedFridays.push(dateStr);
+    }
 
     const item = {
       id: Date.now(),
