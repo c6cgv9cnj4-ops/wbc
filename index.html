@@ -563,7 +563,7 @@
     }
   }
 
-  // 予約完了処理
+  // 予約完了処理（残高・収支を直接連動更新）
   function completeFridayReservation(dateStr) {
     const courtExpense = Number(document.getElementById(`f_court_${dateStr}`).value) || 0;
 
@@ -582,16 +582,16 @@
     };
 
     records.unshift(item);
-    renderAll();
+    renderAll(); // 画面全体（残高・グラフ・リスト）を即座に再描画
     pushCloudData();
   }
 
-  // 復活処理
+  // 復活処理（残高・収支を直接連動更新）
   function undoFridayReservation(dateStr) {
     completedFridays = completedFridays.filter(d => d !== dateStr);
     records = records.filter(r => !(r.date === dateStr && r.time === '金曜枠' && r.income === 0));
 
-    renderAll();
+    renderAll(); // 画面全体（残高・グラフ・リスト）を即座に再描画
     pushCloudData();
   }
 
