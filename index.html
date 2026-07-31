@@ -2,861 +2,877 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>バドミントン活動・予約・収支管理</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>バドミントン管理</title>
+  
+  <!-- PWA (iPhone / Android アプリ化設定) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="バド管理">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2906/2906206.png">
+
+  <!-- ドラッグ＆ドロップ用ライブラリ (SortableJS) -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <!-- グラフ描画用ライブラリ (Chart.js) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
   <style>
-    :root {
-      --bg: #f2f2f7;
-      --card-bg: #ffffff;
-      --accent: #34c759;
-      --accent-blue: #007aff;
-      --text: #000000;
-      --text-sec: #8e8e93;
-      --border: #e5e5ea;
-      --danger: #ff3b30;
-      --warning: #ff9500;
-      --card-radius: 12px;
-    }
-    * { 
-      box-sizing: border-box; 
-      -webkit-tap-highlight-color: transparent;
-    }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f4f6f9;
       margin: 0;
       padding: 16px;
-      padding-bottom: 40px;
-      -webkit-font-smoothing: antialiased;
+      color: #333;
     }
     .container {
       max-width: 600px;
-      margin: 0 auto;
+      margin: 0 auto 20px auto;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
     h1 {
-      font-size: 1.4rem;
-      font-weight: 700;
       text-align: center;
-      margin-bottom: 12px;
+      font-size: 1.4rem;
+      margin-bottom: 20px;
     }
-    
-    .section-card {
-      background: var(--card-bg);
-      border-radius: var(--card-radius);
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
-    .section-title {
-      font-size: 1rem;
-      font-weight: 600;
-      margin-top: 0;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      color: #1c1c1e;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 8px;
-    }
-    .form-group {
-      margin-bottom: 12px;
-      display: flex;
-      flex-direction: column;
-    }
-    .form-row {
+    .dashboard {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
+      margin-bottom: 16px;
     }
-    label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-sec);
-      margin-bottom: 4px;
-      text-transform: uppercase;
-      letter-spacing: -0.2px;
-    }
-    input, select, textarea {
-      padding: 10px 12px;
-      border: 1px solid var(--border);
+    .dash-card {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      padding: 12px;
       border-radius: 8px;
-      font-size: 0.95rem;
-      background-color: #f9f9fb;
-      appearance: none;
-      outline: none;
-      font-family: inherit;
-      min-height: 44px;
     }
-    input:focus, select:focus, textarea:focus {
-      border-color: var(--accent);
-      background-color: #fff;
+    .dash-card.full { grid-column: span 2; }
+    .dash-title { font-size: 0.75rem; color: #666; margin-bottom: 4px; }
+    .dash-value { font-size: 1.25rem; font-weight: bold; color: #111; }
+    .dash-value.plus { color: #28a745; }
+    .dash-value.minus { color: #dc3545; }
+    .dash-sub { font-size: 0.8rem; color: #555; margin-top: 4px; }
+
+    .tab-buttons {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      background: #eee;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .tab-btn.active {
+      background: #0066ff;
+      color: #fff;
+      border-color: #0066ff;
     }
 
-    .friday-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-height: 320px;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      padding-right: 2px;
-    }
-    .friday-card {
-      background: #f9f9fb;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .friday-header {
+    .section-title {
+      font-weight: bold;
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+      border-bottom: 2px solid #eef5ff;
+      padding-bottom: 4px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-weight: 700;
-      font-size: 0.9rem;
     }
-    .friday-inputs {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 8px;
-      align-items: center;
+    .input-group { display: flex; gap: 8px; margin-bottom: 12px; }
+    input[type="text"], input[type="date"], select, input[type="number"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 0.95rem;
     }
-    .friday-inputs input {
-      padding: 8px 10px;
-      font-size: 0.9rem;
-      min-height: 40px;
-    }
-    .complete-btn {
-      background: var(--accent);
+    button.btn-primary {
+      background-color: #0066ff;
       color: white;
       border: none;
-      padding: 0 16px;
-      height: 40px;
+      padding: 10px 16px;
       border-radius: 6px;
-      font-weight: 600;
-      font-size: 0.85rem;
+      font-weight: bold;
       cursor: pointer;
-      touch-action: manipulation;
+      white-space: nowrap;
     }
-    .undo-btn {
-      background: #ff9500;
+    button.btn-save {
+      width: 100%;
+      padding: 12px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button.btn-csv {
+      background-color: #17a2b8;
       color: white;
       border: none;
       padding: 6px 12px;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 0.75rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: bold;
       cursor: pointer;
-      touch-action: manipulation;
     }
-
-    .completed-box {
-      margin-top: 12px;
-      border-top: 1px dashed var(--border);
-      padding-top: 10px;
-    }
-
-    .pills-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 4px;
-    }
-    .pill-wrapper {
-      display: inline-flex;
-      align-items: center;
-      border-radius: 20px;
-      background: #f0f0f4;
-      padding: 6px 10px 6px 14px;
-      font-size: 0.85rem;
-      font-weight: 500;
-      user-select: none;
-      transition: all 0.2s ease;
-      border: 1px solid transparent;
-      touch-action: manipulation;
-    }
-    .pill-wrapper.active {
-      background: var(--accent);
-      color: white;
-      font-weight: 600;
-    }
-    .pill-label {
-      cursor: pointer;
-      margin-right: 6px;
-    }
-    .pill-del-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: rgba(0,0,0,0.15);
-      color: #fff;
-      font-size: 0.75rem;
-      cursor: pointer;
-      line-height: 1;
-    }
-    .pill-wrapper.active .pill-del-btn {
-      background: rgba(255,255,255,0.3);
-    }
-
-    .calc-preview {
-      background: #f4f1f9;
-      border-radius: 8px;
-      padding: 10px;
-      font-size: 0.85rem;
-      color: #3a3a3c;
-      margin-top: 8px;
-      font-weight: 500;
-    }
-
-    .submit-btn {
+    button.btn-report-toggle {
       width: 100%;
-      background: var(--accent);
+      padding: 12px;
+      background-color: #6f42c1;
       color: white;
       border: none;
-      padding: 14px;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-weight: 600;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: bold;
       cursor: pointer;
-      margin-top: 10px;
-      box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
-      min-height: 48px;
-      touch-action: manipulation;
+      margin-bottom: 16px;
+    }
+    button.btn-back {
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
     }
 
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
+    .member-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
       margin-bottom: 12px;
+      min-height: 40px;
+      padding: 6px;
+      background: #fafafa;
+      border-radius: 6px;
+      border: 1px dashed #ddd;
     }
-    .summary-card {
-      background: #f9f9fb;
-      padding: 10px;
-      border-radius: 8px;
-      text-align: center;
+    .member-chip {
+      background-color: #e0e0e0;
+      padding: 6px 10px;
+      border-radius: 16px;
+      font-size: 0.85rem;
+      cursor: grab;
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
-    .summary-card .val { font-size: 1.1rem; font-weight: 700; margin-top: 2px; }
-    .summary-card .lbl { font-size: 0.7rem; color: var(--text-sec); }
+    .delete-btn { color: #888; font-weight: bold; cursor: pointer; }
+    .delete-btn:hover { color: #dc3545; }
 
-    .chart-container {
+    .form-row { margin-bottom: 12px; }
+    .form-row label { display: block; font-size: 0.8rem; color: #666; margin-bottom: 3px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .history-card {
+      background: #fafafa;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 10px;
+      font-size: 0.85rem;
       position: relative;
-      height: 220px;
-      margin-top: 12px;
     }
+    .history-header { font-weight: bold; color: #0052cc; display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .shuttle-recommend {
+      background-color: #eef5ff;
+      color: #0052cc;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-top: 6px;
+      font-weight: bold;
+      display: inline-block;
+    }
+    .action-btns {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .btn-edit { background: #ffc107; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
+    .btn-del { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
 
-    table {
+    .stats-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.75rem;
+      font-size: 0.85rem;
+      margin-top: 12px;
     }
-    th, td { padding: 8px 2px; border-bottom: 1px solid var(--border); text-align: left; }
-    th { color: var(--text-sec); font-weight: 600; }
+    .stats-table th, .stats-table td {
+      border: 1px solid #e0e0e0;
+      padding: 8px;
+      text-align: center;
+    }
+    .stats-table th { background: #f0f4f8; font-size: 0.8rem; }
   </style>
 </head>
 <body>
 
-<div class="container">
-  <h1>🏸 バドミントン管理</h1>
+  <!-- メイン画面（入力 & ダッシュボード） -->
+  <div id="mainPage">
+    <div class="container">
+      <h1>🏸 サークル運営ダッシュボード</h1>
 
-  <div class="section-card">
-    <div class="section-title">👥 メンバーと金額設定</div>
+      <!-- 1. 濃いデータ（ダッシュボード） -->
+      <div class="dashboard">
+        <div class="dash-card">
+          <div class="dash-title">💰 サークルプール金</div>
+          <div id="dashBalance" class="dash-value">0 円</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-title">🏸 シャトル在庫目安</div>
+          <div id="dashStock" class="dash-value">0 箱</div>
+        </div>
+        <div class="dash-card full">
+          <div class="dash-title">⚖️ 損益分岐・シャトル購入ガイド (10箱4万円 基準)</div>
+          <div id="dashGuide" class="dash-sub">データ計算中...</div>
+        </div>
+      </div>
 
-    <div class="form-group">
-      <label>メンバー追加</label>
-      <div style="display:flex; gap:8px;">
-        <input type="text" id="newMemberName" placeholder="名前を入力..." style="flex:1;">
-        <button type="button" onclick="addNewMember()" style="background:#007aff; color:white; border:none; border-radius:8px; padding:0 14px; font-weight:600; min-height:44px;">登録</button>
+      <!-- レポート画面へ移動するボタン -->
+      <button id="goToReportBtn" class="btn-report-toggle">📈 損益分岐グラフ & 参加率レポートを見る ➔</button>
+
+      <!-- モード切り替えタブ -->
+      <div class="tab-buttons">
+        <button id="tabPractice" class="tab-btn active" onclick="switchTab('practice')">① 練習日の記録</button>
+        <button id="tabReserve" class="tab-btn" onclick="switchTab('reserve')">② コート事前予約</button>
+        <button id="tabShuttle" class="tab-btn" onclick="switchTab('shuttle')">③ シャトル仕入れ</button>
+      </div>
+
+      <!-- モード①: 練習日の記録 -->
+      <div id="modePractice">
+        <div class="section-title">👥 参加メンバー選択</div>
+        <div class="input-group">
+          <input type="text" id="memberInput" placeholder="メンバー名を追加...">
+          <button id="addMemberBtn" class="btn-primary">追加</button>
+        </div>
+        <div id="memberList" class="member-list"></div>
+
+        <div class="grid-2 form-row">
+          <div>
+            <label>開催年月日</label>
+            <input type="date" id="eventDate">
+          </div>
+          <div>
+            <label>時間帯</label>
+            <select id="eventTime">
+              <option value="19:00〜22:00 (3h)" selected>19:00〜22:00 (3h)</option>
+              <option value="18:00〜22:00 (4h)">18:00〜22:00 (4h)</option>
+              <option value="20:00〜22:00 (2h)">20:00〜22:00 (2h)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2 form-row">
+          <div>
+            <label>会費単価 (円)</label>
+            <input type="number" id="feePerPerson" value="700">
+          </div>
+          <div>
+            <label>事前予約コート代 (自動読み込み)</label>
+            <input type="number" id="courtFee" value="0" placeholder="事前予約から自動取得">
+          </div>
+        </div>
+
+        <div class="grid-2 form-row">
+          <div>
+            <label>本日消費シャトル (球数)</label>
+            <input type="number" id="usedShuttleBalls" value="6" placeholder="例: 6">
+          </div>
+          <div>
+            <label>消費数換算 (ダース)</label>
+            <input type="text" id="usedShuttleDozens" value="0.5 ダース" readonly style="background:#eee;">
+          </div>
+        </div>
+
+        <div id="todayBreakEven" style="font-size:0.85rem; color:#0052cc; font-weight:bold; margin-bottom:10px;">
+          会費収入: 0円 ｜ 本日黒字化ライン: -- 球まで
+        </div>
+
+        <button id="saveEventBtn" class="btn-save">💾 本日の練習記録を保存</button>
+      </div>
+
+      <!-- モード②: 3ヶ月前コート事前予約 -->
+      <div id="modeReserve" style="display:none;">
+        <div class="section-title">📅 3ヶ月前コート予約・支払い</div>
+        <div class="form-row">
+          <label>コート使用予定日 (練習日)</label>
+          <input type="date" id="reserveTargetDate">
+        </div>
+        <div class="form-row">
+          <label>予約手続き日 (3ヶ月前)</label>
+          <input type="text" id="reserveCalcDate" readonly style="background:#eee;">
+        </div>
+        <div class="form-row">
+          <label>支払いコート代 (円)</label>
+          <input type="number" id="reserveCourtFee" value="1800">
+        </div>
+        <button id="saveReserveBtn" class="btn-save">💾 コート予約代を保存</button>
+      </div>
+
+      <!-- モード③: シャトル買い出し -->
+      <div id="modeShuttle" style="display:none;">
+        <div class="section-title">🏸 シャトルまとめ買い記録</div>
+        <div class="form-row">
+          <label>購入日</label>
+          <input type="date" id="shuttleBuyDate">
+        </div>
+        <div class="form-row">
+          <label>シャトル銘柄名</label>
+          <input type="text" id="shuttleName" value="シャトルクラブN">
+        </div>
+        <div class="grid-2 form-row">
+          <div>
+            <label>総購入額 (円)</label>
+            <input type="number" id="shuttleTotalFee" value="40000">
+          </div>
+          <div>
+            <label>購入数 (箱/ダース)</label>
+            <input type="number" id="shuttleTotalCount" value="10">
+          </div>
+        </div>
+        <button id="saveShuttleBtn" class="btn-save">💾 シャトル仕入れを保存</button>
       </div>
     </div>
 
-    <div class="form-group">
-      <label>メンバー選択 (タップで選択 / ×で削除)</label>
-      <div class="pills-grid" id="memberPills"></div>
+    <!-- 月別 収支グラフ & 履歴 -->
+    <div class="container">
+      <div class="section-title">📊 月別 収支推移</div>
+      <canvas id="financeChart" width="400" height="180"></canvas>
     </div>
 
-    <div class="form-row" style="margin-top:10px;">
-      <div class="form-group">
-        <label>開催年月日</label>
-        <input type="date" id="eventDate">
+    <div class="container">
+      <div class="section-title">
+        <span>📜 活動・予約・購入履歴</span>
+        <button id="downloadCsvBtn" class="btn-csv">📥 CSV出力 (Excel)</button>
       </div>
-      <div class="form-group">
-        <label>時間帯 (金曜)</label>
-        <select id="timeSlot">
-          <option value="20:00〜22:00">20:00〜22:00 (2h)</option>
-          <option value="19:00〜22:00">19:00〜22:00 (3h)</option>
-          <option value="18:00〜22:00">18:00〜22:00 (4h)</option>
-        </select>
-      </div>
+      <div id="historyList">読み込み中...</div>
     </div>
-
-    <div class="form-group">
-      <label>会費単価 (円)</label>
-      <input type="number" id="memberRate" value="700" placeholder="700" onfocus="this.select()" oninput="updateCalculation()">
-    </div>
-
-    <div class="calc-preview" id="feeSummaryPreview">会費収入合計: 0 円</div>
-
-    <hr style="border:none; border-top:1px solid var(--border); margin:14px 0;">
-
-    <div class="form-group">
-      <label>コート代 (円)</label>
-      <input type="number" id="courtFee" value="0" placeholder="0" onfocus="this.select()">
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label>シャトル購入額 (円)</label>
-        <input type="number" id="shuttleFee" value="0" onfocus="this.select()" oninput="calcShuttleUnit()">
-      </div>
-      <div class="form-group">
-        <label>購入数 (ダース)</label>
-        <input type="number" id="shuttleDozens" value="0" onfocus="this.select()" oninput="calcShuttleUnit()">
-      </div>
-    </div>
-    <div id="shuttleUnitText" style="font-size:0.75rem; color:var(--text-sec); margin-bottom:8px;"></div>
-
-    <button type="button" class="submit-btn" onclick="addRecord()">今回の活動・収支を保存する</button>
   </div>
 
-  <div class="section-card">
-    <div class="section-title">📊 収支＆グラフ</div>
-
-    <div class="form-group" style="background:#f4f1f9; padding:10px; border-radius:8px; margin-bottom:14px;">
-      <label style="color:#1c1c1e;">💰 初期残高（スタート時の手元金・円）</label>
-      <input type="number" id="initialBalanceInput" value="0" onchange="updateInitialBalance()" onfocus="this.select()" style="background:#fff; border-color:#d1d1d6; margin-top:4px;">
-    </div>
-
-    <div class="summary-grid">
-      <div class="summary-card">
-        <div class="lbl">現在の残高</div>
-        <div class="val" id="totalBalance" style="color:var(--accent);">0 円</div>
+  <!-- レポート・詳細分析画面（別ページ表示） -->
+  <div id="reportPage" style="display:none;">
+    <div class="container">
+      <div class="section-title">
+        <button id="goToMainBtn" class="btn-back">← 戻る</button>
+        <span>📊 詳細分析レポート</span>
+        <span></span>
       </div>
-      <div class="summary-card">
-        <div class="lbl">純活動利益（累計）</div>
-        <div class="val" id="activityNet">0 円</div>
-      </div>
-      <div class="summary-card">
-        <div class="lbl">累計コート代</div>
-        <div class="val" id="totalCourt">0 円</div>
-      </div>
-      <div class="summary-card">
-        <div class="lbl">累計シャトル代</div>
-        <div class="val" id="totalShuttle">0 円</div>
-      </div>
-    </div>
 
-    <div class="chart-container">
-      <canvas id="balanceChart"></canvas>
-    </div>
+      <!-- 各練習ごとの損益分岐点比較グラフ -->
+      <div style="margin-top:16px;">
+        <div style="font-weight:bold; font-size:0.9rem; margin-bottom:6px;">⚖️ 各回の損益分岐点（会費利益 vs シャトル代）</div>
+        <div style="font-size:0.75rem; color:#666; margin-bottom:10px;">※緑（利益）が赤（シャトル代）より高ければその回は黒字です</div>
+        <canvas id="breakEvenChart" width="400" height="220"></canvas>
+      </div>
 
-    <div style="margin-top:16px; overflow-x:auto;">
-      <table>
-        <thead>
-          <tr>
-            <th>日付</th>
-            <th>人数</th>
-            <th>コート</th>
-            <th>シャトル</th>
-            <th>収支</th>
-            <th>残高</th>
-          </tr>
-        </thead>
-        <tbody id="historyBody"></tbody>
-      </table>
+      <!-- メンバー参加率テーブル -->
+      <div style="margin-top:24px;">
+        <div style="font-weight:bold; font-size:0.9rem; margin-bottom:6px;">👥 メンバー別 参加回数・参加率</div>
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>メンバー</th>
+              <th>通算</th>
+              <th>今年</th>
+              <th>今月</th>
+              <th>参加率</th>
+            </tr>
+          </thead>
+          <tbody id="memberStatsBody">
+            <tr><td colspan="5">データ計算中...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
-  <div class="section-card">
-    <div class="section-title">
-      <span>📅 今後3ヶ月の金曜予約リスト</span>
-      <small style="font-size:0.75rem; color:var(--text-sec);">コート代入力で完了・消去</small>
-    </div>
+  <!-- Firebase & スクリプト -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { 
+      getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, writeBatch, serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDummyKeyForInitialization",
+      authDomain: "newwbc-a6e29.firebaseapp.com",
+      projectId: "newwbc-a6e29",
+      storageBucket: "newwbc-a6e29.appspot.com",
+      messagingSenderId: "1234567890",
+      appId: "1:1234567890:web:abcdef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const membersCol = collection(db, "members");
+    const eventsCol = collection(db, "events");
+    const reservesCol = collection(db, "reserves");
+
+    // 日付初期化
+    const eventDateInput = document.getElementById("eventDate");
+    const reserveTargetDate = document.getElementById("reserveTargetDate");
+    const shuttleBuyDate = document.getElementById("shuttleBuyDate");
     
-    <div class="friday-list" id="fridayListContainer"></div>
+    eventDateInput.valueAsDate = new Date();
+    reserveTargetDate.valueAsDate = new Date();
+    shuttleBuyDate.valueAsDate = new Date();
 
-    <div class="completed-box">
-      <div style="font-size:0.75rem; font-weight:600; color:var(--text-sec); margin-bottom:6px;">
-        ✅ 予約完了済み（押し間違いは「元に戻す」で復活）
-      </div>
-      <div id="completedFridayContainer" style="display:flex; flex-direction:column; gap:6px;"></div>
-    </div>
-  </div>
+    let editingDocId = null;
 
-</div>
+    // 画面切り替えナビゲーション (SPA)
+    const mainPage = document.getElementById("mainPage");
+    const reportPage = document.getElementById("reportPage");
 
-<script>
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwOQiowu4mNU7w4KvDVCvoACgb0QEWteyP4vlSuG0go8CtLQqpA21axTBv3HubV9naZpw/exec';
+    document.getElementById("goToReportBtn").addEventListener("click", () => {
+      mainPage.style.display = "none";
+      reportPage.style.display = "block";
+      window.scrollTo(0, 0);
+      window.history.pushState({ page: "report" }, "");
+    });
 
-  let initialBalance = 0; 
-  let memberList = [];
-  let selectedMembers = [];
-  let records = [];
-  let completedFridays = [];
-  let chartInstance = null;
+    document.getElementById("goToMainBtn").addEventListener("click", () => {
+      reportPage.style.display = "none";
+      mainPage.style.display = "block";
+      window.scrollTo(0, 0);
+    });
 
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('eventDate').valueAsDate = new Date();
-    
-    loadFromLocalStorage();
-    fetchCloudData();
+    // スマホの「戻る」ボタン対応
+    window.addEventListener("popstate", () => {
+      reportPage.style.display = "none";
+      mainPage.style.display = "block";
+    });
 
-    const nameInput = document.getElementById('newMemberName');
-    if (nameInput) {
-      nameInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          addNewMember();
-        }
+    // 3ヶ月前日付計算
+    reserveTargetDate.addEventListener("change", calcReserveDate);
+    calcReserveDate();
+    function calcReserveDate() {
+      const d = new Date(reserveTargetDate.value);
+      d.setMonth(d.getMonth() - 3);
+      document.getElementById("reserveCalcDate").value = `${d.getFullYear()}年${String(d.getMonth()+1).padStart(2,'0')}月${String(d.getDate()).padStart(2,'0')}日頃`;
+    }
+
+    // タブ切り替え
+    window.switchTab = function(mode) {
+      document.getElementById("modePractice").style.display = mode === 'practice' ? 'block' : 'none';
+      document.getElementById("modeReserve").style.display = mode === 'reserve' ? 'block' : 'none';
+      document.getElementById("modeShuttle").style.display = mode === 'shuttle' ? 'block' : 'none';
+
+      document.getElementById("tabPractice").className = `tab-btn ${mode === 'practice' ? 'active' : ''}`;
+      document.getElementById("tabReserve").className = `tab-btn ${mode === 'reserve' ? 'active' : ''}`;
+      document.getElementById("tabShuttle").className = `tab-btn ${mode === 'shuttle' ? 'active' : ''}`;
+    }
+
+    // メンバー取得 & ドラッグ並び替え
+    let currentMembers = [];
+    const memberListContainer = document.getElementById("memberList");
+    onSnapshot(query(membersCol, orderBy("order", "asc")), (snapshot) => {
+      memberListContainer.innerHTML = "";
+      currentMembers = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const id = docSnap.id;
+        currentMembers.push({ id, ...data });
+
+        const chip = document.createElement("div");
+        chip.className = "member-chip";
+        chip.dataset.id = id;
+        chip.innerHTML = `<span>${data.name}</span><span class="delete-btn">×</span>`;
+        chip.querySelector(".delete-btn").addEventListener("click", async (e) => {
+          e.stopPropagation();
+          if (confirm(`${data.name} さんをメンバーから削除しますか？`)) await deleteDoc(doc(db, "members", id));
+        });
+        memberListContainer.appendChild(chip);
       });
-    }
-  });
+      updateSummary();
+    });
 
-  function saveToLocalStorage() {
-    const data = {
-      initialBalance,
-      memberList,
-      records,
-      completedFridays
-    };
-    localStorage.setItem('badminton_cache', JSON.stringify(data));
-  }
-
-  function loadFromLocalStorage() {
-    const cached = localStorage.getItem('badminton_cache');
-    if (cached) {
-      try {
-        const data = JSON.parse(cached);
-        if (data && typeof data === 'object') {
-          memberList = Array.isArray(data.members) ? data.members : (Array.isArray(data.memberList) ? data.memberList : []);
-          records = Array.isArray(data.records) ? data.records : [];
-          completedFridays = Array.isArray(data.completedFridays) ? data.completedFridays.map(String) : [];
-          if (data.initialBalance !== undefined) {
-            initialBalance = Number(data.initialBalance) || 0;
-          }
-          const initInput = document.getElementById('initialBalanceInput');
-          if(initInput) initInput.value = initialBalance;
-          renderAll();
-        }
-      } catch(e) {
-        console.error('Cache load error:', e);
+    new Sortable(memberListContainer, {
+      animation: 150,
+      onEnd: async () => {
+        const chipElements = Array.from(memberListContainer.querySelectorAll(".member-chip"));
+        const batch = writeBatch(db);
+        chipElements.forEach((el, index) => {
+          batch.update(doc(db, "members", el.dataset.id), { order: index });
+        });
+        await batch.commit();
       }
+    });
+
+    document.getElementById("addMemberBtn").addEventListener("click", async () => {
+      const name = document.getElementById("memberInput").value.trim();
+      if (!name) return;
+      await addDoc(membersCol, { name, order: currentMembers.length, createdAt: serverTimestamp() });
+      document.getElementById("memberInput").value = "";
+    });
+
+    // 今日の損益計算
+    const usedShuttleBalls = document.getElementById("usedShuttleBalls");
+    const feePerPersonInput = document.getElementById("feePerPerson");
+    const courtFeeInput = document.getElementById("courtFee");
+
+    usedShuttleBalls.addEventListener("input", () => {
+      const balls = parseInt(usedShuttleBalls.value, 10) || 0;
+      document.getElementById("usedShuttleDozens").value = `${(balls / 12).toFixed(1)} ダース`;
+      updateSummary();
+    });
+    feePerPersonInput.addEventListener("input", updateSummary);
+    courtFeeInput.addEventListener("input", updateSummary);
+
+    let latestShuttleBallUnitPrice = 333;
+
+    function updateSummary() {
+      const count = currentMembers.length;
+      const unitFee = parseInt(feePerPersonInput.value, 10) || 0;
+      const courtFee = parseInt(courtFeeInput.value, 10) || 0;
+      const totalIncome = count * unitFee;
+      const profit = totalIncome - courtFee;
+
+      const maxBreakEvenBalls = profit > 0 ? Math.floor(profit / latestShuttleBallUnitPrice) : 0;
+      const maxBreakEvenDozens = (maxBreakEvenBalls / 12).toFixed(1);
+
+      document.getElementById("todayBreakEven").innerHTML = 
+        `会費収入: <strong>${totalIncome.toLocaleString()}円</strong> ｜ コート引後利益: <strong>${profit.toLocaleString()}円</strong> ➔ 消耗 <strong>${maxBreakEvenBalls}球 (${maxBreakEvenDozens}ダース)</strong> まで黒字`;
     }
-  }
 
-  function updateInitialBalance() {
-    initialBalance = Number(document.getElementById('initialBalanceInput').value) || 0;
-    saveToLocalStorage();
-    renderAll();
-    pushCloudData();
-  }
+    // コート事前予約の自動照会
+    let reservedCourtsMap = {};
+    onSnapshot(collection(db, "reserves"), (snapshot) => {
+      reservedCourtsMap = {};
+      snapshot.forEach(docSnap => {
+        const d = docSnap.data();
+        reservedCourtsMap[d.targetDate] = d.courtFee;
+      });
+      checkAutoCourtFee();
+    });
 
-  // JSONP方式によるデータ取得（CORSブロック完全回避）
-  function fetchCloudData() {
-    const callbackName = 'jsonp_fetch_' + Math.round(100000 * Math.random());
-    window[callbackName] = function(data) {
-      delete window[callbackName];
-      document.body.removeChild(script);
-      
-      if (data && typeof data === 'object') {
-        memberList = Array.isArray(data.members) ? data.members : [];
-        records = Array.isArray(data.records) ? data.records : [];
-        completedFridays = Array.isArray(data.completedFridays) ? data.completedFridays.map(String) : [];
-        if (data.initialBalance !== undefined) {
-          initialBalance = Number(data.initialBalance) || 0;
-        }
-        const initInput = document.getElementById('initialBalanceInput');
-        if(initInput) initInput.value = initialBalance;
-        
-        saveToLocalStorage();
-        renderAll();
+    eventDateInput.addEventListener("change", checkAutoCourtFee);
+    function checkAutoCourtFee() {
+      const selDate = eventDateInput.value;
+      if (reservedCourtsMap[selDate]) {
+        courtFeeInput.value = reservedCourtsMap[selDate];
       } else {
-        renderAll();
+        courtFeeInput.value = 0;
       }
-    };
-
-    const script = document.createElement('script');
-    script.src = `${GAS_URL}?callback=${callbackName}&t=${Date.now()}`;
-    script.onerror = function() {
-      delete window[callbackName];
-      document.body.removeChild(script);
-      renderAll();
-    };
-    document.body.appendChild(script);
-  }
-
-  // JSONP方式によるデータ保存（CORSブロック完全回避）
-  function pushCloudData() {
-    saveToLocalStorage();
-
-    const payload = {
-      initialBalance: initialBalance,
-      members: memberList,
-      records: records,
-      completedFridays: completedFridays
-    };
-
-    const jsonString = JSON.stringify(payload);
-    const callbackName = 'jsonp_push_' + Math.round(100000 * Math.random());
-    
-    window[callbackName] = function(res) {
-      delete window[callbackName];
-      document.body.removeChild(script);
-    };
-
-    const script = document.createElement('script');
-    script.src = `${GAS_URL}?data=${encodeURIComponent(jsonString)}&callback=${callbackName}&t=${Date.now()}`;
-    script.onerror = function() {
-      delete window[callbackName];
-      document.body.removeChild(script);
-    };
-    document.body.appendChild(script);
-  }
-
-  function renderAll() {
-    renderFridayList();
-    renderPills();
-    updateCalculation();
-    renderHistoryAndCharts();
-  }
-
-  function formatDateStr(d) {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
-  function renderFridayList() {
-    const container = document.getElementById('fridayListContainer');
-    const completedContainer = document.getElementById('completedFridayContainer');
-    if(!container || !completedContainer) return;
-    
-    container.innerHTML = '';
-    completedContainer.innerHTML = '';
-
-    const today = new Date();
-    const threeMonthsLater = new Date();
-    threeMonthsLater.setMonth(today.getMonth() + 3);
-
-    let cur = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    while (cur.getDay() !== 5) {
-      cur.setDate(cur.getDate() + 1);
+      updateSummary();
     }
 
-    let count = 0;
-    while (cur <= threeMonthsLater) {
-      const dateStr = formatDateStr(cur);
+    // 保存・編集更新処理①: 練習記録
+    const saveEventBtn = document.getElementById("saveEventBtn");
+    saveEventBtn.addEventListener("click", async () => {
+      if (currentMembers.length === 0) return alert("メンバーを選択してください");
+      const balls = parseInt(usedShuttleBalls.value, 10) || 0;
+      
+      const payload = {
+        type: "practice",
+        date: eventDateInput.value,
+        time: document.getElementById("eventTime").value,
+        memberCount: currentMembers.length,
+        members: currentMembers.map(m => m.name),
+        totalIncome: currentMembers.length * (parseInt(feePerPersonInput.value, 10) || 0),
+        courtFee: parseInt(courtFeeInput.value, 10) || 0,
+        usedShuttleBalls: balls,
+        shuttleCostEquivalent: Math.round(balls * latestShuttleBallUnitPrice),
+        createdAt: serverTimestamp()
+      };
 
-      if (!completedFridays.includes(dateStr)) {
-        count++;
-        const card = document.createElement('div');
-        card.className = 'friday-card';
-        card.innerHTML = `
-          <div class="friday-header">
-            <span>📅 ${dateStr} (金)</span>
-          </div>
-          <div class="friday-inputs">
-            <input type="number" id="f_court_${dateStr}" placeholder="コート代 (円)" onfocus="this.select()">
-            <button type="button" class="complete-btn" onclick="completeFridayReservation('${dateStr}')">予約完了</button>
-          </div>
-        `;
-        container.appendChild(card);
+      if (editingDocId) {
+        await updateDoc(doc(db, "events", editingDocId), payload);
+        alert("練習記録を更新しました！");
+        editingDocId = null;
+        saveEventBtn.textContent = "💾 本日の練習記録を保存";
+      } else {
+        await addDoc(eventsCol, payload);
+        alert("練習記録を保存しました！");
+      }
+    });
 
-        setTimeout(() => {
-          const inputField = document.getElementById(`f_court_${dateStr}`);
-          if (inputField) {
-            inputField.addEventListener('keydown', (e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                completeFridayReservation(dateStr);
-              }
+    // 保存処理②: コート予約
+    document.getElementById("saveReserveBtn").addEventListener("click", async () => {
+      await addDoc(reservesCol, {
+        type: "reserve",
+        targetDate: reserveTargetDate.value,
+        courtFee: parseInt(document.getElementById("reserveCourtFee").value, 10) || 0,
+        createdAt: serverTimestamp()
+      });
+      alert("コート予約支払いを保存しました！");
+    });
+
+    // 保存処理③: シャトル仕入れ
+    document.getElementById("saveShuttleBtn").addEventListener("click", async () => {
+      const totalFee = parseInt(document.getElementById("shuttleTotalFee").value, 10) || 0;
+      const totalCount = parseInt(document.getElementById("shuttleTotalCount").value, 10) || 0;
+      await addDoc(eventsCol, {
+        type: "shuttle_buy",
+        date: shuttleBuyDate.value,
+        name: document.getElementById("shuttleName").value,
+        totalFee: totalFee,
+        totalCount: totalCount,
+        ballUnitPrice: Math.round(totalFee / (totalCount * 12)),
+        createdAt: serverTimestamp()
+      });
+      alert("シャトル仕入れを保存しました！");
+    });
+
+    // 履歴取得・削除・編集機能 ＆ 参加率＆損益グラフ集計
+    let rawEventsData = [];
+    let financeChart = null;
+    let breakEvenChart = null;
+
+    onSnapshot(query(eventsCol, orderBy("date", "desc")), (snapshot) => {
+      const historyList = document.getElementById("historyList");
+      historyList.innerHTML = "";
+      rawEventsData = [];
+
+      let totalIncome = 0;
+      let totalCourt = 0;
+      let totalShuttleBuy = 0;
+      let totalShuttleBoughtBalls = 0;
+      let totalShuttleUsedBalls = 0;
+
+      const monthlyData = {};
+      const memberStats = {};
+      const practiceBreakEvenData = []; // 損益分岐グラフ用データ
+
+      let totalPracticeCount = 0;
+      const nowYear = new Date().getFullYear().toString();
+      const nowMonth = `${nowYear}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+
+      snapshot.forEach((docSnap) => {
+        const d = docSnap.data();
+        const id = docSnap.id;
+        rawEventsData.push({ id, ...d });
+
+        const card = document.createElement("div");
+        card.className = "history-card";
+
+        if (d.type === "practice") {
+          totalPracticeCount++;
+          totalIncome += (d.totalIncome || 0);
+          totalCourt += (d.courtFee || 0);
+          totalShuttleUsedBalls += (d.usedShuttleBalls || 0);
+
+          const netProfit = (d.totalIncome || 0) - (d.courtFee || 0);
+          const recBalls = netProfit > 0 ? Math.floor(netProfit / latestShuttleBallUnitPrice) : 0;
+          const recDozens = (recBalls / 12).toFixed(1);
+          const shuttleCost = d.shuttleCostEquivalent || Math.round((d.usedShuttleBalls||0) * latestShuttleBallUnitPrice);
+
+          // 損益グラフ用データに追加
+          practiceBreakEvenData.push({
+            date: d.date ? d.date.substring(5) : '', // "MM-DD"
+            profit: netProfit,
+            shuttleCost: shuttleCost
+          });
+
+          if (d.members) {
+            d.members.forEach(m => {
+              if (!memberStats[m]) memberStats[m] = { total: 0, year: 0, month: 0 };
+              memberStats[m].total++;
+              if (d.date && d.date.startsWith(nowYear)) memberStats[m].year++;
+              if (d.date && d.date.startsWith(nowMonth)) memberStats[m].month++;
             });
           }
-        }, 0);
 
-      } else {
-        const compDiv = document.createElement('div');
-        compDiv.style.cssText = "display:flex; justify-content:space-between; align-items:center; background:#f0f0f4; padding:6px 10px; border-radius:6px; font-size:0.8rem;";
-        compDiv.innerHTML = `
-          <span>📅 ${dateStr} (金) - 完了済み</span>
-          <button type="button" class="undo-btn" onclick="undoFridayReservation('${dateStr}')">元に戻す</button>
-        `;
-        completedContainer.appendChild(compDiv);
-      }
-      cur.setDate(cur.getDate() + 7);
-    }
+          card.innerHTML = `
+            <div class="history-header">
+              <span>🏸 練習: ${d.date} (${d.time})</span>
+              <span>収入: ${(d.totalIncome||0).toLocaleString()}円</span>
+            </div>
+            <div>👥 参加 (${d.memberCount}名): ${d.members ? d.members.join(", ") : ''}</div>
+            <div>🏟️ コート代: ${(d.courtFee||0).toLocaleString()}円 ｜ 実使用: ${d.usedShuttleBalls||0}球 (${shuttleCost.toLocaleString()}円相当)</div>
+            <div class="shuttle-recommend">
+              💡 推奨黒字ライン: 利益 ${netProfit.toLocaleString()}円 ➔ 最大 ${recBalls}球 (${recDozens}ダース) まで
+            </div>
+            <div class="action-btns">
+              <button class="btn-edit" onclick="editEvent('${id}')">✏️ 編集</button>
+              <button class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
+            </div>
+          `;
+        } else if (d.type === "shuttle_buy") {
+          totalShuttleBuy += (d.totalFee || 0);
+          totalShuttleBoughtBalls += ((d.totalCount || 0) * 12);
+          latestShuttleBallUnitPrice = d.ballUnitPrice || 333;
 
-    if (count === 0) {
-      container.innerHTML = '<div style="font-size:0.85rem; color:var(--text-sec); text-align:center; padding:12px;">3ヶ月先までの予約はすべて完了しています</div>';
-    }
-    if (completedContainer.children.length === 0) {
-      completedContainer.innerHTML = '<div style="font-size:0.75rem; color:var(--text-sec);">完了済みの予約はありません</div>';
-    }
-  }
+          card.innerHTML = `
+            <div class="history-header" style="color:#d97706;">
+              <span>📦 シャトル購入: ${d.date}</span>
+              <span>支出: ${(d.totalFee||0).toLocaleString()}円</span>
+            </div>
+            <div>銘柄: ${d.name} (${d.totalCount}箱 / 単価 ${d.ballUnitPrice}円/球)</div>
+            <div class="action-btns">
+              <button class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
+            </div>
+          `;
+        }
 
-  function completeFridayReservation(dateStr) {
-    const inputElem = document.getElementById(`f_court_${dateStr}`);
-    const courtExpense = inputElem ? (Number(inputElem.value) || 0) : 0;
-    
-    if (!completedFridays.includes(dateStr)) {
-      completedFridays.push(dateStr);
-    }
+        historyList.appendChild(card);
 
-    const item = {
-      id: Date.now(),
-      date: dateStr,
-      time: '金曜枠',
-      isReserved: true,
-      courtExpense: courtExpense,
-      shuttleExpense: 0,
-      memberCount: 0,
-      income: 0,
-      net: -courtExpense
-    };
-
-    records.push(item);
-    renderAll();
-    pushCloudData();
-  }
-
-  function undoFridayReservation(dateStr) {
-    completedFridays = completedFridays.filter(d => d !== dateStr);
-    records = records.filter(r => !(r.date === dateStr && r.time === '金曜枠' && r.income === 0));
-    renderAll();
-    pushCloudData();
-  }
-
-  function addNewMember() {
-    const input = document.getElementById('newMemberName');
-    const name = input.value.trim();
-    if (name && !memberList.includes(name)) {
-      memberList.push(name);
-      input.value = '';
-      renderPills();
-      pushCloudData();
-    }
-  }
-
-  function removeMember(name) {
-    if (confirm(`「${name}」さんをメンバーから削除しますか？`)) {
-      memberList = memberList.filter(m => m !== name);
-      selectedMembers = selectedMembers.filter(m => m !== name);
-      renderPills();
-      updateCalculation();
-      pushCloudData();
-    }
-  }
-
-  function renderPills() {
-    const container = document.getElementById('memberPills');
-    if(!container) return;
-    container.innerHTML = '';
-    memberList.forEach(name => {
-      const isSelected = selectedMembers.includes(name);
-      const wrapper = document.createElement('div');
-      wrapper.className = `pill-wrapper ${isSelected ? 'active' : ''}`;
-      wrapper.innerHTML = `
-        <span class="pill-label" onclick="toggleMember('${name}')">${name}</span>
-        <span class="pill-del-btn" onclick="event.stopPropagation(); removeMember('${name}')">✕</span>
-      `;
-      container.appendChild(wrapper);
-    });
-  }
-
-  function toggleMember(name) {
-    if (selectedMembers.includes(name)) {
-      selectedMembers = selectedMembers.filter(m => m !== name);
-    } else {
-      selectedMembers.push(name);
-    }
-    renderPills();
-    updateCalculation();
-  }
-
-  function updateCalculation() {
-    const count = selectedMembers.length;
-    const rate = Number(document.getElementById('memberRate').value) || 0;
-    const total = count * rate;
-    const preview = document.getElementById('feeSummaryPreview');
-    if(preview) preview.textContent = `会費収入合計: ${total.toLocaleString()} 円 (${count}名 × ${rate}円)`;
-  }
-
-  function calcShuttleUnit() {
-    const fee = Number(document.getElementById('shuttleFee').value) || 0;
-    const doz = Number(document.getElementById('shuttleDozens').value) || 0;
-    const txt = document.getElementById('shuttleUnitText');
-    if(txt) {
-      if (fee > 0 && doz > 0) {
-        const pcs = doz * 12;
-        const unit = (fee / pcs).toFixed(1);
-        txt.textContent = `💡 1本あたりの単価: 約 ${unit} 円 (${pcs}本)`;
-      } else {
-        txt.textContent = '';
-      }
-    }
-  }
-
-  function addRecord() {
-    const date = document.getElementById('eventDate').value;
-    const time = document.getElementById('timeSlot').value;
-    const courtExpense = Number(document.getElementById('courtFee').value) || 0;
-    const count = selectedMembers.length;
-    const rate = Number(document.getElementById('memberRate').value) || 0;
-    const income = count * rate;
-    const shuttleExpense = Number(document.getElementById('shuttleFee').value) || 0;
-    const net = income - courtExpense - shuttleExpense;
-
-    const item = {
-      id: Date.now(),
-      date,
-      time,
-      isReserved: true,
-      courtExpense,
-      shuttleExpense,
-      memberCount: count,
-      income,
-      net
-    };
-
-    records.push(item);
-    
-    selectedMembers = [];
-    document.getElementById('memberRate').value = 700;
-    document.getElementById('courtFee').value = 0;
-    document.getElementById('shuttleFee').value = 0;
-    document.getElementById('shuttleDozens').value = 0;
-    document.getElementById('shuttleUnitText').textContent = '';
-    
-    renderAll();
-    pushCloudData();
-  }
-
-  function renderHistoryAndCharts() {
-    const tbody = document.getElementById('historyBody');
-    if(!tbody) return;
-    tbody.innerHTML = '';
-
-    records.sort((a, b) => {
-      const dateDiff = new Date(a.date) - new Date(b.date);
-      return dateDiff !== 0 ? dateDiff : a.id - b.id;
-    });
-
-    let sumInc = 0, sumCourt = 0, sumShuttle = 0;
-    let currentBal = initialBalance;
-
-    records.forEach(r => {
-      r.runningBalance = currentBal + r.net;
-      currentBal = r.runningBalance;
-      
-      sumInc += r.income;
-      sumCourt += r.courtExpense;
-      sumShuttle += r.shuttleExpense;
-    });
-
-    records.sort((a, b) => {
-      const dateDiff = new Date(b.date) - new Date(a.date);
-      return dateDiff !== 0 ? dateDiff : b.id - a.id;
-    });
-
-    records.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${r.date.slice(5)}</td>
-        <td>${r.memberCount}名</td>
-        <td>${r.courtExpense.toLocaleString()}</td>
-        <td>${r.shuttleExpense > 0 ? r.shuttleExpense.toLocaleString() : '-'}</td>
-        <td style="font-weight:bold; color:${r.net >= 0 ? 'var(--accent)' : 'var(--danger)'};">
-          ${r.net >= 0 ? '+' : ''}${r.net.toLocaleString()}
-        </td>
-        <td style="font-weight:bold; color:#1c1c1e;">${r.runningBalance.toLocaleString()}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    const totalActivityNet = sumInc - sumCourt - sumShuttle;
-    const finalBalance = initialBalance + totalActivityNet;
-
-    const tBal = document.getElementById('totalBalance');
-    const aNet = document.getElementById('activityNet');
-    const tCourt = document.getElementById('totalCourt');
-    const tShuttle = document.getElementById('totalShuttle');
-
-    if(tBal) tBal.textContent = finalBalance.toLocaleString() + ' 円';
-    if(aNet) aNet.textContent = (totalActivityNet >= 0 ? '+' : '') + totalActivityNet.toLocaleString() + ' 円';
-    if(tCourt) tCourt.textContent = sumCourt.toLocaleString() + ' 円';
-    if(tShuttle) tShuttle.textContent = sumShuttle.toLocaleString() + ' 円';
-
-    const recentForChart = [...records].slice(0, 6).reverse();
-    const labels = recentForChart.map(r => r.date.slice(5));
-    const barData = recentForChart.map(r => r.net);
-    const lineData = recentForChart.map(r => r.runningBalance);
-
-    const canvas = document.getElementById('balanceChart');
-    if(!canvas) return;
-    const ctx = canvas.getContext('2d');
-    
-    if (chartInstance) chartInstance.destroy();
-
-    chartInstance = new Chart(ctx, {
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            type: 'line',
-            label: '残高推移 (円)',
-            data: lineData,
-            borderColor: '#007aff',
-            backgroundColor: '#007aff',
-            borderWidth: 2,
-            pointRadius: 4,
-            yAxisID: 'y1',
-            tension: 0.1
-          },
-          {
-            type: 'bar',
-            label: '単回収支 (円)',
-            data: barData,
-            backgroundColor: barData.map(v => v >= 0 ? '#34c759' : '#ff3b30'),
-            borderRadius: 4,
-            yAxisID: 'y'
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: {
-            grid: { display: false }
-          },
-          y: {
-            type: 'linear',
-            display: true,
-            position: 'left',
-            title: { display: true, text: '単回収支', font: {size: 10} }
-          },
-          y1: {
-            type: 'linear',
-            display: true,
-            position: 'right',
-            title: { display: true, text: '残高', font: {size: 10} },
-            grid: { drawOnChartArea: false }
+        if (d.date) {
+          const mKey = d.date.substring(0, 7);
+          if (!monthlyData[mKey]) monthlyData[mKey] = { inc: 0, exp: 0 };
+          if (d.type === "practice") {
+            monthlyData[mKey].inc += (d.totalIncome || 0);
+            monthlyData[mKey].exp += (d.courtFee || 0);
+          } else if (d.type === "shuttle_buy") {
+            monthlyData[mKey].exp += (d.totalFee || 0);
           }
         }
-      }
-    });
-  }
-</script>
+      });
 
+      const netBalance = totalIncome - (totalCourt + totalShuttleBuy);
+      const stockBalls = totalShuttleBoughtBalls - totalShuttleUsedBalls;
+      const stockBoxes = (stockBalls / 12).toFixed(1);
+
+      const dashBalance = document.getElementById("dashBalance");
+      dashBalance.textContent = `${netBalance >= 0 ? '+' : ''}${netBalance.toLocaleString()} 円`;
+      dashBalance.className = `dash-value ${netBalance >= 0 ? 'plus' : 'minus'}`;
+
+      document.getElementById("dashStock").textContent = `${stockBoxes} 箱 (${stockBalls}球)`;
+
+      const targetBuy = 40000;
+      const dashGuide = document.getElementById("dashGuide");
+      if (netBalance >= targetBuy) {
+        dashGuide.innerHTML = `現在プール金が十分あります！<strong>10箱 (40,000円) まとめ買い可能です！</strong>`;
+      } else {
+        const short = targetBuy - netBalance;
+        dashGuide.innerHTML = `次の10箱 (40,000円) まとめ買いまで <strong>あと ${short.toLocaleString()} 円</strong> のプールが必要です`;
+      }
+
+      updateMemberStatsTable(memberStats, totalPracticeCount);
+      updateSummary();
+      updateChart(monthlyData);
+      updateBreakEvenChart(practiceBreakEvenData.reverse()); // 古い順に表示
+    });
+
+    function updateMemberStatsTable(stats, totalPractice) {
+      const tbody = document.getElementById("memberStatsBody");
+      tbody.innerHTML = "";
+
+      if (Object.keys(stats).length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">データがありません</td></tr>';
+        return;
+      }
+
+      Object.keys(stats).forEach(m => {
+        const data = stats[m];
+        const rate = totalPractice > 0 ? Math.round((data.total / totalPractice) * 100) : 0;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td style="font-weight:bold;">${m}</td>
+          <td>${data.total} 回</td>
+          <td>${data.year} 回</td>
+          <td>${data.month} 回</td>
+          <td style="color:#0052cc; font-weight:bold;">${rate}%</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    window.editEvent = function(id) {
+      const target = rawEventsData.find(item => item.id === id);
+      if (!target) return;
+
+      editingDocId = id;
+      switchTab('practice');
+      eventDateInput.value = target.date;
+      document.getElementById("eventTime").value = target.time || "19:00〜22:00 (3h)";
+      courtFeeInput.value = target.courtFee || 0;
+      usedShuttleBalls.value = target.usedShuttleBalls || 0;
+      
+      saveEventBtn.textContent = "✏️ 編集内容を上書き保存する";
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.deleteEvent = async function(id) {
+      if (confirm("本当にこのデータを削除しても宜しいですか？\n※削除すると計算残高も更新されます。")) {
+        await deleteDoc(doc(db, "events", id));
+        alert("データを削除しました");
+      }
+    }
+
+    document.getElementById("downloadCsvBtn").addEventListener("click", () => {
+      if (rawEventsData.length === 0) return alert("出力できる履歴データがありません");
+
+      let csvContent = "\uFEFF日付,種別,時間帯,参加人数,参加メンバー,会費収入,コート代,使用シャトル球数,支出額,備考\n";
+
+      rawEventsData.forEach(item => {
+        if (item.type === "practice") {
+          const membersStr = item.members ? `"${item.members.join(';')}"` : '""';
+          csvContent += `${item.date},練習,${item.time||''},${item.memberCount||0},${membersStr},${item.totalIncome||0},${item.courtFee||0},${item.usedShuttleBalls||0},0,""\n`;
+        } else if (item.type === "shuttle_buy") {
+          csvContent += `${item.date},シャトル仕入れ,"",0,"",0,0,0,${item.totalFee||0},"${item.name||''} (${item.totalCount||0}箱)"\n`;
+        }
+      });
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `バドミントンサークル会計履歴_${new Date().toISOString().substring(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // 月別グラフ
+    function updateChart(monthlyData) {
+      const labels = Object.keys(monthlyData).sort();
+      const incData = labels.map(k => monthlyData[k].inc);
+      const expData = labels.map(k => monthlyData[k].exp);
+
+      const ctx = document.getElementById('financeChart').getContext('2d');
+      if (financeChart) financeChart.destroy();
+
+      financeChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: '収入(会費)', data: incData, backgroundColor: '#28a745' },
+            { label: '支出(コート+シャトル仕入れ)', data: expData, backgroundColor: '#dc3545' }
+          ]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      });
+    }
+
+    // 損益分岐点グラフ（利益 vs シャトル代）
+    function updateBreakEvenChart(listData) {
+      const labels = listData.map(item => item.date);
+      const profitData = listData.map(item => item.profit);
+      const shuttleData = listData.map(item => item.shuttleCost);
+
+      const ctx = document.getElementById('breakEvenChart').getContext('2d');
+      if (breakEvenChart) breakEvenChart.destroy();
+
+      breakEvenChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: '会費純利益(円)', data: profitData, backgroundColor: '#28a745' },
+            { label: 'シャトル消費額(円)', data: shuttleData, backgroundColor: '#dc3545' }
+          ]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      });
+    }
+  </script>
 </body>
 </html>
