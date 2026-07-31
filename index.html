@@ -150,7 +150,6 @@
       border: 2px solid transparent;
       transition: all 0.15s ease;
     }
-    /* 参加状態（青色） */
     .member-chip.selected {
       background-color: #0066ff;
       color: #ffffff;
@@ -252,69 +251,73 @@
       <div id="memberList" class="member-list"></div>
 
       <!-- メンバー追加フォーム -->
-      <div class="input-group">
+      <form id="addMemberForm" onsubmit="return false;" class="input-group">
         <input type="text" id="memberInput" placeholder="新しいメンバー名を追加...">
-        <button id="addMemberBtn" class="btn-primary">追加</button>
-      </div>
+        <button type="submit" id="addMemberBtn" class="btn-primary">追加</button>
+      </form>
 
-      <!-- 📅 日付・時間帯・会費・コート代 -->
-      <div class="grid-2 form-row">
-        <div>
-          <label>開催年月日</label>
-          <input type="date" id="eventDate">
+      <!-- 📅 練習記録フォーム (Enterキー送信対応) -->
+      <form id="practiceForm" onsubmit="return false;">
+        <div class="grid-2 form-row">
+          <div>
+            <label>開催年月日</label>
+            <input type="date" id="eventDate">
+          </div>
+          <div>
+            <label>時間帯</label>
+            <select id="eventTime">
+              <option value="19:00〜22:00 (3h)" selected>19:00〜22:00 (3h)</option>
+              <option value="18:00〜22:00 (4h)">18:00〜22:00 (4h)</option>
+              <option value="20:00〜22:00 (2h)">20:00〜22:00 (2h)</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label>時間帯</label>
-          <select id="eventTime">
-            <option value="19:00〜22:00 (3h)" selected>19:00〜22:00 (3h)</option>
-            <option value="18:00〜22:00 (4h)">18:00〜22:00 (4h)</option>
-            <option value="20:00〜22:00 (2h)">20:00〜22:00 (2h)</option>
-          </select>
-        </div>
-      </div>
 
-      <div class="grid-2 form-row">
-        <div>
-          <label>会費単価 (円)</label>
-          <input type="number" id="feePerPerson" value="700">
+        <div class="grid-2 form-row">
+          <div>
+            <label>会費単価 (円)</label>
+            <input type="number" id="feePerPerson" value="700">
+          </div>
+          <div>
+            <label>事前予約コート代 (自動読み込み)</label>
+            <input type="number" id="courtFee" value="0" placeholder="事前予約から自動取得">
+          </div>
         </div>
-        <div>
-          <label>事前予約コート代 (自動読み込み)</label>
-          <input type="number" id="courtFee" value="0" placeholder="事前予約から自動取得">
-        </div>
-      </div>
 
-      <div class="grid-2 form-row">
-        <div>
-          <label>本日消費シャトル (目安球数)</label>
-          <input type="number" id="usedShuttleBalls" value="6" placeholder="例: 6">
+        <div class="grid-2 form-row">
+          <div>
+            <label>本日消費シャトル (目安球数)</label>
+            <input type="number" id="usedShuttleBalls" value="6" placeholder="例: 6">
+          </div>
+          <div>
+            <label>消費数換算 (ダース)</label>
+            <input type="text" id="usedShuttleDozens" value="0.5 ダース" readonly style="background:#eee;">
+          </div>
         </div>
-        <div>
-          <label>消費数換算 (ダース)</label>
-          <input type="text" id="usedShuttleDozens" value="0.5 ダース" readonly style="background:#eee;">
-        </div>
-      </div>
 
-      <button id="saveEventBtn" class="btn-save">💾 本日の練習記録を保存</button>
+        <button type="submit" id="saveEventBtn" class="btn-save">💾 本日の練習記録を保存</button>
+      </form>
     </div>
 
     <!-- 📅 2. 3ヶ月前コート事前予約 -->
     <details class="container">
       <summary>📅 3ヶ月前のコート事前予約・支払い</summary>
       <div class="accordion-content">
-        <div class="form-row">
-          <label>コート使用予定日 (練習日)</label>
-          <input type="date" id="reserveTargetDate">
-        </div>
-        <div class="form-row">
-          <label>予約手続き日 (3ヶ月前)</label>
-          <input type="text" id="reserveCalcDate" readonly style="background:#eee;">
-        </div>
-        <div class="form-row">
-          <label>支払いコート代 (円)</label>
-          <input type="number" id="reserveCourtFee" value="1800">
-        </div>
-        <button id="saveReserveBtn" class="btn-save">💾 コート予約代を保存</button>
+        <form id="reserveForm" onsubmit="return false;">
+          <div class="form-row">
+            <label>コート使用予定日 (練習日)</label>
+            <input type="date" id="reserveTargetDate">
+          </div>
+          <div class="form-row">
+            <label>予約手続き日 (3ヶ月前)</label>
+            <input type="text" id="reserveCalcDate" readonly style="background:#eee;">
+          </div>
+          <div class="form-row">
+            <label>支払いコート代 (円)</label>
+            <input type="number" id="reserveCourtFee" value="1800">
+          </div>
+          <button type="submit" id="saveReserveBtn" class="btn-save">💾 コート予約代を保存</button>
+        </form>
       </div>
     </details>
 
@@ -322,25 +325,27 @@
     <details class="container">
       <summary>📦 シャトルまとめ買い記録 (資材仕入れ)</summary>
       <div class="accordion-content">
-        <div class="form-row">
-          <label>購入日</label>
-          <input type="date" id="shuttleBuyDate">
-        </div>
-        <div class="form-row">
-          <label>シャトル銘柄名</label>
-          <input type="text" id="shuttleName" value="シャトルクラブN">
-        </div>
-        <div class="grid-2 form-row">
-          <div>
-            <label>総購入額 (円)</label>
-            <input type="number" id="shuttleTotalFee" value="40000">
+        <form id="shuttleForm" onsubmit="return false;">
+          <div class="form-row">
+            <label>購入日</label>
+            <input type="date" id="shuttleBuyDate">
           </div>
-          <div>
-            <label>購入数 (箱/ダース)</label>
-            <input type="number" id="shuttleTotalCount" value="10">
+          <div class="form-row">
+            <label>シャトル銘柄名</label>
+            <input type="text" id="shuttleName" value="シャトルクラブN">
           </div>
-        </div>
-        <button id="saveShuttleBtn" class="btn-save">💾 シャトル仕入れを保存</button>
+          <div class="grid-2 form-row">
+            <div>
+              <label>総購入額 (円)</label>
+              <input type="number" id="shuttleTotalFee" value="40000">
+            </div>
+            <div>
+              <label>購入数 (箱/ダース)</label>
+              <input type="number" id="shuttleTotalCount" value="10">
+            </div>
+          </div>
+          <button type="submit" id="saveShuttleBtn" class="btn-save">💾 シャトル仕入れを保存</button>
+        </form>
       </div>
     </details>
 
@@ -446,7 +451,7 @@
     shuttleBuyDate.valueAsDate = new Date();
 
     let editingDocId = null;
-    let selectedMemberNames = new Set(); // 本日参加選択されているメンバーセット
+    let selectedMemberNames = new Set();
 
     // 画面切り替えナビゲーション (SPA)
     const mainPage = document.getElementById("mainPage");
@@ -479,7 +484,7 @@
       document.getElementById("reserveCalcDate").value = `${d.getFullYear()}年${String(d.getMonth()+1).padStart(2,'0')}月${String(d.getDate()).padStart(2,'0')}日頃`;
     }
 
-    // メンバー取得 & ポチポチ出席切替
+    // メンバー取得 & 出席切替
     let currentMembers = [];
     const memberListContainer = document.getElementById("memberList");
 
@@ -502,7 +507,6 @@
           <span class="delete-btn">×</span>
         `;
 
-        // チップ本体タップで出席/欠席切替
         chip.addEventListener("click", (e) => {
           if (e.target.classList.contains("delete-btn")) return;
           if (selectedMemberNames.has(data.name)) {
@@ -514,7 +518,6 @@
           updateSummary();
         });
 
-        // 削除ボタン
         chip.querySelector(".delete-btn").addEventListener("click", async (e) => {
           e.stopPropagation();
           if (confirm(`${data.name} さんを登録メンバーから削除しますか？`)) {
@@ -528,7 +531,6 @@
       updateSummary();
     });
 
-    // チップ再描画関数
     function renderMemberChips() {
       const chips = memberListContainer.querySelectorAll(".member-chip");
       chips.forEach(chip => {
@@ -539,7 +541,6 @@
       });
     }
 
-    // SortableJS (ドラッグ並び替え)
     new Sortable(memberListContainer, {
       animation: 150,
       onEnd: async () => {
@@ -552,11 +553,12 @@
       }
     });
 
-    // メンバー追加
-    document.getElementById("addMemberBtn").addEventListener("click", async () => {
+    // メンバー追加処理 (Enter/ボタン共通)
+    const addMemberForm = document.getElementById("addMemberForm");
+    addMemberForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
       const name = document.getElementById("memberInput").value.trim();
       if (!name) return;
-      // 追加したメンバーはそのまま本日の参加として自動選択
       selectedMemberNames.add(name);
       await addDoc(membersCol, { name, order: currentMembers.length, createdAt: serverTimestamp() });
       document.getElementById("memberInput").value = "";
@@ -578,7 +580,7 @@
     let latestShuttleBallUnitPrice = 333;
 
     function updateSummary() {
-      const count = selectedMemberNames.size; // ポチポチ選ばれた人数
+      const count = selectedMemberNames.size;
       const unitFee = parseInt(feePerPersonInput.value, 10) || 0;
       const courtFee = parseInt(courtFeeInput.value, 10) || 0;
       const totalIncome = count * unitFee;
@@ -613,9 +615,11 @@
       updateSummary();
     }
 
-    // 保存・編集更新処理①: 練習記録
+    // 保存処理①: 練習記録 (Enter/ボタン共通)
+    const practiceForm = document.getElementById("practiceForm");
     const saveEventBtn = document.getElementById("saveEventBtn");
-    saveEventBtn.addEventListener("click", async () => {
+    practiceForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
       if (selectedMemberNames.size === 0) return alert("参加メンバーをタップして選択してください");
       const balls = parseInt(usedShuttleBalls.value, 10) || 0;
       const selectedMembersArray = Array.from(selectedMemberNames);
@@ -643,14 +647,15 @@
         alert("練習記録を保存しました！");
       }
 
-      // 保存後は参加選択状態をリセット
       selectedMemberNames.clear();
       renderMemberChips();
       updateSummary();
     });
 
-    // 保存処理②: コート予約
-    document.getElementById("saveReserveBtn").addEventListener("click", async () => {
+    // 保存処理②: コート予約 (Enter/ボタン共通)
+    const reserveForm = document.getElementById("reserveForm");
+    reserveForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
       await addDoc(reservesCol, {
         type: "reserve",
         targetDate: reserveTargetDate.value,
@@ -660,8 +665,10 @@
       alert("コート予約支払いを保存しました！");
     });
 
-    // 保存処理③: シャトル仕入れ
-    document.getElementById("saveShuttleBtn").addEventListener("click", async () => {
+    // 保存処理③: シャトル仕入れ (Enter/ボタン共通)
+    const shuttleForm = document.getElementById("shuttleForm");
+    shuttleForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
       const totalFee = parseInt(document.getElementById("shuttleTotalFee").value, 10) || 0;
       const totalCount = parseInt(document.getElementById("shuttleTotalCount").value, 10) || 0;
       await addDoc(eventsCol, {
@@ -839,7 +846,6 @@
       courtFeeInput.value = target.courtFee || 0;
       usedShuttleBalls.value = target.usedShuttleBalls || 0;
 
-      // 編集対象の参加メンバーを選択状態に自動割り当て
       selectedMemberNames = new Set(target.members || []);
       renderMemberChips();
       
