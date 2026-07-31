@@ -191,24 +191,6 @@
       font-size: 0.8rem;
     }
     .history-header { font-weight: bold; color: #0052cc; display: flex; justify-content: space-between; margin-bottom: 4px; }
-    .shuttle-recommend {
-      background-color: #eef5ff;
-      color: #0052cc;
-      padding: 2px 6px;
-      border-radius: 4px;
-      margin-top: 4px;
-      font-weight: bold;
-      display: inline-block;
-      font-size: 0.75rem;
-    }
-    .action-btns {
-      margin-top: 6px;
-      display: flex;
-      gap: 6px;
-      justify-content: flex-end;
-    }
-    .btn-edit { background: #ffc107; border: none; padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
-    .btn-del { background: #dc3545; color: white; border: none; padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
 
     .reserve-check-row {
       padding: 8px 10px;
@@ -255,9 +237,9 @@
       <h1>🏸 バドミントン現場記録</h1>
 
       <div class="today-guide-card">
-        <div class="today-guide-title">秤 本日の推奨黒字ライン (ポチポチ選択と連動)</div>
+        <div class="today-guide-title">⚖️ 本日の推奨黒字ライン (ポチポチ選択と連動)</div>
         <div id="todayBreakEven" class="today-guide-value">
-          参加 0名 ｜ 利益 0円 ➔ <strong>0球 (0.0ダース)</strong> まで黒字
+          参加 0名 ｜ 利益 0円 ➔ 消耗 <strong>0球</strong> まで黒字
         </div>
       </div>
 
@@ -299,15 +281,10 @@
           </div>
         </div>
 
-        <div class="grid-2 form-row">
-          <div>
-            <label>本日消費シャトル (目安球数)</label>
-            <input type="number" id="usedShuttleBalls" value="6" placeholder="例: 6">
-          </div>
-          <div>
-            <label>消費数換算 (ダース)</label>
-            <input type="text" id="usedShuttleDozens" value="0.5 ダース" readonly style="background:#eee;">
-          </div>
+        <!-- 💡 球数のみの「シャトル損益個数」表示 -->
+        <div class="form-row">
+          <label>シャトル損益個数 (切り捨て黒字限界球数)</label>
+          <input type="text" id="usedShuttleBalls" value="0 球" readonly style="background:#eef5ff; color:#0052cc; font-weight:bold; font-size:1.05rem;">
         </div>
 
         <button type="submit" id="saveEventBtn" class="btn-save">💾 本日の練習記録を保存</button>
@@ -364,7 +341,7 @@
               <input type="number" id="shuttleTotalFee" value="40000">
             </div>
             <div>
-              <label>購入数 (箱/ダース)</label>
+              <label>購入数 (箱/12球入り)</label>
               <input type="number" id="shuttleTotalCount" value="10">
             </div>
           </div>
@@ -382,8 +359,8 @@
           <div id="dashBalance" style="font-size:1.1rem; font-weight:bold;">0 円</div>
         </div>
         <div class="dash-card-mini">
-          <div style="color:#666;">シャトル在庫目安</div>
-          <div id="dashStock" style="font-size:1.1rem; font-weight:bold;">0 箱</div>
+          <div style="color:#666;">シャトル仕入れ累計</div>
+          <div id="dashStock" style="font-size:1.1rem; font-weight:bold;">0 球</div>
         </div>
       </div>
       <div id="dashGuide" style="font-size:0.75rem; color:#555; margin-top:6px;">データ計算中...</div>
@@ -498,7 +475,6 @@
       mainPage.style.display = "block";
     });
 
-    // 正確な日付・曜日＆正確な3ヶ月前の計算
     reserveTargetDate.addEventListener("change", calcExactReserveDate);
     calcExactReserveDate();
 
@@ -522,7 +498,6 @@
       document.getElementById("reserveCalcDate").value = `${py}年${pm}月${pd}日 (${pw})`;
     }
 
-    // メンバー取得 & 出席切替
     let currentMembers = [];
     const memberListContainer = document.getElementById("memberList");
 
@@ -601,20 +576,15 @@
       document.getElementById("memberInput").value = "";
     });
 
-    // 損益計算
-    const usedShuttleBalls = document.getElementById("usedShuttleBalls");
+    // 切り捨てによる球数算出ロジック
     const feePerPersonInput = document.getElementById("feePerPerson");
     const courtFeeInput = document.getElementById("courtFee");
+    const usedShuttleBallsInput = document.getElementById("usedShuttleBalls");
 
-    usedShuttleBalls.addEventListener("input", () => {
-      const balls = parseInt(usedShuttleBalls.value, 10) || 0;
-      document.getElementById("usedShuttleDozens").value = `${(balls / 12).toFixed(1)} ダース`;
-      updateSummary();
-    });
     feePerPersonInput.addEventListener("input", updateSummary);
     courtFeeInput.addEventListener("input", updateSummary);
 
-    let latestShuttleBallUnitPrice = 333;
+    let latestShuttleBallUnitPrice = 333; // 1球あたりの最新仕入れ単価
 
     function updateSummary() {
       const count = selectedMemberNames.size;
@@ -623,14 +593,15 @@
       const totalIncome = count * unitFee;
       const profit = totalIncome - courtFee;
 
+      // 切り捨て (Math.floor) で球数を計算
       const maxBreakEvenBalls = profit > 0 ? Math.floor(profit / latestShuttleBallUnitPrice) : 0;
-      const maxBreakEvenDozens = (maxBreakEvenBalls / 12).toFixed(1);
+
+      usedShuttleBallsInput.value = `${maxBreakEvenBalls} 球`;
 
       document.getElementById("todayBreakEven").innerHTML = 
-        `参加 <strong>${count}名</strong> ｜ 利益 <strong>${profit.toLocaleString()}円</strong> ➔ 消耗 <strong>${maxBreakEvenBalls}球 (${maxBreakEvenDozens}ダース)</strong> まで黒字`;
+        `参加 <strong>${count}名</strong> ｜ 利益 <strong>${profit.toLocaleString()}円</strong> ➔ 消耗 <strong>${maxBreakEvenBalls}球</strong> まで黒字`;
     }
 
-    // 予約データ取得 ＆ 前回コード代の自動保持
     let reservedCourtsMap = {};
     let reservedDocIdsMap = {};
     const reserveCheckList = document.getElementById("reserveCheckList");
@@ -716,7 +687,6 @@
       }
     }
 
-    // 青い「予約登録」ボタンを押したら即座に保存して「予約済み（緑色）」へ変更
     window.setQuickReserve = async function(dateStr) {
       reserveTargetDate.value = dateStr;
       calcExactReserveDate();
@@ -753,9 +723,16 @@
     const saveEventBtn = document.getElementById("saveEventBtn");
     practiceForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      if (selectedMemberNames.size === 0) return alert("参加メンバーをタップして選択してください");
-      const balls = parseInt(usedShuttleBalls.value, 10) || 0;
       const selectedMembersArray = Array.from(selectedMemberNames);
+      const unitFee = parseInt(feePerPersonInput.value, 10) || 0;
+      const courtFeeVal = parseInt(courtFeeInput.value, 10) || 0;
+
+      const calculatedIncome = selectedMembersArray.length > 0 
+        ? selectedMembersArray.length * unitFee 
+        : unitFee;
+
+      const netProfit = calculatedIncome - courtFeeVal;
+      const breakEvenBalls = netProfit > 0 ? Math.floor(netProfit / latestShuttleBallUnitPrice) : 0;
 
       const payload = {
         type: "practice",
@@ -763,10 +740,10 @@
         time: document.getElementById("eventTime").value,
         memberCount: selectedMembersArray.length,
         members: selectedMembersArray,
-        totalIncome: selectedMembersArray.length * (parseInt(feePerPersonInput.value, 10) || 0),
-        courtFee: parseInt(courtFeeInput.value, 10) || 0,
-        usedShuttleBalls: balls,
-        shuttleCostEquivalent: Math.round(balls * latestShuttleBallUnitPrice),
+        totalIncome: calculatedIncome,
+        courtFee: courtFeeVal,
+        usedShuttleBalls: breakEvenBalls,
+        shuttleCostEquivalent: Math.round(breakEvenBalls * latestShuttleBallUnitPrice),
         createdAt: serverTimestamp()
       };
 
@@ -835,7 +812,6 @@
       let totalCourt = 0;
       let totalShuttleBuy = 0;
       let totalShuttleBoughtBalls = 0;
-      let totalShuttleUsedBalls = 0;
 
       const monthlyData = {};
       const memberStats = {};
@@ -857,17 +833,14 @@
           totalPracticeCount++;
           totalIncome += (d.totalIncome || 0);
           totalCourt += (d.courtFee || 0);
-          totalShuttleUsedBalls += (d.usedShuttleBalls || 0);
 
           const netProfit = (d.totalIncome || 0) - (d.courtFee || 0);
           const recBalls = netProfit > 0 ? Math.floor(netProfit / latestShuttleBallUnitPrice) : 0;
-          const recDozens = (recBalls / 12).toFixed(1);
-          const shuttleCost = d.shuttleCostEquivalent || Math.round((d.usedShuttleBalls||0) * latestShuttleBallUnitPrice);
 
           practiceBreakEvenData.push({
             date: d.date ? d.date.substring(5) : '',
             profit: netProfit,
-            shuttleCost: shuttleCost
+            shuttleCost: Math.round(recBalls * latestShuttleBallUnitPrice)
           });
 
           if (d.members) {
@@ -881,14 +854,11 @@
 
           card.innerHTML = `
             <div class="history-header">
-              <span>🏸 練習: ${d.date} (${d.time})</span>
+              <span>🏸 練習/入金: ${d.date} (${d.time})</span>
               <span>収入: ${(d.totalIncome||0).toLocaleString()}円</span>
             </div>
-            <div>👥 参加 (${d.memberCount}名): ${d.members ? d.members.join(", ") : ''}</div>
-            <div>🏟️ コート代: ${(d.courtFee||0).toLocaleString()}円 ｜ 実使用: ${d.usedShuttleBalls||0}球 (${shuttleCost.toLocaleString()}円相当)</div>
-            <div class="shuttle-recommend">
-              💡 推奨黒字ライン: 利益 ${netProfit.toLocaleString()}円 ➔ 最大 ${recBalls}球 (${recDozens}ダース) まで
-            </div>
+            <div>👥 参加 (${d.memberCount}名): ${d.members && d.members.length > 0 ? d.members.join(", ") : 'なし(初期入金)'}</div>
+            <div>🏟️ コート代: ${(d.courtFee||0).toLocaleString()}円 ｜ ⚖️ 損益分岐: ${recBalls}球分</div>
             <div class="action-btns">
               <button class="btn-edit" onclick="editEvent('${id}')">✏️ 編集</button>
               <button class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
@@ -926,13 +896,11 @@
       });
 
       const netBalance = totalIncome - (totalCourt + totalShuttleBuy);
-      const stockBalls = totalShuttleBoughtBalls - totalShuttleUsedBalls;
-      const stockBoxes = (stockBalls / 12).toFixed(1);
 
       const dashBalance = document.getElementById("dashBalance");
       dashBalance.textContent = `${netBalance >= 0 ? '+' : ''}${netBalance.toLocaleString()} 円`;
 
-      document.getElementById("dashStock").textContent = `${stockBoxes} 箱 (${stockBalls}球)`;
+      document.getElementById("dashStock").textContent = `${totalShuttleBoughtBalls} 球`;
 
       const targetBuy = 40000;
       const dashGuide = document.getElementById("dashGuide");
@@ -982,7 +950,6 @@
       eventDateInput.value = target.date;
       document.getElementById("eventTime").value = target.time || "19:00〜22:00 (3h)";
       courtFeeInput.value = target.courtFee || 0;
-      usedShuttleBalls.value = target.usedShuttleBalls || 0;
 
       selectedMemberNames = new Set(target.members || []);
       renderMemberChips();
@@ -1001,7 +968,7 @@
     document.getElementById("downloadCsvBtn").addEventListener("click", () => {
       if (rawEventsData.length === 0) return alert("出力できる履歴データがありません");
 
-      let csvContent = "\uFEFF日付,種別,時間帯,参加人数,参加メンバー,会費収入,コート代,使用シャトル球数,支出額,備考\n";
+      let csvContent = "\uFEFF日付,種別,時間帯,参加人数,参加メンバー,会費収入,コート代,シャトル損益個数,支出額,備考\n";
 
       rawEventsData.forEach(item => {
         if (item.type === "practice") {
