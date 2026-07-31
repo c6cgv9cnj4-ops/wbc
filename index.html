@@ -249,7 +249,7 @@
       <h1>🏸 バドミントン現場記録</h1>
 
       <div class="today-guide-card">
-        <div class="today-guide-title">秤 本日の推奨黒字ライン (ポチポチ選択と連動)</div>
+        <div class="today-guide-title">⚖️ 本日の推奨黒字ライン (ポチポチ選択と連動)</div>
         <div id="todayBreakEven" class="today-guide-value">
           参加 0名 ｜ 利益 0円 ➔ 消耗 <strong>0球</strong> まで黒字
         </div>
@@ -361,7 +361,7 @@
       </div>
     </details>
 
-    <!-- 💰 4. サークルプール金 & 分析エリア -->
+    <!-- 💰 4. サークル財務サマリー -->
     <div class="container">
       <div class="section-title">💰 サークル財務サマリー</div>
       <div class="dashboard-mini">
@@ -388,27 +388,27 @@
       <div id="historyList">読み込み中...</div>
     </div>
 
-    <!-- 🔧 6. 新設：一番下の「残高の直接調整（現金ピッタリ合わせ）」枠 -->
-    <details class="container" style="border-left: 4px solid #fd7e14;">
-      <summary>🔧 残高の直接調整 (手元の現金ピッタリ合わせ・初期残高)</summary>
-      <div class="accordion-content">
-        <form id="adjustForm" onsubmit="return false;">
-          <div class="form-row">
-            <label>調整日付</label>
-            <input type="date" id="adjustDate">
-          </div>
-          <div class="form-row">
-            <label>調整後のピッタリ残高 (円)</label>
-            <input type="number" id="adjustTargetBalance" placeholder="例: 155130">
-          </div>
-          <div class="form-row">
-            <label>調整理由・メモ (例: 初期繰越金 / 端数調整 / 雑費など)</label>
-            <input type="text" id="adjustReason" value="残高調整・初期繰越">
-          </div>
-          <button type="submit" id="saveAdjustBtn" class="btn-adjust">💾 残高をこの金額に調整する</button>
-        </form>
+    <!-- 🔧 6. 新設：残高の直接調整エリア（オープン表示） -->
+    <div class="container" style="border-top: 4px solid #fd7e14;">
+      <div class="section-title" style="color: #d97706;">
+        <span>🔧 残高の直接調整 (手元の現金ピッタリ合わせ・初期残高)</span>
       </div>
-    </details>
+      <form id="adjustForm" onsubmit="return false;" style="margin-top: 10px;">
+        <div class="form-row">
+          <label>調整日付</label>
+          <input type="date" id="adjustDate">
+        </div>
+        <div class="form-row">
+          <label>調整後のピッタリ残高 (円)</label>
+          <input type="number" id="adjustTargetBalance" placeholder="例: 155130">
+        </div>
+        <div class="form-row">
+          <label>調整理由・メモ (例: 初期繰越金 / 端数調整 / 雑費など)</label>
+          <input type="text" id="adjustReason" value="初期繰越金">
+        </div>
+        <button type="submit" id="saveAdjustBtn" class="btn-adjust">💾 残高をこの金額に調整する</button>
+      </form>
+    </div>
   </div>
 
   <!-- レポート画面 -->
@@ -489,7 +489,7 @@
 
     let editingDocId = null;
     let selectedMemberNames = new Set();
-    let currentCalculatedNetBalance = 0; // 現在の残高を保持する変数
+    let currentCalculatedNetBalance = 0;
 
     const mainPage = document.getElementById("mainPage");
     const reportPage = document.getElementById("reportPage");
@@ -836,7 +836,7 @@
       alert("シャトル仕入れを保存しました！");
     });
 
-    // 保存処理④: 残高の直接調整（手元の現金ピッタリ合わせ）
+    // 保存処理④: 残高の直接調整
     const adjustForm = document.getElementById("adjustForm");
     adjustForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -846,7 +846,6 @@
       const targetBal = parseInt(targetBalStr, 10);
       const reason = document.getElementById("adjustReason").value.trim() || "残高直接調整";
 
-      // 差額（必要な補正金額）を計算
       const diffAmount = targetBal - currentCalculatedNetBalance;
 
       await addDoc(eventsCol, {
@@ -862,7 +861,7 @@
       document.getElementById("adjustTargetBalance").value = "";
     });
 
-    // 履歴取得 & 全体集計
+    // 履歴取得 & 集計
     let rawEventsData = [];
     let financeChart = null;
     let breakEvenChart = null;
@@ -944,7 +943,6 @@
             </div>
           `;
         } else if (d.type === "balance_adjust") {
-          // 残高補正金額を収入または支出として可算
           if (d.diffAmount >= 0) {
             totalIncome += d.diffAmount;
           } else {
@@ -980,7 +978,6 @@
         }
       });
 
-      // 現在の正確な総残高を確定
       currentCalculatedNetBalance = totalIncome - (totalCourt + totalShuttleBuy);
 
       const dashBalance = document.getElementById("dashBalance");
