@@ -37,7 +37,6 @@
     }
     h1 { text-align: center; font-size: 1.2rem; margin: 0 0 12px 0; }
     
-    /* 現場最優先：損益分岐ハイライトカード */
     .today-guide-card {
       background: linear-gradient(135deg, #eef5ff 0%, #e3f2fd 100%);
       border: 1px solid #bbdefb;
@@ -123,7 +122,6 @@
       cursor: pointer;
     }
 
-    /* メンバーポチポチ切替スタイル */
     .member-list {
       display: flex;
       flex-wrap: wrap;
@@ -212,19 +210,26 @@
     .btn-edit { background: #ffc107; border: none; padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
     .btn-del { background: #dc3545; color: white; border: none; padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
 
-    /* 事前予約リストのスタイル */
-    .reserve-item {
-      background: #eef5ff;
-      border: 1px solid #bbdefb;
-      padding: 8px 12px;
+    .reserve-check-row {
+      padding: 8px 10px;
       border-radius: 6px;
-      margin-top: 6px;
+      margin-bottom: 6px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-size: 0.85rem;
+      border: 1px solid #e0e0e0;
     }
-    .reserve-date { font-weight: bold; color: #0d47a1; }
+    .reserve-check-row.reserved {
+      background-color: #e8f5e9;
+      border-color: #a5d6a7;
+    }
+    .reserve-check-row.unreserved {
+      background-color: #ffebee;
+      border-color: #ffcdd2;
+    }
+    .status-badge-ok { color: #2e7d32; font-weight: bold; }
+    .status-badge-ng { color: #c62828; font-weight: bold; }
 
     .stats-table {
       width: 100%;
@@ -245,11 +250,10 @@
 
   <!-- メイン画面 -->
   <div id="mainPage">
-    <!-- 📱 1. 本日の現場入力エリア (当日反省・現場用) -->
+    <!-- 📱 1. 本日の現場入力エリア -->
     <div class="container" style="border-top: 4px solid #0066ff;">
       <h1>🏸 バドミントン現場記録</h1>
 
-      <!-- 💡 本日の損益分岐ハイライト -->
       <div class="today-guide-card">
         <div class="today-guide-title">⚖️ 本日の推奨黒字ライン (ポチポチ選択と連動)</div>
         <div id="todayBreakEven" class="today-guide-value">
@@ -257,20 +261,17 @@
         </div>
       </div>
 
-      <!-- 👥 メンバーポチポチ選択 -->
       <div class="section-title">
         <span>👥 本日の参加メンバー選択</span>
         <span style="font-size:0.75rem; color:#666; font-weight:normal;">(タップで出席/欠席切替)</span>
       </div>
       <div id="memberList" class="member-list"></div>
 
-      <!-- メンバー追加フォーム -->
       <form id="addMemberForm" onsubmit="return false;" class="input-group">
         <input type="text" id="memberInput" placeholder="新しいメンバー名を追加...">
         <button type="submit" id="addMemberBtn" class="btn-primary">追加</button>
       </form>
 
-      <!-- 📅 練習記録フォーム -->
       <form id="practiceForm" onsubmit="return false;">
         <div class="grid-2 form-row">
           <div>
@@ -313,18 +314,19 @@
       </form>
     </div>
 
-    <!-- 📅 2. 3ヶ月前コート事前予約 (オープン & 昇順ソート一覧付き) -->
+    <!-- 📅 2. 3ヶ月先までの全金曜日 一括予約チェック -->
     <details class="container" open style="border-left: 4px solid #28a745;">
-      <summary>📅 3ヶ月前のコート事前予約・支払い (予約漏れ防止)</summary>
+      <summary>📅 3ヶ月先までのコート予約・支払い (直近12〜13回分一括点検)</summary>
       <div class="accordion-content">
         <form id="reserveForm" onsubmit="return false;">
           <div class="form-row">
             <label>コート使用予定日 (練習日)</label>
             <input type="date" id="reserveTargetDate">
+            <div id="targetDateWithDay" style="font-size:0.8rem; color:#0052cc; font-weight:bold; margin-top:2px;"></div>
           </div>
           <div class="form-row">
-            <label>予約手続き日 (3ヶ月前目安)</label>
-            <input type="text" id="reserveCalcDate" readonly style="background:#eef5ff; color:#0052cc; font-weight:bold;">
+            <label>予約手続き日 (正確な3ヶ月前 & 曜日)</label>
+            <input type="text" id="reserveCalcDate" readonly style="background:#eef5ff; color:#0052cc; font-weight:bold; font-size:0.95rem;">
           </div>
           <div class="form-row">
             <label>支払いコート代 (円)</label>
@@ -333,12 +335,12 @@
           <button type="submit" id="saveReserveBtn" class="btn-save">💾 コート予約代を保存</button>
         </form>
 
-        <!-- 昇順ソート（7/31 ➔ 8/8 ➔ 10月…）で表示される予約済みリスト -->
-        <div style="margin-top:16px;">
-          <div style="font-weight:bold; font-size:0.85rem; color:#0052cc; margin-bottom:6px;">
-            📋 確保済みコート一覧 (昇順ソート・予約落ち点検)
+        <div style="margin-top:20px; border-top:2px dashed #e0e0e0; padding-top:12px;">
+          <div style="font-weight:bold; font-size:0.85rem; color:#0052cc; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <span>📋 直近3ヶ月先の全金曜日 予約点検表 (約12行)</span>
           </div>
-          <div id="reservedList">予約データを読み込み中...</div>
+
+          <div id="reserveCheckList">3ヶ月先までの金曜日を計算中...</div>
         </div>
       </div>
     </details>
@@ -398,7 +400,7 @@
     </div>
   </div>
 
-  <!-- レポート・詳細分析画面 -->
+  <!-- レポート画面 -->
   <div id="reportPage" style="display:none;">
     <div class="container">
       <div class="section-title">
@@ -407,20 +409,17 @@
         <span></span>
       </div>
 
-      <!-- 月別 収支グラフ -->
       <div style="margin-top:12px;">
         <div style="font-weight:bold; font-size:0.85rem; margin-bottom:4px;">📊 月別 収支推移</div>
         <canvas id="financeChart" width="400" height="180"></canvas>
       </div>
 
-      <!-- 各練習ごとの損益分岐点比較グラフ -->
       <div style="margin-top:20px;">
         <div style="font-weight:bold; font-size:0.85rem; margin-bottom:4px;">⚖️ 各回の損益分岐点（会費利益 vs シャトル代）</div>
         <div style="font-size:0.75rem; color:#666; margin-bottom:8px;">※緑（利益）が赤（シャトル代）より高ければその回は黒字です</div>
         <canvas id="breakEvenChart" width="400" height="200"></canvas>
       </div>
 
-      <!-- メンバー参加率テーブル -->
       <div style="margin-top:20px;">
         <div style="font-weight:bold; font-size:0.85rem; margin-bottom:6px;">👥 メンバー別 参加回数・参加率</div>
         <table class="stats-table">
@@ -452,7 +451,7 @@
       apiKey: "AIzaSyDummyKeyForInitialization",
       authDomain: "newwbc-a6e29.firebaseapp.com",
       projectId: "newwbc-a6e29",
-      storageBucket: "newwbc-a6e29.appspot.com",
+      storageBucket: "newwbc-a6e29.appstop.com",
       messagingSenderId: "1234567890",
       appId: "1:1234567890:web:abcdef"
     };
@@ -463,19 +462,21 @@
     const eventsCol = collection(db, "events");
     const reservesCol = collection(db, "reserves");
 
-    // 日付初期化
+    const weekDays = ["日", "月", "火", "水", "木", "金", "土"];
+
     const eventDateInput = document.getElementById("eventDate");
     const reserveTargetDate = document.getElementById("reserveTargetDate");
     const shuttleBuyDate = document.getElementById("shuttleBuyDate");
-    
-    eventDateInput.valueAsDate = new Date();
-    reserveTargetDate.valueAsDate = new Date();
-    shuttleBuyDate.valueAsDate = new Date();
+    const reserveCourtFeeInput = document.getElementById("reserveCourtFee");
+
+    const today = new Date();
+    eventDateInput.valueAsDate = today;
+    reserveTargetDate.valueAsDate = today;
+    shuttleBuyDate.valueAsDate = today;
 
     let editingDocId = null;
     let selectedMemberNames = new Set();
 
-    // 画面切り替えナビゲーション (SPA)
     const mainPage = document.getElementById("mainPage");
     const reportPage = document.getElementById("reportPage");
 
@@ -497,13 +498,28 @@
       mainPage.style.display = "block";
     });
 
-    // 3ヶ月前日付計算
-    reserveTargetDate.addEventListener("change", calcReserveDate);
-    calcReserveDate();
-    function calcReserveDate() {
-      const d = new Date(reserveTargetDate.value);
-      d.setMonth(d.getMonth() - 3);
-      document.getElementById("reserveCalcDate").value = `${d.getFullYear()}年${String(d.getMonth()+1).padStart(2,'0')}月${String(d.getDate()).padStart(2,'0')}日頃`;
+    // 正確な日付・曜日＆正確な3ヶ月前の計算
+    reserveTargetDate.addEventListener("change", calcExactReserveDate);
+    calcExactReserveDate();
+
+    function calcExactReserveDate() {
+      if (!reserveTargetDate.value) return;
+      const parts = reserveTargetDate.value.split('-');
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+
+      const targetObj = new Date(y, m, d);
+      const targetW = weekDays[targetObj.getDay()];
+      document.getElementById("targetDateWithDay").textContent = `使用予定日: ${y}年${m+1}月${d}日 (${targetW})`;
+
+      const prevDate = new Date(y, m - 3, d);
+      const py = prevDate.getFullYear();
+      const pm = String(prevDate.getMonth() + 1).padStart(2, '0');
+      const pd = String(prevDate.getDate()).padStart(2, '0');
+      const pw = weekDays[prevDate.getDay()];
+
+      document.getElementById("reserveCalcDate").value = `${py}年${pm}月${pd}日 (${pw})`;
     }
 
     // メンバー取得 & 出席切替
@@ -575,7 +591,6 @@
       }
     });
 
-    // メンバー追加処理
     const addMemberForm = document.getElementById("addMemberForm");
     addMemberForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -586,7 +601,7 @@
       document.getElementById("memberInput").value = "";
     });
 
-    // 今日の損益計算
+    // 損益計算
     const usedShuttleBalls = document.getElementById("usedShuttleBalls");
     const feePerPersonInput = document.getElementById("feePerPerson");
     const courtFeeInput = document.getElementById("courtFee");
@@ -615,41 +630,101 @@
         `参加 <strong>${count}名</strong> ｜ 利益 <strong>${profit.toLocaleString()}円</strong> ➔ 消耗 <strong>${maxBreakEvenBalls}球 (${maxBreakEvenDozens}ダース)</strong> まで黒字`;
     }
 
-    // 事前予約コート代の昇順ソート取得（7/31 ➔ 8/8 ➔ 10月…）
+    // 予約データ取得 ＆ 前回コード代の自動保持
     let reservedCourtsMap = {};
-    const reservedListContainer = document.getElementById("reservedList");
+    let reservedDocIdsMap = {};
+    const reserveCheckList = document.getElementById("reserveCheckList");
 
     onSnapshot(query(reservesCol, orderBy("targetDate", "asc")), (snapshot) => {
       reservedCourtsMap = {};
-      reservedListContainer.innerHTML = "";
+      reservedDocIdsMap = {};
 
-      if (snapshot.empty) {
-        reservedListContainer.innerHTML = '<div style="color:#888; font-size:0.8rem;">予約データはまだありません</div>';
-        return;
-      }
+      let lastFee = null;
 
       snapshot.forEach((docSnap) => {
         const d = docSnap.data();
-        const id = docSnap.id;
         reservedCourtsMap[d.targetDate] = d.courtFee;
-
-        const item = document.createElement("div");
-        item.className = "reserve-item";
-        item.innerHTML = `
-          <div>
-            <span class="reserve-date">📅 ${d.targetDate}</span>
-            <span style="margin-left:8px; color:#555;">${(d.courtFee||0).toLocaleString()}円</span>
-          </div>
-          <button class="btn-del" onclick="deleteReserve('${id}')">🗑️ 削除</button>
-        `;
-        reservedListContainer.appendChild(item);
+        reservedDocIdsMap[d.targetDate] = docSnap.id;
+        if (d.courtFee) lastFee = d.courtFee;
       });
 
+      // 直近で入力されたコート代があれば自動で次回入力用にセット
+      if (lastFee !== null) {
+        reserveCourtFeeInput.value = lastFee;
+      }
+
+      render3MonthsFridayList();
       checkAutoCourtFee();
     });
 
+    function render3MonthsFridayList() {
+      reserveCheckList.innerHTML = "";
+
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(startDate.getDate() + 90);
+
+      const curr = new Date(startDate);
+      let fridayCount = 0;
+
+      while (curr <= endDate) {
+        if (curr.getDay() === 5) {
+          fridayCount++;
+          const y = curr.getFullYear();
+          const m = curr.getMonth() + 1;
+          const d = curr.getDate();
+          const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+          const prevD = new Date(y, m - 1 - 3, d);
+          const py = prevD.getFullYear();
+          const pm = prevD.getMonth() + 1;
+          const pd = prevD.getDate();
+          const pw = weekDays[prevD.getDay()];
+
+          const isReserved = reservedCourtsMap[dateStr] !== undefined;
+          const fee = isReserved ? reservedCourtsMap[dateStr] : 0;
+          const docId = isReserved ? reservedDocIdsMap[dateStr] : null;
+
+          const row = document.createElement("div");
+          row.className = `reserve-check-row ${isReserved ? 'reserved' : 'unreserved'}`;
+
+          if (isReserved) {
+            row.innerHTML = `
+              <div>
+                <strong>📅 ${m}/${d} (金)</strong>
+                <span class="status-badge-ok" style="margin-left:8px;">✅ 予約済み (${fee.toLocaleString()}円)</span>
+              </div>
+              <button class="btn-del" onclick="deleteReserve('${docId}')">削除</button>
+            `;
+          } else {
+            row.innerHTML = `
+              <div>
+                <strong>📅 ${m}/${d} (金)</strong>
+                <span class="status-badge-ng" style="margin-left:6px;">⚠️ 未予約</span>
+                <span style="font-size:0.7rem; color:#666; margin-left:4px;">(予約解禁: ${py}/${pm}/${pd} ${pw})</span>
+              </div>
+              <button class="btn-primary" style="padding:2px 8px; font-size:0.75rem;" onclick="setQuickReserve('${dateStr}')">予約登録</button>
+            `;
+          }
+
+          reserveCheckList.appendChild(row);
+        }
+        curr.setDate(curr.getDate() + 1);
+      }
+
+      if (fridayCount === 0) {
+        reserveCheckList.innerHTML = '<div style="color:#888; font-size:0.8rem;">対象期間に金曜日がありません</div>';
+      }
+    }
+
+    window.setQuickReserve = function(dateStr) {
+      reserveTargetDate.value = dateStr;
+      calcExactReserveDate();
+      window.scrollTo({ top: document.getElementById("reserveForm").offsetTop - 20, behavior: 'smooth' });
+    };
+
     window.deleteReserve = async function(id) {
-      if (confirm("この事前予約データを削除してもよろしいですか？")) {
+      if (confirm("この予約データを削除（未予約状態に変更）しますか？")) {
         await deleteDoc(doc(db, "reserves", id));
       }
     };
@@ -709,13 +784,15 @@
       const targetDateVal = reserveTargetDate.value;
       if (!targetDateVal) return alert("コート使用予定日を選択してください");
 
+      const feeVal = parseInt(reserveCourtFeeInput.value, 10) || 0;
+
       await addDoc(reservesCol, {
         type: "reserve",
         targetDate: targetDateVal,
-        courtFee: parseInt(document.getElementById("reserveCourtFee").value, 10) || 0,
+        courtFee: feeVal,
         createdAt: serverTimestamp()
       });
-      alert("コート予約代を保存しました！リストに追加されます。");
+      alert("コート予約代を保存しました！リストが更新されます。");
     });
 
     // 保存処理③: シャトル仕入れ
@@ -736,7 +813,7 @@
       alert("シャトル仕入れを保存しました！");
     });
 
-    // 履歴取得・削除・編集機能 ＆ 参加率＆損益グラフ集計
+    // 履歴取得 & 集計
     let rawEventsData = [];
     let financeChart = null;
     let breakEvenChart = null;
@@ -929,14 +1006,13 @@
 
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `バドミントンサークル会計履歴_${new Date().toISOString().substring(0,10)}.csv`;
-      a.click();
+      const aElem = document.createElement("a");
+      aElem.href = url;
+      aElem.download = `バドミントンサークル会計履歴_${new Date().toISOString().substring(0,10)}.csv`;
+      aElem.click();
       URL.revokeObjectURL(url);
     });
 
-    // 月別グラフ
     function updateChart(monthlyData) {
       const labels = Object.keys(monthlyData).sort();
       const incData = labels.map(k => monthlyData[k].inc);
@@ -958,7 +1034,6 @@
       });
     }
 
-    // 損益分岐点グラフ
     function updateBreakEvenChart(listData) {
       const labels = listData.map(item => item.date);
       const profitData = listData.map(item => item.profit);
