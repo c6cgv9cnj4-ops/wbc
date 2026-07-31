@@ -256,7 +256,7 @@
         <button type="submit" id="addMemberBtn" class="btn-primary">追加</button>
       </form>
 
-      <!-- 📅 練習記録フォーム (Enterキー送信対応) -->
+      <!-- 📅 練習記録フォーム -->
       <form id="practiceForm" onsubmit="return false;">
         <div class="grid-2 form-row">
           <div>
@@ -299,9 +299,9 @@
       </form>
     </div>
 
-    <!-- 📅 2. 3ヶ月前コート事前予約 -->
-    <details class="container">
-      <summary>📅 3ヶ月前のコート事前予約・支払い</summary>
+    <!-- 📅 2. 3ヶ月前コート事前予約 (open属性でデフォルト全展開) -->
+    <details class="container" open style="border-left: 4px solid #28a745;">
+      <summary>📅 3ヶ月前のコート事前予約・支払い (予約忘れ防止)</summary>
       <div class="accordion-content">
         <form id="reserveForm" onsubmit="return false;">
           <div class="form-row">
@@ -309,8 +309,8 @@
             <input type="date" id="reserveTargetDate">
           </div>
           <div class="form-row">
-            <label>予約手続き日 (3ヶ月前)</label>
-            <input type="text" id="reserveCalcDate" readonly style="background:#eee;">
+            <label>予約手続き日 (3ヶ月前目安)</label>
+            <input type="text" id="reserveCalcDate" readonly style="background:#eef5ff; color:#0052cc; font-weight:bold;">
           </div>
           <div class="form-row">
             <label>支払いコート代 (円)</label>
@@ -553,7 +553,7 @@
       }
     });
 
-    // メンバー追加処理 (Enter/ボタン共通)
+    // メンバー追加処理
     const addMemberForm = document.getElementById("addMemberForm");
     addMemberForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -615,7 +615,7 @@
       updateSummary();
     }
 
-    // 保存処理①: 練習記録 (Enter/ボタン共通)
+    // 保存処理①: 練習記録
     const practiceForm = document.getElementById("practiceForm");
     const saveEventBtn = document.getElementById("saveEventBtn");
     practiceForm.addEventListener("submit", async (e) => {
@@ -652,7 +652,7 @@
       updateSummary();
     });
 
-    // 保存処理②: コート予約 (Enter/ボタン共通)
+    // 保存処理②: コート予約
     const reserveForm = document.getElementById("reserveForm");
     reserveForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -665,7 +665,7 @@
       alert("コート予約支払いを保存しました！");
     });
 
-    // 保存処理③: シャトル仕入れ (Enter/ボタン共通)
+    // 保存処理③: シャトル仕入れ
     const shuttleForm = document.getElementById("shuttleForm");
     shuttleForm.addEventListener("submit", async (e) => {
       e.preventDefault();
