@@ -89,6 +89,18 @@
       cursor: pointer;
       margin-top: 6px;
     }
+    button.btn-adjust {
+      width: 100%;
+      padding: 12px;
+      background-color: #fd7e14;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 6px;
+    }
     button.btn-csv {
       background-color: #17a2b8;
       color: white;
@@ -237,7 +249,7 @@
       <h1>🏸 バドミントン現場記録</h1>
 
       <div class="today-guide-card">
-        <div class="today-guide-title">⚖️ 本日の推奨黒字ライン (ポチポチ選択と連動)</div>
+        <div class="today-guide-title">秤 本日の推奨黒字ライン (ポチポチ選択と連動)</div>
         <div id="todayBreakEven" class="today-guide-value">
           参加 0名 ｜ 利益 0円 ➔ 消耗 <strong>0球</strong> まで黒字
         </div>
@@ -281,10 +293,9 @@
           </div>
         </div>
 
-        <!-- 💡 球数のみの「シャトル損益個数」表示 -->
         <div class="form-row">
           <label>シャトル損益個数 (切り捨て黒字限界球数)</label>
-          <input type="text" id="usedShuttleBalls" value="0 球" readonly style="background:#eef5ff; color:#0052cc; font-weight:bold; font-size:1.05rem;">
+          <input type="text" id="usedShuttleBallsDisplay" value="0 球" readonly style="background:#eef5ff; color:#0052cc; font-weight:bold; font-size:1.05rem;">
         </div>
 
         <button type="submit" id="saveEventBtn" class="btn-save">💾 本日の練習記録を保存</button>
@@ -350,12 +361,12 @@
       </div>
     </details>
 
-    <!-- 💰 4. サークルプール金 & 分析・履歴エリア -->
+    <!-- 💰 4. サークルプール金 & 分析エリア -->
     <div class="container">
       <div class="section-title">💰 サークル財務サマリー</div>
       <div class="dashboard-mini">
         <div class="dash-card-mini">
-          <div style="color:#666;">サークルプール金</div>
+          <div style="color:#666;">現在のサークルプール金</div>
           <div id="dashBalance" style="font-size:1.1rem; font-weight:bold;">0 円</div>
         </div>
         <div class="dash-card-mini">
@@ -368,13 +379,36 @@
       <button id="goToReportBtn" class="btn-report-toggle">📈 損益分岐グラフ & 参加率レポートを見る ➔</button>
     </div>
 
+    <!-- 📜 5. 会計履歴エリア -->
     <div class="container">
       <div class="section-title">
-        <span>📜 活動・予約・購入履歴</span>
+        <span>📜 会計・予約・仕入れ履歴</span>
         <button id="downloadCsvBtn" class="btn-csv">📥 CSV出力</button>
       </div>
       <div id="historyList">読み込み中...</div>
     </div>
+
+    <!-- 🔧 6. 新設：一番下の「残高の直接調整（現金ピッタリ合わせ）」枠 -->
+    <details class="container" style="border-left: 4px solid #fd7e14;">
+      <summary>🔧 残高の直接調整 (手元の現金ピッタリ合わせ・初期残高)</summary>
+      <div class="accordion-content">
+        <form id="adjustForm" onsubmit="return false;">
+          <div class="form-row">
+            <label>調整日付</label>
+            <input type="date" id="adjustDate">
+          </div>
+          <div class="form-row">
+            <label>調整後のピッタリ残高 (円)</label>
+            <input type="number" id="adjustTargetBalance" placeholder="例: 155130">
+          </div>
+          <div class="form-row">
+            <label>調整理由・メモ (例: 初期繰越金 / 端数調整 / 雑費など)</label>
+            <input type="text" id="adjustReason" value="残高調整・初期繰越">
+          </div>
+          <button type="submit" id="saveAdjustBtn" class="btn-adjust">💾 残高をこの金額に調整する</button>
+        </form>
+      </div>
+    </details>
   </div>
 
   <!-- レポート画面 -->
@@ -444,15 +478,18 @@
     const eventDateInput = document.getElementById("eventDate");
     const reserveTargetDate = document.getElementById("reserveTargetDate");
     const shuttleBuyDate = document.getElementById("shuttleBuyDate");
+    const adjustDateInput = document.getElementById("adjustDate");
     const reserveCourtFeeInput = document.getElementById("reserveCourtFee");
 
     const today = new Date();
     eventDateInput.valueAsDate = today;
     reserveTargetDate.valueAsDate = today;
     shuttleBuyDate.valueAsDate = today;
+    adjustDateInput.valueAsDate = today;
 
     let editingDocId = null;
     let selectedMemberNames = new Set();
+    let currentCalculatedNetBalance = 0; // 現在の残高を保持する変数
 
     const mainPage = document.getElementById("mainPage");
     const reportPage = document.getElementById("reportPage");
@@ -576,15 +613,14 @@
       document.getElementById("memberInput").value = "";
     });
 
-    // 切り捨てによる球数算出ロジック
     const feePerPersonInput = document.getElementById("feePerPerson");
     const courtFeeInput = document.getElementById("courtFee");
-    const usedShuttleBallsInput = document.getElementById("usedShuttleBalls");
+    const usedShuttleBallsDisplay = document.getElementById("usedShuttleBallsDisplay");
 
     feePerPersonInput.addEventListener("input", updateSummary);
     courtFeeInput.addEventListener("input", updateSummary);
 
-    let latestShuttleBallUnitPrice = 333; // 1球あたりの最新仕入れ単価
+    let latestShuttleBallUnitPrice = 333;
 
     function updateSummary() {
       const count = selectedMemberNames.size;
@@ -593,10 +629,11 @@
       const totalIncome = count * unitFee;
       const profit = totalIncome - courtFee;
 
-      // 切り捨て (Math.floor) で球数を計算
       const maxBreakEvenBalls = profit > 0 ? Math.floor(profit / latestShuttleBallUnitPrice) : 0;
 
-      usedShuttleBallsInput.value = `${maxBreakEvenBalls} 球`;
+      if (usedShuttleBallsDisplay) {
+        usedShuttleBallsDisplay.value = `${maxBreakEvenBalls} 球`;
+      }
 
       document.getElementById("todayBreakEven").innerHTML = 
         `参加 <strong>${count}名</strong> ｜ 利益 <strong>${profit.toLocaleString()}円</strong> ➔ 消耗 <strong>${maxBreakEvenBalls}球</strong> まで黒字`;
@@ -724,12 +761,13 @@
     practiceForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const selectedMembersArray = Array.from(selectedMemberNames);
+      if (selectedMembersArray.length === 0) {
+        return alert("本日の参加メンバーをタップして選択してください。");
+      }
+
       const unitFee = parseInt(feePerPersonInput.value, 10) || 0;
       const courtFeeVal = parseInt(courtFeeInput.value, 10) || 0;
-
-      const calculatedIncome = selectedMembersArray.length > 0 
-        ? selectedMembersArray.length * unitFee 
-        : unitFee;
+      const calculatedIncome = selectedMembersArray.length * unitFee;
 
       const netProfit = calculatedIncome - courtFeeVal;
       const breakEvenBalls = netProfit > 0 ? Math.floor(netProfit / latestShuttleBallUnitPrice) : 0;
@@ -798,7 +836,33 @@
       alert("シャトル仕入れを保存しました！");
     });
 
-    // 履歴取得 & 集計
+    // 保存処理④: 残高の直接調整（手元の現金ピッタリ合わせ）
+    const adjustForm = document.getElementById("adjustForm");
+    adjustForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const targetBalStr = document.getElementById("adjustTargetBalance").value;
+      if (targetBalStr === "") return alert("調整後のピッタリ残高を入力してください");
+
+      const targetBal = parseInt(targetBalStr, 10);
+      const reason = document.getElementById("adjustReason").value.trim() || "残高直接調整";
+
+      // 差額（必要な補正金額）を計算
+      const diffAmount = targetBal - currentCalculatedNetBalance;
+
+      await addDoc(eventsCol, {
+        type: "balance_adjust",
+        date: adjustDateInput.value,
+        targetBalance: targetBal,
+        diffAmount: diffAmount,
+        reason: reason,
+        createdAt: serverTimestamp()
+      });
+
+      alert(`残高を ${targetBal.toLocaleString()} 円へ調整・固定しました！`);
+      document.getElementById("adjustTargetBalance").value = "";
+    });
+
+    // 履歴取得 & 全体集計
     let rawEventsData = [];
     let financeChart = null;
     let breakEvenChart = null;
@@ -854,10 +918,10 @@
 
           card.innerHTML = `
             <div class="history-header">
-              <span>🏸 練習/入金: ${d.date} (${d.time})</span>
-              <span>収入: ${(d.totalIncome||0).toLocaleString()}円</span>
+              <span>🏸 練習: ${d.date} (${d.time})</span>
+              <span>会費収入: ${(d.totalIncome||0).toLocaleString()}円</span>
             </div>
-            <div>👥 参加 (${d.memberCount}名): ${d.members && d.members.length > 0 ? d.members.join(", ") : 'なし(初期入金)'}</div>
+            <div>👥 参加 (${d.memberCount}名): ${d.members ? d.members.join(", ") : ''}</div>
             <div>🏟️ コート代: ${(d.courtFee||0).toLocaleString()}円 ｜ ⚖️ 損益分岐: ${recBalls}球分</div>
             <div class="action-btns">
               <button class="btn-edit" onclick="editEvent('${id}')">✏️ 編集</button>
@@ -879,6 +943,24 @@
               <button class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
             </div>
           `;
+        } else if (d.type === "balance_adjust") {
+          // 残高補正金額を収入または支出として可算
+          if (d.diffAmount >= 0) {
+            totalIncome += d.diffAmount;
+          } else {
+            totalCourt += Math.abs(d.diffAmount);
+          }
+
+          card.innerHTML = `
+            <div class="history-header" style="color:#fd7e14;">
+              <span>🔧 残高直接調整: ${d.date}</span>
+              <span>設定残高: ${(d.targetBalance||0).toLocaleString()}円 (${d.diffAmount >= 0 ? '+' : ''}${(d.diffAmount||0).toLocaleString()}円)</span>
+            </div>
+            <div>メモ/理由: ${d.reason || 'なし'}</div>
+            <div class="action-btns">
+              <button class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
+            </div>
+          `;
         }
 
         historyList.appendChild(card);
@@ -891,23 +973,27 @@
             monthlyData[mKey].exp += (d.courtFee || 0);
           } else if (d.type === "shuttle_buy") {
             monthlyData[mKey].exp += (d.totalFee || 0);
+          } else if (d.type === "balance_adjust") {
+            if (d.diffAmount >= 0) monthlyData[mKey].inc += d.diffAmount;
+            else monthlyData[mKey].exp += Math.abs(d.diffAmount);
           }
         }
       });
 
-      const netBalance = totalIncome - (totalCourt + totalShuttleBuy);
+      // 現在の正確な総残高を確定
+      currentCalculatedNetBalance = totalIncome - (totalCourt + totalShuttleBuy);
 
       const dashBalance = document.getElementById("dashBalance");
-      dashBalance.textContent = `${netBalance >= 0 ? '+' : ''}${netBalance.toLocaleString()} 円`;
+      dashBalance.textContent = `${currentCalculatedNetBalance >= 0 ? '+' : ''}${currentCalculatedNetBalance.toLocaleString()} 円`;
 
       document.getElementById("dashStock").textContent = `${totalShuttleBoughtBalls} 球`;
 
       const targetBuy = 40000;
       const dashGuide = document.getElementById("dashGuide");
-      if (netBalance >= targetBuy) {
+      if (currentCalculatedNetBalance >= targetBuy) {
         dashGuide.innerHTML = `プール金十分！<strong>10箱(4万円)まとめ買いOK！</strong>`;
       } else {
-        const short = targetBuy - netBalance;
+        const short = targetBuy - currentCalculatedNetBalance;
         dashGuide.innerHTML = `10箱(4万円)まとめ買いまで <strong>あと ${short.toLocaleString()} 円</strong>`;
       }
 
@@ -976,6 +1062,8 @@
           csvContent += `${item.date},練習,${item.time||''},${item.memberCount||0},${membersStr},${item.totalIncome||0},${item.courtFee||0},${item.usedShuttleBalls||0},0,""\n`;
         } else if (item.type === "shuttle_buy") {
           csvContent += `${item.date},シャトル仕入れ,"",0,"",0,0,0,${item.totalFee||0},"${item.name||''} (${item.totalCount||0}箱)"\n`;
+        } else if (item.type === "balance_adjust") {
+          csvContent += `${item.date},残高調整,"",0,"",${item.diffAmount||0},0,0,0,"${item.reason||''} (設定残高:${item.targetBalance||0}円)"\n`;
         }
       });
 
