@@ -212,6 +212,20 @@
     .btn-edit { background: #ffc107; border: none; padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
     .btn-del { background: #dc3545; color: white; border: none; padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
 
+    /* 事前予約リストのスタイル */
+    .reserve-item {
+      background: #eef5ff;
+      border: 1px solid #bbdefb;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+    .reserve-date { font-weight: bold; color: #0d47a1; }
+
     .stats-table {
       width: 100%;
       border-collapse: collapse;
@@ -231,7 +245,7 @@
 
   <!-- メイン画面 -->
   <div id="mainPage">
-    <!-- 📱 1. 本日の現場入力エリア -->
+    <!-- 📱 1. 本日の現場入力エリア (当日反省・現場用) -->
     <div class="container" style="border-top: 4px solid #0066ff;">
       <h1>🏸 バドミントン現場記録</h1>
 
@@ -299,9 +313,9 @@
       </form>
     </div>
 
-    <!-- 📅 2. 3ヶ月前コート事前予約 (open属性でデフォルト全展開) -->
+    <!-- 📅 2. 3ヶ月前コート事前予約 (オープン & 昇順ソート一覧付き) -->
     <details class="container" open style="border-left: 4px solid #28a745;">
-      <summary>📅 3ヶ月前のコート事前予約・支払い (予約忘れ防止)</summary>
+      <summary>📅 3ヶ月前のコート事前予約・支払い (予約漏れ防止)</summary>
       <div class="accordion-content">
         <form id="reserveForm" onsubmit="return false;">
           <div class="form-row">
@@ -318,6 +332,14 @@
           </div>
           <button type="submit" id="saveReserveBtn" class="btn-save">💾 コート予約代を保存</button>
         </form>
+
+        <!-- 昇順ソート（7/31 ➔ 8/8 ➔ 10月…）で表示される予約済みリスト -->
+        <div style="margin-top:16px;">
+          <div style="font-weight:bold; font-size:0.85rem; color:#0052cc; margin-bottom:6px;">
+            📋 確保済みコート一覧 (昇順ソート・予約落ち点検)
+          </div>
+          <div id="reservedList">予約データを読み込み中...</div>
+        </div>
       </div>
     </details>
 
@@ -593,16 +615,44 @@
         `参加 <strong>${count}名</strong> ｜ 利益 <strong>${profit.toLocaleString()}円</strong> ➔ 消耗 <strong>${maxBreakEvenBalls}球 (${maxBreakEvenDozens}ダース)</strong> まで黒字`;
     }
 
-    // コート事前予約の自動照会
+    // 事前予約コート代の昇順ソート取得（7/31 ➔ 8/8 ➔ 10月…）
     let reservedCourtsMap = {};
-    onSnapshot(collection(db, "reserves"), (snapshot) => {
+    const reservedListContainer = document.getElementById("reservedList");
+
+    onSnapshot(query(reservesCol, orderBy("targetDate", "asc")), (snapshot) => {
       reservedCourtsMap = {};
-      snapshot.forEach(docSnap => {
+      reservedListContainer.innerHTML = "";
+
+      if (snapshot.empty) {
+        reservedListContainer.innerHTML = '<div style="color:#888; font-size:0.8rem;">予約データはまだありません</div>';
+        return;
+      }
+
+      snapshot.forEach((docSnap) => {
         const d = docSnap.data();
+        const id = docSnap.id;
         reservedCourtsMap[d.targetDate] = d.courtFee;
+
+        const item = document.createElement("div");
+        item.className = "reserve-item";
+        item.innerHTML = `
+          <div>
+            <span class="reserve-date">📅 ${d.targetDate}</span>
+            <span style="margin-left:8px; color:#555;">${(d.courtFee||0).toLocaleString()}円</span>
+          </div>
+          <button class="btn-del" onclick="deleteReserve('${id}')">🗑️ 削除</button>
+        `;
+        reservedListContainer.appendChild(item);
       });
+
       checkAutoCourtFee();
     });
+
+    window.deleteReserve = async function(id) {
+      if (confirm("この事前予約データを削除してもよろしいですか？")) {
+        await deleteDoc(doc(db, "reserves", id));
+      }
+    };
 
     eventDateInput.addEventListener("change", checkAutoCourtFee);
     function checkAutoCourtFee() {
@@ -656,13 +706,16 @@
     const reserveForm = document.getElementById("reserveForm");
     reserveForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+      const targetDateVal = reserveTargetDate.value;
+      if (!targetDateVal) return alert("コート使用予定日を選択してください");
+
       await addDoc(reservesCol, {
         type: "reserve",
-        targetDate: reserveTargetDate.value,
+        targetDate: targetDateVal,
         courtFee: parseInt(document.getElementById("reserveCourtFee").value, 10) || 0,
         createdAt: serverTimestamp()
       });
-      alert("コート予約支払いを保存しました！");
+      alert("コート予約代を保存しました！リストに追加されます。");
     });
 
     // 保存処理③: シャトル仕入れ
