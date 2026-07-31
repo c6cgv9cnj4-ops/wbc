@@ -261,12 +261,12 @@
       </div>
       <div id="memberList" class="member-list"></div>
 
-      <form id="addMemberForm" onsubmit="return false;" class="input-group">
+      <form id="addMemberForm" action="#" class="input-group">
         <input type="text" id="memberInput" placeholder="新しいメンバー名を追加...">
         <button type="submit" id="addMemberBtn" class="btn-primary">追加</button>
       </form>
 
-      <form id="practiceForm" onsubmit="return false;">
+      <form id="practiceForm" action="#">
         <div class="grid-2 form-row">
           <div>
             <label>開催年月日</label>
@@ -298,7 +298,7 @@
           <input type="text" id="usedShuttleBallsDisplay" value="0 球" readonly style="background:#eef5ff; color:#0052cc; font-weight:bold; font-size:1.05rem;">
         </div>
 
-        <button type="submit" id="saveEventBtn" class="btn-save">💾 本日の練習記録を保存</button>
+        <button type="button" id="saveEventBtn" class="btn-save">💾 本日の練習記録を保存</button>
       </form>
     </div>
 
@@ -306,7 +306,7 @@
     <details class="container" open style="border-left: 4px solid #28a745;">
       <summary>📅 3ヶ月先までのコート予約・支払い (直近12〜13回分一括点検)</summary>
       <div class="accordion-content">
-        <form id="reserveForm" onsubmit="return false;">
+        <form id="reserveForm" action="#">
           <div class="form-row">
             <label>コート使用予定日 (練習日)</label>
             <input type="date" id="reserveTargetDate">
@@ -320,7 +320,7 @@
             <label>支払いコート代 (円)</label>
             <input type="number" id="reserveCourtFee" value="1800">
           </div>
-          <button type="submit" id="saveReserveBtn" class="btn-save">💾 コート予約代を保存</button>
+          <button type="button" id="saveReserveBtn" class="btn-save">💾 コート予約代を保存</button>
         </form>
 
         <div style="margin-top:20px; border-top:2px dashed #e0e0e0; padding-top:12px;">
@@ -337,7 +337,7 @@
     <details class="container">
       <summary>📦 シャトルまとめ買い記録 (資材仕入れ)</summary>
       <div class="accordion-content">
-        <form id="shuttleForm" onsubmit="return false;">
+        <form id="shuttleForm" action="#">
           <div class="form-row">
             <label>購入日</label>
             <input type="date" id="shuttleBuyDate">
@@ -356,7 +356,7 @@
               <input type="number" id="shuttleTotalCount" value="10">
             </div>
           </div>
-          <button type="submit" id="saveShuttleBtn" class="btn-save">💾 シャトル仕入れを保存</button>
+          <button type="button" id="saveShuttleBtn" class="btn-save">💾 シャトル仕入れを保存</button>
         </form>
       </div>
     </details>
@@ -376,24 +376,24 @@
       </div>
       <div id="dashGuide" style="font-size:0.75rem; color:#555; margin-top:6px;">データ計算中...</div>
 
-      <button id="goToReportBtn" class="btn-report-toggle">📈 損益分岐グラフ & 参加率レポートを見る ➔</button>
+      <button type="button" id="goToReportBtn" class="btn-report-toggle">📈 損益分岐グラフ & 参加率レポートを見る ➔</button>
     </div>
 
     <!-- 📜 5. 会計履歴エリア -->
     <div class="container">
       <div class="section-title">
         <span>📜 会計・予約・仕入れ履歴</span>
-        <button id="downloadCsvBtn" class="btn-csv">📥 CSV出力</button>
+        <button type="button" id="downloadCsvBtn" class="btn-csv">📥 CSV出力</button>
       </div>
       <div id="historyList">読み込み中...</div>
     </div>
 
-    <!-- 🔧 6. 新設：残高の直接調整エリア -->
+    <!-- 🔧 6. 残高の直接調整エリア -->
     <div class="container" style="border-top: 4px solid #fd7e14;">
       <div class="section-title" style="color: #d97706;">
         <span>🔧 残高の直接調整 (手元の現金ピッタリ合わせ・初期残高)</span>
       </div>
-      <form id="adjustForm" onsubmit="return false;" style="margin-top: 10px;">
+      <form id="adjustForm" action="#" style="margin-top: 10px;">
         <div class="form-row">
           <label>調整日付</label>
           <input type="date" id="adjustDate">
@@ -406,7 +406,7 @@
           <label>調整理由・メモ (例: 初期繰越金 / 端数調整 / 雑費など)</label>
           <input type="text" id="adjustReason" value="初期繰越金">
         </div>
-        <button type="submit" id="saveAdjustBtn" class="btn-adjust">💾 残高をこの金額に調整する</button>
+        <button type="button" id="saveAdjustBtn" class="btn-adjust">💾 残高をこの金額に調整する</button>
       </form>
     </div>
   </div>
@@ -415,7 +415,7 @@
   <div id="reportPage" style="display:none;">
     <div class="container">
       <div class="section-title">
-        <button id="goToMainBtn" class="btn-back">← 戻る</button>
+        <button type="button" id="goToMainBtn" class="btn-back">← 戻る</button>
         <span>📊 詳細分析レポート</span>
         <span></span>
       </div>
@@ -482,10 +482,10 @@
     const reserveCourtFeeInput = document.getElementById("reserveCourtFee");
 
     const today = new Date();
-    eventDateInput.valueAsDate = today;
-    reserveTargetDate.valueAsDate = today;
-    shuttleBuyDate.valueAsDate = today;
-    adjustDateInput.valueAsDate = today;
+    if (eventDateInput) eventDateInput.valueAsDate = today;
+    if (reserveTargetDate) reserveTargetDate.valueAsDate = today;
+    if (shuttleBuyDate) shuttleBuyDate.valueAsDate = today;
+    if (adjustDateInput) adjustDateInput.valueAsDate = today;
 
     let editingDocId = null;
     let selectedMemberNames = new Set();
@@ -512,11 +512,11 @@
       mainPage.style.display = "block";
     });
 
-    reserveTargetDate.addEventListener("change", calcExactReserveDate);
+    if (reserveTargetDate) reserveTargetDate.addEventListener("change", calcExactReserveDate);
     calcExactReserveDate();
 
     function calcExactReserveDate() {
-      if (!reserveTargetDate.value) return;
+      if (!reserveTargetDate || !reserveTargetDate.value) return;
       const parts = reserveTargetDate.value.split('-');
       const y = parseInt(parts[0], 10);
       const m = parseInt(parts[1], 10) - 1;
@@ -579,7 +579,7 @@
         memberListContainer.appendChild(chip);
       });
       updateSummary();
-    });
+    }, (err) => console.log("Members listener info:", err));
 
     function renderMemberChips() {
       const chips = memberListContainer.querySelectorAll(".member-chip");
@@ -617,15 +617,15 @@
     const courtFeeInput = document.getElementById("courtFee");
     const usedShuttleBallsDisplay = document.getElementById("usedShuttleBallsDisplay");
 
-    feePerPersonInput.addEventListener("input", updateSummary);
-    courtFeeInput.addEventListener("input", updateSummary);
+    if (feePerPersonInput) feePerPersonInput.addEventListener("input", updateSummary);
+    if (courtFeeInput) courtFeeInput.addEventListener("input", updateSummary);
 
     let latestShuttleBallUnitPrice = 333;
 
     function updateSummary() {
       const count = selectedMemberNames.size;
-      const unitFee = parseInt(feePerPersonInput.value, 10) || 0;
-      const courtFee = parseInt(courtFeeInput.value, 10) || 0;
+      const unitFee = parseInt(feePerPersonInput ? feePerPersonInput.value : 700, 10) || 0;
+      const courtFee = parseInt(courtFeeInput ? courtFeeInput.value : 0, 10) || 0;
       const totalIncome = count * unitFee;
       const profit = totalIncome - courtFee;
 
@@ -635,8 +635,11 @@
         usedShuttleBallsDisplay.value = `${maxBreakEvenBalls} 球`;
       }
 
-      document.getElementById("todayBreakEven").innerHTML = 
-        `参加 <strong>${count}名</strong> ｜ 利益 <strong>${profit.toLocaleString()}円</strong> ➔ 消耗 <strong>${maxBreakEvenBalls}球</strong> まで黒字`;
+      const targetElem = document.getElementById("todayBreakEven");
+      if (targetElem) {
+        targetElem.innerHTML = 
+          `参加 <strong>${count}名</strong> ｜ 利益 <strong>${profit.toLocaleString()}円</strong> ➔ 消耗 <strong>${maxBreakEvenBalls}球</strong> まで黒字`;
+      }
     }
 
     let reservedCourtsMap = {};
@@ -656,15 +659,16 @@
         if (d.courtFee) lastFee = d.courtFee;
       });
 
-      if (lastFee !== null) {
+      if (lastFee !== null && reserveCourtFeeInput) {
         reserveCourtFeeInput.value = lastFee;
       }
 
       render3MonthsFridayList();
       checkAutoCourtFee();
-    });
+    }, (err) => console.log("Reserves listener info:", err));
 
     function render3MonthsFridayList() {
+      if (!reserveCheckList) return;
       reserveCheckList.innerHTML = "";
 
       const startDate = new Date();
@@ -701,7 +705,7 @@
                 <strong>📅 ${m}/${d} (金)</strong>
                 <span class="status-badge-ok" style="margin-left:8px;">✅ 予約済み (${fee.toLocaleString()}円)</span>
               </div>
-              <button class="btn-del" onclick="deleteReserve('${docId}')">削除</button>
+              <button type="button" class="btn-del" onclick="deleteReserve('${docId}')">削除</button>
             `;
           } else {
             row.innerHTML = `
@@ -710,7 +714,7 @@
                 <span class="status-badge-ng" style="margin-left:6px;">⚠️ 未予約</span>
                 <span style="font-size:0.7rem; color:#666; margin-left:4px;">(予約解禁: ${py}/${pm}/${pd} ${pw})</span>
               </div>
-              <button class="btn-primary" style="padding:2px 8px; font-size:0.75rem;" onclick="setQuickReserve('${dateStr}')">予約登録</button>
+              <button type="button" class="btn-primary" style="padding:2px 8px; font-size:0.75rem;" onclick="setQuickReserve('${dateStr}')">予約登録</button>
             `;
           }
 
@@ -725,10 +729,10 @@
     }
 
     window.setQuickReserve = async function(dateStr) {
-      reserveTargetDate.value = dateStr;
+      if (reserveTargetDate) reserveTargetDate.value = dateStr;
       calcExactReserveDate();
 
-      const feeVal = parseInt(reserveCourtFeeInput.value, 10) || 0;
+      const feeVal = parseInt(reserveCourtFeeInput ? reserveCourtFeeInput.value : 1800, 10) || 0;
 
       await addDoc(reservesCol, {
         type: "reserve",
@@ -744,131 +748,144 @@
       }
     };
 
-    eventDateInput.addEventListener("change", checkAutoCourtFee);
+    if (eventDateInput) eventDateInput.addEventListener("change", checkAutoCourtFee);
     function checkAutoCourtFee() {
-      const selDate = eventDateInput.value;
+      const selDate = eventDateInput ? eventDateInput.value : "";
       if (reservedCourtsMap[selDate]) {
-        courtFeeInput.value = reservedCourtsMap[selDate];
+        if (courtFeeInput) courtFeeInput.value = reservedCourtsMap[selDate];
       } else {
-        courtFeeInput.value = 0;
+        if (courtFeeInput) courtFeeInput.value = 0;
       }
       updateSummary();
     }
 
-    // 保存処理①: 練習記録（エラー防止ロジックへ完全改修）
-    const practiceForm = document.getElementById("practiceForm");
+    // ★ 保存ボタンのクリックイベント（直書きで確実に発火）
     const saveEventBtn = document.getElementById("saveEventBtn");
-    
-    practiceForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      
-      try {
-        const selectedMembersArray = Array.from(selectedMemberNames);
-        const unitFee = parseInt(feePerPersonInput.value, 10) || 0;
-        const courtFeeVal = parseInt(courtFeeInput.value, 10) || 0;
+    if (saveEventBtn) {
+      saveEventBtn.onclick = async function() {
+        try {
+          const selectedMembersArray = Array.from(selectedMemberNames);
+          const unitFee = parseInt(feePerPersonInput ? feePerPersonInput.value : 700, 10) || 0;
+          const courtFeeVal = parseInt(courtFeeInput ? courtFeeInput.value : 0, 10) || 0;
 
-        const calculatedIncome = selectedMembersArray.length * unitFee;
-        const netProfit = calculatedIncome - courtFeeVal;
-        const breakEvenBalls = netProfit > 0 ? Math.floor(netProfit / latestShuttleBallUnitPrice) : 0;
+          const calculatedIncome = selectedMembersArray.length * unitFee;
+          const netProfit = calculatedIncome - courtFeeVal;
+          const breakEvenBalls = netProfit > 0 ? Math.floor(netProfit / latestShuttleBallUnitPrice) : 0;
 
-        const timeElem = document.getElementById("eventTime");
-        const timeVal = timeElem ? timeElem.value : "19:00〜22:00 (3h)";
+          const timeElem = document.getElementById("eventTime");
+          const timeVal = timeElem ? timeElem.value : "19:00〜22:00 (3h)";
 
-        const payload = {
-          type: "practice",
-          date: eventDateInput.value,
-          time: timeVal,
-          memberCount: selectedMembersArray.length,
-          members: selectedMembersArray,
-          totalIncome: calculatedIncome,
-          courtFee: courtFeeVal,
-          usedShuttleBalls: breakEvenBalls,
-          shuttleCostEquivalent: Math.round(breakEvenBalls * latestShuttleBallUnitPrice),
-          createdAt: serverTimestamp()
-        };
+          const payload = {
+            type: "practice",
+            date: eventDateInput ? eventDateInput.value : today.toISOString().substring(0,10),
+            time: timeVal,
+            memberCount: selectedMembersArray.length,
+            members: selectedMembersArray,
+            totalIncome: calculatedIncome,
+            courtFee: courtFeeVal,
+            usedShuttleBalls: breakEvenBalls,
+            shuttleCostEquivalent: Math.round(breakEvenBalls * latestShuttleBallUnitPrice),
+            createdAt: serverTimestamp()
+          };
 
-        if (editingDocId) {
-          await updateDoc(doc(db, "events", editingDocId), payload);
-          alert("練習記録を更新しました！");
-          editingDocId = null;
-          saveEventBtn.textContent = "💾 本日の練習記録を保存";
-        } else {
-          await addDoc(eventsCol, payload);
-          if (selectedMembersArray.length === 0) {
-            alert(`中止/コート代（${courtFeeVal.toLocaleString()}円）を支出として記録しました！`);
+          if (editingDocId) {
+            await updateDoc(doc(db, "events", editingDocId), payload);
+            alert("練習記録を更新しました！");
+            editingDocId = null;
+            saveEventBtn.textContent = "💾 本日の練習記録を保存";
           } else {
-            alert("練習記録を保存しました！");
+            await addDoc(eventsCol, payload);
+            if (selectedMembersArray.length === 0) {
+              alert(`中止/コート代（${courtFeeVal.toLocaleString()}円）を支出として記録しました！`);
+            } else {
+              alert("練習記録を保存しました！");
+            }
           }
-        }
 
-        selectedMemberNames.clear();
-        renderMemberChips();
-        updateSummary();
-      } catch (err) {
-        alert("保存中にエラーが発生しました: " + err.message);
-      }
-    });
+          selectedMemberNames.clear();
+          renderMemberChips();
+          updateSummary();
+        } catch (err) {
+          alert("保存実行時にエラーが発生しました:\n" + err.message);
+        }
+      };
+    }
 
     // 保存処理②: コート予約
-    const reserveForm = document.getElementById("reserveForm");
-    reserveForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const targetDateVal = reserveTargetDate.value;
-      if (!targetDateVal) return alert("コート使用予定日を選択してください");
+    const saveReserveBtn = document.getElementById("saveReserveBtn");
+    if (saveReserveBtn) {
+      saveReserveBtn.onclick = async function() {
+        try {
+          const targetDateVal = reserveTargetDate ? reserveTargetDate.value : "";
+          if (!targetDateVal) return alert("コート使用予定日を選択してください");
 
-      const feeVal = parseInt(reserveCourtFeeInput.value, 10) || 0;
+          const feeVal = parseInt(reserveCourtFeeInput ? reserveCourtFeeInput.value : 1800, 10) || 0;
 
-      await addDoc(reservesCol, {
-        type: "reserve",
-        targetDate: targetDateVal,
-        courtFee: feeVal,
-        createdAt: serverTimestamp()
-      });
-      alert("コート予約代を保存しました！リストが更新されます。");
-    });
+          await addDoc(reservesCol, {
+            type: "reserve",
+            targetDate: targetDateVal,
+            courtFee: feeVal,
+            createdAt: serverTimestamp()
+          });
+          alert("コート予約代を保存しました！リストが更新されます。");
+        } catch (err) {
+          alert("予約保存エラー: " + err.message);
+        }
+      };
+    }
 
     // 保存処理③: シャトル仕入れ
-    const shuttleForm = document.getElementById("shuttleForm");
-    shuttleForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const totalFee = parseInt(document.getElementById("shuttleTotalFee").value, 10) || 0;
-      const totalCount = parseInt(document.getElementById("shuttleTotalCount").value, 10) || 0;
-      await addDoc(eventsCol, {
-        type: "shuttle_buy",
-        date: shuttleBuyDate.value,
-        name: document.getElementById("shuttleName").value,
-        totalFee: totalFee,
-        totalCount: totalCount,
-        ballUnitPrice: Math.round(totalFee / (totalCount * 12)),
-        createdAt: serverTimestamp()
-      });
-      alert("シャトル仕入れを保存しました！");
-    });
+    const saveShuttleBtn = document.getElementById("saveShuttleBtn");
+    if (saveShuttleBtn) {
+      saveShuttleBtn.onclick = async function() {
+        try {
+          const totalFee = parseInt(document.getElementById("shuttleTotalFee").value, 10) || 0;
+          const totalCount = parseInt(document.getElementById("shuttleTotalCount").value, 10) || 0;
+          await addDoc(eventsCol, {
+            type: "shuttle_buy",
+            date: shuttleBuyDate.value,
+            name: document.getElementById("shuttleName").value,
+            totalFee: totalFee,
+            totalCount: totalCount,
+            ballUnitPrice: Math.round(totalFee / (totalCount * 12)),
+            createdAt: serverTimestamp()
+          });
+          alert("シャトル仕入れを保存しました！");
+        } catch (err) {
+          alert("シャトル保存エラー: " + err.message);
+        }
+      };
+    }
 
     // 保存処理④: 残高の直接調整
-    const adjustForm = document.getElementById("adjustForm");
-    adjustForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const targetBalStr = document.getElementById("adjustTargetBalance").value;
-      if (targetBalStr === "") return alert("調整後のピッタリ残高を入力してください");
+    const saveAdjustBtn = document.getElementById("saveAdjustBtn");
+    if (saveAdjustBtn) {
+      saveAdjustBtn.onclick = async function() {
+        try {
+          const targetBalStr = document.getElementById("adjustTargetBalance").value;
+          if (targetBalStr === "") return alert("調整後のピッタリ残高を入力してください");
 
-      const targetBal = parseInt(targetBalStr, 10);
-      const reason = document.getElementById("adjustReason").value.trim() || "残高直接調整";
+          const targetBal = parseInt(targetBalStr, 10);
+          const reason = document.getElementById("adjustReason").value.trim() || "残高直接調整";
 
-      const diffAmount = targetBal - currentCalculatedNetBalance;
+          const diffAmount = targetBal - currentCalculatedNetBalance;
 
-      await addDoc(eventsCol, {
-        type: "balance_adjust",
-        date: adjustDateInput.value,
-        targetBalance: targetBal,
-        diffAmount: diffAmount,
-        reason: reason,
-        createdAt: serverTimestamp()
-      });
+          await addDoc(eventsCol, {
+            type: "balance_adjust",
+            date: adjustDateInput.value,
+            targetBalance: targetBal,
+            diffAmount: diffAmount,
+            reason: reason,
+            createdAt: serverTimestamp()
+          });
 
-      alert(`残高を ${targetBal.toLocaleString()} 円へ調整・固定しました！`);
-      document.getElementById("adjustTargetBalance").value = "";
-    });
+          alert(`残高を ${targetBal.toLocaleString()} 円へ調整・固定しました！`);
+          document.getElementById("adjustTargetBalance").value = "";
+        } catch (err) {
+          alert("残高調整エラー: " + err.message);
+        }
+      };
+    }
 
     // 履歴取得 & 集計
     let rawEventsData = [];
@@ -877,6 +894,7 @@
 
     onSnapshot(query(eventsCol, orderBy("date", "desc")), (snapshot) => {
       const historyList = document.getElementById("historyList");
+      if (!historyList) return;
       historyList.innerHTML = "";
       rawEventsData = [];
 
@@ -934,8 +952,8 @@
             <div>👥 参加 (${d.memberCount}名): ${isCancelled ? '<span style="color:#d97706; font-weight:bold;">なし(中止)</span>' : d.members.join(", ")}</div>
             <div>🏟️ コート代: ${(d.courtFee||0).toLocaleString()}円 ｜ ⚖️ 損益分岐: ${recBalls}球分</div>
             <div class="action-btns">
-              <button class="btn-edit" onclick="editEvent('${id}')">✏️ 編集</button>
-              <button class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
+              <button type="button" class="btn-edit" onclick="editEvent('${id}')">✏️ 編集</button>
+              <button type="button" class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
             </div>
           `;
         } else if (d.type === "shuttle_buy") {
@@ -950,7 +968,7 @@
             </div>
             <div>銘柄: ${d.name} (${d.totalCount}箱 / 単価 ${d.ballUnitPrice}円/球)</div>
             <div class="action-btns">
-              <button class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
+              <button type="button" class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
             </div>
           `;
         } else if (d.type === "balance_adjust") {
@@ -967,7 +985,7 @@
             </div>
             <div>メモ/理由: ${d.reason || 'なし'}</div>
             <div class="action-btns">
-              <button class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
+              <button type="button" class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
             </div>
           `;
         }
@@ -992,27 +1010,31 @@
       currentCalculatedNetBalance = totalIncome - (totalCourt + totalShuttleBuy);
 
       const dashBalance = document.getElementById("dashBalance");
-      dashBalance.textContent = `${currentCalculatedNetBalance >= 0 ? '+' : ''}${currentCalculatedNetBalance.toLocaleString()} 円`;
+      if (dashBalance) dashBalance.textContent = `${currentCalculatedNetBalance >= 0 ? '+' : ''}${currentCalculatedNetBalance.toLocaleString()} 円`;
 
-      document.getElementById("dashStock").textContent = `${totalShuttleBoughtBalls} 球`;
+      const dashStock = document.getElementById("dashStock");
+      if (dashStock) dashStock.textContent = `${totalShuttleBoughtBalls} 球`;
 
       const targetBuy = 40000;
       const dashGuide = document.getElementById("dashGuide");
-      if (currentCalculatedNetBalance >= targetBuy) {
-        dashGuide.innerHTML = `プール金十分！<strong>10箱(4万円)まとめ買いOK！</strong>`;
-      } else {
-        const short = targetBuy - currentCalculatedNetBalance;
-        dashGuide.innerHTML = `10箱(4万円)まとめ買いまで <strong>あと ${short.toLocaleString()} 円</strong>`;
+      if (dashGuide) {
+        if (currentCalculatedNetBalance >= targetBuy) {
+          dashGuide.innerHTML = `プール金十分！<strong>10箱(4万円)まとめ買いOK！</strong>`;
+        } else {
+          const short = targetBuy - currentCalculatedNetBalance;
+          dashGuide.innerHTML = `10箱(4万円)まとめ買いまで <strong>あと ${short.toLocaleString()} 円</strong>`;
+        }
       }
 
       updateMemberStatsTable(memberStats, totalPracticeCount);
       updateSummary();
       updateChart(monthlyData);
       updateBreakEvenChart(practiceBreakEvenData.reverse());
-    });
+    }, (err) => console.log("Events listener info:", err));
 
     function updateMemberStatsTable(stats, totalPractice) {
       const tbody = document.getElementById("memberStatsBody");
+      if (!tbody) return;
       tbody.innerHTML = "";
 
       if (Object.keys(stats).length === 0) {
