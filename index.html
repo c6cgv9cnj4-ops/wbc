@@ -17,9 +17,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: #f4f6f9;
@@ -37,11 +35,7 @@
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
-    h1 {
-      text-align: center;
-      font-size: 1.2rem;
-      margin: 0 0 12px 0;
-    }
+    h1 { text-align: center; font-size: 1.2rem; margin: 0 0 12px 0; }
     
     /* 現場最優先：損益分岐ハイライトカード */
     .today-guide-card {
@@ -52,18 +46,8 @@
       margin-bottom: 12px;
       text-align: center;
     }
-    .today-guide-title {
-      font-size: 0.75rem;
-      color: #1565c0;
-      font-weight: bold;
-      margin-bottom: 4px;
-    }
-    .today-guide-value {
-      font-size: 1.05rem;
-      font-weight: bold;
-      color: #0d47a1;
-      word-break: break-all;
-    }
+    .today-guide-title { font-size: 0.75rem; color: #1565c0; font-weight: bold; margin-bottom: 4px; }
+    .today-guide-value { font-size: 1.05rem; font-weight: bold; color: #0d47a1; word-break: break-all; }
 
     .section-title {
       font-weight: bold;
@@ -139,39 +123,53 @@
       cursor: pointer;
     }
 
+    /* メンバーポチポチ切替スタイル */
     .member-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 8px;
       margin-bottom: 10px;
-      min-height: 40px;
-      padding: 6px;
+      min-height: 48px;
+      padding: 8px;
       background: #fafafa;
       border-radius: 6px;
       border: 1px dashed #ddd;
     }
     .member-chip {
       background-color: #e0e0e0;
-      padding: 6px 10px;
-      border-radius: 16px;
-      font-size: 0.85rem;
-      cursor: grab;
+      color: #555;
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
       user-select: none;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
+      border: 2px solid transparent;
+      transition: all 0.15s ease;
     }
-    .delete-btn { color: #888; font-weight: bold; cursor: pointer; }
+    /* 参加状態（青色） */
+    .member-chip.selected {
+      background-color: #0066ff;
+      color: #ffffff;
+      border-color: #0044cc;
+      box-shadow: 0 2px 4px rgba(0,102,255,0.3);
+    }
+    .delete-btn {
+      color: #999;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.85rem;
+      margin-left: 4px;
+    }
+    .member-chip.selected .delete-btn { color: #bbd5ff; }
     .delete-btn:hover { color: #dc3545; }
 
     .form-row { margin-bottom: 10px; width: 100%; }
     .form-row label { display: block; font-size: 0.75rem; color: #666; margin-bottom: 2px; }
-    .grid-2 { 
-      display: grid; 
-      grid-template-columns: 1fr 1fr; 
-      gap: 8px; 
-      width: 100%;
-    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
 
     .dashboard-mini {
       display: grid;
@@ -221,47 +219,24 @@
       font-size: 0.8rem;
       margin-top: 8px;
     }
-    .stats-table th, .stats-table td {
-      border: 1px solid #e0e0e0;
-      padding: 6px;
-      text-align: center;
-    }
+    .stats-table th, .stats-table td { border: 1px solid #e0e0e0; padding: 6px; text-align: center; }
     .stats-table th { background: #f0f4f8; }
 
-    /* アコーディオンスタイル */
-    details {
-      background: #fff;
-      border-radius: 8px;
-      margin-bottom: 12px;
-      border: 1px solid #e0e0e0;
-      width: 100%;
-    }
-    details summary {
-      padding: 12px;
-      font-weight: bold;
-      font-size: 0.9rem;
-      cursor: pointer;
-      outline: none;
-      user-select: none;
-      color: #333;
-    }
-    details[open] summary {
-      border-bottom: 1px solid #eee;
-    }
-    .accordion-content {
-      padding: 12px;
-    }
+    details { background: #fff; border-radius: 8px; margin-bottom: 12px; border: 1px solid #e0e0e0; width: 100%; }
+    details summary { padding: 12px; font-weight: bold; font-size: 0.9rem; cursor: pointer; outline: none; user-select: none; color: #333; }
+    details[open] summary { border-bottom: 1px solid #eee; }
+    .accordion-content { padding: 12px; }
   </style>
 </head>
 <body>
 
-  <!-- メイン画面（現地最優先レイアウト） -->
+  <!-- メイン画面 -->
   <div id="mainPage">
-    <!-- 📱 1. 本日の現場入力エリア (画面最上部) -->
+    <!-- 📱 1. 本日の現場入力エリア -->
     <div class="container" style="border-top: 4px solid #0066ff;">
       <h1>🏸 バドミントン現場記録</h1>
 
-      <!-- 💡 本日の損益分岐ハイライト (ポチポチ連動) -->
+      <!-- 💡 本日の損益分岐ハイライト -->
       <div class="today-guide-card">
         <div class="today-guide-title">⚖️ 本日の推奨黒字ライン (ポチポチ選択と連動)</div>
         <div id="todayBreakEven" class="today-guide-value">
@@ -270,12 +245,17 @@
       </div>
 
       <!-- 👥 メンバーポチポチ選択 -->
-      <div class="section-title">👥 本日の参加メンバー選択</div>
-      <div class="input-group">
-        <input type="text" id="memberInput" placeholder="メンバー名追加...">
-        <button id="addMemberBtn" class="btn-primary">追加</button>
+      <div class="section-title">
+        <span>👥 本日の参加メンバー選択</span>
+        <span style="font-size:0.75rem; color:#666; font-weight:normal;">(タップで出席/欠席切替)</span>
       </div>
       <div id="memberList" class="member-list"></div>
+
+      <!-- メンバー追加フォーム -->
+      <div class="input-group">
+        <input type="text" id="memberInput" placeholder="新しいメンバー名を追加...">
+        <button id="addMemberBtn" class="btn-primary">追加</button>
+      </div>
 
       <!-- 📅 日付・時間帯・会費・コート代 -->
       <div class="grid-2 form-row">
@@ -466,6 +446,7 @@
     shuttleBuyDate.valueAsDate = new Date();
 
     let editingDocId = null;
+    let selectedMemberNames = new Set(); // 本日参加選択されているメンバーセット
 
     // 画面切り替えナビゲーション (SPA)
     const mainPage = document.getElementById("mainPage");
@@ -498,9 +479,10 @@
       document.getElementById("reserveCalcDate").value = `${d.getFullYear()}年${String(d.getMonth()+1).padStart(2,'0')}月${String(d.getDate()).padStart(2,'0')}日頃`;
     }
 
-    // メンバー取得 & ドラッグ並び替え
+    // メンバー取得 & ポチポチ出席切替
     let currentMembers = [];
     const memberListContainer = document.getElementById("memberList");
+
     onSnapshot(query(membersCol, orderBy("order", "asc")), (snapshot) => {
       memberListContainer.innerHTML = "";
       currentMembers = [];
@@ -510,18 +492,54 @@
         currentMembers.push({ id, ...data });
 
         const chip = document.createElement("div");
-        chip.className = "member-chip";
+        const isSelected = selectedMemberNames.has(data.name);
+        chip.className = `member-chip ${isSelected ? 'selected' : ''}`;
         chip.dataset.id = id;
-        chip.innerHTML = `<span>${data.name}</span><span class="delete-btn">×</span>`;
+        chip.dataset.name = data.name;
+
+        chip.innerHTML = `
+          <span>${isSelected ? '✓ ' : ''}${data.name}</span>
+          <span class="delete-btn">×</span>
+        `;
+
+        // チップ本体タップで出席/欠席切替
+        chip.addEventListener("click", (e) => {
+          if (e.target.classList.contains("delete-btn")) return;
+          if (selectedMemberNames.has(data.name)) {
+            selectedMemberNames.delete(data.name);
+          } else {
+            selectedMemberNames.add(data.name);
+          }
+          renderMemberChips();
+          updateSummary();
+        });
+
+        // 削除ボタン
         chip.querySelector(".delete-btn").addEventListener("click", async (e) => {
           e.stopPropagation();
-          if (confirm(`${data.name} さんをメンバーから削除しますか？`)) await deleteDoc(doc(db, "members", id));
+          if (confirm(`${data.name} さんを登録メンバーから削除しますか？`)) {
+            selectedMemberNames.delete(data.name);
+            await deleteDoc(doc(db, "members", id));
+          }
         });
+
         memberListContainer.appendChild(chip);
       });
       updateSummary();
     });
 
+    // チップ再描画関数
+    function renderMemberChips() {
+      const chips = memberListContainer.querySelectorAll(".member-chip");
+      chips.forEach(chip => {
+        const name = chip.dataset.name;
+        const isSelected = selectedMemberNames.has(name);
+        chip.className = `member-chip ${isSelected ? 'selected' : ''}`;
+        chip.querySelector("span").textContent = `${isSelected ? '✓ ' : ''}${name}`;
+      });
+    }
+
+    // SortableJS (ドラッグ並び替え)
     new Sortable(memberListContainer, {
       animation: 150,
       onEnd: async () => {
@@ -534,9 +552,12 @@
       }
     });
 
+    // メンバー追加
     document.getElementById("addMemberBtn").addEventListener("click", async () => {
       const name = document.getElementById("memberInput").value.trim();
       if (!name) return;
+      // 追加したメンバーはそのまま本日の参加として自動選択
+      selectedMemberNames.add(name);
       await addDoc(membersCol, { name, order: currentMembers.length, createdAt: serverTimestamp() });
       document.getElementById("memberInput").value = "";
     });
@@ -557,7 +578,7 @@
     let latestShuttleBallUnitPrice = 333;
 
     function updateSummary() {
-      const count = currentMembers.length;
+      const count = selectedMemberNames.size; // ポチポチ選ばれた人数
       const unitFee = parseInt(feePerPersonInput.value, 10) || 0;
       const courtFee = parseInt(courtFeeInput.value, 10) || 0;
       const totalIncome = count * unitFee;
@@ -595,16 +616,17 @@
     // 保存・編集更新処理①: 練習記録
     const saveEventBtn = document.getElementById("saveEventBtn");
     saveEventBtn.addEventListener("click", async () => {
-      if (currentMembers.length === 0) return alert("メンバーを選択してください");
+      if (selectedMemberNames.size === 0) return alert("参加メンバーをタップして選択してください");
       const balls = parseInt(usedShuttleBalls.value, 10) || 0;
-      
+      const selectedMembersArray = Array.from(selectedMemberNames);
+
       const payload = {
         type: "practice",
         date: eventDateInput.value,
         time: document.getElementById("eventTime").value,
-        memberCount: currentMembers.length,
-        members: currentMembers.map(m => m.name),
-        totalIncome: currentMembers.length * (parseInt(feePerPersonInput.value, 10) || 0),
+        memberCount: selectedMembersArray.length,
+        members: selectedMembersArray,
+        totalIncome: selectedMembersArray.length * (parseInt(feePerPersonInput.value, 10) || 0),
         courtFee: parseInt(courtFeeInput.value, 10) || 0,
         usedShuttleBalls: balls,
         shuttleCostEquivalent: Math.round(balls * latestShuttleBallUnitPrice),
@@ -620,6 +642,11 @@
         await addDoc(eventsCol, payload);
         alert("練習記録を保存しました！");
       }
+
+      // 保存後は参加選択状態をリセット
+      selectedMemberNames.clear();
+      renderMemberChips();
+      updateSummary();
     });
 
     // 保存処理②: コート予約
@@ -811,6 +838,10 @@
       document.getElementById("eventTime").value = target.time || "19:00〜22:00 (3h)";
       courtFeeInput.value = target.courtFee || 0;
       usedShuttleBalls.value = target.usedShuttleBalls || 0;
+
+      // 編集対象の参加メンバーを選択状態に自動割り当て
+      selectedMemberNames = new Set(target.members || []);
+      renderMemberChips();
       
       saveEventBtn.textContent = "✏️ 編集内容を上書き保存する";
       window.scrollTo({ top: 0, behavior: 'smooth' });
