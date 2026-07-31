@@ -255,7 +255,7 @@
       <h1>🏸 バドミントン現場記録</h1>
 
       <div class="today-guide-card">
-        <div class="today-guide-title">⚖️ 本日の推奨黒字ライン (ポチポチ選択と連動)</div>
+        <div class="today-guide-title">秤 本日の推奨黒字ライン (ポチポチ選択と連動)</div>
         <div id="todayBreakEven" class="today-guide-value">
           参加 0名 ｜ 利益 0円 ➔ <strong>0球 (0.0ダース)</strong> まで黒字
         </div>
@@ -451,7 +451,7 @@
       apiKey: "AIzaSyDummyKeyForInitialization",
       authDomain: "newwbc-a6e29.firebaseapp.com",
       projectId: "newwbc-a6e29",
-      storageBucket: "newwbc-a6e29.appstop.com",
+      storageBucket: "newwbc-a6e29.appspot.com",
       messagingSenderId: "1234567890",
       appId: "1:1234567890:web:abcdef"
     };
@@ -648,7 +648,6 @@
         if (d.courtFee) lastFee = d.courtFee;
       });
 
-      // 直近で入力されたコート代があれば自動で次回入力用にセット
       if (lastFee !== null) {
         reserveCourtFeeInput.value = lastFee;
       }
@@ -717,10 +716,19 @@
       }
     }
 
-    window.setQuickReserve = function(dateStr) {
+    // 青い「予約登録」ボタンを押したら即座に保存して「予約済み（緑色）」へ変更
+    window.setQuickReserve = async function(dateStr) {
       reserveTargetDate.value = dateStr;
       calcExactReserveDate();
-      window.scrollTo({ top: document.getElementById("reserveForm").offsetTop - 20, behavior: 'smooth' });
+
+      const feeVal = parseInt(reserveCourtFeeInput.value, 10) || 0;
+
+      await addDoc(reservesCol, {
+        type: "reserve",
+        targetDate: dateStr,
+        courtFee: feeVal,
+        createdAt: serverTimestamp()
+      });
     };
 
     window.deleteReserve = async function(id) {
