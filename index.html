@@ -388,7 +388,7 @@
       <div id="historyList">読み込み中...</div>
     </div>
 
-    <!-- 🔧 6. 新設：残高の直接調整エリア（オープン表示） -->
+    <!-- 🔧 6. 新設：残高の直接調整エリア -->
     <div class="container" style="border-top: 4px solid #fd7e14;">
       <div class="section-title" style="color: #d97706;">
         <span>🔧 残高の直接調整 (手元の現金ピッタリ合わせ・初期残高)</span>
@@ -462,7 +462,7 @@
       apiKey: "AIzaSyDummyKeyForInitialization",
       authDomain: "newwbc-a6e29.firebaseapp.com",
       projectId: "newwbc-a6e29",
-      storageBucket: "newwbc-a6e29.appspot.com",
+      storageBucket: "newwbc-a6e29.appstop.com",
       messagingSenderId: "1234567890",
       appId: "1:1234567890:web:abcdef"
     };
@@ -755,20 +755,17 @@
       updateSummary();
     }
 
-    // 保存処理①: 練習記録
+    // 保存処理①: 練習記録 (参加者0名＝中止のコート代のみ支出も保存OKに修正)
     const practiceForm = document.getElementById("practiceForm");
     const saveEventBtn = document.getElementById("saveEventBtn");
     practiceForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const selectedMembersArray = Array.from(selectedMemberNames);
-      if (selectedMembersArray.length === 0) {
-        return alert("本日の参加メンバーをタップして選択してください。");
-      }
-
       const unitFee = parseInt(feePerPersonInput.value, 10) || 0;
       const courtFeeVal = parseInt(courtFeeInput.value, 10) || 0;
-      const calculatedIncome = selectedMembersArray.length * unitFee;
 
+      // 参加人数が0人の場合は収入0円
+      const calculatedIncome = selectedMembersArray.length * unitFee;
       const netProfit = calculatedIncome - courtFeeVal;
       const breakEvenBalls = netProfit > 0 ? Math.floor(netProfit / latestShuttleBallUnitPrice) : 0;
 
@@ -792,7 +789,11 @@
         saveEventBtn.textContent = "💾 本日の練習記録を保存";
       } else {
         await addDoc(eventsCol, payload);
-        alert("練習記録を保存しました！");
+        if (selectedMembersArray.length === 0) {
+          alert(`中止/コート代（${courtFeeVal.toLocaleString()}円）を支出として記録しました！`);
+        } else {
+          alert("練習記録を保存しました！");
+        }
       }
 
       selectedMemberNames.clear();
@@ -841,7 +842,7 @@
     adjustForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const targetBalStr = document.getElementById("adjustTargetBalance").value;
-      if (targetBalStr === "") return alert("調整後のピッタリ残高を入力してください");
+      if (targetBalStr === "") return alert("調整後のピッピッ残高を入力してください");
 
       const targetBal = parseInt(targetBalStr, 10);
       const reason = document.getElementById("adjustReason").value.trim() || "残高直接調整";
@@ -906,7 +907,7 @@
             shuttleCost: Math.round(recBalls * latestShuttleBallUnitPrice)
           });
 
-          if (d.members) {
+          if (d.members && d.members.length > 0) {
             d.members.forEach(m => {
               if (!memberStats[m]) memberStats[m] = { total: 0, year: 0, month: 0 };
               memberStats[m].total++;
@@ -915,12 +916,14 @@
             });
           }
 
+          const isCancelled = !d.members || d.members.length === 0;
+
           card.innerHTML = `
             <div class="history-header">
-              <span>🏸 練習: ${d.date} (${d.time})</span>
-              <span>会費収入: ${(d.totalIncome||0).toLocaleString()}円</span>
+              <span>🏸 ${isCancelled ? '中止/コート代のみ' : '練習'}: ${d.date} (${d.time})</span>
+              <span>収入: ${(d.totalIncome||0).toLocaleString()}円</span>
             </div>
-            <div>👥 参加 (${d.memberCount}名): ${d.members ? d.members.join(", ") : ''}</div>
+            <div>👥 参加 (${d.memberCount}名): ${isCancelled ? '<span style="color:#d97706; font-weight:bold;">なし(中止)</span>' : d.members.join(", ")}</div>
             <div>🏟️ コート代: ${(d.courtFee||0).toLocaleString()}円 ｜ ⚖️ 損益分岐: ${recBalls}球分</div>
             <div class="action-btns">
               <button class="btn-edit" onclick="editEvent('${id}')">✏️ 編集</button>
