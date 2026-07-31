@@ -755,50 +755,58 @@
       updateSummary();
     }
 
-    // 保存処理①: 練習記録 (参加者0名＝中止のコート代のみ支出も保存OKに修正)
+    // 保存処理①: 練習記録（エラー防止ロジックへ完全改修）
     const practiceForm = document.getElementById("practiceForm");
     const saveEventBtn = document.getElementById("saveEventBtn");
+    
     practiceForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const selectedMembersArray = Array.from(selectedMemberNames);
-      const unitFee = parseInt(feePerPersonInput.value, 10) || 0;
-      const courtFeeVal = parseInt(courtFeeInput.value, 10) || 0;
+      
+      try {
+        const selectedMembersArray = Array.from(selectedMemberNames);
+        const unitFee = parseInt(feePerPersonInput.value, 10) || 0;
+        const courtFeeVal = parseInt(courtFeeInput.value, 10) || 0;
 
-      // 参加人数が0人の場合は収入0円
-      const calculatedIncome = selectedMembersArray.length * unitFee;
-      const netProfit = calculatedIncome - courtFeeVal;
-      const breakEvenBalls = netProfit > 0 ? Math.floor(netProfit / latestShuttleBallUnitPrice) : 0;
+        const calculatedIncome = selectedMembersArray.length * unitFee;
+        const netProfit = calculatedIncome - courtFeeVal;
+        const breakEvenBalls = netProfit > 0 ? Math.floor(netProfit / latestShuttleBallUnitPrice) : 0;
 
-      const payload = {
-        type: "practice",
-        date: eventDateInput.value,
-        time: document.getElementById("eventTime").value,
-        memberCount: selectedMembersArray.length,
-        members: selectedMembersArray,
-        totalIncome: calculatedIncome,
-        courtFee: courtFeeVal,
-        usedShuttleBalls: breakEvenBalls,
-        shuttleCostEquivalent: Math.round(breakEvenBalls * latestShuttleBallUnitPrice),
-        createdAt: serverTimestamp()
-      };
+        const timeElem = document.getElementById("eventTime");
+        const timeVal = timeElem ? timeElem.value : "19:00〜22:00 (3h)";
 
-      if (editingDocId) {
-        await updateDoc(doc(db, "events", editingDocId), payload);
-        alert("練習記録を更新しました！");
-        editingDocId = null;
-        saveEventBtn.textContent = "💾 本日の練習記録を保存";
-      } else {
-        await addDoc(eventsCol, payload);
-        if (selectedMembersArray.length === 0) {
-          alert(`中止/コート代（${courtFeeVal.toLocaleString()}円）を支出として記録しました！`);
+        const payload = {
+          type: "practice",
+          date: eventDateInput.value,
+          time: timeVal,
+          memberCount: selectedMembersArray.length,
+          members: selectedMembersArray,
+          totalIncome: calculatedIncome,
+          courtFee: courtFeeVal,
+          usedShuttleBalls: breakEvenBalls,
+          shuttleCostEquivalent: Math.round(breakEvenBalls * latestShuttleBallUnitPrice),
+          createdAt: serverTimestamp()
+        };
+
+        if (editingDocId) {
+          await updateDoc(doc(db, "events", editingDocId), payload);
+          alert("練習記録を更新しました！");
+          editingDocId = null;
+          saveEventBtn.textContent = "💾 本日の練習記録を保存";
         } else {
-          alert("練習記録を保存しました！");
+          await addDoc(eventsCol, payload);
+          if (selectedMembersArray.length === 0) {
+            alert(`中止/コート代（${courtFeeVal.toLocaleString()}円）を支出として記録しました！`);
+          } else {
+            alert("練習記録を保存しました！");
+          }
         }
-      }
 
-      selectedMemberNames.clear();
-      renderMemberChips();
-      updateSummary();
+        selectedMemberNames.clear();
+        renderMemberChips();
+        updateSummary();
+      } catch (err) {
+        alert("保存中にエラーが発生しました: " + err.message);
+      }
     });
 
     // 保存処理②: コート予約
@@ -842,7 +850,7 @@
     adjustForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const targetBalStr = document.getElementById("adjustTargetBalance").value;
-      if (targetBalStr === "") return alert("調整後のピッピッ残高を入力してください");
+      if (targetBalStr === "") return alert("調整後のピッタリ残高を入力してください");
 
       const targetBal = parseInt(targetBalStr, 10);
       const reason = document.getElementById("adjustReason").value.trim() || "残高直接調整";
@@ -920,7 +928,7 @@
 
           card.innerHTML = `
             <div class="history-header">
-              <span>🏸 ${isCancelled ? '中止/コート代のみ' : '練習'}: ${d.date} (${d.time})</span>
+              <span>🏸 ${isCancelled ? '中止/コート代のみ' : '練習'}: ${d.date} (${d.time||'3h'})</span>
               <span>収入: ${(d.totalIncome||0).toLocaleString()}円</span>
             </div>
             <div>👥 参加 (${d.memberCount}名): ${isCancelled ? '<span style="color:#d97706; font-weight:bold;">なし(中止)</span>' : d.members.join(", ")}</div>
@@ -1034,7 +1042,8 @@
 
       editingDocId = id;
       eventDateInput.value = target.date;
-      document.getElementById("eventTime").value = target.time || "19:00〜22:00 (3h)";
+      const timeElem = document.getElementById("eventTime");
+      if (timeElem) timeElem.value = target.time || "19:00〜22:00 (3h)";
       courtFeeInput.value = target.courtFee || 0;
 
       selectedMemberNames = new Set(target.members || []);
