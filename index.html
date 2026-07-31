@@ -759,7 +759,7 @@
       updateSummary();
     }
 
-    // ★ 保存ボタンのクリックイベント（直書きで確実に発火）
+    // ★ メンバー0名でもダイアログを出さずにそのまま保存するロジックへ修正
     const saveEventBtn = document.getElementById("saveEventBtn");
     if (saveEventBtn) {
       saveEventBtn.onclick = async function() {
@@ -768,6 +768,7 @@
           const unitFee = parseInt(feePerPersonInput ? feePerPersonInput.value : 700, 10) || 0;
           const courtFeeVal = parseInt(courtFeeInput ? courtFeeInput.value : 0, 10) || 0;
 
+          // メンバー未選択の場合は収入0円（ダイアログの警告は一切出さない）
           const calculatedIncome = selectedMembersArray.length * unitFee;
           const netProfit = calculatedIncome - courtFeeVal;
           const breakEvenBalls = netProfit > 0 ? Math.floor(netProfit / latestShuttleBallUnitPrice) : 0;
