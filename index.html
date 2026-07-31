@@ -17,94 +17,82 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: #f4f6f9;
       margin: 0;
-      padding: 16px;
+      padding: 12px;
       color: #333;
+      overflow-x: hidden;
     }
     .container {
       max-width: 600px;
-      margin: 0 auto 20px auto;
+      width: 100%;
+      margin: 0 auto 16px auto;
       background: #ffffff;
-      padding: 20px;
+      padding: 16px;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
     h1 {
       text-align: center;
-      font-size: 1.4rem;
-      margin-bottom: 20px;
+      font-size: 1.2rem;
+      margin: 0 0 12px 0;
     }
-    .dashboard {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-    .dash-card {
-      background: #f8f9fa;
-      border: 1px solid #e9ecef;
+    
+    /* 現場最優先：損益分岐ハイライトカード */
+    .today-guide-card {
+      background: linear-gradient(135deg, #eef5ff 0%, #e3f2fd 100%);
+      border: 1px solid #bbdefb;
       padding: 12px;
       border-radius: 8px;
+      margin-bottom: 12px;
+      text-align: center;
     }
-    .dash-card.full { grid-column: span 2; }
-    .dash-title { font-size: 0.75rem; color: #666; margin-bottom: 4px; }
-    .dash-value { font-size: 1.25rem; font-weight: bold; color: #111; }
-    .dash-value.plus { color: #28a745; }
-    .dash-value.minus { color: #dc3545; }
-    .dash-sub { font-size: 0.8rem; color: #555; margin-top: 4px; }
-
-    .tab-buttons {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 16px;
-    }
-    .tab-btn {
-      flex: 1;
-      padding: 10px;
-      border: 1px solid #ccc;
-      background: #eee;
-      border-radius: 6px;
+    .today-guide-title {
+      font-size: 0.75rem;
+      color: #1565c0;
       font-weight: bold;
-      cursor: pointer;
-      font-size: 0.85rem;
+      margin-bottom: 4px;
     }
-    .tab-btn.active {
-      background: #0066ff;
-      color: #fff;
-      border-color: #0066ff;
+    .today-guide-value {
+      font-size: 1.05rem;
+      font-weight: bold;
+      color: #0d47a1;
+      word-break: break-all;
     }
 
     .section-title {
       font-weight: bold;
-      font-size: 0.95rem;
-      margin-bottom: 10px;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
       border-bottom: 2px solid #eef5ff;
       padding-bottom: 4px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .input-group { display: flex; gap: 8px; margin-bottom: 12px; }
+    .input-group { display: flex; gap: 6px; margin-bottom: 10px; width: 100%; }
     input[type="text"], input[type="date"], select, input[type="number"] {
       width: 100%;
-      padding: 10px;
+      padding: 8px 10px;
       border: 1px solid #ccc;
       border-radius: 6px;
-      box-sizing: border-box;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
     }
     button.btn-primary {
       background-color: #0066ff;
       color: white;
       border: none;
-      padding: 10px 16px;
+      padding: 8px 12px;
       border-radius: 6px;
       font-weight: bold;
       cursor: pointer;
       white-space: nowrap;
+      font-size: 0.85rem;
     }
     button.btn-save {
       width: 100%;
@@ -116,29 +104,29 @@
       font-size: 1rem;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 10px;
+      margin-top: 6px;
     }
     button.btn-csv {
       background-color: #17a2b8;
       color: white;
       border: none;
-      padding: 6px 12px;
+      padding: 4px 8px;
       border-radius: 4px;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       font-weight: bold;
       cursor: pointer;
     }
     button.btn-report-toggle {
       width: 100%;
-      padding: 12px;
+      padding: 10px;
       background-color: #6f42c1;
       color: white;
       border: none;
       border-radius: 6px;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       font-weight: bold;
       cursor: pointer;
-      margin-bottom: 16px;
+      margin-top: 10px;
     }
     button.btn-back {
       background-color: #6c757d;
@@ -155,7 +143,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       min-height: 40px;
       padding: 6px;
       background: #fafafa;
@@ -176,141 +164,164 @@
     .delete-btn { color: #888; font-weight: bold; cursor: pointer; }
     .delete-btn:hover { color: #dc3545; }
 
-    .form-row { margin-bottom: 12px; }
-    .form-row label { display: block; font-size: 0.8rem; color: #666; margin-bottom: 3px; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-row { margin-bottom: 10px; width: 100%; }
+    .form-row label { display: block; font-size: 0.75rem; color: #666; margin-bottom: 2px; }
+    .grid-2 { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 8px; 
+      width: 100%;
+    }
+
+    .dashboard-mini {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .dash-card-mini {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+    }
 
     .history-card {
       background: #fafafa;
       border: 1px solid #e0e0e0;
       border-radius: 6px;
-      padding: 12px;
-      margin-bottom: 10px;
-      font-size: 0.85rem;
-      position: relative;
+      padding: 10px;
+      margin-bottom: 8px;
+      font-size: 0.8rem;
     }
-    .history-header { font-weight: bold; color: #0052cc; display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .history-header { font-weight: bold; color: #0052cc; display: flex; justify-content: space-between; margin-bottom: 4px; }
     .shuttle-recommend {
       background-color: #eef5ff;
       color: #0052cc;
-      padding: 4px 8px;
+      padding: 2px 6px;
       border-radius: 4px;
-      margin-top: 6px;
+      margin-top: 4px;
       font-weight: bold;
       display: inline-block;
+      font-size: 0.75rem;
     }
     .action-btns {
-      margin-top: 8px;
+      margin-top: 6px;
       display: flex;
-      gap: 8px;
+      gap: 6px;
       justify-content: flex-end;
     }
-    .btn-edit { background: #ffc107; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
-    .btn-del { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
+    .btn-edit { background: #ffc107; border: none; padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
+    .btn-del { background: #dc3545; color: white; border: none; padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
 
     .stats-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.85rem;
-      margin-top: 12px;
+      font-size: 0.8rem;
+      margin-top: 8px;
     }
     .stats-table th, .stats-table td {
       border: 1px solid #e0e0e0;
-      padding: 8px;
+      padding: 6px;
       text-align: center;
     }
-    .stats-table th { background: #f0f4f8; font-size: 0.8rem; }
+    .stats-table th { background: #f0f4f8; }
+
+    /* アコーディオンスタイル */
+    details {
+      background: #fff;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      border: 1px solid #e0e0e0;
+      width: 100%;
+    }
+    details summary {
+      padding: 12px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      cursor: pointer;
+      outline: none;
+      user-select: none;
+      color: #333;
+    }
+    details[open] summary {
+      border-bottom: 1px solid #eee;
+    }
+    .accordion-content {
+      padding: 12px;
+    }
   </style>
 </head>
 <body>
 
-  <!-- メイン画面（入力 & ダッシュボード） -->
+  <!-- メイン画面（現地最優先レイアウト） -->
   <div id="mainPage">
-    <div class="container">
-      <h1>🏸 サークル運営ダッシュボード</h1>
+    <!-- 📱 1. 本日の現場入力エリア (画面最上部) -->
+    <div class="container" style="border-top: 4px solid #0066ff;">
+      <h1>🏸 バドミントン現場記録</h1>
 
-      <!-- 1. 濃いデータ（ダッシュボード） -->
-      <div class="dashboard">
-        <div class="dash-card">
-          <div class="dash-title">💰 サークルプール金</div>
-          <div id="dashBalance" class="dash-value">0 円</div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-title">🏸 シャトル在庫目安</div>
-          <div id="dashStock" class="dash-value">0 箱</div>
-        </div>
-        <div class="dash-card full">
-          <div class="dash-title">⚖️ 損益分岐・シャトル購入ガイド (10箱4万円 基準)</div>
-          <div id="dashGuide" class="dash-sub">データ計算中...</div>
+      <!-- 💡 本日の損益分岐ハイライト (ポチポチ連動) -->
+      <div class="today-guide-card">
+        <div class="today-guide-title">⚖️ 本日の推奨黒字ライン (ポチポチ選択と連動)</div>
+        <div id="todayBreakEven" class="today-guide-value">
+          参加 0名 ｜ 利益 0円 ➔ <strong>0球 (0.0ダース)</strong> まで黒字
         </div>
       </div>
 
-      <!-- レポート画面へ移動するボタン -->
-      <button id="goToReportBtn" class="btn-report-toggle">📈 損益分岐グラフ & 参加率レポートを見る ➔</button>
+      <!-- 👥 メンバーポチポチ選択 -->
+      <div class="section-title">👥 本日の参加メンバー選択</div>
+      <div class="input-group">
+        <input type="text" id="memberInput" placeholder="メンバー名追加...">
+        <button id="addMemberBtn" class="btn-primary">追加</button>
+      </div>
+      <div id="memberList" class="member-list"></div>
 
-      <!-- モード切り替えタブ -->
-      <div class="tab-buttons">
-        <button id="tabPractice" class="tab-btn active" onclick="switchTab('practice')">① 練習日の記録</button>
-        <button id="tabReserve" class="tab-btn" onclick="switchTab('reserve')">② コート事前予約</button>
-        <button id="tabShuttle" class="tab-btn" onclick="switchTab('shuttle')">③ シャトル仕入れ</button>
+      <!-- 📅 日付・時間帯・会費・コート代 -->
+      <div class="grid-2 form-row">
+        <div>
+          <label>開催年月日</label>
+          <input type="date" id="eventDate">
+        </div>
+        <div>
+          <label>時間帯</label>
+          <select id="eventTime">
+            <option value="19:00〜22:00 (3h)" selected>19:00〜22:00 (3h)</option>
+            <option value="18:00〜22:00 (4h)">18:00〜22:00 (4h)</option>
+            <option value="20:00〜22:00 (2h)">20:00〜22:00 (2h)</option>
+          </select>
+        </div>
       </div>
 
-      <!-- モード①: 練習日の記録 -->
-      <div id="modePractice">
-        <div class="section-title">👥 参加メンバー選択</div>
-        <div class="input-group">
-          <input type="text" id="memberInput" placeholder="メンバー名を追加...">
-          <button id="addMemberBtn" class="btn-primary">追加</button>
+      <div class="grid-2 form-row">
+        <div>
+          <label>会費単価 (円)</label>
+          <input type="number" id="feePerPerson" value="700">
         </div>
-        <div id="memberList" class="member-list"></div>
-
-        <div class="grid-2 form-row">
-          <div>
-            <label>開催年月日</label>
-            <input type="date" id="eventDate">
-          </div>
-          <div>
-            <label>時間帯</label>
-            <select id="eventTime">
-              <option value="19:00〜22:00 (3h)" selected>19:00〜22:00 (3h)</option>
-              <option value="18:00〜22:00 (4h)">18:00〜22:00 (4h)</option>
-              <option value="20:00〜22:00 (2h)">20:00〜22:00 (2h)</option>
-            </select>
-          </div>
+        <div>
+          <label>事前予約コート代 (自動読み込み)</label>
+          <input type="number" id="courtFee" value="0" placeholder="事前予約から自動取得">
         </div>
-
-        <div class="grid-2 form-row">
-          <div>
-            <label>会費単価 (円)</label>
-            <input type="number" id="feePerPerson" value="700">
-          </div>
-          <div>
-            <label>事前予約コート代 (自動読み込み)</label>
-            <input type="number" id="courtFee" value="0" placeholder="事前予約から自動取得">
-          </div>
-        </div>
-
-        <div class="grid-2 form-row">
-          <div>
-            <label>本日消費シャトル (球数)</label>
-            <input type="number" id="usedShuttleBalls" value="6" placeholder="例: 6">
-          </div>
-          <div>
-            <label>消費数換算 (ダース)</label>
-            <input type="text" id="usedShuttleDozens" value="0.5 ダース" readonly style="background:#eee;">
-          </div>
-        </div>
-
-        <div id="todayBreakEven" style="font-size:0.85rem; color:#0052cc; font-weight:bold; margin-bottom:10px;">
-          会費収入: 0円 ｜ 本日黒字化ライン: -- 球まで
-        </div>
-
-        <button id="saveEventBtn" class="btn-save">💾 本日の練習記録を保存</button>
       </div>
 
-      <!-- モード②: 3ヶ月前コート事前予約 -->
-      <div id="modeReserve" style="display:none;">
-        <div class="section-title">📅 3ヶ月前コート予約・支払い</div>
+      <div class="grid-2 form-row">
+        <div>
+          <label>本日消費シャトル (目安球数)</label>
+          <input type="number" id="usedShuttleBalls" value="6" placeholder="例: 6">
+        </div>
+        <div>
+          <label>消費数換算 (ダース)</label>
+          <input type="text" id="usedShuttleDozens" value="0.5 ダース" readonly style="background:#eee;">
+        </div>
+      </div>
+
+      <button id="saveEventBtn" class="btn-save">💾 本日の練習記録を保存</button>
+    </div>
+
+    <!-- 📅 2. 3ヶ月前コート事前予約 -->
+    <details class="container">
+      <summary>📅 3ヶ月前のコート事前予約・支払い</summary>
+      <div class="accordion-content">
         <div class="form-row">
           <label>コート使用予定日 (練習日)</label>
           <input type="date" id="reserveTargetDate">
@@ -325,10 +336,12 @@
         </div>
         <button id="saveReserveBtn" class="btn-save">💾 コート予約代を保存</button>
       </div>
+    </details>
 
-      <!-- モード③: シャトル買い出し -->
-      <div id="modeShuttle" style="display:none;">
-        <div class="section-title">🏸 シャトルまとめ買い記録</div>
+    <!-- 📦 3. シャトル買い出し記録 -->
+    <details class="container">
+      <summary>📦 シャトルまとめ買い記録 (資材仕入れ)</summary>
+      <div class="accordion-content">
         <div class="form-row">
           <label>購入日</label>
           <input type="date" id="shuttleBuyDate">
@@ -349,24 +362,36 @@
         </div>
         <button id="saveShuttleBtn" class="btn-save">💾 シャトル仕入れを保存</button>
       </div>
-    </div>
+    </details>
 
-    <!-- 月別 収支グラフ & 履歴 -->
+    <!-- 💰 4. サークルプール金 & 分析・履歴エリア -->
     <div class="container">
-      <div class="section-title">📊 月別 収支推移</div>
-      <canvas id="financeChart" width="400" height="180"></canvas>
+      <div class="section-title">💰 サークル財務サマリー</div>
+      <div class="dashboard-mini">
+        <div class="dash-card-mini">
+          <div style="color:#666;">サークルプール金</div>
+          <div id="dashBalance" style="font-size:1.1rem; font-weight:bold;">0 円</div>
+        </div>
+        <div class="dash-card-mini">
+          <div style="color:#666;">シャトル在庫目安</div>
+          <div id="dashStock" style="font-size:1.1rem; font-weight:bold;">0 箱</div>
+        </div>
+      </div>
+      <div id="dashGuide" style="font-size:0.75rem; color:#555; margin-top:6px;">データ計算中...</div>
+
+      <button id="goToReportBtn" class="btn-report-toggle">📈 損益分岐グラフ & 参加率レポートを見る ➔</button>
     </div>
 
     <div class="container">
       <div class="section-title">
         <span>📜 活動・予約・購入履歴</span>
-        <button id="downloadCsvBtn" class="btn-csv">📥 CSV出力 (Excel)</button>
+        <button id="downloadCsvBtn" class="btn-csv">📥 CSV出力</button>
       </div>
       <div id="historyList">読み込み中...</div>
     </div>
   </div>
 
-  <!-- レポート・詳細分析画面（別ページ表示） -->
+  <!-- レポート・詳細分析画面 -->
   <div id="reportPage" style="display:none;">
     <div class="container">
       <div class="section-title">
@@ -375,16 +400,22 @@
         <span></span>
       </div>
 
+      <!-- 月別 収支グラフ -->
+      <div style="margin-top:12px;">
+        <div style="font-weight:bold; font-size:0.85rem; margin-bottom:4px;">📊 月別 収支推移</div>
+        <canvas id="financeChart" width="400" height="180"></canvas>
+      </div>
+
       <!-- 各練習ごとの損益分岐点比較グラフ -->
-      <div style="margin-top:16px;">
-        <div style="font-weight:bold; font-size:0.9rem; margin-bottom:6px;">⚖️ 各回の損益分岐点（会費利益 vs シャトル代）</div>
-        <div style="font-size:0.75rem; color:#666; margin-bottom:10px;">※緑（利益）が赤（シャトル代）より高ければその回は黒字です</div>
-        <canvas id="breakEvenChart" width="400" height="220"></canvas>
+      <div style="margin-top:20px;">
+        <div style="font-weight:bold; font-size:0.85rem; margin-bottom:4px;">⚖️ 各回の損益分岐点（会費利益 vs シャトル代）</div>
+        <div style="font-size:0.75rem; color:#666; margin-bottom:8px;">※緑（利益）が赤（シャトル代）より高ければその回は黒字です</div>
+        <canvas id="breakEvenChart" width="400" height="200"></canvas>
       </div>
 
       <!-- メンバー参加率テーブル -->
-      <div style="margin-top:24px;">
-        <div style="font-weight:bold; font-size:0.9rem; margin-bottom:6px;">👥 メンバー別 参加回数・参加率</div>
+      <div style="margin-top:20px;">
+        <div style="font-weight:bold; font-size:0.85rem; margin-bottom:6px;">👥 メンバー別 参加回数・参加率</div>
         <table class="stats-table">
           <thead>
             <tr>
@@ -453,7 +484,6 @@
       window.scrollTo(0, 0);
     });
 
-    // スマホの「戻る」ボタン対応
     window.addEventListener("popstate", () => {
       reportPage.style.display = "none";
       mainPage.style.display = "block";
@@ -466,17 +496,6 @@
       const d = new Date(reserveTargetDate.value);
       d.setMonth(d.getMonth() - 3);
       document.getElementById("reserveCalcDate").value = `${d.getFullYear()}年${String(d.getMonth()+1).padStart(2,'0')}月${String(d.getDate()).padStart(2,'0')}日頃`;
-    }
-
-    // タブ切り替え
-    window.switchTab = function(mode) {
-      document.getElementById("modePractice").style.display = mode === 'practice' ? 'block' : 'none';
-      document.getElementById("modeReserve").style.display = mode === 'reserve' ? 'block' : 'none';
-      document.getElementById("modeShuttle").style.display = mode === 'shuttle' ? 'block' : 'none';
-
-      document.getElementById("tabPractice").className = `tab-btn ${mode === 'practice' ? 'active' : ''}`;
-      document.getElementById("tabReserve").className = `tab-btn ${mode === 'reserve' ? 'active' : ''}`;
-      document.getElementById("tabShuttle").className = `tab-btn ${mode === 'shuttle' ? 'active' : ''}`;
     }
 
     // メンバー取得 & ドラッグ並び替え
@@ -548,7 +567,7 @@
       const maxBreakEvenDozens = (maxBreakEvenBalls / 12).toFixed(1);
 
       document.getElementById("todayBreakEven").innerHTML = 
-        `会費収入: <strong>${totalIncome.toLocaleString()}円</strong> ｜ コート引後利益: <strong>${profit.toLocaleString()}円</strong> ➔ 消耗 <strong>${maxBreakEvenBalls}球 (${maxBreakEvenDozens}ダース)</strong> まで黒字`;
+        `参加 <strong>${count}名</strong> ｜ 利益 <strong>${profit.toLocaleString()}円</strong> ➔ 消耗 <strong>${maxBreakEvenBalls}球 (${maxBreakEvenDozens}ダース)</strong> まで黒字`;
     }
 
     // コート事前予約の自動照会
@@ -648,7 +667,7 @@
 
       const monthlyData = {};
       const memberStats = {};
-      const practiceBreakEvenData = []; // 損益分岐グラフ用データ
+      const practiceBreakEvenData = [];
 
       let totalPracticeCount = 0;
       const nowYear = new Date().getFullYear().toString();
@@ -673,9 +692,8 @@
           const recDozens = (recBalls / 12).toFixed(1);
           const shuttleCost = d.shuttleCostEquivalent || Math.round((d.usedShuttleBalls||0) * latestShuttleBallUnitPrice);
 
-          // 損益グラフ用データに追加
           practiceBreakEvenData.push({
-            date: d.date ? d.date.substring(5) : '', // "MM-DD"
+            date: d.date ? d.date.substring(5) : '',
             profit: netProfit,
             shuttleCost: shuttleCost
           });
@@ -741,23 +759,22 @@
 
       const dashBalance = document.getElementById("dashBalance");
       dashBalance.textContent = `${netBalance >= 0 ? '+' : ''}${netBalance.toLocaleString()} 円`;
-      dashBalance.className = `dash-value ${netBalance >= 0 ? 'plus' : 'minus'}`;
 
       document.getElementById("dashStock").textContent = `${stockBoxes} 箱 (${stockBalls}球)`;
 
       const targetBuy = 40000;
       const dashGuide = document.getElementById("dashGuide");
       if (netBalance >= targetBuy) {
-        dashGuide.innerHTML = `現在プール金が十分あります！<strong>10箱 (40,000円) まとめ買い可能です！</strong>`;
+        dashGuide.innerHTML = `プール金十分！<strong>10箱(4万円)まとめ買いOK！</strong>`;
       } else {
         const short = targetBuy - netBalance;
-        dashGuide.innerHTML = `次の10箱 (40,000円) まとめ買いまで <strong>あと ${short.toLocaleString()} 円</strong> のプールが必要です`;
+        dashGuide.innerHTML = `10箱(4万円)まとめ買いまで <strong>あと ${short.toLocaleString()} 円</strong>`;
       }
 
       updateMemberStatsTable(memberStats, totalPracticeCount);
       updateSummary();
       updateChart(monthlyData);
-      updateBreakEvenChart(practiceBreakEvenData.reverse()); // 古い順に表示
+      updateBreakEvenChart(practiceBreakEvenData.reverse());
     });
 
     function updateMemberStatsTable(stats, totalPractice) {
@@ -790,7 +807,6 @@
       if (!target) return;
 
       editingDocId = id;
-      switchTab('practice');
       eventDateInput.value = target.date;
       document.getElementById("eventTime").value = target.time || "19:00〜22:00 (3h)";
       courtFeeInput.value = target.courtFee || 0;
@@ -852,7 +868,7 @@
       });
     }
 
-    // 損益分岐点グラフ（利益 vs シャトル代）
+    // 損益分岐点グラフ
     function updateBreakEvenChart(listData) {
       const labels = listData.map(item => item.date);
       const profitData = listData.map(item => item.profit);
