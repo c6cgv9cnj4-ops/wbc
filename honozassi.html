@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本屋大賞 ノミネート＆受賞作 選択・共有ギャラリー</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #d97706;
+            --accent-hover: #b45309;
+            --bg-base: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --selected-bg: #fef3c7;
+            --selected-border: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 24px 16px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .actions-panel {
+            position: sticky;
+            top: 16px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .selected-count {
+            font-weight: bold;
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            background-color: var(--accent);
+            color: #ffffff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: #475569;
+        }
+
+        .btn-secondary:hover {
+            background-color: #334155;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 20px;
+        }
+
+        @media (max-width: 480px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .actions-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            padding: 20px;
+            position: relative;
+            transition: all 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card.selected {
+            border-color: var(--selected-border);
+            background-color: var(--selected-bg);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .badge-winner {
+            background-color: #ef4444;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .badge-nominee {
+            background-color: #e2e8f0;
+            color: #475569;
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 6px 0;
+        }
+
+        .meta {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .synopsis {
+            font-size: 0.92rem;
+            color: var(--text-main);
+            margin-bottom: 16px;
+            background-color: rgba(255, 255, 255, 0.6);
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border-color);
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+            color: var(--primary);
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1e293b;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>本屋大賞 選出作品ギャラリー</h1>
+        <p>気になる作品の「ポッチ（選択）」を押して、SNS共有やクリップボードに書き出せます。</p>
+    </header>
+
+    <div class="actions-panel">
+        <div class="selected-count">選択中の作品: <span id="count">0</span> 件</div>
+        <div class="btn-group">
+            <button class="btn" onclick="shareSelected()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 12v8a2 2 2 0 0 0 2 2h12a2 2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+                外部へ共有
+            </button>
+            <button class="btn btn-secondary" onclick="copySelected()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/></svg>
+                テキストコピー
+            </button>
+        </div>
+    </div>
+
+    <div class="grid" id="book-grid">
+        <!-- JSで動的生成 -->
+    </div>
+</div>
+
+<div id="toast" class="toast">クリップボードにコピーしました！</div>
+
+<script>
+    const booksData = [
+        {
+            id: "cafune",
+            year: 2025,
+            rank: "大賞",
+            title: "カフネ",
+            author: "阿部暁子",
+            age: 40,
+            score: "581.5点",
+            synopsis: "突然の離婚と大切な弟の死に直面した薫子は、遺言に導かれ家事代行サービス業の女性・せつと出会う。傷ついた二人の女性が食と絆を通じて心を通わせ、失われた歩みを取り戻していく、静かで温かな愛と再生の物語。"
+        },
+        {
+            id: "alps",
+            year: 2025,
+            rank: "ノミネート",
+            title: "アルプス席の母",
+            author: "早見和真",
+            age: 47,
+            score: "468.0点",
+            synopsis: "甲子園出場を目指し強豪高校の野球部に入部した息子と、それをアルプス席から見守り支え続ける母親の奮闘と葛藤を描いた、熱く切ない青春ヒューマンドラマ。"
+        },
+        {
+            id: "kinki",
+            year: 2025,
+            rank: "ノミネート",
+            title: "禁忌の子",
+            author: "山口未桜",
+            age: 35,
+            score: "410.5点",
+            synopsis: "救急病院に搬送されてきた身元不明の遺体は、自分と全く同じ顔をした人間だった。自らのルーツと不可解な謎を追う現役医師著者による緊迫の医療ミステリー。"
+        },
+        {
+            id: "naruse1",
+            year: 2024,
+            rank: "大賞",
+            title: "成瀬は天下を取りにいく",
+            author: "宮島未奈",
+            age: 40,
+            score: "525.5点",
+            synopsis: "滋賀県大津市を舞台に、「島﨑、わたしはこの夏を西武に捧げようと思う」と宣言した破天荒な女子高生・成瀬あかりが突き進む、誰も見たことのない爽快な青春小説。"
+        }
+    ];
+
+    const selectedBooks = new Set();
+
+    function renderCards() {
+        const container = document.getElementById('book-grid');
+        container.innerHTML = booksData.map(book => `
+            <div class="card ${selectedBooks.has(book.id) ? 'selected' : ''}" id="card-${book.id}">
+                <div>
+                    <div class="card-header">
+                        <span class="${book.rank === '大賞' ? 'badge-winner' : 'badge-nominee'}">${book.year}年 ${book.rank}</span>
+                        <span style="font-size: 0.85rem; font-weight: bold; color: var(--accent);">★ ${book.score}</span>
+                    </div>
+                    <div class="title">${book.title}</div>
+                    <div class="meta">
+                        <span><strong>著者:</strong> ${book.author} (${book.age}歳)</span>
+                    </div>
+                    <div class="synopsis">${book.synopsis}</div>
+                </div>
+                <div class="card-footer">
+                    <label class="checkbox-label">
+                        <input type="checkbox" onchange="toggleSelect('${book.id}')" ${selectedBooks.has(book.id) ? 'checked' : ''}>
+                        ポッチ（選択）
+                    </label>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function toggleSelect(id) {
+        if (selectedBooks.has(id)) {
+            selectedBooks.delete(id);
+        } else {
+            selectedBooks.add(id);
+        }
+        document.getElementById('count').innerText = selectedBooks.size;
+        const card = document.getElementById(`card-${id}`);
+        if (card) {
+            card.classList.toggle('selected', selectedBooks.has(id));
+        }
+    }
+
+    function getFormattedText() {
+        if (selectedBooks.size === 0) return null;
+        const list = booksData.filter(b => selectedBooks.has(b.id));
+        let text = "【気になる本屋大賞作品リスト】\n\n";
+        list.forEach(b => {
+            text += `■『${b.title}』(${b.year}年 ${b.rank})\n`;
+            text += `・著者: ${b.author} (${b.age}歳)\n`;
+            text += `・得票数: ${b.score}\n`;
+            text += `・あらすじ: ${b.synopsis}\n\n`;
+        });
+        return text;
+    }
+
+    async function shareSelected() {
+        const text = getFormattedText();
+        if (!text) {
+            alert("シェアする作品を少なくとも1つ選択（ポッチ）してください。");
+            return;
+        }
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'お気に入りの本屋大賞作品',
+                    text: text,
+                });
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    copySelected();
+                }
+            }
+        } else {
+            copySelected();
+        }
+    }
+
+    function copySelected() {
+        const text = getFormattedText();
+        if (!text) {
+            alert("コピーする作品を少なくとも1つ選択（ポッチ）してください。");
+            return;
+        }
+
+        navigator.clipboard.writeText(text).then(() => {
+            showToast("クリップボードにコピーしました！");
+        }).catch(() => {
+            alert("コピーに失敗しました。");
+        });
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // 初期描画
+    renderCards();
+</script>
+
+</body>
+</html>
