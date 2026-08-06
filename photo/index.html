@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（描画完全修復版）</title>
+    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（完全修復版）</title>
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -224,25 +224,22 @@
 
     <!-- App Main Script Logic -->
     <script>
-        // 安全な Lucide アイコン呼び出しヘルパー
         function safeCreateIcons() {
             try {
                 if (window.lucide && typeof window.lucide.createIcons === 'function') {
                     window.lucide.createIcons();
                 }
             } catch (err) {
-                console.warn("Lucide icons rendering warning:", err);
+                console.warn("Lucide icons warning:", err);
             }
         }
 
-        // 起点座標: 北本団地 (埼玉県北本市栄)
         const KITAMOTO_LAT = 36.0260;
         const KITAMOTO_LNG = 139.5180;
 
         const P = ["埼玉県","東京都","神奈川県","千葉県","茨城県","栃木県","群馬県"];
         const P_SLUG = ["saitama","tokyo","kanagawa","chiba","ibaraki","tochigi","gunma"];
 
-        // 関東エリア 月別日の出・日の入り時刻の気象データ（中旬目安）
         const SUNRISE_SUNSET_KANTO = [
             { month: 1,  rise: "06:50頃", set: "16:50頃" },
             { month: 2,  rise: "06:30頃", set: "17:20頃" },
@@ -258,9 +255,7 @@
             { month: 12, rise: "06:45頃", set: "16:30頃" }
         ];
 
-        // 全122箇所 データモデル [id, pIdx, name, address, lat, lng, mainSub, struct, floraGantt, ganrefId, statusUrl]
         const rawSpots = [
-            // --- 埼玉県 (15) ---
             [1, 0, "北本自然観察公園", "埼玉県北本市荒井5-200", 36.0312, 139.5100, "エドヒガンザクラ（3-4月）、ヘイケボタル（6-7月）、カエデ・メタセコイア紅葉（11-12月）", "観察舎・湿地木道", [0,0,1,1,0,1,1,0,0,0,1,1], "10001", "https://www.saitama-shizen.info/blog/"],
             [2, 0, "幸手権現堂桜堤", "埼玉県幸手市内国府間8873", 36.0886, 139.7283, "ソメイヨシノ・菜の花（3-4月）、アジサイ（6月）、ヒマワリ（7-8月）、曼珠沙華（9月）", "堤防遊歩道・外周橋", [0,0,1,1,0,1,1,1,1,0,0,0], "10002", "https://gongendou.jp/flower-info/"],
             [3, 0, "国営武蔵丘陵森林公園", "埼玉県比企郡滑川町やまぶき1-1", 36.0463, 139.3789, "ポピー・ネモフィラ（4-5月）、ヤマユリ（7月）、ダリア（9-10月）、カエデ紅葉（11月）", "展望タワー・日本庭園", [0,0,0,1,1,0,1,0,1,1,1,0], "10003", "https://www.shinrinkoen.jp/flower/"],
@@ -397,9 +392,7 @@
             [122, 6, "土合駅（モグラ駅）", "群馬県利根郡みなかみ町土合", 36.8314, 138.9678, "地下70m462段の一直線階段、日本一のモグラ駅、レトロ無人駅構造美", "地下ホーム階段", [1,1,1,1,1,1,1,1,1,1,1,1], "70012", "https://www.minakami-kanko.jp/"]
         ];
 
-        // 都内散歩・レトロ撮影・お宮参り・商店街・横丁＆主要駅データ（13URL群完全抽出 + 主要駅）
         const tokyoWalkSpots = [
-            // --- 横丁・レトロ街 ---
             { name: "おかず横丁 (鳥越)", lat: 35.7025, lng: 139.7828, cat: "商店街" },
             { name: "谷中銀座商店街", lat: 35.7275, lng: 139.7656, cat: "レトロ商店街" },
             { name: "のんべい横丁 (渋谷)", lat: 35.6597, lng: 139.7011, cat: "横丁" },
@@ -415,8 +408,6 @@
             { name: "三軒茶屋三角地帯", lat: 35.6436, lng: 139.6706, cat: "レトロ横丁" },
             { name: "立石仲見世商店街", lat: 35.7381, lng: 139.8475, cat: "レトロ横丁" },
             { name: "中野サンモール・レンガ坂", lat: 35.7067, lng: 139.6658, cat: "商店街" },
-
-            // --- 商店街 ---
             { name: "戸越銀座商店街", lat: 35.6158, lng: 139.7144, cat: "商店街" },
             { name: "阿佐ヶ谷パールセンター", lat: 35.7031, lng: 139.6364, cat: "商店街" },
             { name: "上野アメ横商店街", lat: 35.7106, lng: 139.7744, cat: "下町通り" },
@@ -429,8 +420,6 @@
             { name: "佃島・月島長屋路地", lat: 35.6631, lng: 139.7825, cat: "水辺下町" },
             { name: "神保町古書店街", lat: 35.6958, lng: 139.7578, cat: "文化街" },
             { name: "築地場外市場", lat: 35.6653, lng: 139.7706, cat: "市場" },
-            
-            // --- 神社仏閣・撮影地 ---
             { name: "明治神宮", lat: 35.6764, lng: 139.6993, cat: "神社" },
             { name: "赤坂日枝神社", lat: 35.6747, lng: 139.7394, cat: "神社" },
             { name: "水天宮 (日本橋)", lat: 35.6831, lng: 139.7853, cat: "神社" },
@@ -448,8 +437,6 @@
             { name: "葛西臨海公園", lat: 35.6419, lng: 139.8608, cat: "公園" },
             { name: "代々木公園", lat: 35.6717, lng: 139.6947, cat: "公園" },
             { name: "井の頭恩賜公園", lat: 35.7001, lng: 139.5762, cat: "公園" },
-
-            // --- 都内主要駅 (起点・ハブ駅) ---
             { name: "東京駅", lat: 35.6812, lng: 139.7671, cat: "主要駅" },
             { name: "新宿駅", lat: 35.6895, lng: 139.7004, cat: "主要駅" },
             { name: "渋谷駅", lat: 35.6580, lng: 139.7016, cat: "主要駅" },
@@ -501,7 +488,7 @@
             return { hasExpress: true, minutesExpress: minutesExpress, tollExpress: tollExp, minutesLocal: minutesLocal };
         }
 
-        // オブジェクト復元 & 北本団地起点昇順ソート
+        // spotsData の生成
         const spotsData = rawSpots.map(s => {
             const distLin = calcDist(KITAMOTO_LAT, KITAMOTO_LNG, s[4], s[5]);
             const distRoad = distLin * 1.3;
@@ -531,7 +518,6 @@
             };
         }).sort((a, b) => a.distanceLinear - b.distanceLinear);
 
-        // --- TAB SWITCHING LOGIC ---
         function switchTab(tab) {
             const btnSpot = document.getElementById('tabBtnSpot');
             const btnRoute = document.getElementById('tabBtnRoute');
@@ -553,14 +539,12 @@
                 
                 initMapIfNeeded();
                 setTimeout(() => {
-                    if (map) {
-                        map.invalidateSize();
-                    }
+                    if (map) map.invalidateSize();
                 }, 200);
             }
         }
 
-        // --- RENDER TAB 1: SPOT NAVI (完全堅牢版) ---
+        // RENDER TAB 1
         function renderSpots() {
             try {
                 const searchInput = document.getElementById('searchInput');
@@ -590,9 +574,7 @@
                 });
 
                 const spotCountEl = document.getElementById('spotCount');
-                const mobileCountBadge = document.getElementById('mobileCountBadge');
                 if (spotCountEl) spotCountEl.textContent = filtered.length;
-                if (mobileCountBadge) mobileCountBadge.textContent = `${filtered.length}件`;
 
                 if (filtered.length === 0) {
                     container.innerHTML = `<div class="bg-slate-800 rounded-xl p-8 text-center text-slate-400 border border-slate-700">条件に該当する撮影スポットが見つかりませんでした。</div>`;
@@ -742,7 +724,7 @@
 
                         container.appendChild(card);
                     } catch (cardErr) {
-                        console.error("Error rendering spot card:", cardErr);
+                        console.error("Card render error:", cardErr);
                     }
                 });
 
@@ -752,7 +734,7 @@
             }
         }
 
-        // --- TAB 2: TOKYO WALK ROUTE MAP & ENGINE (パターンB対応) ---
+        // --- MAP & ROUTING LOGIC ---
         let map = null;
         let routeWaypoints = [];
         let routePolyline = null;
@@ -795,7 +777,6 @@
             loadSavedRoutes();
         }
 
-        // パターンB: 駅名検索＆ジオコーディングによる即時ピン追加
         async function searchAndAddStation() {
             const input = document.getElementById('stationSearchInput');
             const stationName = input.value.trim();
@@ -920,7 +901,6 @@
 
                     const totalDistKm = route.distance / 1000;
                     updateStats(totalDistKm);
-
                     fetchElevationProfile(coords);
                 }
             } catch (e) {
@@ -1069,20 +1049,20 @@
         }
 
         // イベントリスナー設定
-        const searchInput = document.getElementById('searchInput');
-        const prefFilter = document.getElementById('prefFilter');
-        const monthFilter = document.getElementById('monthFilter');
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('searchInput');
+            const prefFilter = document.getElementById('prefFilter');
+            const monthFilter = document.getElementById('monthFilter');
 
-        if (searchInput) searchInput.addEventListener('input', renderSpots);
-        if (prefFilter) prefFilter.addEventListener('change', renderSpots);
-        if (monthFilter) monthFilter.addEventListener('change', renderSpots);
+            if (searchInput) searchInput.addEventListener('input', renderSpots);
+            if (prefFilter) prefFilter.addEventListener('change', renderSpots);
+            if (monthFilter) monthFilter.addEventListener('change', renderSpots);
 
-        // 安定したDOMロード後発火（非同期遅延＆セーフガード）
-        window.addEventListener('DOMContentLoaded', () => {
+            // 初回描画の確実な実行
             setTimeout(() => {
                 renderSpots();
                 safeCreateIcons();
-            }, 50);
+            }, 100);
         });
     </script>
 </body>
