@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（タブ完全修復・3色ピン完全版）</title>
+    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（タブ切替・マップ完全修復版）</title>
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -19,7 +19,7 @@
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #1E293B; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
-        #map { height: 480px; z-index: 10; border-radius: 0.75rem; }
+        #map { height: 480px; z-index: 10; border-radius: 0.75rem; width: 100%; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen pb-12 font-sans antialiased">
@@ -39,7 +39,7 @@
                 </div>
             </div>
 
-            <!-- Tab Switcher (onclick 属性完全修復版) -->
+            <!-- Tab Switcher (確実な onclick 属性設定) -->
             <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-700 w-full md:w-auto">
                 <button id="tabBtnSpot" onclick="switchTab('spot')" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition bg-emerald-600 text-white shadow">
                     <i data-lucide="map-pin" class="w-4 h-4"></i> 関東撮影スポットNAVI
@@ -538,7 +538,7 @@
             { name: '珈琲館 蔵 (北千住)', lat: 35.7494, lng: 139.8050, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 1,200件' }
         ];
 
-        // 5. 統合散歩スポットリスト（各配列の定義が完了した後に1回だけ結合）
+        // 5. 統合散歩スポットリスト（重複定義なし・完全1回結合）
         const tokyoWalkSpots = [
             ...tokyoWalkSpotsOriginal,
             ...tokyoSobaSpots,
@@ -594,6 +594,7 @@
             }
         }
 
+        // spotsData の生成
         const spotsData = rawSpots.map(s => {
             const distLin = calcDist(KITAMOTO_LAT, KITAMOTO_LNG, s[4], s[5]);
             const distRoad = distLin * 1.3;
@@ -623,6 +624,7 @@
             };
         }).sort((a, b) => a.distanceLinear - b.distanceLinear);
 
+        // --- TAB SWITCHING LOGIC (完全堅牢修復版) ---
         function switchTab(tab) {
             try {
                 const btnSpot = document.getElementById('tabBtnSpot');
@@ -633,13 +635,13 @@
                 if (!btnSpot || !btnRoute || !contentSpot || !contentRoute) return;
 
                 if (tab === 'spot') {
-                    btnSpot.className = 'flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition bg-emerald-600 text-white shadow';
-                    btnRoute.className = 'flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white';
+                    btnSpot.className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition bg-emerald-600 text-white shadow";
+                    btnRoute.className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white";
                     contentSpot.classList.remove('hidden');
                     contentRoute.classList.add('hidden');
                 } else {
-                    btnRoute.className = 'flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition bg-emerald-600 text-white shadow';
-                    btnSpot.className = 'flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white';
+                    btnRoute.className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition bg-emerald-600 text-white shadow";
+                    btnSpot.className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white";
                     contentRoute.classList.remove('hidden');
                     contentSpot.classList.add('hidden');
                     
@@ -651,7 +653,7 @@
                     }, 200);
                 }
             } catch (e) {
-                console.error('switchTab error:', e);
+                console.error("switchTab error:", e);
             }
         }
 
@@ -829,14 +831,6 @@
                 if (map) return;
 
                 map = L.map('map').setView([35.6812, 139.7671], 12);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}ش/{x}/{y}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                }).addTo(map);
-
-                // Leaflet 正常タイルレイヤの適用
-                map.eachLayer(layer => {
-                    if (layer instanceof L.TileLayer) map.removeLayer(layer);
-                });
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     attribution: '&copy; OpenStreetMap contributors'
