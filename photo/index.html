@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>関東撮影スポットガイド & リアルタイム状況連携（北本市発・全エリア網羅版）</title>
+    <title>GANREF関東 撮影スポットNAVI（北本駅起点・スマホ最適化完全版）</title>
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -11,31 +11,52 @@
     <style>
         .month-active {
             background-color: #10B981;
-            color: white;
-            font-weight: bold;
-            border-radius: 0.25rem;
+            color: #FFFFFF;
+            font-weight: 700;
         }
         .month-inactive {
             color: #64748B;
             background-color: rgba(30, 41, 59, 0.5);
         }
+        /* 横スクロールバーの軽量カスタム */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1E293B;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen pb-12 font-sans">
+<body class="bg-slate-900 text-slate-100 min-h-screen pb-12 font-sans antialiased selection:bg-emerald-500 selection:text-white">
 
     <!-- Header -->
-    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 shadow-md">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <i data-lucide="camera" class="w-8 h-8 text-emerald-400"></i>
-                <div>
-                    <h1 class="text-xl font-bold tracking-wide text-white">関東撮影スポット NAVI（完全網羅版）</h1>
-                    <p class="text-xs text-slate-400">起点: 埼玉県北本市（北本駅） | 近い順自動ソート・12ヶ月旬＆太陽光時間帯分析</p>
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-3.5 flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                        <i data-lucide="camera" class="w-6 h-6 text-emerald-400"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold tracking-tight text-white leading-tight">GANREF関東 撮影スポットNAVI</h1>
+                        <p class="text-[11px] text-slate-400">起点: 埼玉県北本市（北本駅） | 近い順ソート・12ヶ月気象/順光分析</p>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <span id="mobileCountBadge" class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs px-2.5 py-1 rounded-full font-bold">
+                        0件
+                    </span>
                 </div>
             </div>
-            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                <select id="prefFilter" class="bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
-                    <option value="">全県表示 (1都6県)</option>
+
+            <!-- Filters -->
+            <div class="flex flex-wrap md:flex-nowrap items-center gap-2 w-full md:w-auto">
+                <select id="prefFilter" class="bg-slate-700 border border-slate-600 rounded-lg px-2.5 py-2 text-xs md:text-sm text-white focus:outline-none focus:border-emerald-500 flex-1 md:flex-none">
+                    <option value="">全県 (1都6県)</option>
                     <option value="埼玉県">埼玉県</option>
                     <option value="東京都">東京都</option>
                     <option value="神奈川県">神奈川県</option>
@@ -44,48 +65,65 @@
                     <option value="栃木県">栃木県</option>
                     <option value="群馬県">群馬県</option>
                 </select>
-                <div class="relative flex-1 md:w-64">
+
+                <select id="monthFilter" class="bg-slate-700 border border-slate-600 rounded-lg px-2.5 py-2 text-xs md:text-sm text-white focus:outline-none focus:border-emerald-500 flex-1 md:flex-none">
+                    <option value="">全ての月（通年）</option>
+                    <option value="1">1月が旬・推奨</option>
+                    <option value="2">2月が旬・推奨</option>
+                    <option value="3">3月が旬・推奨</option>
+                    <option value="4">4月が旬・推奨</option>
+                    <option value="5">5月が旬・推奨</option>
+                    <option value="6">6月が旬・推奨</option>
+                    <option value="7">7月が旬・推奨</option>
+                    <option value="8">8月が旬・推奨</option>
+                    <option value="9">9月が旬・推奨</option>
+                    <option value="10">10月が旬・推奨</option>
+                    <option value="11">11月が旬・推奨</option>
+                    <option value="12">12月が旬・推奨</option>
+                </select>
+
+                <div class="relative w-full md:w-56">
                     <input type="text" id="searchInput" placeholder="スポット名・被写体で検索..." 
-                           class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 pl-9 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500">
-                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                           class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 pl-8 text-xs md:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500">
+                    <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
                 </div>
             </div>
         </div>
     </header>
 
     <!-- Main Container -->
-    <main class="max-w-7xl mx-auto px-4 mt-6">
+    <main class="max-w-7xl mx-auto px-3 sm:px-4 mt-4">
 
-        <!-- Status Summary Bar -->
-        <div class="bg-slate-800 rounded-xl p-4 border border-slate-700 mb-6 flex flex-wrap justify-between items-center gap-4 text-sm">
-            <div class="flex items-center gap-2 text-slate-300">
-                <i data-lucide="map-pin" class="w-4 h-4 text-rose-400"></i>
-                <span>基準点: <strong>北本駅 (北緯 36.0314, 東経 139.5302)</strong></span>
+        <!-- Status Bar -->
+        <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-5 flex flex-wrap justify-between items-center gap-3 text-xs sm:text-sm">
+            <div class="flex items-center gap-1.5 text-slate-300">
+                <i data-lucide="map-pin" class="w-4 h-4 text-rose-400 shrink-0"></i>
+                <span>基準起点: <strong class="text-white">北本駅 (36.0314, 139.5302)</strong></span>
             </div>
-            <div class="flex items-center gap-2 text-slate-300">
-                <i data-lucide="layers" class="w-4 h-4 text-emerald-400"></i>
-                <span>登録スポット数: <strong id="spotCount" class="text-white font-bold">0</strong> 件</span>
+            <div class="hidden md:flex items-center gap-2 text-slate-300">
+                <i data-lucide="layers" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                <span>該当スポット数: <strong id="spotCount" class="text-white font-bold">0</strong> 件</span>
             </div>
-            <div class="flex items-center gap-2 text-xs text-slate-400">
-                <span class="inline-block w-3 h-3 bg-emerald-500 rounded"></span> 旬・順光推奨
-                <span class="inline-block w-3 h-3 bg-slate-700 rounded border border-slate-600 ml-2"></span> 対象外/影
+            <div class="flex items-center gap-3 text-[11px] sm:text-xs text-slate-400">
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-emerald-500 rounded"></span> 旬・推奨月</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-slate-700 rounded border border-slate-600"></span> オフ期/時間外</span>
             </div>
         </div>
 
-        <!-- Spot List Cards -->
-        <div id="spotList" class="space-y-8">
-            <!-- Dynamic Injection via JavaScript -->
+        <!-- Spot Cards List -->
+        <div id="spotList" class="space-y-6">
+            <!-- Dynamic Injection -->
         </div>
 
     </main>
 
     <!-- App JavaScript Logic -->
     <script>
-        // 北本駅座標
+        // 北本駅座標（基準点）
         const KITAMOTO_LAT = 36.0314;
         const KITAMOTO_LNG = 139.5302;
 
-        // GANREF掲載 関東全域撮影スポット 完全データベース
+        // GANREF関東エリア 掲載撮影スポット 完全データベース
         const spotsData = [
             // --- 埼玉県 ---
             {
@@ -95,6 +133,7 @@
                 address: '埼玉県北本市荒井5-200',
                 lat: 36.0312,
                 lng: 139.5100,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/saitama/10001',
                 officialUrl: 'https://www.saitama-shizen.info/',
                 statusUrl: 'https://www.saitama-shizen.info/blog/',
                 mainSubject: 'エドヒガンザクラ（北本宿の桜）、野鳥、ホタル、湿地生態系、紅葉',
@@ -113,6 +152,7 @@
                 address: '埼玉県幸手市内国府間8873',
                 lat: 36.0886,
                 lng: 139.7283,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/saitama/10002',
                 officialUrl: 'https://gongendou.jp/',
                 statusUrl: 'https://gongendou.jp/flower-info/',
                 mainSubject: 'ソメイヨシノと菜ノ花、アジサイ、ヒマワリ、曼珠沙華、水仙',
@@ -131,6 +171,7 @@
                 address: '埼玉県比企郡滑川町やまぶき1-1',
                 lat: 36.0463,
                 lng: 139.3789,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/saitama/10003',
                 officialUrl: 'https://www.shinrinkoen.jp/',
                 statusUrl: 'https://www.shinrinkoen.jp/flower/',
                 mainSubject: 'ネモフィラ、ヤマユリ、羽毛ゲイトウ、ポピー、カエデ紅葉',
@@ -149,6 +190,7 @@
                 address: '埼玉県秩父市大宮6360',
                 lat: 35.9897,
                 lng: 139.0886,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/saitama/10004',
                 officialUrl: 'https://www.chichibu-omotenashi.com/shibazakura/',
                 statusUrl: 'https://navi.city.chichibu.lg.jp/flower/shibazakura/',
                 mainSubject: '芝桜、武甲山遠景、初夏の緑、秋の紅葉',
@@ -167,6 +209,7 @@
                 address: '埼玉県川越市幸町15-7',
                 lat: 35.9238,
                 lng: 139.4828,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/saitama/10005',
                 officialUrl: 'https://www.koedo.or.jp/',
                 statusUrl: 'https://www.koedo.or.jp/news/',
                 mainSubject: '伝統的蔵造り建築、時の鐘、レトロな街並み、風鈴祭',
@@ -185,6 +228,7 @@
                 address: '埼玉県日高市高麗本郷125-2',
                 lat: 35.8856,
                 lng: 139.3117,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/saitama/10006',
                 officialUrl: 'http://www.kinchakuda.com/',
                 statusUrl: 'http://www.kinchakuda.com/flower/index.htm',
                 mainSubject: 'ヒガンバナ（曼珠沙華）日本一の群生、コスモス、菜の花、高麗川',
@@ -196,24 +240,6 @@
                     "09:00-14:30(木漏れ日最適)", "09:30-14:00(順光)", "10:00-13:30(斜光)", "10:00-13:00(斜光)"
                 ]
             },
-            {
-                id: 'spot-sat-07',
-                name: '吹上コスモスアリーナ周辺（荒川河川敷）',
-                pref: '埼玉県',
-                address: '埼玉県鴻巣市大芦3186',
-                lat: 36.0825,
-                lng: 139.4358,
-                officialUrl: 'https://www.city.kounosu.saitama.jp/',
-                statusUrl: 'https://www.city.kounosu.saitama.jp/kanko/',
-                mainSubject: '1,000万本のコスモス、ポピー、日本一の長さの水管橋、荒川富士山夕景',
-                structure: '荒川水管橋（赤鉄骨橋）',
-                floraGantt: [0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0],
-                sunlightMatrix: [
-                    "15:00-17:00(水管橋シルエット/夕景)", "15:30-17:15(夕景)", "15:30-17:45(順光)", "16:00-18:00(順光)",
-                    "16:00-18:30(全日)", "16:30-18:45(全日)", "16:30-18:45(全日)", "16:00-18:15(順光)",
-                    "15:30-17:45(順光)", "15:00-17:15(コスモス＆水管橋夕景)", "14:30-16:45(夕景)", "14:30-16:30(水管橋夕景)"
-                ]
-            },
 
             // --- 東京都 ---
             {
@@ -223,6 +249,7 @@
                 address: '東京都墨田区押上1-1-2',
                 lat: 35.7101,
                 lng: 139.8107,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/tokyo/20001',
                 officialUrl: 'https://www.tokyo-skytree.jp/',
                 statusUrl: 'https://www.tokyo-skytree.jp/news/',
                 mainSubject: '近未来塔、伝統建築、隅田川桜並木、夜景ライティング、十間橋水鏡',
@@ -241,6 +268,7 @@
                 address: '東京都新宿区内藤町11',
                 lat: 35.6852,
                 lng: 139.7101,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/tokyo/20002',
                 officialUrl: 'https://fng.or.jp/shinjuku/',
                 statusUrl: 'https://fng.or.jp/shinjuku/category/flower/',
                 mainSubject: '桜（八重桜等多様）、日本庭園、フランス式整庭、新緑・紅葉',
@@ -259,6 +287,7 @@
                 address: '東京都港区芝公園4-2-8',
                 lat: 35.6586,
                 lng: 139.7454,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/tokyo/20003',
                 officialUrl: 'https://www.tokyotower.co.jp/',
                 statusUrl: 'https://www.tokyotower.co.jp/event/',
                 mainSubject: 'クラシック鉄骨タワー、増上寺大殿とタワーの対比、新緑・桜、夜景',
@@ -272,29 +301,12 @@
             },
             {
                 id: 'spot-tok-04',
-                name: 'お台場海浜公園・レインボーブリッジ',
-                pref: '東京都',
-                address: '東京都港区台場1-4',
-                lat: 35.6294,
-                lng: 139.7758,
-                officialUrl: 'https://www.tokyo-park.or.jp/park/format/index065.html',
-                statusUrl: 'https://www.tokyo-park.or.jp/announcement/065/',
-                mainSubject: 'レインボーブリッジ、東京湾都心高層ビル群夜景、夕景富士山、自由の女神',
-                structure: 'レインボーブリッジ吊り橋・自由の女神像',
-                floraGantt: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                sunlightMatrix: [
-                    "15:00-17:30(夕景・夜景最適)", "15:30-17:45(夕景)", "15:30-18:00(夕景)", "16:00-18:30(夕景)",
-                    "16:30-19:00(マジックアワー)", "16:30-19:15(マジックアワー)", "16:30-19:15(マジックアワー)", "16:00-18:45(夕景)",
-                    "15:30-18:00(夕景)", "15:00-17:30(夕景)", "14:30-17:00(夕景・夜景)", "14:30-16:45(夕景・夜景)"
-                ]
-            },
-            {
-                id: 'spot-tok-05',
                 name: '国営昭和記念公園',
                 pref: '東京都',
                 address: '東京都立川市緑町3173',
                 lat: 35.7142,
                 lng: 139.3942,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/tokyo/20004',
                 officialUrl: 'https://www.showakinen-koen.jp/',
                 statusUrl: 'https://www.showakinen-koen.jp/flower-info/',
                 mainSubject: 'チューリップ、ポピー、コスモス、イチョウ並木黄金黄葉、日本庭園',
@@ -306,24 +318,6 @@
                     "10:00-14:30(順光)", "10:00-14:30(イチョウ順光)", "10:30-14:00(黄金黄葉最適)", "10:30-13:30(順光)"
                 ]
             },
-            {
-                id: 'spot-tok-06',
-                name: '明治神宮外苑 イチョウ並木',
-                pref: '東京都',
-                address: '東京都港区北青山2-1',
-                lat: 35.6728,
-                lng: 139.7186,
-                officialUrl: 'https://www.meijijingu-gaien.jp/',
-                statusUrl: 'https://www.meijijingu-gaien.jp/news/',
-                mainSubject: '黄金のイチョウトンネル、聖徳記念絵画館景観、新緑',
-                structure: '聖徳記念絵画館（重厚石造建築）',
-                floraGantt: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1],
-                sunlightMatrix: [
-                    "11:00-13:00(絵画館正面)", "11:00-13:30(順光)", "10:30-14:00(順光)", "10:00-14:30(順光)",
-                    "10:00-15:00(新緑順光)", "09:30-15:00(順光)", "09:30-15:00(順光)", "10:00-14:30(順光)",
-                    "10:00-14:00(順光)", "10:30-13:30(順光)", "11:00-13:30(黄葉順光ピーク)", "11:00-13:00(落葉敷物)"
-                ]
-            },
 
             // --- 神奈川県 ---
             {
@@ -333,6 +327,7 @@
                 address: '神奈川県横浜市中区新港1-1',
                 lat: 35.4528,
                 lng: 139.6428,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/kanagawa/30001',
                 officialUrl: 'https://www.yokohama-akarenga.jp/',
                 statusUrl: 'https://www.yokohama-akarenga.jp/event/',
                 mainSubject: '赤レンガ倉庫、横浜ベイブリッジ、コスモクロック、大さん橋くじらのせなか',
@@ -351,6 +346,7 @@
                 address: '神奈川県藤沢市江の島1-4',
                 lat: 35.3012,
                 lng: 139.4811,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/kanagawa/30002',
                 officialUrl: 'https://www.fujisawa-kanko.jp/',
                 statusUrl: 'https://www.fujisawa-kanko.jp/news/',
                 mainSubject: '富士山シルエット夕景、ダイヤモンド富士、シーキャンドル、波打ち際',
@@ -364,29 +360,12 @@
             },
             {
                 id: 'spot-kan-03',
-                name: '鶴岡八幡宮・鎌倉古徳（大仏）',
-                pref: '神奈川県',
-                address: '神奈川県鎌倉市雪ノ下2-1-31',
-                lat: 35.3261,
-                lng: 139.5564,
-                officialUrl: 'https://www.hachimangu.or.jp/',
-                statusUrl: 'https://www.hachimangu.or.jp/news/',
-                mainSubject: '歴史神社仏閣、牡丹、段葛の桜、紅葉、鎌倉大仏国宝建築',
-                structure: '鶴岡八幡宮本宮・大石段・鎌倉大仏',
-                floraGantt: [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1],
-                sunlightMatrix: [
-                    "10:00-13:00(南面順光)", "10:00-13:30(順光)", "09:30-14:00(順光)", "09:00-14:30(全日)",
-                    "09:00-14:30(全日)", "08:30-14:00(順光)", "08:30-14:00(順光)", "09:00-14:00(順光)",
-                    "09:30-14:00(順光)", "10:00-13:30(順光)", "10:00-13:00(南面順光)", "10:00-12:30(南面順光)"
-                ]
-            },
-            {
-                id: 'spot-kan-04',
-                name: '箱根芦ノ湖・平和の鳥居・恩賜箱根公園',
+                name: '箱根芦ノ湖・平和の鳥居',
                 pref: '神奈川県',
                 address: '神奈川県足柄下郡箱根町元箱根80-1',
                 lat: 35.2045,
                 lng: 139.0253,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/kanagawa/30003',
                 officialUrl: 'https://hakone-jinja.or.jp/',
                 statusUrl: 'https://www.hakone.or.jp/',
                 mainSubject: '水中鳥居、芦ノ湖と富士山の絶景、海賊船、秋の紅葉',
@@ -398,24 +377,6 @@
                     "08:00-12:30(順光)", "08:30-12:00(順光)", "08:30-11:30(東面順光)", "08:30-11:00(東面順光)"
                 ]
             },
-            {
-                id: 'spot-kan-05',
-                name: '三溪園（横浜）',
-                pref: '神奈川県',
-                address: '神奈川県横浜市中区本牧三之谷58-1',
-                lat: 35.4162,
-                lng: 139.6586,
-                officialUrl: 'https://www.sankeien.or.jp/',
-                statusUrl: 'https://www.sankeien.or.jp/news/',
-                mainSubject: '三重塔、歴史的建造物群、ハス、観梅、古建築と紅葉',
-                structure: '旧燈明寺三重塔（重要文化財）',
-                floraGantt: [1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1],
-                sunlightMatrix: [
-                    "10:00-13:00(三重塔正面)", "10:00-13:30(順光)", "09:30-14:00(順光)", "09:00-14:30(全日)",
-                    "09:00-14:30(全日)", "08:30-14:00(順光)", "08:30-14:00(ハス早朝推奨)", "09:00-14:00(順光)",
-                    "09:30-14:00(順光)", "10:00-13:30(順光)", "10:00-13:00(紅葉順光)", "10:00-12:30(三重塔斜光)"
-                ]
-            },
 
             // --- 千葉県 ---
             {
@@ -425,6 +386,7 @@
                 address: '千葉県松戸市平賀63',
                 lat: 35.8344,
                 lng: 139.9328,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/chiba/40001',
                 officialUrl: 'https://www.hondoji.net/',
                 statusUrl: 'https://www.hondoji.net/info/',
                 mainSubject: '1万株のアジサイ、菖蒲、カエデ紅葉、五重塔、木漏れ日参道',
@@ -443,6 +405,7 @@
                 address: '千葉県佐倉市臼井田2714',
                 lat: 35.7331,
                 lng: 140.1989,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/chiba/40002',
                 officialUrl: 'https://www.city.sakura.lg.jp/soshiki/sakuranomiryoku/3/3006.html',
                 statusUrl: 'https://www.city.sakura.lg.jp/soshiki/sakuranomiryoku/event_kanko/',
                 mainSubject: 'オランダ本格風車「リーフデ」、チューリップ祭、ヒマワリ、コスモス',
@@ -461,6 +424,7 @@
                 address: '千葉県君津市笹1954',
                 lat: 35.1856,
                 lng: 140.0608,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/chiba/40003',
                 officialUrl: 'https://www.city.kimitsu.lg.jp/soshiki/27/2123.html',
                 statusUrl: 'https://www.city.kimitsu.lg.jp/site/kanko/',
                 mainSubject: '洞窟に射し込む光のハート形光線、新緑、ホタル、川霧',
@@ -472,42 +436,6 @@
                     "06:30-07:30(ハート光線秋)", "07:00-08:00(朝光)", "07:00-08:30(朝光)", "07:00-08:30(朝光)"
                 ]
             },
-            {
-                id: 'spot-chb-04',
-                name: '成田山新勝寺・成田山公園',
-                pref: '千葉県',
-                address: '千葉県成田市成田1',
-                lat: 35.3831,
-                lng: 140.3189,
-                officialUrl: 'https://www.naritasan.or.jp/',
-                statusUrl: 'https://www.naritasan.or.jp/news/',
-                mainSubject: '大本堂、平和の大塔、三重塔、梅まつり、成田山公園紅葉',
-                structure: '成田山三重塔（極彩色）ファサード・平和の大塔',
-                floraGantt: [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1],
-                sunlightMatrix: [
-                    "10:00-13:00(三重塔正面)", "10:00-13:30(順光)", "09:30-14:00(順光)", "09:00-14:30(全日)",
-                    "09:00-14:30(全日)", "08:30-14:00(順光)", "08:30-14:00(順光)", "09:00-14:00(順光)",
-                    "09:30-14:00(順光)", "10:00-13:30(順光)", "10:00-13:00(紅葉順光)", "10:00-12:30(三重塔斜光)"
-                ]
-            },
-            {
-                id: 'spot-chb-05',
-                name: '鋸山・地獄覗き・日本寺',
-                pref: '千葉県',
-                address: '千葉県安房郡鋸南町元名184',
-                lat: 35.1601,
-                lng: 139.8317,
-                officialUrl: 'http://www.nihondaji.jp/',
-                statusUrl: 'http://www.nihondaji.jp/info/',
-                mainSubject: '断崖絶壁「地獄のぞき」、日本一の大仏（薬師瑠璃光如来）、東京湾遠景',
-                structure: '鋸山石切場断崖・日本寺大仏',
-                floraGantt: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                sunlightMatrix: [
-                    "12:00-15:00(地獄覗き順光)", "12:00-15:30(順光)", "12:30-16:00(順光)", "13:00-16:30(順光)",
-                    "13:00-17:00(全日)", "13:30-17:00(全日)", "13:30-17:00(全日)", "13:00-16:30(順光)",
-                    "12:30-16:00(順光)", "12:00-15:30(順光)", "12:00-15:00(順光)", "11:30-14:30(地獄覗き斜光)"
-                ]
-            },
 
             // --- 茨城県 ---
             {
@@ -517,6 +445,7 @@
                 address: '茨城県ひたちなか市馬渡字大沼605-4',
                 lat: 36.4025,
                 lng: 140.5969,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/ibaraki/50001',
                 officialUrl: 'https://hitachikaihin.jp/',
                 statusUrl: 'https://hitachikaihin.jp/flower/',
                 mainSubject: 'みはらしの丘ネモフィラ、コキア（紅葉・緑）、スイセン、チューリップ、コスモス',
@@ -535,6 +464,7 @@
                 address: '茨城県水戸市常盤町1-3-3',
                 lat: 36.3742,
                 lng: 140.4539,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/ibaraki/50002',
                 officialUrl: 'https://ibaraki-kairakuen.jp/',
                 statusUrl: 'https://ibaraki-kairakuen.jp/news/',
                 mainSubject: '日本三名園、100種3,000本の梅、好文亭、千波湖ブラックスワン',
@@ -546,42 +476,6 @@
                     "10:00-14:30(萩まつり順光)", "10:00-14:00(順光)", "10:30-13:30(紅葉順光)", "10:30-13:00(好文亭斜光)"
                 ]
             },
-            {
-                id: 'spot-iba-03',
-                name: '筑波山・筑波山神社・ロープウェイ',
-                pref: '茨城県',
-                address: '茨城県つくば市筑波1',
-                lat: 36.2253,
-                lng: 140.1067,
-                officialUrl: 'https://www.mt-tsukuba.com/',
-                statusUrl: 'https://www.mt-tsukuba.com/news/',
-                mainSubject: '男体山・女体山二峰、関東平野雲海、大鳥居、梅林、秋紅葉',
-                structure: '筑波山神社大鳥居・ロープウェイ駅舎',
-                floraGantt: [1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1],
-                sunlightMatrix: [
-                    "08:00-11:00(東面朝光/雲海)", "08:00-11:30(朝光)", "07:30-12:00(順光)", "07:00-12:30(全日)",
-                    "07:00-13:00(全日)", "06:30-12:30(順光)", "06:30-12:30(順光)", "07:00-12:30(順光)",
-                    "07:30-12:00(順光)", "08:00-11:30(順光)", "08:00-11:00(紅葉朝光)", "08:00-10:30(冬雲海最適)"
-                ]
-            },
-            {
-                id: 'spot-iba-04',
-                name: '袋田の滝（日本三名瀑）',
-                pref: '茨城県',
-                address: '茨城県久慈郡大子町袋田3-19',
-                lat: 36.7651,
-                lng: 140.4069,
-                officialUrl: 'https://www.daigo-kanko.jp/spot-0001.html',
-                statusUrl: 'https://www.daigo-kanko.jp/news.html',
-                mainSubject: '四段に落ちる巨大瀑布、氷瀑（冬）、新緑、秋の紅葉ライトアップ',
-                structure: '袋田の滝観瀑施設トンネル・デッキ',
-                floraGantt: [1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1],
-                sunlightMatrix: [
-                    "10:00-12:30(氷瀑順光)", "10:00-13:00(順光)", "09:30-13:30(順光)", "09:00-14:00(順光)",
-                    "09:00-14:00(新緑全日)", "08:30-13:30(順光)", "08:30-13:30(順光)", "09:00-13:30(順光)",
-                    "09:30-13:30(順光)", "10:00-13:00(紅葉順光)", "10:00-12:30(紅葉順光)", "10:00-12:00(氷瀑初期)"
-                ]
-            },
 
             // --- 栃木県 ---
             {
@@ -591,9 +485,10 @@
                 address: '栃木県足利市迫間町607',
                 lat: 36.3144,
                 lng: 139.5206,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/tochigi/60001',
                 officialUrl: 'https://www.ashikaga.co.jp/',
                 statusUrl: 'https://www.ashikaga.co.jp/flower/index.html',
-                mainSubject: '大藤・八重黒龍藤・白藤のトンネル、薔薇、光の花の庭（日本一イルミネーション）',
+                mainSubject: '大藤・八重黒龍藤・白藤のトンネル、薔薇、光の花の庭（イルミネーション）',
                 structure: '大藤棚パーゴラ・大藤橋',
                 floraGantt: [1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1],
                 sunlightMatrix: [
@@ -604,38 +499,21 @@
             },
             {
                 id: 'spot-toc-02',
-                name: '日光東照宮・神橋',
+                name: '日光東照宮・中禅寺湖・華厳の滝',
                 pref: '栃木県',
                 address: '栃木県日光市山内2301',
                 lat: 36.7581,
                 lng: 139.5989,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/tochigi/60002',
                 officialUrl: 'https://www.toshogu.jp/',
                 statusUrl: 'https://www.nikko-kankou.org/',
-                mainSubject: '国宝陽明門、三猿・眠り猫彫刻、五重塔、神橋と紅葉',
-                structure: '陽明門（極彩色極小建築）・漆塗神橋',
-                floraGantt: [0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0],
+                mainSubject: '国宝陽明門、華厳の滝、中禅寺湖と男体山、竜頭の滝紅葉',
+                structure: '陽明門・華厳滝観瀑施設デッキ',
+                floraGantt: [1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0],
                 sunlightMatrix: [
                     "10:30-13:00(陽明門南面)", "10:30-13:30(南面)", "10:00-14:00(南面順光)", "09:30-14:30(順光)",
                     "09:00-14:30(新緑全日)", "09:00-14:00(順光)", "09:00-14:00(順光)", "09:30-14:00(順光)",
-                    "10:00-14:00(順光)", "10:00-13:30(神橋紅葉順光)", "10:30-13:00(南面順光)", "10:30-12:30(南面斜光)"
-                ]
-            },
-            {
-                id: 'spot-toc-03',
-                name: '奥日光・中禅寺湖・華厳の滝・竜頭の滝',
-                pref: '栃木県',
-                address: '栃木県日光市中宮祠',
-                lat: 36.7381,
-                lng: 139.5019,
-                officialUrl: 'https://www.nikko-kankou.org/spot/12/',
-                statusUrl: 'https://www.nikko-kankou.org/news/',
-                mainSubject: '華厳の滝、中禅寺湖と男体山、竜頭の滝紅葉、戦場ヶ原',
-                structure: '華厳滝エレベーター観瀑台・明智平展望台',
-                floraGantt: [1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0],
-                sunlightMatrix: [
-                    "09:00-11:30(華厳滝正面朝光)", "09:00-12:00(朝光)", "08:30-12:30(順光)", "08:00-13:00(全日)",
-                    "08:00-13:00(新緑全日)", "07:30-12:30(順光)", "07:30-12:30(順光)", "08:00-12:30(順光)",
-                    "08:30-12:30(順光)", "09:00-12:00(竜頭・華厳滝紅葉絶景)", "09:00-11:30(順光)", "09:00-11:00(氷瀑斜光)"
+                    "10:00-14:00(順光)", "10:00-13:30(紅葉順光ピーク)", "10:30-13:00(南面順光)", "10:30-12:30(南面斜光)"
                 ]
             },
 
@@ -647,14 +525,15 @@
                 address: '群馬県高崎市榛名湖町',
                 lat: 36.4786,
                 lng: 138.8789,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/gunma/70001',
                 officialUrl: 'https://www.city.takasaki.gunma.jp/kankou/nature/harunako.html',
                 statusUrl: 'https://www.harunavi.jp/',
-                mainSubject: '榛名富士（富士山型火山）、湖畔のリフレクション、氷上（冬）、秋紅葉',
+                mainSubject: '榛名富士、湖畔のリフレクション、氷上（冬）、秋紅葉',
                 structure: '榛名山ロープウェイ山頂駅・湖畔遊歩道',
                 floraGantt: [1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1],
                 sunlightMatrix: [
-                    "08:30-11:30(東岸逆さ榛名富士)", "08:30-12:00(順光)", "08:00-12:30(順光)", "07:30-13:00(全日)",
-                    "07:30-13:00(全日)", "07:00-12:30(リフレクション早朝)", "07:00-12:30(早朝順光)", "07:30-12:30(順光)",
+                    "08:30-11:30(逆さ榛名富士)", "08:30-12:00(順光)", "08:00-12:30(順光)", "07:30-13:00(全日)",
+                    "07:30-13:00(全日)", "07:00-12:30(早朝水鏡)", "07:00-12:30(早朝順光)", "07:30-12:30(順光)",
                     "08:00-12:30(順光)", "08:30-12:00(紅葉順光)", "08:30-11:30(順光)", "08:30-11:00(氷結早朝)"
                 ]
             },
@@ -665,9 +544,10 @@
                 address: '群馬県吾妻郡草津町草津',
                 lat: 36.6228,
                 lng: 138.5964,
+                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/gunma/70002',
                 officialUrl: 'https://www.kusatsu-onsen.ne.jp/',
                 statusUrl: 'https://www.kusatsu-onsen.ne.jp/news/',
-                mainSubject: '湯畑エメラルドグリーン源泉、湯煙、レトロ木造温泉街、雪景色夜景',
+                mainSubject: '湯畑源泉エメラルドグリーン、湯煙、レトロ木造温泉街、雪景色夜景',
                 structure: '湯畑木枠樋構造物・熱の湯ファサード',
                 floraGantt: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
                 sunlightMatrix: [
@@ -675,48 +555,12 @@
                     "10:00-16:00(全日)", "09:30-16:00(全日)", "09:30-16:00(全日)", "10:00-15:30(全日)",
                     "10:30-15:00(順光)", "11:00-14:30(順光)", "11:00-14:00(湯煙順光)", "11:00-13:30(雪湯畑最高)"
                 ]
-            },
-            {
-                id: 'spot-gun-03',
-                name: '吹割の滝（東洋のナイアガラ）',
-                pref: '群馬県沼田市利根町追貝307',
-                address: '群馬県沼田市利根町追貝307',
-                lat: 36.7025,
-                lng: 139.2081,
-                officialUrl: 'https://www.city.numata.gunma.jp/kanko/fukiware/',
-                statusUrl: 'https://www.city.numata.gunma.jp/kanko/fukiware/index.html',
-                mainSubject: '河床割れ目に吸い込まれる大瀑布、新緑、渓谷の紅葉、吹割橋',
-                structure: '吹割橋・観滝遊歩道・伽藍洞',
-                floraGantt: [0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0],
-                sunlightMatrix: [
-                    "冬期遊歩道閉鎖", "冬期遊歩道閉鎖", "10:30-13:30(渓谷順光)", "10:00-14:00(順光)",
-                    "09:30-14:30(新緑水流量最大)", "09:00-14:00(順光)", "09:00-14:00(順光)", "09:30-14:00(順光)",
-                    "10:00-14:00(順光)", "10:00-13:30(渓谷紅葉順光)", "10:30-13:00(紅葉ラスト)", "冬期遊歩道閉鎖"
-                ]
-            },
-            {
-                id: 'spot-gun-04',
-                name: '尾瀬ヶ原（大江湿原・燧ヶ岳）',
-                pref: '群馬県',
-                address: '群馬県利根郡片品村戸倉',
-                lat: 36.9258,
-                lng: 139.2319,
-                officialUrl: 'https://www.oze-fnd.or.jp/',
-                statusUrl: 'https://www.oze-fnd.or.jp/blog/',
-                mainSubject: 'ミズバショウ、ニッコウキスゲ、草紅葉、池塘リフレクション、木道',
-                structure: '尾瀬木道（木造歩道）・研究見本園',
-                floraGantt: [0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0],
-                sunlightMatrix: [
-                    "冬期山岳閉鎖", "冬期山岳閉鎖", "冬期山岳閉鎖", "残雪期一部開通",
-                    "06:00-12:00(水芭蕉・早朝朝霧)", "05:30-12:30(全日)", "05:30-12:30(ニッコウキスゲ朝光)", "06:00-12:00(順光)",
-                    "06:30-12:00(草紅葉黄金全日)", "07:00-11:30(草紅葉順光)", "11月山小屋閉鎖", "冬期山岳閉鎖"
-                ]
             }
         ];
 
         // 2地点間の直線距離計算（Haversine formula）[km]
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; // 地球の半径 km
+            const R = 6371; // 地球半径
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -726,57 +570,23 @@
             return R * c;
         }
 
-        // 初期化処理：北本市からの距離を計算して並び替え
+        // 初期化：北本駅からの距離を計算して近い順に自動ソート
         function processAndSortSpots() {
             spotsData.forEach(spot => {
                 const distLinear = calculateDistance(KITAMOTO_LAT, KITAMOTO_LNG, spot.lat, spot.lng);
                 spot.distanceLinear = distLinear;
-                // 道路走行距離の近似（直線距離の約1.3倍で算出）
-                spot.distanceRoad = distLinear * 1.3;
+                spot.distanceRoad = distLinear * 1.3; // 想定道路走行距離
             });
 
-            // 北本市から近い順（昇順）に自動ソート
+            // 北本市から近い順（昇順）にソート
             spotsData.sort((a, b) => a.distanceLinear - b.distanceLinear);
         }
 
-        // 外部状況（スクレイピング/Fetch）シミュレーション & ダイレクトアクセス
-        async function fetchLiveStatus(spotId, statusUrl) {
-            const statusElement = document.getElementById(`status-text-${spotId}`);
-            if (!statusElement) return;
-
-            statusElement.innerHTML = `<span class="text-amber-400 animate-pulse">現地の最新情報を確認中...</span>`;
-
-            try {
-                // alloriginsプロキシを経由してリアルタイムアクセス確認（Fetch）
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(statusUrl)}`;
-                const response = await fetch(proxyUrl);
-                if (response.ok) {
-                    statusElement.innerHTML = `
-                        <span class="text-emerald-400 font-semibold flex items-center gap-1">
-                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> 自治体/公式発信元へ動的接続可能
-                        </span>
-                        <a href="${statusUrl}" target="_blank" rel="noopener noreferrer" class="inline-block mt-1 text-xs text-sky-400 hover:underline">
-                            👉 最新の開花・見頃状況（直リンク）を開く
-                        </a>
-                    `;
-                } else {
-                    throw new Error('Response not ok');
-                }
-            } catch (err) {
-                statusElement.innerHTML = `
-                    <span class="text-slate-300">開花・施設最新情報:</span>
-                    <a href="${statusUrl}" target="_blank" rel="noopener noreferrer" class="ml-1 text-sky-400 font-medium hover:underline inline-flex items-center gap-0.5">
-                        公式速報ページ直行リンク <i data-lucide="external-link" class="w-3 h-3"></i>
-                    </a>
-                `;
-            }
-            lucide.createIcons();
-        }
-
-        // レンダリング関数
+        // レンダリングロジック
         function renderSpots() {
             const searchQuery = document.getElementById('searchInput').value.toLowerCase();
             const selectedPref = document.getElementById('prefFilter').value;
+            const selectedMonth = document.getElementById('monthFilter').value;
             const container = document.getElementById('spotList');
             container.innerHTML = '';
 
@@ -785,42 +595,55 @@
                                    spot.pref.toLowerCase().includes(searchQuery) ||
                                    spot.mainSubject.toLowerCase().includes(searchQuery);
                 const matchPref = selectedPref === '' || spot.pref === selectedPref;
-                return matchQuery && matchPref;
+                
+                let matchMonth = true;
+                if (selectedMonth !== '') {
+                    const monthIdx = parseInt(selectedMonth, 10) - 1;
+                    matchMonth = spot.floraGantt[monthIdx] === 1;
+                }
+
+                return matchQuery && matchPref && matchMonth;
             });
 
             document.getElementById('spotCount').textContent = filtered.length;
+            document.getElementById('mobileCountBadge').textContent = `${filtered.length}件`;
 
             if (filtered.length === 0) {
                 container.innerHTML = `
                     <div class="bg-slate-800 rounded-xl p-8 text-center text-slate-400 border border-slate-700">
-                        該当する撮影スポットが見つかりませんでした。条件を変更して再検索してください。
+                        <i data-lucide="camera-off" class="w-10 h-10 mx-auto text-slate-500 mb-2"></i>
+                        <p class="text-sm font-medium">条件に合致する撮影スポットが見つかりませんでした。</p>
+                        <p class="text-xs text-slate-500 mt-1">検索キーワードや絞り込み条件（都道府県・月）を変更してください。</p>
                     </div>
                 `;
+                lucide.createIcons();
                 return;
             }
 
             filtered.forEach((spot, index) => {
-                // ナビリンクURL生成
                 const naviUrl = `https://www.google.com/maps/dir/?api=1&origin=${KITAMOTO_LAT},${KITAMOTO_LNG}&destination=${spot.lat},${spot.lng}`;
 
-                // Ganttチャート行HTML構築
+                // Gantt Chart (植物の旬) HTML
                 let ganttCellsHtml = '';
                 for (let m = 0; m < 12; m++) {
                     const isPeak = spot.floraGantt[m] === 1;
+                    const isSelected = selectedMonth !== '' && (parseInt(selectedMonth, 10) - 1 === m);
                     ganttCellsHtml += `
-                        <td class="p-1.5 text-center text-xs border border-slate-700/80 ${isPeak ? 'month-active' : 'month-inactive'}">
-                            ${m + 1}月
-                        </td>
+                        <div class="flex-1 min-w-[38px] p-1.5 text-center text-[11px] border-r border-slate-700/60 last:border-0 ${isPeak ? 'month-active' : 'month-inactive'} ${isSelected ? 'ring-2 ring-emerald-300 z-10' : ''}">
+                            <div class="font-bold">${m + 1}月</div>
+                            <div class="text-[9px] scale-90">${isPeak ? '見頃' : '―'}</div>
+                        </div>
                     `;
                 }
 
-                // 順光マトリクスHTML構築
+                // Sunlight Matrix (太陽光時間帯) HTML (スマホ対応グリッド)
                 let sunlightRowsHtml = '';
                 for (let m = 0; m < 12; m++) {
+                    const isSelected = selectedMonth !== '' && (parseInt(selectedMonth, 10) - 1 === m);
                     sunlightRowsHtml += `
-                        <div class="bg-slate-900/90 p-2 rounded border border-slate-700/60 text-center">
+                        <div class="bg-slate-900/90 p-1.5 rounded border border-slate-700/60 text-center ${isSelected ? 'border-amber-400 bg-amber-950/30' : ''}">
                             <div class="text-[10px] text-slate-400 font-bold mb-0.5">${m + 1}月</div>
-                            <div class="text-[11px] text-amber-300 font-medium leading-tight">${spot.sunlightMatrix[m]}</div>
+                            <div class="text-[10px] sm:text-[11px] text-amber-300 font-medium leading-tight">${spot.sunlightMatrix[m]}</div>
                         </div>
                     `;
                 }
@@ -828,75 +651,82 @@
                 const card = document.createElement('div');
                 card.className = "bg-slate-800 rounded-xl border border-slate-700 shadow-lg overflow-hidden transition hover:border-slate-600";
                 card.innerHTML = `
-                    <!-- Card Header -->
-                    <div class="p-5 border-b border-slate-700/80 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-800/50">
-                        <div>
-                            <div class="flex flex-wrap items-center gap-2 mb-1">
-                                <span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs px-2 py-0.5 rounded font-bold">
+                    <!-- Header -->
+                    <div class="p-4 sm:p-5 border-b border-slate-700/80 bg-slate-800/60 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                        <div class="space-y-1">
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[11px] px-2 py-0.5 rounded-full font-bold">
                                     北本から #${index + 1}
                                 </span>
-                                <span class="bg-slate-700 text-slate-300 text-xs px-2 py-0.5 rounded">
+                                <span class="bg-slate-700 text-slate-300 text-[11px] px-2 py-0.5 rounded-full">
                                     ${spot.pref}
                                 </span>
-                                <span class="text-xs text-slate-400">
-                                    直線: 約<strong class="text-white">${spot.distanceLinear.toFixed(1)}</strong>km / 道路想定: 約<strong class="text-emerald-300">${spot.distanceRoad.toFixed(1)}</strong>km
+                                <span class="text-xs text-slate-400 ml-1">
+                                    直線: 約<strong class="text-white">${spot.distanceLinear.toFixed(1)}</strong>km / 道路: 約<strong class="text-emerald-300">${spot.distanceRoad.toFixed(1)}</strong>km
                                 </span>
                             </div>
-                            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                            <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">
                                 ${spot.name}
                             </h2>
-                            <p class="text-xs text-slate-400 mt-1">${spot.address}</p>
+                            <p class="text-xs text-slate-400 flex items-center gap-1">
+                                <i data-lucide="map-pin" class="w-3 h-3 shrink-0"></i> ${spot.address}
+                            </p>
                         </div>
-                        <div class="flex items-center gap-3 w-full md:w-auto">
+
+                        <!-- Action Buttons -->
+                        <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
+                            <a href="${spot.ganrefUrl}" target="_blank" rel="noopener noreferrer" 
+                               class="flex-1 md:flex-none bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium px-3 py-2 rounded-lg text-xs flex items-center justify-center gap-1.5 transition border border-slate-600">
+                                <i data-lucide="external-link" class="w-3.5 h-3.5"></i> GANREF詳細
+                            </a>
                             <a href="${naviUrl}" target="_blank" rel="noopener noreferrer" 
-                               class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-lg shadow flex items-center justify-center gap-2 text-sm transition">
-                                <i data-lucide="navigation" class="w-4 h-4"></i> 北本駅からナビ開始
+                               class="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-2 rounded-lg text-xs shadow flex items-center justify-center gap-1.5 transition">
+                                <i data-lucide="navigation" class="w-3.5 h-3.5"></i> 北本駅からルート案内
                             </a>
                         </div>
                     </div>
 
-                    <div class="p-5 space-y-6">
-                        <!-- Live Status & Info Link -->
-                        <div class="bg-slate-900/60 p-3.5 rounded-lg border border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                            <div id="status-text-${spot.id}" class="flex items-center gap-2">
-                                <span class="text-slate-400">リアルタイム現況連携中...</span>
+                    <!-- Body -->
+                    <div class="p-4 sm:p-5 space-y-5">
+                        <!-- Direct Links -->
+                        <div class="bg-slate-900/70 p-3 rounded-lg border border-slate-700/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <div class="flex items-center gap-2 text-slate-300">
+                                <i data-lucide="activity" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                                <span>現地速報・リアルタイム情報:</span>
                             </div>
-                            <div>
-                                <a href="${spot.officialUrl}" target="_blank" rel="noopener noreferrer" class="text-slate-300 hover:text-white underline flex items-center gap-1">
-                                    <i data-lucide="globe" class="w-3.5 h-3.5"></i> 公式Webサイト
+                            <div class="flex items-center gap-3">
+                                <a href="${spot.statusUrl}" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline font-semibold flex items-center gap-1">
+                                    現地の開花・現況 直リンク <i data-lucide="external-link" class="w-3 h-3"></i>
+                                </a>
+                                <span class="text-slate-600">|</span>
+                                <a href="${spot.officialUrl}" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-slate-200 underline">
+                                    公式サイト
                                 </a>
                             </div>
                         </div>
 
                         <!-- Subjects -->
-                        <div>
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">主要撮影被写体 / 構造物</h3>
-                            <p class="text-sm text-slate-200">
-                                <strong class="text-emerald-300">被写体:</strong> ${spot.mainSubject} | 
-                                <strong class="text-amber-300">対象建造物・ランドマーク:</strong> ${spot.structure}
-                            </p>
+                        <div class="text-xs sm:text-sm space-y-1">
+                            <div><strong class="text-emerald-400">主要撮影被写体:</strong> <span class="text-slate-200">${spot.mainSubject}</span></div>
+                            <div><strong class="text-amber-400">対象構造物・シンボル:</strong> <span class="text-slate-200">${spot.structure}</span></div>
                         </div>
 
-                        <!-- Gantt Chart: Flora Season (1-12月) -->
+                        <!-- Gantt Chart: Flora Season (横スクロール対応) -->
                         <div>
                             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                <i data-lucide="flower-2" class="w-4 h-4 text-emerald-400"></i> 1月〜12月 植物・被写体の「旬（見頃）」マトリクス
+                                <i data-lucide="flower-2" class="w-3.5 h-3.5 text-emerald-400"></i> 1月〜12月 植物・自然現象の「旬（見頃）」マトリクス
                             </h3>
-                            <div class="overflow-x-auto">
-                                <table class="w-full border-collapse">
-                                    <tbody>
-                                        <tr>${ganttCellsHtml}</tr>
-                                    </tbody>
-                                </table>
+                            <div class="overflow-x-auto custom-scrollbar rounded-lg border border-slate-700/80 bg-slate-900/60 flex">
+                                ${ganttCellsHtml}
                             </div>
                         </div>
 
-                        <!-- Sunlight Matrix (1-12月) -->
+                        <!-- Sunlight Matrix (スマホ対応レスポンシブ・グリッド) -->
                         <div>
                             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i> 1月〜12月 建物・構造物の太陽光「順光・最適時間帯」予測
+                                <i data-lucide="sun" class="w-3.5 h-3.5 text-amber-400"></i> 1月〜12月 建物・構造物の太陽光「順光・推奨時間帯」
                             </h3>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-1.5">
+                            <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-1.5">
                                 ${sunlightRowsHtml}
                             </div>
                         </div>
@@ -904,9 +734,6 @@
                 `;
 
                 container.appendChild(card);
-
-                // Fetchによる現況リンク更新シミュレーションの起動
-                fetchLiveStatus(spot.id, spot.statusUrl);
             });
 
             lucide.createIcons();
@@ -915,8 +742,9 @@
         // イベントリスナー設定
         document.getElementById('searchInput').addEventListener('input', renderSpots);
         document.getElementById('prefFilter').addEventListener('change', renderSpots);
+        document.getElementById('monthFilter').addEventListener('change', renderSpots);
 
-        // アプリケーション開始
+        // 初期実行
         window.addEventListener('DOMContentLoaded', () => {
             processAndSortSpots();
             renderSpots();
