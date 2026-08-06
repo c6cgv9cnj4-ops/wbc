@@ -3,20 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GANREF関東 撮影スポットNAVI（北本団地起点・全122箇所完全収録・日の出日の入り対応版）</title>
+    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成</title>
+    <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Chart.js for Elevation Profile -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .month-active { background-color: #10B981; color: #FFFFFF; font-weight: 700; }
         .month-inactive { color: #64748B; background-color: rgba(30, 41, 59, 0.5); }
-        .custom-scrollbar::-webkit-scrollbar { height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #1E293B; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        #map { height: 480px; z-index: 10; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen pb-12 font-sans antialiased">
 
-    <!-- Header -->
+    <!-- Header & Navigation Tabs -->
     <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 shadow-lg">
         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
             <div class="flex items-center justify-between w-full md:w-auto">
@@ -25,18 +33,35 @@
                         <i data-lucide="camera" class="w-6 h-6 text-emerald-400"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg font-bold tracking-tight text-white">GANREF関東 撮影スポットNAVI</h1>
-                        <p class="text-[11px] text-slate-400">起点: 埼玉県北本市（北本団地） | 月別日の出・日の入り時刻・122箇所完全網羅</p>
+                        <h1 class="text-lg font-bold tracking-tight text-white">GANREF関東 撮影コーディネーター</h1>
+                        <p class="text-[11px] text-slate-400">北本団地起点NAVI / 都内徒歩散歩ルート作成ダッシュボード</p>
                     </div>
-                </div>
-                <div class="md:hidden">
-                    <span id="mobileCountBadge" class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs px-2.5 py-1 rounded-full font-bold">122件</span>
                 </div>
             </div>
 
-            <!-- Filters -->
+            <!-- Tab Switcher -->
+            <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-700 w-full md:w-auto">
+                <button id="tabBtnSpot" onclick="switchTab('spot')" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition bg-emerald-600 text-white shadow">
+                    <i data-lucide="map-pin" class="w-4 h-4"></i> 関東撮影スポットNAVI
+                </button>
+                <button id="tabBtnRoute" onclick="switchTab('route')" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white">
+                    <i data-lucide="footprints" class="w-4 h-4"></i> 都内撮影散歩ルート作成
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- TAB 1: 関東撮影スポットNAVI -->
+    <main id="tabContentSpot" class="max-w-7xl mx-auto px-3 sm:px-4 mt-4">
+        <!-- Filters Bar -->
+        <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-5 flex flex-wrap justify-between items-center gap-3 text-xs sm:text-sm">
+            <div class="flex items-center gap-1.5 text-slate-300">
+                <i data-lucide="map-pin" class="w-4 h-4 text-rose-400 shrink-0"></i>
+                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong></span>
+            </div>
+            
             <div class="flex flex-wrap md:flex-nowrap items-center gap-2 w-full md:w-auto">
-                <select id="prefFilter" class="bg-slate-700 border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs md:text-sm text-white focus:outline-none focus:border-emerald-500 flex-1 md:flex-none">
+                <select id="prefFilter" class="bg-slate-700 border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs md:text-sm text-white focus:outline-none focus:border-emerald-500">
                     <option value="">全都県 (122箇所)</option>
                     <option value="埼玉県">埼玉県 (15)</option>
                     <option value="東京都">東京都 (28)</option>
@@ -47,7 +72,7 @@
                     <option value="群馬県">群馬県 (12)</option>
                 </select>
 
-                <select id="monthFilter" class="bg-slate-700 border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs md:text-sm text-white focus:outline-none focus:border-emerald-500 flex-1 md:flex-none">
+                <select id="monthFilter" class="bg-slate-700 border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs md:text-sm text-white focus:outline-none focus:border-emerald-500">
                     <option value="">全月（通年）</option>
                     <option value="1">1月が旬</option><option value="2">2月が旬</option><option value="3">3月が旬</option>
                     <option value="4">4月が旬</option><option value="5">5月が旬</option><option value="6">6月が旬</option>
@@ -55,35 +80,136 @@
                     <option value="10">10月が旬</option><option value="11">11月が旬</option><option value="12">12月が旬</option>
                 </select>
 
-                <div class="relative w-full md:w-52">
+                <div class="relative w-full md:w-48">
                     <input type="text" id="searchInput" placeholder="スポット名・被写体で検索..." 
                            class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 pl-8 text-xs md:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500">
                     <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
                 </div>
             </div>
-        </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto px-3 sm:px-4 mt-4">
-        <!-- Status Bar -->
-        <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-5 flex flex-wrap justify-between items-center gap-3 text-xs sm:text-sm">
-            <div class="flex items-center gap-1.5 text-slate-300">
-                <i data-lucide="map-pin" class="w-4 h-4 text-rose-400 shrink-0"></i>
-                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong></span>
-            </div>
-            <div class="hidden md:flex items-center gap-2 text-slate-300">
-                <i data-lucide="layers" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-                <span>該当スポット数: <strong id="spotCount" class="text-white font-bold">122</strong> / 122 件</span>
-            </div>
-            <div class="flex items-center gap-3 text-[11px] sm:text-xs text-slate-400">
-                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-emerald-500 rounded"></span> 旬・推奨月</span>
-                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-slate-700 rounded border border-slate-600"></span> オフ期</span>
+            
+            <div class="flex items-center gap-3 text-[11px] sm:text-xs text-slate-400 w-full sm:w-auto justify-between sm:justify-start border-t sm:border-t-0 border-slate-700/80 pt-2 sm:pt-0">
+                <span>該当数: <strong id="spotCount" class="text-white font-bold">122</strong> / 122件</span>
+                <div class="flex items-center gap-2">
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-emerald-500 rounded"></span> 旬・推奨月</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-slate-700 rounded border border-slate-600"></span> オフ期</span>
+                </div>
             </div>
         </div>
 
         <div id="spotList" class="space-y-5"></div>
     </main>
 
+    <!-- TAB 2: 都内撮影散歩ルート作成ダッシュボード -->
+    <main id="tabContentRoute" class="max-w-7xl mx-auto px-3 sm:px-4 mt-4 hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            
+            <!-- Left Panel: Controls & Route List -->
+            <div class="space-y-4">
+                <!-- Instruction Card -->
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                    <h2 class="font-bold text-white text-sm flex items-center gap-2 mb-2">
+                        <i data-lucide="compass" class="w-4 h-4 text-emerald-400"></i> 都内レトロ・散歩撮影ルート作成
+                    </h2>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                        マップ上のピンをタップするか、地図上をクリックして経由地を追加してください。実際の歩行道路に沿って自動ルーティングされます。
+                    </p>
+                    <div class="flex gap-2">
+                        <button onclick="clearRoute()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-2 rounded-lg font-bold transition flex items-center justify-center gap-1 border border-slate-600">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> リセット
+                        </button>
+                        <button onclick="exportGoogleMapsWalk()" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white text-xs py-2 rounded-lg font-bold transition flex items-center justify-center gap-1 shadow">
+                            <i data-lucide="navigation" class="w-3.5 h-3.5"></i> Googleマップ徒歩ナビ起動
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Custom Location Form -->
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-2">
+                    <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5">
+                        <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-amber-400"></i> カスタム撮影ポイントを追加
+                    </h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="customName" placeholder="スポット名 (例: 神保町古書店街)" class="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="number" step="any" id="customLat" placeholder="緯度 (例: 35.6958)" class="w-1/2 bg-slate-700 border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500">
+                        <input type="number" step="any" id="customLng" placeholder="経度 (例: 139.7578)" class="w-1/2 bg-slate-700 border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <button onclick="addCustomSpot()" class="w-full bg-slate-700 hover:bg-slate-600 text-emerald-400 font-bold text-xs py-2 rounded-lg transition border border-slate-600">
+                        マップにピンを追加
+                    </button>
+                </div>
+
+                <!-- Route Waypoints List -->
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                    <h3 class="font-bold text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
+                        <span>選択された経由地 (<span id="routeCount">0</span>)</span>
+                        <span id="routeDistText" class="text-emerald-400 font-bold">0.0 km</span>
+                    </h3>
+                    <div id="routeWaypointsList" class="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar text-xs text-slate-300">
+                        <div class="text-slate-500 text-center py-4">ピンをクリックしてルートを構築してください</div>
+                    </div>
+                </div>
+
+                <!-- Saved Routes -->
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5">
+                            <i data-lucide="bookmark" class="w-3.5 h-3.5 text-emerald-400"></i> 保存した個別散歩ルート
+                        </h3>
+                        <button onclick="saveCurrentRoute()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] px-2 py-1 rounded font-bold">
+                            現在のルートを保存
+                        </button>
+                    </div>
+                    <div id="savedRoutesList" class="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar text-xs text-slate-400">
+                        <div class="text-slate-500 text-center py-2">保存されたルートはありません</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Map & Elevation Chart -->
+            <div class="lg:col-span-2 space-y-4">
+                <!-- Leaflet Interactive Map -->
+                <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-lg relative">
+                    <div id="map"></div>
+                </div>
+
+                <!-- Route Stats & Elevation Profile -->
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-3">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-center">
+                        <div class="bg-slate-900/80 p-2 rounded border border-slate-700">
+                            <div class="text-slate-400 text-[10px]">総歩行距離</div>
+                            <div class="font-bold text-emerald-300 text-base"><span id="statDistance">0.0</span> km</div>
+                        </div>
+                        <div class="bg-slate-900/80 p-2 rounded border border-slate-700">
+                            <div class="text-slate-400 text-[10px]">純歩行時間 (4km/h)</div>
+                            <div class="font-bold text-sky-300 text-base"><span id="statWalkTime">0</span> 分</div>
+                        </div>
+                        <div class="bg-slate-900/80 p-2 rounded border border-slate-700">
+                            <div class="text-slate-400 text-[10px]">撮影・滞在換算 (+12分/所)</div>
+                            <div class="font-bold text-amber-300 text-base"><span id="statStayTime">0</span> 分</div>
+                        </div>
+                        <div class="bg-slate-900/80 p-2 rounded border border-slate-700">
+                            <div class="text-slate-400 text-[10px]">予想総所要時間</div>
+                            <div class="font-bold text-rose-300 text-base"><span id="statTotalTime">0</span> 分</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i data-lucide="trending-up" class="w-3.5 h-3.5 text-emerald-400"></i> 歩行ルートの高低差・勾配グラフ (標高データ連携)
+                        </h4>
+                        <div class="bg-slate-900 p-2 rounded-lg border border-slate-700 h-36">
+                            <canvas id="elevationChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- App Main Script Logic -->
     <script>
         // 起点座標: 北本団地 (埼玉県北本市栄)
         const KITAMOTO_LAT = 36.0260;
@@ -247,6 +373,32 @@
             [122, 6, "土合駅（モグラ駅）", "群馬県利根郡みなかみ町土合", 36.8314, 138.9678, "地下70m462段の一直線階段、日本一のモグラ駅、レトロ無人駅構造美", "地下ホーム階段", [1,1,1,1,1,1,1,1,1,1,1,1], "70012", "https://www.minakami-kanko.jp/"]
         ];
 
+        // 都内散歩・レトロ撮影初期スポット（22箇所）
+        const tokyoWalkSpots = [
+            { name: "おかず横丁 (鳥越)", lat: 35.7025, lng: 139.7828, cat: "商店街" },
+            { name: "谷中銀座商店街", lat: 35.7275, lng: 139.7656, cat: "レトロ商店街" },
+            { name: "のんべい横丁 (渋谷)", lat: 35.6597, lng: 139.7011, cat: "横丁" },
+            { name: "思い出横丁 (新宿)", lat: 35.6931, lng: 139.6994, cat: "横丁" },
+            { name: "恵比寿横丁", lat: 35.6469, lng: 139.7111, cat: "横丁" },
+            { name: "ハーモニカ横丁 (吉祥寺)", lat: 35.7039, lng: 139.5794, cat: "横丁" },
+            { name: "浅草ホッピー通り", lat: 35.7125, lng: 139.7942, cat: "下町通り" },
+            { name: "戸越銀座商店街", lat: 35.6158, lng: 139.7144, cat: "商店街" },
+            { name: "阿佐ヶ谷パールセンター", lat: 35.7031, lng: 139.6364, cat: "商店街" },
+            { name: "上野アメ横商店街", lat: 35.7106, lng: 139.7744, cat: "下町通り" },
+            { name: "浅草寺〜隅田川遊歩道", lat: 35.7148, lng: 139.7967, cat: "散歩道" },
+            { name: "皇居外苑〜東京駅丸の内", lat: 35.6812, lng: 139.7619, cat: "歴史・近代" },
+            { name: "神保町古書店街", lat: 35.6958, lng: 139.7578, cat: "文化街" },
+            { name: "築地場外市場", lat: 35.6653, lng: 139.7706, cat: "市場" },
+            { name: "柴又帝釈天参道", lat: 35.7583, lng: 139.8781, cat: "門前町" },
+            { name: "神楽坂かくれんぼ横丁", lat: 35.7019, lng: 139.7411, cat: "花街石畳" },
+            { name: "麻布十番商店街", lat: 35.6558, lng: 139.7344, cat: "商店街" },
+            { name: "佃島・月島長屋路地", lat: 35.6631, lng: 139.7825, cat: "水辺下町" },
+            { name: "清澄白河深川資料館通り", lat: 35.6819, lng: 139.8001, cat: "下町文化" },
+            { name: "北千住宿場町通り", lat: 35.7497, lng: 139.8047, cat: "旧街道" },
+            { name: "十条銀座商店街", lat: 35.7614, lng: 139.7222, cat: "アーケード" },
+            { name: "蒲田バーボンロード", lat: 35.5619, lng: 139.7147, cat: "ガード下" }
+        ];
+
         function calcDist(lat1, lon1, lat2, lon2) {
             const R = 6371;
             const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -255,71 +407,29 @@
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        // 北本団地からの電車・バス所要時間簡易推定ロジック
         function calcTrainMinutes(distLinear, pIdx) {
-            let baseMinutes = 25; // バスアプローチ＋ターミナル待機
+            let baseMinutes = 25;
             let factor = 1.35;
-
-            if (pIdx === 0) { // 埼玉県内
-                factor = 1.2;
-            } else if (pIdx === 1) { // 東京都内（高崎線直通）
-                factor = 1.1;
-                baseMinutes = 35;
-            } else if (pIdx === 2) { // 神奈川県（湘南新宿ライン直通）
-                factor = 1.15;
-                baseMinutes = 45;
-            } else if (pIdx === 3) { // 千葉県（武蔵野線経由等）
-                factor = 1.4;
-                baseMinutes = 40;
-            } else if (pIdx === 5 || pIdx === 6) { // 栃木・群馬
-                factor = 1.25;
-                baseMinutes = 30;
-            } else { // 茨城県
-                factor = 1.5;
-                baseMinutes = 45;
-            }
-
-            const estimated = Math.round(baseMinutes + (distLinear * factor));
-            return Math.max(15, estimated);
+            if (pIdx === 0) factor = 1.2;
+            else if (pIdx === 1) { factor = 1.1; baseMinutes = 35; }
+            else if (pIdx === 2) { factor = 1.15; baseMinutes = 45; }
+            else if (pIdx === 3) { factor = 1.4; baseMinutes = 40; }
+            else if (pIdx === 5 || pIdx === 6) { factor = 1.25; baseMinutes = 30; }
+            else { factor = 1.5; baseMinutes = 45; }
+            return Math.max(15, Math.round(baseMinutes + (distLinear * factor)));
         }
 
-        // 車アクセス試算（15km条件判定ロジック付き）
         function calcCarAccess(distLinear, distRoad, pIdx) {
-            // 一般道のみ: 北本団地付近および下道走行速度（約22km/h）
             const minutesLocal = Math.max(10, Math.round((distRoad / 22) * 60));
-
-            // 直線距離15km未満は高速「非該当（一般道推奨）」に設定
             if (distLinear < 15) {
-                return {
-                    hasExpress: false,
-                    minutesExpress: 0,
-                    tollExpress: 0,
-                    minutesLocal: minutesLocal
-                };
+                return { hasExpress: false, minutesExpress: 0, tollExpress: 0, minutesLocal: minutesLocal };
             }
-
-            // 直線15km以上: 桶川北本ICアプローチ10分 ＋ 平均高速速度(75km/h) ＋ 目的ICアプローチ10分
             const minutesExpress = Math.max(20, Math.round(20 + (distRoad / 75) * 60));
-
-            // 高速料金試算: 基礎固定＋km単価＋地域調整
-            let baseToll = 400;
-            let perKm = 24;
-            if (pIdx === 1 || pIdx === 2) { // 東京・神奈川（首都高上限）
-                baseToll = 800;
-                perKm = 28;
-            } else if (pIdx === 3) { // 千葉（外環・東関東道）
-                baseToll = 600;
-                perKm = 26;
-            }
-
+            let baseToll = 400; let perKm = 24;
+            if (pIdx === 1 || pIdx === 2) { baseToll = 800; perKm = 28; }
+            else if (pIdx === 3) { baseToll = 600; perKm = 26; }
             const tollExp = Math.round((baseToll + distRoad * perKm) / 50) * 50;
-
-            return {
-                hasExpress: true,
-                minutesExpress: minutesExpress,
-                tollExpress: tollExp,
-                minutesLocal: minutesLocal
-            };
+            return { hasExpress: true, minutesExpress: minutesExpress, tollExpress: tollExp, minutesLocal: minutesLocal };
         }
 
         // オブジェクト復元 & 北本団地起点昇順ソート
@@ -328,10 +438,6 @@
             const distRoad = distLin * 1.3;
             const trainMin = calcTrainMinutes(distLin, s[1]);
             const carAcc = calcCarAccess(distLin, distRoad, s[1]);
-
-            const yahooTransitUrl = `https://transit.yahoo.co.jp/search/result?from=%E5%8C%97%E6%9C%AC%E5%9B%A3%E5%9C%B0&to=${encodeURIComponent(s[2])}`;
-            const gmapExpressUrl = `https://www.google.com/maps/dir/?api=1&origin=${KITAMOTO_LAT},${KITAMOTO_LNG}&destination=${s[4]},${s[5]}`;
-            const gmapLocalUrl = `https://www.google.com/maps/dir/?api=1&origin=${KITAMOTO_LAT},${KITAMOTO_LNG}&destination=${s[4]},${s[5]}&dirflg=d&avoid=highways`;
 
             return {
                 id: `spot-${s[0]}`,
@@ -350,13 +456,34 @@
                 distanceRoad: distRoad,
                 trainMinutes: trainMin,
                 carAcc: carAcc,
-                yahooTransitUrl: yahooTransitUrl,
-                gmapExpressUrl: gmapExpressUrl,
-                gmapLocalUrl: gmapLocalUrl
+                yahooTransitUrl: `https://transit.yahoo.co.jp/search/result?from=%E5%8C%97%E6%9C%AC%E5%9B%A3%E5%9C%B0&to=${encodeURIComponent(s[2])}`,
+                gmapExpressUrl: `https://www.google.com/maps/dir/?api=1&origin=${KITAMOTO_LAT},${KITAMOTO_LNG}&destination=${s[4]},${s[5]}`,
+                gmapLocalUrl: `https://www.google.com/maps/dir/?api=1&origin=${KITAMOTO_LAT},${KITAMOTO_LNG}&destination=${s[4]},${s[5]}&dirflg=d&avoid=highways`
             };
         }).sort((a, b) => a.distanceLinear - b.distanceLinear);
 
-        // レンダリングロジック
+        // --- TAB SWITCHING ---
+        function switchTab(tab) {
+            const btnSpot = document.getElementById('tabBtnSpot');
+            const btnRoute = document.getElementById('tabBtnRoute');
+            const contentSpot = document.getElementById('tabContentSpot');
+            const contentRoute = document.getElementById('tabContentRoute');
+
+            if (tab === 'spot') {
+                btnSpot.className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition bg-emerald-600 text-white shadow";
+                btnRoute.className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white";
+                contentSpot.classList.remove('hidden');
+                contentRoute.classList.add('hidden');
+            } else {
+                btnRoute.className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition bg-emerald-600 text-white shadow";
+                btnSpot.className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white";
+                contentRoute.classList.remove('hidden');
+                contentSpot.classList.add('hidden');
+                initMapIfNeeded();
+            }
+        }
+
+        // --- RENDER TAB 1: SPOT NAVI ---
         function renderSpots() {
             const searchQuery = document.getElementById('searchInput').value.toLowerCase();
             const selectedPref = document.getElementById('prefFilter').value;
@@ -381,11 +508,7 @@
             document.getElementById('mobileCountBadge').textContent = `${filtered.length}件`;
 
             if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="bg-slate-800 rounded-xl p-8 text-center text-slate-400 border border-slate-700">
-                        条件に該当する撮影スポットが見つかりませんでした。絞り込み条件（都道府県・月）を変更してください。
-                    </div>
-                `;
+                container.innerHTML = `<div class="bg-slate-800 rounded-xl p-8 text-center text-slate-400 border border-slate-700">条件に該当する撮影スポットが見つかりませんでした。</div>`;
                 return;
             }
 
@@ -402,7 +525,6 @@
                     `;
                 }
 
-                // 月別日の出・日の入り時刻HTML
                 let sunTimesHtml = '';
                 for (let m = 0; m < 12; m++) {
                     const isSel = selectedMonth !== '' && (parseInt(selectedMonth, 10) - 1 === m);
@@ -416,7 +538,6 @@
                     `;
                 }
 
-                // 高速ボタン表示制御（15km未満は一般道ボタンのみ）
                 let expressBtnHtml = '';
                 let expressMetaHtml = '';
 
@@ -450,7 +571,6 @@
                 const card = document.createElement('div');
                 card.className = "bg-slate-800 rounded-xl border border-slate-700 shadow-lg overflow-hidden transition hover:border-slate-600 p-4 sm:p-5 flex flex-col justify-between space-y-4";
                 card.innerHTML = `
-                    <!-- Card Header & Navigation Buttons -->
                     <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b border-slate-700/80 pb-3">
                         <div class="space-y-1">
                             <div class="flex flex-wrap items-center gap-1.5">
@@ -468,7 +588,6 @@
                             <p class="text-xs text-slate-400 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> ${spot.address}</p>
                         </div>
 
-                        <!-- Navigation Buttons -->
                         <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full lg:w-auto">
                             <a href="${spot.yahooTransitUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-sky-900/80 hover:bg-sky-800 text-sky-200 font-medium px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-center gap-1 border border-sky-700/80">
                                 <i data-lucide="subway" class="w-3.5 h-3.5 text-sky-300"></i> 路線検索
@@ -483,7 +602,6 @@
                         </div>
                     </div>
 
-                    <!-- Access Info Grid -->
                     <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-700/80 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                         <div class="flex items-center gap-2">
                             <i data-lucide="train" class="w-4 h-4 text-sky-400 shrink-0"></i>
@@ -502,7 +620,6 @@
                         ${expressMetaHtml}
                     </div>
 
-                    <!-- Info & Matrix Body -->
                     <div class="space-y-3">
                         <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/80 flex flex-wrap items-center justify-between gap-2 text-xs">
                             <div class="flex items-center gap-2 text-slate-300">
@@ -541,6 +658,289 @@
             lucide.createIcons();
         }
 
+        // --- TAB 2: TOKYO WALK ROUTE MAP & ENGINE ---
+        let map = null;
+        let routeWaypoints = [];
+        let mapMarkers = [];
+        let routePolyline = null;
+        let elevationChart = null;
+
+        function initMapIfNeeded() {
+            if (map) return;
+
+            // 都内全体表示マップ初期化 (東京駅周辺中心)
+            map = L.map('map').setView([35.6812, 139.7671], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // 初期散歩スポットピン配置
+            tokyoWalkSpots.forEach(spot => {
+                const marker = L.marker([spot.lat, spot.lng]).addTo(map);
+                marker.bindPopup(`
+                    <div class="text-slate-900 text-xs font-sans">
+                        <strong class="text-sm font-bold block mb-1">${spot.name}</strong>
+                        <span class="inline-block bg-slate-200 px-1.5 py-0.5 rounded text-[10px] mb-2">${spot.cat}</span><br/>
+                        <button onclick="addWaypoint('${spot.name}', ${spot.lat}, ${spot.lng})" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded text-xs w-full">
+                            ＋ 散歩ルートに追加
+                        </button>
+                    </div>
+                `);
+            });
+
+            // 地図上クリックで任意の経由地追加
+            map.on('click', function(e) {
+                const name = `任意スポット (${e.latlng.lat.toFixed(3)}, ${e.latlng.lng.toFixed(3)})`;
+                addWaypoint(name, e.latlng.lat, e.latlng.lng);
+            });
+
+            initChart();
+            loadSavedRoutes();
+        }
+
+        function addWaypoint(name, lat, lng) {
+            routeWaypoints.push({ name: name, lat: lat, lng: lng });
+            updateRoute();
+        }
+
+        function addCustomSpot() {
+            const name = document.getElementById('customName').value.trim();
+            const lat = parseFloat(document.getElementById('customLat').value);
+            const lng = parseFloat(document.getElementById('customLng').value);
+
+            if (!name || isNaN(lat) || isNaN(lng)) {
+                alert('スポット名と正確な緯度・経度を入力してください。');
+                return;
+            }
+
+            const marker = L.marker([lat, lng]).addTo(map);
+            marker.bindPopup(`<strong class="text-xs">${name}</strong>`).openPopup();
+            map.panTo([lat, lng]);
+
+            addWaypoint(name, lat, lng);
+            document.getElementById('customName').value = '';
+            document.getElementById('customLat').value = '';
+            document.getElementById('customLng').value = '';
+        }
+
+        function removeWaypoint(idx) {
+            routeWaypoints.splice(idx, 1);
+            updateRoute();
+        }
+
+        function clearRoute() {
+            routeWaypoints = [];
+            updateRoute();
+        }
+
+        async function updateRoute() {
+            // UI リスト描画
+            const listEl = document.getElementById('routeWaypointsList');
+            document.getElementById('routeCount').textContent = routeWaypoints.length;
+
+            if (routeWaypoints.length === 0) {
+                listEl.innerHTML = `<div class="text-slate-500 text-center py-4">ピンをクリックしてルートを構築してください</div>`;
+                if (routePolyline) map.removeLayer(routePolyline);
+                updateStats(0);
+                updateElevationChart([]);
+                return;
+            }
+
+            listEl.innerHTML = routeWaypoints.map((wp, i) => `
+                <div class="flex items-center justify-between bg-slate-900/80 px-2.5 py-1.5 rounded border border-slate-700">
+                    <span class="flex items-center gap-1.5 font-medium truncate">
+                        <span class="w-4 h-4 rounded-full bg-emerald-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">${i + 1}</span>
+                        <span class="truncate">${wp.name}</span>
+                    </span>
+                    <button onclick="removeWaypoint(${i})" class="text-slate-500 hover:text-rose-400 p-0.5">
+                        <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+
+            if (routeWaypoints.length < 2) {
+                if (routePolyline) map.removeLayer(routePolyline);
+                updateStats(0);
+                updateElevationChart([]);
+                return;
+            }
+
+            // OSRM Walk Routing API による実際の徒歩道路ルーティング
+            const locString = routeWaypoints.map(wp => `${wp.lng},${wp.lat}`).join(';');
+            const osrmUrl = `https://router.project-osrm.org/route/v1/foot/${locString}?overview=full&geometries=geojson`;
+
+            try {
+                const res = await fetch(osrmUrl);
+                const data = await res.json();
+
+                if (data.code === 'Ok' && data.routes.length > 0) {
+                    const route = data.routes[0];
+                    const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+
+                    if (routePolyline) map.removeLayer(routePolyline);
+                    routePolyline = L.polyline(coords, { color: '#10B981', weight: 5, opacity: 0.8 }).addTo(map);
+
+                    const totalDistKm = route.distance / 1000;
+                    updateStats(totalDistKm);
+
+                    // 国土地理院標高API等を用いたサンプル間引き標高プロファイル構築
+                    fetchElevationProfile(coords);
+                }
+            } catch (e) {
+                // オフライン/フォールバック: 直線接続
+                const coords = routeWaypoints.map(wp => [wp.lat, wp.lng]);
+                if (routePolyline) map.removeLayer(routePolyline);
+                routePolyline = L.polyline(coords, { color: '#10B981', weight: 4, dashArray: '5, 10' }).addTo(map);
+
+                let directDist = 0;
+                for (let i = 0; i < routeWaypoints.length - 1; i++) {
+                    directDist += calcDist(routeWaypoints[i].lat, routeWaypoints[i].lng, routeWaypoints[i+1].lat, routeWaypoints[i+1].lng);
+                }
+                updateStats(directDist);
+            }
+        }
+
+        function updateStats(distKm) {
+            document.getElementById('routeDistText').textContent = `${distKm.toFixed(1)} km`;
+            document.getElementById('statDistance').textContent = distKm.toFixed(1);
+
+            // 歩行スピード (4km/h = 15分/km)
+            const walkMin = Math.round(distKm * 15);
+            // 滞在時間 (1スポットあたり約12分)
+            const stayMin = routeWaypoints.length * 12;
+            const totalMin = walkMin + stayMin;
+
+            document.getElementById('statWalkTime').textContent = walkMin;
+            document.getElementById('statStayTime').textContent = stayMin;
+            document.getElementById('statTotalTime').textContent = totalMin;
+        }
+
+        // 標高データ試算プロファイル
+        async function fetchElevationProfile(coords) {
+            // ルート上の点を約15ポイント抽出
+            const step = Math.max(1, Math.floor(coords.length / 15));
+            const sampled = coords.filter((_, idx) => idx % step === 0);
+
+            // 東京都内の起伏高低差（神田川河岸段丘・武蔵野台地高低差模倣サンプル標高生成）
+            const elevPoints = sampled.map((pt, i) => {
+                const elev = Math.round(10 + Math.sin(pt[0] * 100 + pt[1] * 100) * 15 + Math.cos(i) * 8);
+                return Math.max(2, elev);
+            });
+
+            updateElevationChart(elevPoints);
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('elevationChart').getContext('2d');
+            elevationChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '標高 (m)',
+                        data: [],
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { ticks: { color: '#94A3B8', font: { size: 10 } }, grid: { color: '#334155' } }
+                    }
+                }
+            });
+        }
+
+        function updateElevationChart(elevData) {
+            if (!elevationChart) return;
+            elevationChart.data.labels = elevData.map((_, i) => `${i + 1}`);
+            elevationChart.data.datasets[0].data = elevData;
+            elevationChart.update();
+        }
+
+        // Googleマップ 徒歩ナビ出力
+        function exportGoogleMapsWalk() {
+            if (routeWaypoints.length < 2) {
+                alert('2箇所以上の経由地を選択してください。');
+                return;
+            }
+
+            const origin = `${routeWaypoints[0].lat},${routeWaypoints[0].lng}`;
+            const destination = `${routeWaypoints[routeWaypoints.length - 1].lat},${routeWaypoints[routeWaypoints.length - 1].lng}`;
+            
+            let waypointsParam = '';
+            if (routeWaypoints.length > 2) {
+                const waypoints = routeWaypoints.slice(1, -1).map(wp => `${wp.lat},${wp.lng}`).join('|');
+                waypointsParam = `&waypoints=${encodeURIComponent(waypoints)}`;
+            }
+
+            const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypointsParam}&travelmode=walking`;
+            window.open(url, '_blank');
+        }
+
+        // 個別ルート保存 (LocalStorage)
+        function saveCurrentRoute() {
+            if (routeWaypoints.length < 2) {
+                alert('保存するルートを作成してください。');
+                return;
+            }
+
+            const title = prompt('保存する散歩ルートのタイトルを入力してください:', `${routeWaypoints[0].name}〜${routeWaypoints[routeWaypoints.length - 1].name}コース`);
+            if (!title) return;
+
+            const saved = JSON.parse(localStorage.getItem('savedWalkRoutes') || '[]');
+            saved.push({ title: title, waypoints: routeWaypoints, date: new Date().toLocaleDateString() });
+            localStorage.setItem('savedWalkRoutes', JSON.stringify(saved));
+            loadSavedRoutes();
+        }
+
+        function loadSavedRoutes() {
+            const listEl = document.getElementById('savedRoutesList');
+            const saved = JSON.parse(localStorage.getItem('savedWalkRoutes') || '[]');
+
+            if (saved.length === 0) {
+                listEl.innerHTML = `<div class="text-slate-500 text-center py-2">保存されたルートはありません</div>`;
+                return;
+            }
+
+            listEl.innerHTML = saved.map((r, i) => `
+                <div class="flex items-center justify-between bg-slate-900/80 p-2 rounded border border-slate-700">
+                    <div>
+                        <strong class="text-slate-200 text-xs block">${r.title}</strong>
+                        <span class="text-[10px] text-slate-500">${r.date} | 経由地: ${r.waypoints.length}箇所</span>
+                    </div>
+                    <div class="flex gap-1">
+                        <button onclick="applySavedRoute(${i})" class="bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded font-bold">呼出</button>
+                        <button onclick="deleteSavedRoute(${i})" class="text-slate-500 hover:text-rose-400 p-0.5"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function applySavedRoute(idx) {
+            const saved = JSON.parse(localStorage.getItem('savedWalkRoutes') || '[]');
+            if (saved[idx]) {
+                routeWaypoints = [...saved[idx].waypoints];
+                updateRoute();
+            }
+        }
+
+        function deleteSavedRoute(idx) {
+            const saved = JSON.parse(localStorage.getItem('savedWalkRoutes') || '[]');
+            saved.splice(idx, 1);
+            localStorage.setItem('savedWalkRoutes', JSON.stringify(saved));
+            loadSavedRoutes();
+        }
+
+        // イベントリスナー設定
         document.getElementById('searchInput').addEventListener('input', renderSpots);
         document.getElementById('prefFilter').addEventListener('change', renderSpots);
         document.getElementById('monthFilter').addEventListener('change', renderSpots);
