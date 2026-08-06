@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GANREF関東 撮影スポットNAVI（全122箇所完全収録・高精度・クリーンUI版）</title>
+    <title>GANREF関東 撮影スポットNAVI（全122箇所完全収録・マルチアクセス分析対応版）</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -26,7 +26,7 @@
                     </div>
                     <div>
                         <h1 class="text-lg font-bold tracking-tight text-white">GANREF関東 撮影スポットNAVI</h1>
-                        <p class="text-[11px] text-slate-400">起点: 埼玉県北本市（北本駅） | 無関係ダミー画像排除・122箇所完全収録</p>
+                        <p class="text-[11px] text-slate-400">起点: 埼玉県北本市（北本駅・桶川北本IC） | 高速/下道料金・時間試算・122箇所完全網羅</p>
                     </div>
                 </div>
                 <div class="md:hidden">
@@ -69,7 +69,7 @@
         <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-5 flex flex-wrap justify-between items-center gap-3 text-xs sm:text-sm">
             <div class="flex items-center gap-1.5 text-slate-300">
                 <i data-lucide="map-pin" class="w-4 h-4 text-rose-400 shrink-0"></i>
-                <span>基準起点: <strong class="text-white">北本駅 (36.0314, 139.5302)</strong></span>
+                <span>基準起点: <strong class="text-white">北本駅 (36.0314, 139.5302) / 桶川北本IC</strong></span>
             </div>
             <div class="hidden md:flex items-center gap-2 text-slate-300">
                 <i data-lucide="layers" class="w-4 h-4 text-emerald-400 shrink-0"></i>
@@ -98,10 +98,10 @@
             SOUTH_MIDDAY: ["10:30-13:00(南面)","10:30-13:30(南面)","10:00-14:00(南面)","09:30-14:30(順光)","09:00-14:30(順光)","09:00-14:00(順光)","09:00-14:00(順光)","09:30-14:00(順光)","10:00-14:00(順光)","10:00-13:30(順光)","10:30-13:00(南面)","10:30-12:30(南面)"]
         };
 
-        // 安全でクリーンなSVGプレースホルダーURL
-        const SVG_PLACEHOLDER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='500' height='300' viewBox='0 0 500 300'><rect width='500' height='300' fill='%231e293b'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%2364748b' font-size='16'>📸 撮影スポット画像</text></svg>";
+        // 安全かつクリーンな統一SVGプレースホルダー
+        const SVG_PLACEHOLDER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='500' height='300' viewBox='0 0 500 300'><rect width='500' height='300' fill='%231e293b'/><g fill='%2364748b' text-anchor='middle' font-family='sans-serif'><text x='50%' y='45%' font-size='32'>📸</text><text x='50%' y='65%' font-size='14' font-weight='bold'>撮影スポット</text></g></svg>";
 
-        // 全122箇所 高精度データモデル [id, pIdx, name, address, lat, lng, mainSub, struct, floraGantt, sunPatternKey, ganrefId, statusUrl]
+        // 全122箇所 点検済み高精度データモデル [id, pIdx, name, address, lat, lng, mainSub, struct, floraGantt, sunPatternKey, ganrefId, statusUrl]
         const rawSpots = [
             // --- 埼玉県 (15) ---
             [1, 0, "北本自然観察公園", "埼玉県北本市荒井5-200", 36.0312, 139.5100, "エドヒガンザクラ（3-4月）、ヘイケボタル（6-7月）、カエデ・メタセコイア紅葉（11-12月）", "観察舎・湿地木道", [0,0,1,1,0,1,1,0,0,0,1,1], "ALL_DAY", "10001", "https://www.saitama-shizen.info/blog/"],
@@ -276,11 +276,58 @@
             return Math.max(15, estimated);
         }
 
+        // 車アクセス試算（高速優先 / 一般道のみ）
+        function calcCarAccess(distRoad, pIdx) {
+            // 一般道のみ: 北本付近および移動平均速度（約22km/h）
+            const minutesLocal = Math.max(15, Math.round((distRoad / 22) * 60));
+
+            // 高速優先: 北本ICアプローチ10分 ＋ 平均高速速度(75km/h) ＋ 目的ICから現地アプローチ(10分)
+            const minutesExpress = Math.max(15, Math.round(20 + (distRoad / 75) * 60));
+
+            // 高速料金試算: 基礎固定＋km単価(普通車標準)＋首都高/首都圏調整
+            let baseToll = 400;
+            let perKm = 24;
+            if (pIdx === 1 || pIdx === 2) { // 東京・神奈川（首都高上限等）
+                baseToll = 800;
+                perKm = 28;
+            } else if (pIdx === 3) { // 千葉（外環・東関東道）
+                baseToll = 600;
+                perKm = 26;
+            }
+
+            let tollExp = 0;
+            if (distRoad > 12) { // 12km以上で高速利用想定
+                tollExp = Math.round((baseToll + distRoad * perKm) / 50) * 50; // 50円単位丸め
+            }
+
+            // 利用想定IC目安
+            let icName = "圏央道・桶川北本IC";
+            if (pIdx === 0) icName = "桶川北本IC / 圏央道";
+            else if (pIdx === 1) icName = "首都高・都心環状各出口";
+            else if (pIdx === 2) icName = "第三京浜 / 東名・横浜町田IC";
+            else if (pIdx === 3) icName = "外環道 / 京葉道路・東関東道IC";
+            else if (pIdx === 4) icName = "圏央道・つくばJCT経由常磐道IC";
+            else if (pIdx === 5) icName = "東北道・日光道各IC";
+            else if (pIdx === 6) icName = "関越道・渋川伊香保IC/沼田IC";
+
+            return {
+                minutesExpress: minutesExpress,
+                tollExpress: tollExp,
+                minutesLocal: minutesLocal,
+                icName: icName
+            };
+        }
+
         // オブジェクト復元 & 北本市起点昇順ソート
         const spotsData = rawSpots.map(s => {
             const distLin = calcDist(KITAMOTO_LAT, KITAMOTO_LNG, s[4], s[5]);
+            const distRoad = distLin * 1.3;
             const trainMin = calcTrainMinutes(distLin, s[1]);
+            const carAcc = calcCarAccess(distRoad, s[1]);
+
             const yahooTransitUrl = `https://transit.yahoo.co.jp/search/result?from=%E5%8C%97%E6%9C%AC&to=${encodeURIComponent(s[2])}`;
+            const gmapExpressUrl = `https://www.google.com/maps/dir/?api=1&origin=${KITAMOTO_LAT},${KITAMOTO_LNG}&destination=${s[4]},${s[5]}`;
+            const gmapLocalUrl = `https://www.google.com/maps/dir/?api=1&origin=${KITAMOTO_LAT},${KITAMOTO_LNG}&destination=${s[4]},${s[5]}&dirflg=d&avoid=highways`;
 
             return {
                 id: `spot-${s[0]}`,
@@ -298,9 +345,12 @@
                 officialUrl: s[11],
                 imageUrl: SVG_PLACEHOLDER,
                 distanceLinear: distLin,
-                distanceRoad: distLin * 1.3,
+                distanceRoad: distRoad,
                 trainMinutes: trainMin,
-                yahooTransitUrl: yahooTransitUrl
+                carAcc: carAcc,
+                yahooTransitUrl: yahooTransitUrl,
+                gmapExpressUrl: gmapExpressUrl,
+                gmapLocalUrl: gmapLocalUrl
             };
         }).sort((a, b) => a.distanceLinear - b.distanceLinear);
 
@@ -338,8 +388,6 @@
             }
 
             filtered.forEach((spot, index) => {
-                const naviUrl = `https://www.google.com/maps/dir/?api=1&origin=${KITAMOTO_LAT},${KITAMOTO_LNG}&destination=${spot.lat},${spot.lng}`;
-
                 let ganttHtml = '';
                 for (let m = 0; m < 12; m++) {
                     const isPeak = spot.floraGantt[m] === 1;
@@ -369,7 +417,7 @@
                     <!-- Thumbnail Image Section -->
                     <div class="md:w-64 h-48 md:h-auto min-h-[180px] shrink-0 relative bg-slate-900 overflow-hidden flex items-center justify-center">
                         <img src="${spot.imageUrl}" 
-                             alt="${spot.name}のプレースホルダー" 
+                             alt="${spot.name}の撮影スポットプレースホルダー" 
                              class="w-full h-full object-cover"
                              onerror="this.onerror=null; this.src='${SVG_PLACEHOLDER}';">
                         <span class="absolute top-2 left-2 bg-slate-900/80 backdrop-blur text-emerald-400 border border-emerald-500/30 text-[11px] px-2 py-0.5 rounded-full font-bold">
@@ -386,9 +434,6 @@
                                     <span class="bg-slate-700 text-slate-300 text-[11px] px-2 py-0.5 rounded-full">
                                         ${spot.pref}
                                     </span>
-                                    <span class="text-xs text-slate-300 font-semibold flex items-center gap-1 bg-slate-900/60 px-2 py-0.5 rounded border border-slate-700">
-                                        <i data-lucide="train" class="w-3.5 h-3.5 text-sky-400"></i> 電車で約<strong class="text-sky-300">${spot.trainMinutes}</strong>分
-                                    </span>
                                     <span class="text-xs text-slate-400 ml-1">
                                         直線: 約<strong class="text-white">${spot.distanceLinear.toFixed(1)}</strong>km / 道路: 約<strong class="text-emerald-300">${spot.distanceRoad.toFixed(1)}</strong>km
                                     </span>
@@ -397,23 +442,51 @@
                                 <p class="text-xs text-slate-400 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> ${spot.address}</p>
                             </div>
 
-                            <!-- Buttons -->
+                            <!-- Navigation Buttons -->
                             <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full lg:w-auto">
                                 <a href="${spot.yahooTransitUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-sky-900/80 hover:bg-sky-800 text-sky-200 font-medium px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-center gap-1 border border-sky-700/80">
-                                    <i data-lucide="subway" class="w-3.5 h-3.5 text-sky-300"></i> 路線情報
+                                    <i data-lucide="subway" class="w-3.5 h-3.5 text-sky-300"></i> 路線検索
                                 </a>
-                                <a href="${spot.ganrefUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-center gap-1 border border-slate-600">
+                                <a href="${spot.gmapExpressUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow flex items-center justify-center gap-1">
+                                    <i data-lucide="navigation" class="w-3.5 h-3.5"></i> 車（高速）
+                                </a>
+                                <a href="${spot.gmapLocalUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold px-3 py-1.5 rounded-lg text-xs shadow flex items-center justify-center gap-1 border border-slate-600">
+                                    <i data-lucide="car" class="w-3.5 h-3.5 text-amber-400"></i> 車（一般道）
+                                </a>
+                                <a href="${spot.ganrefUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium px-2 py-1.5 rounded-lg text-xs flex items-center justify-center gap-1 border border-slate-600">
                                     <i data-lucide="external-link" class="w-3.5 h-3.5"></i> GANREF
                                 </a>
-                                <a href="${naviUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow flex items-center justify-center gap-1">
-                                    <i data-lucide="navigation" class="w-3.5 h-3.5"></i> 北本からナビ
-                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Access Info Grid -->
+                        <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-700/80 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="train" class="w-4 h-4 text-sky-400 shrink-0"></i>
+                                <div>
+                                    <div class="text-slate-400 text-[10px]">電車・バス所要時間</div>
+                                    <div class="text-slate-200 font-semibold">約 <strong class="text-sky-300 text-sm">${spot.trainMinutes}</strong> 分</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-700/80 pt-2 sm:pt-0 sm:pl-3">
+                                <i data-lucide="gauge" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                                <div>
+                                    <div class="text-slate-400 text-[10px]">車（高速優先）</div>
+                                    <div class="text-slate-200 font-semibold">約 <strong class="text-emerald-300 text-sm">${spot.carAcc.minutesExpress}</strong> 分 <span class="text-slate-400 text-[11px]">(${spot.carAcc.tollExpress > 0 ? '約' + spot.carAcc.tollExpress.toLocaleString() + '円' : '有料無'})</span></div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-700/80 pt-2 sm:pt-0 sm:pl-3">
+                                <i data-lucide="car" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                                <div>
+                                    <div class="text-slate-400 text-[10px]">車（一般道のみ/有料回避）</div>
+                                    <div class="text-slate-200 font-semibold">約 <strong class="text-amber-300 text-sm">${spot.carAcc.minutesLocal}</strong> 分</div>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Info & Matrix Body -->
                         <div class="space-y-3">
-                            <div class="bg-slate-900/70 p-2.5 rounded-lg border border-slate-700/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/80 flex flex-wrap items-center justify-between gap-2 text-xs">
                                 <div class="flex items-center gap-2 text-slate-300">
                                     <i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i>
                                     <span>現地リアルタイム開花・施設速報:</span>
