@@ -462,12 +462,14 @@
             };
         }).sort((a, b) => a.distanceLinear - b.distanceLinear);
 
-        // --- TAB SWITCHING LOGIC (修復版) ---
+        // --- TAB SWITCHING LOGIC (完全修復版) ---
         function switchTab(tab) {
             const btnSpot = document.getElementById('tabBtnSpot');
             const btnRoute = document.getElementById('tabBtnRoute');
             const contentSpot = document.getElementById('tabContentSpot');
             const contentRoute = document.getElementById('tabContentRoute');
+
+            if (!btnSpot || !btnRoute || !contentSpot || !contentRoute) return;
 
             if (tab === 'spot') {
                 btnSpot.className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition bg-emerald-600 text-white shadow";
@@ -480,7 +482,7 @@
                 contentRoute.classList.remove('hidden');
                 contentSpot.classList.add('hidden');
                 
-                // Leaflet マップ非表示状態からの復帰時サイズ補正（必須）
+                // Leaflet マップ非表示状態からの復帰時サイズ補正
                 initMapIfNeeded();
                 setTimeout(() => {
                     if (map) {
@@ -944,8 +946,10 @@
         document.getElementById('prefFilter').addEventListener('change', renderSpots);
         document.getElementById('monthFilter').addEventListener('change', renderSpots);
 
+        // 初期実行（Lucideアイコン描画保証）
         window.addEventListener('DOMContentLoaded', () => {
             renderSpots();
+            lucide.createIcons();
         });
     </script>
 </body>
