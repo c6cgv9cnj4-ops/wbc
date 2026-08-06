@@ -19,7 +19,7 @@
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #1E293B; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
-        #map { height: 480px; z-index: 10; }
+        #map { height: 480px; z-index: 10; border-radius: 0.75rem; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen pb-12 font-sans antialiased">
@@ -394,7 +394,7 @@
             { name: "麻布十番商店街", lat: 35.6558, lng: 139.7344, cat: "商店街" },
             { name: "佃島・月島長屋路地", lat: 35.6631, lng: 139.7825, cat: "水辺下町" },
             { name: "清澄白河深川資料館通り", lat: 35.6819, lng: 139.8001, cat: "下町文化" },
-            { name: "北千住宿場町通り", lat: 35.7497, lng: 139.8047, cat: "旧街道" },
+            { name: "北千宿画場町通り", lat: 35.7497, lng: 139.8047, cat: "旧街道" },
             { name: "十条銀座商店街", lat: 35.7614, lng: 139.7222, cat: "アーケード" },
             { name: "蒲田バーボンロード", lat: 35.5619, lng: 139.7147, cat: "ガード下" }
         ];
@@ -462,7 +462,7 @@
             };
         }).sort((a, b) => a.distanceLinear - b.distanceLinear);
 
-        // --- TAB SWITCHING ---
+        // --- TAB SWITCHING LOGIC (修復版) ---
         function switchTab(tab) {
             const btnSpot = document.getElementById('tabBtnSpot');
             const btnRoute = document.getElementById('tabBtnRoute');
@@ -479,7 +479,14 @@
                 btnSpot.className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white";
                 contentRoute.classList.remove('hidden');
                 contentSpot.classList.add('hidden');
+                
+                // Leaflet マップ非表示状態からの復帰時サイズ補正（必須）
                 initMapIfNeeded();
+                setTimeout(() => {
+                    if (map) {
+                        map.invalidateSize();
+                    }
+                }, 200);
             }
         }
 
@@ -661,7 +668,6 @@
         // --- TAB 2: TOKYO WALK ROUTE MAP & ENGINE ---
         let map = null;
         let routeWaypoints = [];
-        let mapMarkers = [];
         let routePolyline = null;
         let elevationChart = null;
 
@@ -734,7 +740,6 @@
         }
 
         async function updateRoute() {
-            // UI リスト描画
             const listEl = document.getElementById('routeWaypointsList');
             document.getElementById('routeCount').textContent = routeWaypoints.length;
 
@@ -784,7 +789,6 @@
                     const totalDistKm = route.distance / 1000;
                     updateStats(totalDistKm);
 
-                    // 国土地理院標高API等を用いたサンプル間引き標高プロファイル構築
                     fetchElevationProfile(coords);
                 }
             } catch (e) {
@@ -816,13 +820,10 @@
             document.getElementById('statTotalTime').textContent = totalMin;
         }
 
-        // 標高データ試算プロファイル
         async function fetchElevationProfile(coords) {
-            // ルート上の点を約15ポイント抽出
             const step = Math.max(1, Math.floor(coords.length / 15));
             const sampled = coords.filter((_, idx) => idx % step === 0);
 
-            // 東京都内の起伏高低差（神田川河岸段丘・武蔵野台地高低差模倣サンプル標高生成）
             const elevPoints = sampled.map((pt, i) => {
                 const elev = Math.round(10 + Math.sin(pt[0] * 100 + pt[1] * 100) * 15 + Math.cos(i) * 8);
                 return Math.max(2, elev);
@@ -865,7 +866,6 @@
             elevationChart.update();
         }
 
-        // Googleマップ 徒歩ナビ出力
         function exportGoogleMapsWalk() {
             if (routeWaypoints.length < 2) {
                 alert('2箇所以上の経由地を選択してください。');
@@ -885,7 +885,6 @@
             window.open(url, '_blank');
         }
 
-        // 個別ルート保存 (LocalStorage)
         function saveCurrentRoute() {
             if (routeWaypoints.length < 2) {
                 alert('保存するルートを作成してください。');
