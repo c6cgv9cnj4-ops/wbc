@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（重複宣言解消・完全ノーエラー版）</title>
+    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（タブ完全修復・3色ピン完全版）</title>
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -39,7 +39,7 @@
                 </div>
             </div>
 
-            <!-- Tab Switcher -->
+            <!-- Tab Switcher (onclick 属性完全修復版) -->
             <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-700 w-full md:w-auto">
                 <button id="tabBtnSpot" onclick="switchTab('spot')" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition bg-emerald-600 text-white shadow">
                     <i data-lucide="map-pin" class="w-4 h-4"></i> 関東撮影スポットNAVI
@@ -391,6 +391,92 @@
             [122, 6, '土合駅（モグラ駅）', '群馬県利根郡みなかみ町土合', 36.8314, 138.9678, '地下70m462段の一直線階段、日本一のモグラ駅、レトロ無人駅構造美', '地下ホーム階段', [1,1,1,1,1,1,1,1,1,1,1,1], '70012', 'https://www.minakami-kanko.jp/']
         ];
 
+        const tokyoWalkSpotsOriginal = [
+            { name: '等々力渓谷公園 (世田谷)', lat: 35.6067, lng: 139.6333, cat: '渓谷公園' },
+            { name: '豪徳寺 (世田谷)', lat: 35.6533, lng: 139.6381, cat: '寺院' },
+            { name: '世田谷美術館・砧公園', lat: 35.6319, lng: 139.6150, cat: '美術館・公園' },
+            { name: '松陰神社 (世田谷)', lat: 35.6450, lng: 139.6481, cat: '神社' },
+            { name: '雑司が谷 鬼子母神堂', lat: 35.7194, lng: 139.7133, cat: '神社仏閣' },
+            { name: '立教大学マッケンジーチャペル周辺', lat: 35.7297, lng: 139.7083, cat: '近代建築' },
+            { name: '巣鴨地蔵通り商店街', lat: 35.7383, lng: 139.7433, cat: '商店街' },
+            { name: '哲学堂公園', lat: 35.7208, lng: 139.6708, cat: '公園' },
+            { name: '中野川島商店街', lat: 35.6883, lng: 139.6750, cat: '商店街' },
+            { name: '新井薬師（梅照院）', lat: 35.7139, lng: 139.6719, cat: '寺院' },
+            { name: '大田黒公園 (荻窪)', lat: 35.7033, lng: 139.6250, cat: '庭園' },
+            { name: '高円寺ルック商店街', lat: 35.7014, lng: 139.6489, cat: '商店街' },
+            { name: '阿佐ヶ谷パールセンター', lat: 35.7031, lng: 139.6364, cat: '商店街' },
+            { name: '旧中山道 板橋宿（仲宿）', lat: 35.7550, lng: 139.7083, cat: '歴史街道' },
+            { name: '石神井川の桜・緑道 (加賀)', lat: 35.7500, lng: 139.7167, cat: '水辺' },
+            { name: '飛鳥山公園', lat: 35.7483, lng: 139.7392, cat: '公園' },
+            { name: '音無親水公園 (王子)', lat: 35.7533, lng: 139.7381, cat: '水辺' },
+            { name: '水元公園', lat: 35.7833, lng: 139.8667, cat: '水郷公園' },
+            { name: '立石仲見世商店街', lat: 35.7381, lng: 139.8475, cat: 'レトロ横丁' },
+            { name: 'おかず横丁 (鳥越)', lat: 35.7025, lng: 139.7828, cat: '商店街' },
+            { name: '谷中銀座商店街', lat: 35.7275, lng: 139.7656, cat: 'レトロ商店街' },
+            { name: 'のんべい横丁 (渋谷)', lat: 35.6597, lng: 139.7011, cat: '横丁' },
+            { name: '思い出横丁 (新宿)', lat: 35.6931, lng: 139.6994, cat: '横丁' },
+            { name: '恵比寿横丁', lat: 35.6469, lng: 139.7111, cat: '横丁' },
+            { name: 'ハーモニカ横丁 (吉祥寺)', lat: 35.7039, lng: 139.5794, cat: '横丁' },
+            { name: '浅草ホッピー通り', lat: 35.7125, lng: 139.7942, cat: '下町通り' },
+            { name: '神楽坂かくれんぼ横丁', lat: 35.7019, lng: 139.7411, cat: '花街石畳' },
+            { name: '蒲田バーボンロード', lat: 35.5619, lng: 139.7147, cat: 'ガード下' },
+            { name: '有楽町産直飲食街', lat: 35.6739, lng: 139.7611, cat: 'ガード下' },
+            { name: '赤羽一番街・OK横丁', lat: 35.7786, lng: 139.7214, cat: 'レトロ横丁' },
+            { name: '上野初音小路', lat: 35.7139, lng: 139.7733, cat: 'レトロ横丁' },
+            { name: '三軒茶屋三角地帯', lat: 35.6436, lng: 139.6706, cat: 'レトロ横丁' },
+            { name: '中野サンモール・レンガ坂', lat: 35.7067, lng: 139.6658, cat: '商店街' },
+            { name: '戸越銀座商店街', lat: 35.6158, lng: 139.7144, cat: '商店街' },
+            { name: '上野アメ横商店街', lat: 35.7106, lng: 139.7744, cat: '下町通り' },
+            { name: '柴又帝釈天参道', lat: 35.7583, lng: 139.8781, cat: '門前町' },
+            { name: '十条銀座商店街', lat: 35.7614, lng: 139.7222, cat: 'アーケード' },
+            { name: '麻布十番商店街', lat: 35.6558, lng: 139.7344, cat: '商店街' },
+            { name: '砂町銀座商店街', lat: 35.6739, lng: 139.8272, cat: '商店街' },
+            { name: '武蔵小山商店街パルム', lat: 35.6203, lng: 139.7042, cat: 'アーケード' },
+            { name: '清澄白河深川資料館通り', lat: 35.6819, lng: 139.8001, cat: '下町文化' },
+            { name: '佃島・月島長屋路地', lat: 35.6631, lng: 139.7825, cat: '水辺下町' },
+            { name: '神保町古書店街', lat: 35.6958, lng: 139.7578, cat: '文化街' },
+            { name: '築地場外市場', lat: 35.6653, lng: 139.7706, cat: '市場' },
+            { name: '明治神宮', lat: 35.6764, lng: 139.6993, cat: '神社' },
+            { name: '赤坂日枝神社', lat: 35.6747, lng: 139.7394, cat: '神社' },
+            { name: '水天宮 (日本橋)', lat: 35.6831, lng: 139.7853, cat: '神社' },
+            { name: '乃木神社 (六本木)', lat: 35.6694, lng: 139.7297, cat: '神社' },
+            { name: '神田明神', lat: 35.7022, lng: 139.7678, cat: '神社' },
+            { name: '花園神社 (新宿)', lat: 35.6939, lng: 139.7047, cat: '神社' },
+            { name: '浅草寺', lat: 35.7148, lng: 139.7967, cat: '寺院' },
+            { name: '増上寺 (芝公園)', lat: 35.6574, lng: 139.7482, cat: '寺院' },
+            { name: '上野恩賜公園', lat: 35.7148, lng: 139.7739, cat: '公園' },
+            { name: '清澄庭園', lat: 35.6806, lng: 139.7978, cat: '庭園' },
+            { name: '旧古河庭園', lat: 35.7431, lng: 139.7469, cat: '庭園' },
+            { name: '六義園', lat: 35.7325, lng: 139.7464, cat: '庭園' },
+            { name: '小石川後楽園', lat: 35.7048, lng: 139.7497, cat: '庭園' },
+            { name: '浜離宮恩賜庭園', lat: 35.6597, lng: 139.7636, cat: '庭園' },
+            { name: '葛西臨海公園', lat: 35.6419, lng: 139.8608, cat: '公園' },
+            { name: '代々木公園', lat: 35.6717, lng: 139.6947, cat: '公園' },
+            { name: '井の頭恩賜公園', lat: 35.7001, lng: 139.5762, cat: '公園' },
+            { name: '東京駅', lat: 35.6812, lng: 139.7671, cat: '主要駅' },
+            { name: '新宿駅', lat: 35.6895, lng: 139.7004, cat: '主要駅' },
+            { name: '渋谷駅', lat: 35.6580, lng: 139.7016, cat: '主要駅' },
+            { name: '池袋駅', lat: 35.7295, lng: 139.7109, cat: '主要駅' },
+            { name: '上野駅', lat: 35.7141, lng: 139.7774, cat: '主要駅' },
+            { name: '浅草駅', lat: 35.7106, lng: 139.7967, cat: '主要駅' },
+            { name: '品川駅', lat: 35.6284, lng: 139.7387, cat: '主要駅' },
+            { name: '秋葉原駅', lat: 35.6983, lng: 139.7731, cat: '主要駅' },
+            { name: '有楽町駅', lat: 35.6750, lng: 139.7628, cat: '主要駅' },
+            { name: '吉祥寺駅', lat: 35.7031, lng: 139.5797, cat: '主要駅' },
+            { name: '北千住駅', lat: 35.7494, lng: 139.8050, cat: '主要駅' },
+            { name: '門前仲町駅', lat: 35.6717, lng: 139.7958, cat: '主要駅' },
+            { name: '浅草橋駅', lat: 35.6975, lng: 139.7864, cat: '主要駅' },
+            { name: '神保町駅', lat: 35.6958, lng: 139.7578, cat: '主要駅' },
+            { name: '築地駅', lat: 35.6681, lng: 139.7725, cat: '主要駅' },
+            { name: '赤羽駅', lat: 35.7778, lng: 139.7208, cat: '主要駅' },
+            { name: '目白駅', lat: 35.7192, lng: 139.7083, cat: '主要駅' },
+            { name: '中野駅', lat: 35.7056, lng: 139.6658, cat: '主要駅' },
+            { name: '荻窪駅', lat: 35.7050, lng: 139.6192, cat: '主要駅' },
+            { name: '高円寺駅', lat: 35.7058, lng: 139.6492, cat: '主要駅' },
+            { name: '王子駅', lat: 35.7522, lng: 139.7381, cat: '主要駅' },
+            { name: '二子玉川駅', lat: 35.6122, lng: 139.6278, cat: '主要駅' }
+        ];
+
         const tokyoSobaSpots = [
             { name: '名代 富士そば (代々木店など)', lat: 35.6830, lng: 139.7020, cat: '立ち食いそば', info: 'Google評価 ★4.1 / 投稿数 420件' },
             { name: '小諸そば (大手町店など)', lat: 35.6850, lng: 139.7650, cat: '立ち食いそば', info: 'Google評価 ★4.2 / 投稿数 550件' },
@@ -452,7 +538,7 @@
             { name: '珈琲館 蔵 (北千住)', lat: 35.7494, lng: 139.8050, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 1,200件' }
         ];
 
-        // 5. 統合散歩スポットリスト（各配列の定義が完了した「後」に1回だけ結合）
+        // 5. 統合散歩スポットリスト（各配列の定義が完了した後に1回だけ結合）
         const tokyoWalkSpots = [
             ...tokyoWalkSpotsOriginal,
             ...tokyoSobaSpots,
@@ -508,7 +594,6 @@
             }
         }
 
-        // spotsData の生成
         const spotsData = rawSpots.map(s => {
             const distLin = calcDist(KITAMOTO_LAT, KITAMOTO_LNG, s[4], s[5]);
             const distRoad = distLin * 1.3;
@@ -744,8 +829,17 @@
                 if (map) return;
 
                 map = L.map('map').setView([35.6812, 139.7671], 12);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}ش/{x}/{y}.png', {
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+
+                // Leaflet 正常タイルレイヤの適用
+                map.eachLayer(layer => {
+                    if (layer instanceof L.TileLayer) map.removeLayer(layer);
+                });
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors'
                 }).addTo(map);
 
                 const stationIcon = L.divIcon({
