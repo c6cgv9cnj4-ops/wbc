@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成</title>
+    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（パターンB完全版）</title>
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -111,7 +111,7 @@
                         <i data-lucide="compass" class="w-4 h-4 text-emerald-400"></i> 都内レトロ・散歩撮影ルート作成
                     </h2>
                     <p class="text-xs text-slate-300 leading-relaxed mb-3">
-                        マップ上のピン（撮影スポット・主要駅）をタップするか、地図上をクリックして経由地を追加してください。実際の歩行道路に沿って自動ルーティングされます。
+                        マップ上のピンをタップするか、駅名検索で起点駅を追加してルートを構築してください。実際の歩行道路に沿って自動ルーティングされます。
                     </p>
                     <div class="flex gap-2">
                         <button onclick="clearRoute()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-2 rounded-lg font-bold transition flex items-center justify-center gap-1 border border-slate-600">
@@ -121,6 +121,19 @@
                             <i data-lucide="navigation" class="w-3.5 h-3.5"></i> Googleマップ徒歩ナビ起動
                         </button>
                     </div>
+                </div>
+
+                <!-- Pattern B: 駅名検索・起点追加フォーム -->
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-2">
+                    <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5">
+                        <i data-lucide="train" class="w-3.5 h-3.5 text-sky-400"></i> 駅名検索・起点追加 (パターンB)
+                    </h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="stationSearchInput" placeholder="駅名を入力 (例: 有楽町, 日暮里)" class="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <button onclick="searchAndAddStation()" class="w-full bg-sky-700 hover:bg-sky-600 text-white font-bold text-xs py-2 rounded-lg transition shadow">
+                        駅をルートに追加（ジオコーディング）
+                    </button>
                 </div>
 
                 <!-- Custom Location Form -->
@@ -384,9 +397,9 @@
             [122, 6, "土合駅（モグラ駅）", "群馬県利根郡みなかみ町土合", 36.8314, 138.9678, "地下70m462段の一直線階段、日本一のモグラ駅、レトロ無人駅構造美", "地下ホーム階段", [1,1,1,1,1,1,1,1,1,1,1,1], "70012", "https://www.minakami-kanko.jp/"]
         ];
 
-        // 都内散歩・レトロ撮影・お宮参り・商店街・横丁＆主要駅データ（指定13URL群より完全抽出＋駅ピン）
+        // 都内散歩・レトロ撮影・お宮参り・商店街・横丁＆主要駅データ（13URL群完全抽出 + 主要駅）
         const tokyoWalkSpots = [
-            // --- レトロ横丁・飲み屋街 ---
+            // --- 横丁・レトロ街 ---
             { name: "おかず横丁 (鳥越)", lat: 35.7025, lng: 139.7828, cat: "商店街" },
             { name: "谷中銀座商店街", lat: 35.7275, lng: 139.7656, cat: "レトロ商店街" },
             { name: "のんべい横丁 (渋谷)", lat: 35.6597, lng: 139.7011, cat: "横丁" },
@@ -518,7 +531,7 @@
             };
         }).sort((a, b) => a.distanceLinear - b.distanceLinear);
 
-        // --- TAB SWITCHING LOGIC (完全修復・エラー耐性強化版) ---
+        // --- TAB SWITCHING LOGIC ---
         function switchTab(tab) {
             const btnSpot = document.getElementById('tabBtnSpot');
             const btnRoute = document.getElementById('tabBtnRoute');
@@ -538,7 +551,6 @@
                 contentRoute.classList.remove('hidden');
                 contentSpot.classList.add('hidden');
                 
-                // Leaflet マップ非表示状態からの復帰時サイズ補正
                 initMapIfNeeded();
                 setTimeout(() => {
                     if (map) {
@@ -724,7 +736,7 @@
             safeCreateIcons();
         }
 
-        // --- TAB 2: TOKYO WALK ROUTE MAP & ENGINE ---
+        // --- TAB 2: TOKYO WALK ROUTE MAP & ENGINE (パターンB対応) ---
         let map = null;
         let routeWaypoints = [];
         let routePolyline = null;
@@ -739,14 +751,12 @@
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
-            // スポット／駅ピンのスタイル制御用カスタムアイコン
             const stationIcon = L.divIcon({
                 className: 'custom-station-pin',
                 html: `<div style="background-color:#0284c7; color:white; border-radius:9999px; padding:2px 6px; font-weight:bold; font-size:10px; border:1px solid white; white-space:nowrap; box-shadow:0 2px 4px rgba(0,0,0,0.3);">🚉 駅</div>`,
                 iconSize: [30, 20]
             });
 
-            // 初期散歩スポットピン配置
             tokyoWalkSpots.forEach(spot => {
                 const markerOptions = spot.cat === '主要駅' ? { icon: stationIcon } : {};
                 const marker = L.marker([spot.lat, spot.lng], markerOptions).addTo(map);
@@ -761,7 +771,6 @@
                 `);
             });
 
-            // 地図上クリックで任意の経由地追加
             map.on('click', function(e) {
                 const name = `任意スポット (${e.latlng.lat.toFixed(3)}, ${e.latlng.lng.toFixed(3)})`;
                 addWaypoint(name, e.latlng.lat, e.latlng.lng);
@@ -769,6 +778,48 @@
 
             initChart();
             loadSavedRoutes();
+        }
+
+        // パターンB: 駅名検索＆ジオコーディングによる即時ピン追加
+        async function searchAndAddStation() {
+            const input = document.getElementById('stationSearchInput');
+            const stationName = input.value.trim();
+            if (!stationName) {
+                alert('駅名を入力してください（例: 有楽町、浅草橋）。');
+                return;
+            }
+
+            const query = `${stationName}駅 東京都`;
+            const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
+
+            try {
+                const res = await fetch(nominatimUrl);
+                const results = await res.json();
+
+                if (results && results.length > 0) {
+                    const lat = parseFloat(results[0].lat);
+                    const lng = parseFloat(results[0].lon);
+                    const displayName = `${stationName}駅`;
+
+                    const stationIcon = L.divIcon({
+                        className: 'custom-station-pin',
+                        html: `<div style="background-color:#0284c7; color:white; border-radius:9999px; padding:2px 6px; font-weight:bold; font-size:10px; border:1px solid white; white-space:nowrap; box-shadow:0 2px 4px rgba(0,0,0,0.3);">🚉 駅</div>`,
+                        iconSize: [30, 20]
+                    });
+
+                    const marker = L.marker([lat, lng], { icon: stationIcon }).addTo(map);
+                    marker.bindPopup(`<strong class="text-xs">${displayName} (検索追加)</strong>`).openPopup();
+                    map.panTo([lat, lng]);
+
+                    addWaypoint(displayName, lat, lng);
+                    input.value = '';
+                } else {
+                    alert('該当する駅が見つかりませんでした。別の駅名でお試しください。');
+                }
+            } catch (err) {
+                console.error("Geocoding error:", err);
+                alert('駅の検索中にネットワークエラーが発生しました。');
+            }
         }
 
         function addWaypoint(name, lat, lng) {
@@ -838,7 +889,6 @@
                 return;
             }
 
-            // OSRM Walk Routing API による実際の徒歩道路ルーティング
             const locString = routeWaypoints.map(wp => `${wp.lng},${wp.lat}`).join(';');
             const osrmUrl = `https://router.project-osrm.org/route/v1/foot/${locString}?overview=full&geometries=geojson`;
 
@@ -859,7 +909,6 @@
                     fetchElevationProfile(coords);
                 }
             } catch (e) {
-                // オフライン/フォールバック: 直線接続
                 const coords = routeWaypoints.map(wp => [wp.lat, wp.lng]);
                 if (routePolyline) map.removeLayer(routePolyline);
                 routePolyline = L.polyline(coords, { color: '#10B981', weight: 4, dashArray: '5, 10' }).addTo(map);
@@ -876,9 +925,7 @@
             document.getElementById('routeDistText').textContent = `${distKm.toFixed(1)} km`;
             document.getElementById('statDistance').textContent = distKm.toFixed(1);
 
-            // 歩行スピード (4km/h = 15分/km)
             const walkMin = Math.round(distKm * 15);
-            // 滞在時間 (1スポットあたり約12分)
             const stayMin = routeWaypoints.length * 12;
             const totalMin = walkMin + stayMin;
 
