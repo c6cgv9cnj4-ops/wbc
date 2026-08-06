@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（パターンB完全版）</title>
+    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（描画完全修復版）</title>
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -560,180 +560,184 @@
             }
         }
 
-        // --- RENDER TAB 1: SPOT NAVI ---
+        // --- RENDER TAB 1: SPOT NAVI (セーフガード強化版) ---
         function renderSpots() {
-            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
-            const selectedPref = document.getElementById('prefFilter').value;
-            const selectedMonth = document.getElementById('monthFilter').value;
-            const container = document.getElementById('spotList');
-            if (!container) return;
-            container.innerHTML = '';
+            try {
+                const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+                const selectedPref = document.getElementById('prefFilter').value;
+                const selectedMonth = document.getElementById('monthFilter').value;
+                const container = document.getElementById('spotList');
+                if (!container) return;
+                container.innerHTML = '';
 
-            const filtered = spotsData.filter(spot => {
-                const matchQ = spot.name.toLowerCase().includes(searchQuery) ||
-                               spot.pref.toLowerCase().includes(searchQuery) ||
-                               spot.mainSubject.toLowerCase().includes(searchQuery);
-                const matchP = selectedPref === '' || spot.pref === selectedPref;
-                let matchM = true;
-                if (selectedMonth !== '') {
-                    const mIdx = parseInt(selectedMonth, 10) - 1;
-                    matchM = spot.floraGantt[mIdx] === 1;
+                const filtered = spotsData.filter(spot => {
+                    const matchQ = spot.name.toLowerCase().includes(searchQuery) ||
+                                   spot.pref.toLowerCase().includes(searchQuery) ||
+                                   spot.mainSubject.toLowerCase().includes(searchQuery);
+                    const matchP = selectedPref === '' || spot.pref === selectedPref;
+                    let matchM = true;
+                    if (selectedMonth !== '') {
+                        const mIdx = parseInt(selectedMonth, 10) - 1;
+                        matchM = spot.floraGantt[mIdx] === 1;
+                    }
+                    return matchQ && matchP && matchM;
+                });
+
+                document.getElementById('spotCount').textContent = filtered.length;
+                document.getElementById('mobileCountBadge').textContent = `${filtered.length}件`;
+
+                if (filtered.length === 0) {
+                    container.innerHTML = `<div class="bg-slate-800 rounded-xl p-8 text-center text-slate-400 border border-slate-700">条件に該当する撮影スポットが見つかりませんでした。</div>`;
+                    return;
                 }
-                return matchQ && matchP && matchM;
-            });
 
-            document.getElementById('spotCount').textContent = filtered.length;
-            document.getElementById('mobileCountBadge').textContent = `${filtered.length}件`;
+                filtered.forEach((spot, index) => {
+                    let ganttHtml = '';
+                    for (let m = 0; m < 12; m++) {
+                        const isPeak = spot.floraGantt[m] === 1;
+                        const isSel = selectedMonth !== '' && (parseInt(selectedMonth, 10) - 1 === m);
+                        ganttHtml += `
+                            <div class="flex-1 min-w-[36px] p-1 text-center text-[11px] border-r border-slate-700/60 last:border-0 ${isPeak ? 'month-active' : 'month-inactive'} ${isSel ? 'ring-2 ring-emerald-300 z-10' : ''}">
+                                <div class="font-bold">${m + 1}月</div>
+                                <div class="text-[9px] scale-90">${isPeak ? '見頃' : '―'}</div>
+                            </div>
+                        `;
+                    }
 
-            if (filtered.length === 0) {
-                container.innerHTML = `<div class="bg-slate-800 rounded-xl p-8 text-center text-slate-400 border border-slate-700">条件に該当する撮影スポットが見つかりませんでした。</div>`;
-                return;
+                    let sunTimesHtml = '';
+                    for (let m = 0; m < 12; m++) {
+                        const isSel = selectedMonth !== '' && (parseInt(selectedMonth, 10) - 1 === m);
+                        const sunData = SUNRISE_SUNSET_KANTO[m];
+                        sunTimesHtml += `
+                            <div class="bg-slate-900/90 p-1.5 rounded border border-slate-700/60 text-center ${isSel ? 'border-amber-400 bg-amber-950/30' : ''}">
+                                <div class="text-[10px] text-slate-400 font-bold mb-0.5">${m + 1}月</div>
+                                <div class="text-[10px] text-amber-300 font-medium leading-tight">🌅 ${sunData.rise}</div>
+                                <div class="text-[10px] text-rose-300 font-medium leading-tight mt-0.5">🌇 ${sunData.set}</div>
+                            </div>
+                        `;
+                    }
+
+                    let expressBtnHtml = '';
+                    let expressMetaHtml = '';
+
+                    if (spot.carAcc.hasExpress) {
+                        expressBtnHtml = `
+                            <a href="${spot.gmapExpressUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow flex items-center justify-center gap-1">
+                                <i data-lucide="navigation" class="w-3.5 h-3.5"></i> 車（高速優先）
+                            </a>
+                        `;
+                        expressMetaHtml = `
+                            <div class="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-700/80 pt-2 sm:pt-0 sm:pl-3">
+                                <i data-lucide="gauge" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                                <div>
+                                    <div class="text-slate-400 text-[10px]">車（高速優先）</div>
+                                    <div class="text-slate-200 font-semibold">約 <strong class="text-emerald-300 text-sm">${spot.carAcc.minutesExpress}</strong> 分 <span class="text-slate-400 text-[11px]">(約${spot.carAcc.tollExpress.toLocaleString()}円)</span></div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        expressMetaHtml = `
+                            <div class="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-700/80 pt-2 sm:pt-0 sm:pl-3">
+                                <i data-lucide="gauge" class="w-4 h-4 text-slate-500 shrink-0"></i>
+                                <div>
+                                    <div class="text-slate-400 text-[10px]">車（高速優先）</div>
+                                    <div class="text-slate-400 font-medium">一般道推奨（15km未満）</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = "bg-slate-800 rounded-xl border border-slate-700 shadow-lg overflow-hidden transition hover:border-slate-600 p-4 sm:p-5 flex flex-col justify-between space-y-4";
+                    card.innerHTML = `
+                        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b border-slate-700/80 pb-3">
+                            <div class="space-y-1">
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[11px] px-2.5 py-0.5 rounded-full font-bold">
+                                        北本団地から #${index + 1}
+                                    </span>
+                                    <span class="bg-slate-700 text-slate-300 text-[11px] px-2 py-0.5 rounded-full">
+                                        ${spot.pref}
+                                    </span>
+                                    <span class="text-xs text-slate-400 ml-1">
+                                        直線: 約<strong class="text-white">${spot.distanceLinear.toFixed(1)}</strong>km / 道路: 約<strong class="text-emerald-300">${spot.distanceRoad.toFixed(1)}</strong>km
+                                    </span>
+                                </div>
+                                <h2 class="text-lg sm:text-xl font-bold text-white">${spot.name}</h2>
+                                <p class="text-xs text-slate-400 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> ${spot.address}</p>
+                            </div>
+
+                            <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full lg:w-auto">
+                                <a href="${spot.yahooTransitUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-sky-900/80 hover:bg-sky-800 text-sky-200 font-medium px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-center gap-1 border border-sky-700/80">
+                                    <i data-lucide="subway" class="w-3.5 h-3.5 text-sky-300"></i> 路線検索
+                                </a>
+                                <a href="${spot.gmapLocalUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-amber-600 hover:bg-amber-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow flex items-center justify-center gap-1">
+                                    <i data-lucide="car" class="w-3.5 h-3.5"></i> 車（一般道）
+                                </a>
+                                ${expressBtnHtml}
+                                <a href="${spot.ganrefUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium px-2 py-1.5 rounded-lg text-xs flex items-center justify-center gap-1 border border-slate-600">
+                                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i> GANREF
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-700/80 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="train" class="w-4 h-4 text-sky-400 shrink-0"></i>
+                                <div>
+                                    <div class="text-slate-400 text-[10px]">電車・バス所要時間</div>
+                                    <div class="text-slate-200 font-semibold">約 <strong class="text-sky-300 text-sm">${spot.trainMinutes}</strong> 分</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-700/80 pt-2 sm:pt-0 sm:pl-3">
+                                <i data-lucide="car" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                                <div>
+                                    <div class="text-slate-400 text-[10px]">車（一般道のみ/有料回避）</div>
+                                    <div class="text-slate-200 font-semibold">約 <strong class="text-amber-300 text-sm">${spot.carAcc.minutesLocal}</strong> 分</div>
+                                </div>
+                            </div>
+                            ${expressMetaHtml}
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <div class="flex items-center gap-2 text-slate-300">
+                                    <i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i>
+                                    <span>現地リアルタイム開花・施設速報:</span>
+                                </div>
+                                <a href="${spot.statusUrl}" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline font-semibold flex items-center gap-1">
+                                    開花・現況 直リンク <i data-lucide="external-link" class="w-3 h-3"></i>
+                                </a>
+                            </div>
+
+                            <div class="text-xs sm:text-sm space-y-0.5">
+                                <div><strong class="text-emerald-400">主要被写体:</strong> <span class="text-slate-200">${spot.mainSubject}</span></div>
+                                <div><strong class="text-amber-400">対象構造物:</strong> <span class="text-slate-200">${spot.structure}</span></div>
+                            </div>
+
+                            <div>
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                    <i data-lucide="flower-2" class="w-3.5 h-3.5 text-emerald-400"></i> 1月〜12月 植物・被写体の「旬（見頃）」
+                                </h3>
+                                <div class="overflow-x-auto custom-scrollbar rounded-lg border border-slate-700/80 bg-slate-900/60 flex">${ganttHtml}</div>
+                            </div>
+
+                            <div>
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                    <i data-lucide="sun" class="w-3.5 h-3.5 text-amber-400"></i> 関東エリア 1月〜12月「日の出・日の入り時刻」目安
+                                </h3>
+                                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-1.5">${sunTimesHtml}</div>
+                            </div>
+                        </div>
+                    `;
+
+                    container.appendChild(card);
+                });
+
+                safeCreateIcons();
+            } catch (err) {
+                console.error("renderSpots execution error:", err);
             }
-
-            filtered.forEach((spot, index) => {
-                let ganttHtml = '';
-                for (let m = 0; m < 12; m++) {
-                    const isPeak = spot.floraGantt[m] === 1;
-                    const isSel = selectedMonth !== '' && (parseInt(selectedMonth, 10) - 1 === m);
-                    ganttHtml += `
-                        <div class="flex-1 min-w-[36px] p-1 text-center text-[11px] border-r border-slate-700/60 last:border-0 ${isPeak ? 'month-active' : 'month-inactive'} ${isSel ? 'ring-2 ring-emerald-300 z-10' : ''}">
-                            <div class="font-bold">${m + 1}月</div>
-                            <div class="text-[9px] scale-90">${isPeak ? '見頃' : '―'}</div>
-                        </div>
-                    `;
-                }
-
-                let sunTimesHtml = '';
-                for (let m = 0; m < 12; m++) {
-                    const isSel = selectedMonth !== '' && (parseInt(selectedMonth, 10) - 1 === m);
-                    const sunData = SUNRISE_SUNSET_KANTO[m];
-                    sunTimesHtml += `
-                        <div class="bg-slate-900/90 p-1.5 rounded border border-slate-700/60 text-center ${isSel ? 'border-amber-400 bg-amber-950/30' : ''}">
-                            <div class="text-[10px] text-slate-400 font-bold mb-0.5">${m + 1}月</div>
-                            <div class="text-[10px] text-amber-300 font-medium leading-tight">🌅 ${sunData.rise}</div>
-                            <div class="text-[10px] text-rose-300 font-medium leading-tight mt-0.5">🌇 ${sunData.set}</div>
-                        </div>
-                    `;
-                }
-
-                let expressBtnHtml = '';
-                let expressMetaHtml = '';
-
-                if (spot.carAcc.hasExpress) {
-                    expressBtnHtml = `
-                        <a href="${spot.gmapExpressUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow flex items-center justify-center gap-1">
-                            <i data-lucide="navigation" class="w-3.5 h-3.5"></i> 車（高速優先）
-                        </a>
-                    `;
-                    expressMetaHtml = `
-                        <div class="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-700/80 pt-2 sm:pt-0 sm:pl-3">
-                            <i data-lucide="gauge" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-                            <div>
-                                <div class="text-slate-400 text-[10px]">車（高速優先）</div>
-                                <div class="text-slate-200 font-semibold">約 <strong class="text-emerald-300 text-sm">${spot.carAcc.minutesExpress}</strong> 分 <span class="text-slate-400 text-[11px]">(約${spot.carAcc.tollExpress.toLocaleString()}円)</span></div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    expressMetaHtml = `
-                        <div class="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-700/80 pt-2 sm:pt-0 sm:pl-3">
-                            <i data-lucide="gauge" class="w-4 h-4 text-slate-500 shrink-0"></i>
-                            <div>
-                                <div class="text-slate-400 text-[10px]">車（高速優先）</div>
-                                <div class="text-slate-400 font-medium">一般道推奨（15km未満）</div>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                const card = document.createElement('div');
-                card.className = "bg-slate-800 rounded-xl border border-slate-700 shadow-lg overflow-hidden transition hover:border-slate-600 p-4 sm:p-5 flex flex-col justify-between space-y-4";
-                card.innerHTML = `
-                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b border-slate-700/80 pb-3">
-                        <div class="space-y-1">
-                            <div class="flex flex-wrap items-center gap-1.5">
-                                <span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[11px] px-2.5 py-0.5 rounded-full font-bold">
-                                    北本団地から #${index + 1}
-                                </span>
-                                <span class="bg-slate-700 text-slate-300 text-[11px] px-2 py-0.5 rounded-full">
-                                    ${spot.pref}
-                                </span>
-                                <span class="text-xs text-slate-400 ml-1">
-                                    直線: 約<strong class="text-white">${spot.distanceLinear.toFixed(1)}</strong>km / 道路: 約<strong class="text-emerald-300">${spot.distanceRoad.toFixed(1)}</strong>km
-                                </span>
-                            </div>
-                            <h2 class="text-lg sm:text-xl font-bold text-white">${spot.name}</h2>
-                            <p class="text-xs text-slate-400 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> ${spot.address}</p>
-                        </div>
-
-                        <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full lg:w-auto">
-                            <a href="${spot.yahooTransitUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-sky-900/80 hover:bg-sky-800 text-sky-200 font-medium px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-center gap-1 border border-sky-700/80">
-                                <i data-lucide="subway" class="w-3.5 h-3.5 text-sky-300"></i> 路線検索
-                            </a>
-                            <a href="${spot.gmapLocalUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-amber-600 hover:bg-amber-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow flex items-center justify-center gap-1">
-                                <i data-lucide="car" class="w-3.5 h-3.5"></i> 車（一般道）
-                            </a>
-                            ${expressBtnHtml}
-                            <a href="${spot.ganrefUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium px-2 py-1.5 rounded-lg text-xs flex items-center justify-center gap-1 border border-slate-600">
-                                <i data-lucide="external-link" class="w-3.5 h-3.5"></i> GANREF
-                            </a>
-                        </div>
-                    </div>
-
-                    <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-700/80 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="train" class="w-4 h-4 text-sky-400 shrink-0"></i>
-                            <div>
-                                <div class="text-slate-400 text-[10px]">電車・バス所要時間</div>
-                                <div class="text-slate-200 font-semibold">約 <strong class="text-sky-300 text-sm">${spot.trainMinutes}</strong> 分</div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-700/80 pt-2 sm:pt-0 sm:pl-3">
-                            <i data-lucide="car" class="w-4 h-4 text-amber-400 shrink-0"></i>
-                            <div>
-                                <div class="text-slate-400 text-[10px]">車（一般道のみ/有料回避）</div>
-                                <div class="text-slate-200 font-semibold">約 <strong class="text-amber-300 text-sm">${spot.carAcc.minutesLocal}</strong> 分</div>
-                            </div>
-                        </div>
-                        ${expressMetaHtml}
-                    </div>
-
-                    <div class="space-y-3">
-                        <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/80 flex flex-wrap items-center justify-between gap-2 text-xs">
-                            <div class="flex items-center gap-2 text-slate-300">
-                                <i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i>
-                                <span>現地リアルタイム開花・施設速報:</span>
-                            </div>
-                            <a href="${spot.statusUrl}" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline font-semibold flex items-center gap-1">
-                                開花・現況 直リンク <i data-lucide="external-link" class="w-3 h-3"></i>
-                            </a>
-                        </div>
-
-                        <div class="text-xs sm:text-sm space-y-0.5">
-                            <div><strong class="text-emerald-400">主要被写体:</strong> <span class="text-slate-200">${spot.mainSubject}</span></div>
-                            <div><strong class="text-amber-400">対象構造物:</strong> <span class="text-slate-200">${spot.structure}</span></div>
-                        </div>
-
-                        <div>
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                <i data-lucide="flower-2" class="w-3.5 h-3.5 text-emerald-400"></i> 1月〜12月 植物・被写体の「旬（見頃）」
-                            </h3>
-                            <div class="overflow-x-auto custom-scrollbar rounded-lg border border-slate-700/80 bg-slate-900/60 flex">${ganttHtml}</div>
-                        </div>
-
-                        <div>
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                <i data-lucide="sun" class="w-3.5 h-3.5 text-amber-400"></i> 関東エリア 1月〜12月「日の出・日の入り時刻」目安
-                            </h3>
-                            <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-1.5">${sunTimesHtml}</div>
-                        </div>
-                    </div>
-                `;
-
-                container.appendChild(card);
-            });
-
-            safeCreateIcons();
         }
 
         // --- TAB 2: TOKYO WALK ROUTE MAP & ENGINE (パターンB対応) ---
@@ -745,7 +749,6 @@
         function initMapIfNeeded() {
             if (map) return;
 
-            // 都内全体表示マップ初期化 (東京駅周辺中心)
             map = L.map('map').setView([35.6812, 139.7671], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
