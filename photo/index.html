@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（ポップアップ営業時間・定休日表示対応版）</title>
+    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（営業時間・定休日完全対応版）</title>
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -603,7 +603,6 @@
             }
         }
 
-        // spotsData の生成
         const spotsData = rawSpots.map(s => {
             const distLin = calcDist(KITAMOTO_LAT, KITAMOTO_LNG, s[4], s[5]);
             const distRoad = distLin * 1.3;
@@ -888,8 +887,8 @@
 
                     const infoBadge = spot.info ? '<div class="text-amber-300 font-bold mt-1 text-[11px]">' + spot.info + '</div>' : '';
                     
-                    // ★ クリックした時のポップアップ内部にも営業時間と定休日を追加
-                    const hoursPopup = spot.hours ? '<div class="text-emerald-600 font-semibold text-[11px] mt-1">🕒 営業時間: ' + spot.hours + '<br>📅 定休日: ' + spot.holiday + '</div>' : '';
+                    // ★ クリックした時のポップアップ内部にも営業時間と定休日を表示
+                    const hoursPopup = spot.hours ? '<div class="text-emerald-400 font-semibold text-[11px] mt-1">🕒 営業時間: ' + spot.hours + '<br>📅 定休日: ' + spot.holiday + '</div>' : '';
 
                     marker.bindPopup(
                         '<div class="text-slate-900 text-xs font-sans">' +
