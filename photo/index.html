@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（全データ完全網羅・完全動作版）</title>
+    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（ポップアップ営業時間・定休日表示対応版）</title>
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -20,6 +20,16 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #1E293B; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
         #map { height: 480px; z-index: 10; border-radius: 0.75rem; width: 100%; }
+        /* ホバー用ツールチップのスタイル */
+        .custom-hover-tooltip {
+            background-color: #1e293b;
+            color: #f8fafc;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 11px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen pb-12 font-sans antialiased">
@@ -53,6 +63,7 @@
 
     <!-- TAB 1: 関東撮影スポットNAVI -->
     <main id="tabContentSpot" class="max-w-7xl mx-auto px-3 sm:px-4 mt-4">
+        <!-- Filters Bar -->
         <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-5 flex flex-wrap justify-between items-center gap-3 text-xs sm:text-sm">
             <div class="flex items-center gap-1.5 text-slate-300">
                 <i data-lucide="map-pin" class="w-4 h-4 text-rose-400 shrink-0"></i>
@@ -110,7 +121,7 @@
                         <i data-lucide="compass" class="w-4 h-4 text-emerald-400"></i> 都内レトロ・散歩撮影ルート作成
                     </h2>
                     <p class="text-xs text-slate-300 leading-relaxed mb-3">
-                        マップ上のピン（青:スポット・駅 / オレンジ:そば / 茶:珈琲）をタップするか、駅名検索で起点駅を追加してルートを構築してください。実際の歩行道路に沿って自動ルーティングされます。
+                        マップ上のピン（青:スポット・駅 / オレンジ:そば / 茶:珈琲）にカーソルを合わせると営業時間が表示され、クリックすると詳細ポップアップが表示されます。
                     </p>
                     <div class="flex gap-2">
                         <button onclick="clearRoute()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-2 rounded-lg font-bold transition flex items-center justify-center gap-1 border border-slate-600">
@@ -263,6 +274,7 @@
             { month: 12, rise: '06:45頃', set: '16:30頃' }
         ];
 
+        // 1. 関東撮影スポットデータ
         const rawSpots = [
             [1, 0, '北本自然観察公園', '埼玉県北本市荒井5-200', 36.0312, 139.5100, 'エドヒガンザクラ（3-4月）、ヘイケボタル（6-7月）、カエデ・メタセコイア紅葉（11-12月）', '観察舎・湿地木道', [0,0,1,1,0,1,1,0,0,0,1,1], '10001', 'https://www.saitama-shizen.info/blog/'],
             [2, 0, '幸手権現堂桜堤', '埼玉県幸手市内国府間8873', 36.0886, 139.7283, 'ソメイヨシノ・菜の花（3-4月）、アジサイ（6月）、ヒマワリ（7-8月）、曼珠沙華（9月）', '堤防遊歩道・外周橋', [0,0,1,1,0,1,1,1,1,0,0,0], '10002', 'https://gongendou.jp/flower-info/'],
@@ -475,72 +487,76 @@
         ];
 
         const tokyoSobaSpots = [
-            { name: '名代 富士そば (代々木店など)', lat: 35.6830, lng: 139.7020, cat: '立ち食いそば', info: 'Google評価 ★4.1 / 投稿数 420件' },
-            { name: '小諸そば (大手町店など)', lat: 35.6850, lng: 139.7650, cat: '立ち食いそば', info: 'Google評価 ★4.2 / 投稿数 550件' },
-            { name: 'ゆで太郎 (銀座店など)', lat: 35.6710, lng: 139.7630, cat: '立ち食いそば', info: 'Google評価 ★4.1 / 投稿数 490件' },
-            { name: 'よもだそば (日本橋本店)', lat: 35.6822, lng: 139.7744, cat: '立ち食いそば', info: 'Google評価 ★4.5 / 投稿数 2,100件' },
-            { name: '亀戸 立ち食いそば文殊', lat: 35.6980, lng: 139.8250, cat: '立ち食いそば', info: 'Google評価 ★4.4 / 投稿数 850件' },
-            { name: '浅草 蕎亭 大黒屋', lat: 35.7115, lng: 139.7960, cat: '立ち食いそば', info: 'Google評価 ★4.3 / 投稿数 620件' },
-            { name: '一由そば (日暮里)', lat: 35.7275, lng: 139.7708, cat: '立ち食いそば', info: 'Google評価 ★4.6 / 投稿数 3,400件' },
-            { name: '箱根そば (新宿西口店など)', lat: 35.6900, lng: 139.6980, cat: '立ち食いそば', info: 'Google評価 ★4.2 / 投稿数 780件' },
-            { name: '嵯峨谷 (渋谷店)', lat: 35.6580, lng: 139.6970, cat: '立ち食いそば', info: 'Google評価 ★4.3 / 投稿数 1,100件' },
-            { name: 'めん処 つるや (神田)', lat: 35.6915, lng: 139.7708, cat: '立ち食いそば', info: 'Google評価 ★4.4 / 投稿数 920件' }
+            { name: '名代 富士そば (代々木店など)', lat: 35.6830, lng: 139.7020, cat: '立ち食いそば', info: 'Google評価 ★4.1 / 投稿数 420件', hours: '24時間営業', holiday: '無休' },
+            { name: '小諸そば (大手町店など)', lat: 35.6850, lng: 139.7650, cat: '立ち食いそば', info: 'Google評価 ★4.2 / 投稿数 550件', hours: '07:00-21:00', holiday: '土日祝' },
+            { name: 'ゆで太郎 (銀座店など)', lat: 35.6710, lng: 139.7630, cat: '立ち食いそば', info: 'Google評価 ★4.1 / 投稿数 490件', hours: '06:30-23:00', holiday: '無休' },
+            { name: 'よもだそば (日本橋本店)', lat: 35.6822, lng: 139.7744, cat: '立ち食いそば', info: 'Google評価 ★4.5 / 投稿数 2,100件', hours: '07:00-22:00', holiday: '無休' },
+            { name: '亀戸 立ち食いそば文殊', lat: 35.6980, lng: 139.8250, cat: '立ち食いそば', info: 'Google評価 ★4.4 / 投稿数 850件', hours: '06:30-21:00', holiday: '無休' },
+            { name: '浅草 蕎亭 大黒屋', lat: 35.7115, lng: 139.7960, cat: '立ち食いそば', info: 'Google評価 ★4.3 / 投稿数 620件', hours: '11:00-20:00', holiday: '水曜' },
+            { name: '一由そば (日暮里)', lat: 35.7275, lng: 139.7708, cat: '立ち食いそば', info: 'Google評価 ★4.6 / 投稿数 3,400件', hours: '24時間営業', holiday: '無休' },
+            { name: '箱根そば (新宿西口店など)', lat: 35.6900, lng: 139.6980, cat: '立ち食いそば', info: 'Google評価 ★4.2 / 投稿数 780件', hours: '07:00-22:00', holiday: '無休' },
+            { name: '嵯峨谷 (渋谷店)', lat: 35.6580, lng: 139.6970, cat: '立ち食いそば', info: 'Google評価 ★4.3 / 投稿数 1,100件', hours: '07:00-23:00', holiday: '無休' },
+            { name: 'めん処 つるや (神田)', lat: 35.6915, lng: 139.7708, cat: '立ち食いそば', info: 'Google評価 ★4.4 / 投稿数 920件', hours: '06:30-20:00', holiday: '土日祝' }
         ];
 
         const tokyoCoffeeSpots = [
-            { name: 'カフェーパウリスタ (銀座)', lat: 35.6714, lng: 139.7628, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 3,800件' },
-            { name: '珈琲 伯爵 (日比谷)', lat: 35.6742, lng: 139.7589, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 1,400件' },
-            { name: 'さぼうる (神保町)', lat: 35.6958, lng: 139.7578, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 4,500件' },
-            { name: 'ミロンガ・ヌォーバ (神保町)', lat: 35.6953, lng: 139.7572, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 980件' },
-            { name: 'ラドリオ (神保町)', lat: 35.6961, lng: 139.7583, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 1,600件' },
-            { name: 'CAFE DE L\'AMBRE (銀座琥珀)', lat: 35.6703, lng: 139.7642, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 2,200件' },
-            { name: 'トリコロール 本店 (銀座)', lat: 35.6719, lng: 139.7631, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 2,500件' },
-            { name: '喫茶アメリカン (東銀座)', lat: 35.6678, lng: 139.7694, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 3,100件' },
-            { name: '十一房珈琲店 (銀座)', lat: 35.6708, lng: 139.7619, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 450件' },
-            { name: 'アロマ珈琲 (日本橋)', lat: 35.6814, lng: 139.7761, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 900件' },
-            { name: '大坊珈琲店 系譜・南青山', lat: 35.6653, lng: 139.7136, cat: '珈琲専門店', info: 'Google評価 ★4.6 / 投稿数 680件' },
-            { name: '珈琲専門店 自家焙煎 じゅらく (新橋)', lat: 35.6664, lng: 139.7581, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 820件' },
-            { name: '西武珈琲ショップ (新橋)', lat: 35.6661, lng: 139.7572, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 540件' },
-            { name: '東郷 (麻布十番)', lat: 35.6558, lng: 139.7344, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 390件' },
-            { name: '珈琲西武 (新宿)', lat: 35.6922, lng: 139.7014, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 4,100件' },
-            { name: '名曲・珈琲 らんブル (新宿)', lat: 35.6919, lng: 139.7031, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 3,500件' },
-            { name: '珈琲茶館 集 (新宿)', lat: 35.6911, lng: 139.7008, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 1,100件' },
-            { name: 'ノーザンライツ (早稲田)', lat: 35.7094, lng: 139.7225, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 310件' },
-            { name: 'カフェ・ル・ルヴァン (神楽坂)', lat: 35.7011, lng: 139.7419, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 650件' },
-            { name: '羽頭 (本郷三丁目)', lat: 35.7072, lng: 139.7583, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 1,100件' },
-            { name: '珈琲 庵 (根津)', lat: 35.7192, lng: 139.7622, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 290件' },
-            { name: 'みじんこ (湯島)', lat: 35.7061, lng: 139.7681, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 2,800件' },
-            { name: '珈琲 天国 (浅草)', lat: 35.7131, lng: 139.7936, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 2,400件' },
-            { name: 'カフェ カフェ (上野)', lat: 35.7128, lng: 139.7750, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 880件' },
-            { name: '伯爵 上野店', lat: 35.7139, lng: 139.7764, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 1,900件' },
-            { name: 'すみだ珈琲 (錦糸町)', lat: 35.6983, lng: 139.8142, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 610件' },
-            { name: '珈琲道場 侍 (錦糸町)', lat: 35.6958, lng: 139.8131, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 1,100件' },
-            { name: 'ハリマヤ (押上)', lat: 35.7094, lng: 139.8128, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 280件' },
-            { name: 'ARiSE COFFEE ROASTERS (清澄白河)', lat: 35.6800, lng: 139.7983, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 950件' },
-            { name: 'MONZ CAFE (門前仲町)', lat: 35.6722, lng: 139.7956, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 1,500件' },
-            { name: 'コクテル堂 (武蔵小山)', lat: 35.6208, lng: 139.7042, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 890件' },
-            { name: '邪宗門 (大井町)', lat: 35.6083, lng: 139.7333, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 530件' },
-            { name: '中目黒珈琲 (中目黒)', lat: 35.6442, lng: 139.6992, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 780件' },
-            { name: 'カフェ・テナ・シカ (学芸大学)', lat: 35.6319, lng: 139.6833, cat: '珈琲専門店', info: 'Google評価 ★4.6 / 投稿数 350件' },
-            { name: '珈琲ロード (蒲田)', lat: 35.5622, lng: 139.7150, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 620件' },
-            { name: 'カフェ・バッハ (南千住)', lat: 35.7331, lng: 139.7997, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 1,800件' },
-            { name: '堀口珈琲 (世田谷)', lat: 35.6483, lng: 139.6361, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 1,400件' },
-            { name: '茶亭 羽当 (渋谷)', lat: 35.6611, lng: 139.7019, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 2,900件' },
-            { name: 'モグラ珈琲 (中野)', lat: 35.7061, lng: 139.6650, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 390件' },
-            { name: 'コクウ珈琲 (新井薬師)', lat: 35.7139, lng: 139.6719, cat: '珈琲専門店', info: 'Google評価 ★4.6 / 投稿数 410件' },
-            { name: '珈琲 amp (西荻窪)', lat: 35.7033, lng: 139.5992, cat: '珈琲専門店', info: 'Google評価 ★4.6 / 投稿数 480件' },
-            { name: 'モモル珈琲 (高円寺)', lat: 35.7058, lng: 139.6492, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 350件' },
-            { name: '伯爵 池袋東口店', lat: 35.7297, lng: 139.7125, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 2,800件' },
-            { name: 'カド (赤羽)', lat: 35.7778, lng: 139.7208, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 910件' },
-            { name: '珈琲館 蔵 (北千住)', lat: 35.7494, lng: 139.8050, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 1,200件' }
+            { name: 'カフェーパウリスタ (銀座)', lat: 35.6714, lng: 139.7628, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 3,800件', hours: '09:00-20:00', holiday: '不定休' },
+            { name: '珈琲 伯爵 (日比谷)', lat: 35.6742, lng: 139.7589, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 1,400件', hours: '08:00-23:00', holiday: '無休' },
+            { name: 'さぼうる (神保町)', lat: 35.6958, lng: 139.7578, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 4,500件', hours: '09:30-23:00', holiday: '日曜・祝日' },
+            { name: 'ミロンガ・ヌォーバ (神保町)', lat: 35.6953, lng: 139.7572, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 980件', hours: '11:00-21:00', holiday: '月曜' },
+            { name: 'ラドリオ (神保町)', lat: 35.6961, lng: 139.7583, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 1,600件', hours: '11:30-22:00', holiday: '日曜' },
+            { name: 'CAFE DE L\'AMBRE (銀座琥珀)', lat: 35.6703, lng: 139.7642, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 2,200件', hours: '12:00-21:00', holiday: '不定休' },
+            { name: 'トリコロール 本店 (銀座)', lat: 35.6719, lng: 139.7631, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 2,500件', hours: '10:00-19:00', holiday: '無休' },
+            { name: '喫茶アメリカン (東銀座)', lat: 35.6678, lng: 139.7694, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 3,100件', hours: '08:00-14:00 (売切次第)', holiday: '土日祝' },
+            { name: '十一房珈琲店 (銀座)', lat: 35.6708, lng: 139.7619, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 450件', hours: '12:00-22:00', holiday: '不定休' },
+            { name: 'アロマ珈琲 (日本橋)', lat: 35.6814, lng: 139.7761, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 900件', hours: '07:00-18:00', holiday: '土日祝' },
+            { name: '大坊珈琲店 系譜・南青山', lat: 35.6653, lng: 139.7136, cat: '珈琲専門店', info: 'Google評価 ★4.6 / 投稿数 680件', hours: '11:00-20:00', holiday: '水曜' },
+            { name: '珈琲専門店 自家焙煎 じゅらく (新橋)', lat: 35.6664, lng: 139.7581, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 820件', hours: '08:00-22:00', holiday: '土日祝' },
+            { name: '西武珈琲ショップ (新橋)', lat: 35.6661, lng: 139.7572, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 540件', hours: '07:30-22:30', holiday: '日曜' },
+            { name: '東郷 (麻布十番)', lat: 35.6558, lng: 139.7344, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 390件', hours: '10:00-19:00', holiday: '火曜' },
+            { name: '珈琲西武 (新宿)', lat: 35.6922, lng: 139.7014, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 4,100件', hours: '07:30-23:30', holiday: '無休' },
+            { name: '名曲・珈琲 らんブル (新宿)', lat: 35.6919, lng: 139.7031, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 3,500件', hours: '11:30-22:30', holiday: '無休' },
+            { name: '珈琲茶館 集 (新宿)', lat: 35.6911, lng: 139.7008, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 1,100件', hours: '10:00-23:00', holiday: '無休' },
+            { name: 'ノーザンライツ (早稲田)', lat: 35.7094, lng: 139.7225, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 310件', hours: '12:00-20:00', holiday: '月火曜' },
+            { name: 'カフェ・ル・ルヴァン (神楽坂)', lat: 35.7011, lng: 139.7419, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 650件', hours: '09:00-19:00', holiday: '月曜' },
+            { name: '羽頭 (本郷三丁目)', lat: 35.7072, lng: 139.7583, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 1,100件', hours: '13:00-23:00', holiday: '不定休' },
+            { name: '珈琲 庵 (根津)', lat: 35.7192, lng: 139.7622, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 290件', hours: '11:00-19:00', holiday: '木曜' },
+            { name: 'みじんこ (湯島)', lat: 35.7061, lng: 139.7681, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 2,800件', hours: '11:00-21:00', holiday: '不定休' },
+            { name: '珈琲 天国 (浅草)', lat: 35.7131, lng: 139.7936, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 2,400件', hours: '12:00-18:30', holiday: '火曜・水曜' },
+            { name: 'カフェ カフェ (上野)', lat: 35.7128, lng: 139.7750, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 880件', hours: '10:00-20:00', holiday: '不定休' },
+            { name: '伯爵 上野店', lat: 35.7139, lng: 139.7764, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 1,900件', hours: '07:00-23:30', holiday: '無休' },
+            { name: 'すみだ珈琲 (錦糸町)', lat: 35.6983, lng: 139.8142, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 610件', hours: '10:00-19:00', holiday: '月曜・火曜' },
+            { name: '珈琲道場 侍 (錦糸町)', lat: 35.6958, lng: 139.8131, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 1,100件', hours: '12:00-23:00', holiday: '無休' },
+            { name: 'ハリマヤ (押上)', lat: 35.7094, lng: 139.8128, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 280件', hours: '10:00-18:00', holiday: '水曜・木曜' },
+            { name: 'ARiSE COFFEE ROASTERS (清澄白河)', lat: 35.6800, lng: 139.7983, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 950件', hours: '10:00-18:00', holiday: '不定休' },
+            { name: 'MONZ CAFE (門前仲町)', lat: 35.6722, lng: 139.7956, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 1,500件', hours: '08:00-18:00', holiday: '無休' },
+            { name: 'コクテル堂 (武蔵小山)', lat: 35.6208, lng: 139.7042, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 890件', hours: '09:00-20:00', holiday: '不定休' },
+            { name: '邪宗門 (大井町)', lat: 35.6083, lng: 139.7333, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 530件', hours: '13:00-19:00', holiday: '水曜・木曜' },
+            { name: '中目黒珈琲 (中目黒)', lat: 35.6442, lng: 139.6992, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 780件', hours: '10:00-19:00', holiday: '不定休' },
+            { name: 'カフェ・テナ・シカ (学芸大学)', lat: 35.6319, lng: 139.6833, cat: '珈琲専門店', info: 'Google評価 ★4.6 / 投稿数 350件', hours: '12:00-20:00', holiday: '月曜' },
+            { name: '珈琲ロード (蒲田)', lat: 35.5622, lng: 139.7150, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 620件', hours: '08:00-20:00', holiday: '日曜' },
+            { name: 'カフェ・バッハ (南千住)', lat: 35.7331, lng: 139.7997, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 1,800件', hours: '08:30-19:00', holiday: '金曜・第135月曜' },
+            { name: '堀口珈琲 (世田谷)', lat: 35.6483, lng: 139.6361, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 1,400件', hours: '11:00-19:00', holiday: '無休' },
+            { name: '茶亭 羽当 (渋谷)', lat: 35.6611, lng: 139.7019, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 2,900件', hours: '10:00-23:30', holiday: '無休' },
+            { name: 'モグラ珈琲 (中野)', lat: 35.7061, lng: 139.6650, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 390件', hours: '12:00-22:00', holiday: '火曜' },
+            { name: 'コクウ珈琲 (新井薬師)', lat: 35.7139, lng: 139.6719, cat: '珈琲専門店', info: 'Google評価 ★4.6 / 投稿数 410件', hours: '10:00-19:00', holiday: '水曜・木曜' },
+            { name: '珈琲 amp (西荻窪)', lat: 35.7033, lng: 139.5992, cat: '珈琲専門店', info: 'Google評価 ★4.6 / 投稿数 480件', hours: '12:00-20:00', holiday: '水曜' },
+            { name: 'モモル珈琲 (高円寺)', lat: 35.7058, lng: 139.6492, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 350件', hours: '11:00-19:00', holiday: '火曜' },
+            { name: '伯爵 池袋東口店', lat: 35.7297, lng: 139.7125, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 2,800件', hours: '07:00-23:30', holiday: '無休' },
+            { name: 'カド (赤羽)', lat: 35.7778, lng: 139.7208, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 910件', hours: '12:00-21:00', holiday: '水曜' },
+            { name: '珈琲館 蔵 (北千住)', lat: 35.7494, lng: 139.8050, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 1,200件', hours: '09:00-21:00', holiday: '無休' }
         ];
 
-        // 5. 統合散歩スポットリスト（安全結合）
+        // 5. 統合散歩スポットリスト
         const tokyoWalkSpots = [
-            ...(typeof tokyoWalkSpotsOriginal !== 'undefined' ? tokyoWalkSpotsOriginal : []),
-            ...(typeof tokyoSobaSpots !== 'undefined' ? tokyoSobaSpots : []),
-            ...(typeof tokyoCoffeeSpots !== 'undefined' ? tokyoCoffeeSpots : [])
+            ...tokyoWalkSpotsOriginal,
+            ...tokyoSobaSpots,
+            ...tokyoCoffeeSpots
         ];
+
+        // ==========================================
+        // 2. 計算・処理関数群
+        // ==========================================
 
         function calcDist(lat1, lon1, lat2, lon2) {
             try {
@@ -587,6 +603,7 @@
             }
         }
 
+        // spotsData の生成
         const spotsData = rawSpots.map(s => {
             const distLin = calcDist(KITAMOTO_LAT, KITAMOTO_LNG, s[4], s[5]);
             const distRoad = distLin * 1.3;
@@ -626,13 +643,13 @@
                 if (!btnSpot || !btnRoute || !contentSpot || !contentRoute) return;
 
                 if (tab === 'spot') {
-                    btnSpot.className = 'flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition bg-emerald-600 text-white shadow';
-                    btnRoute.className = 'flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white';
+                    btnSpot.className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition bg-emerald-600 text-white shadow";
+                    btnRoute.className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white";
                     contentSpot.classList.remove('hidden');
                     contentRoute.classList.add('hidden');
                 } else {
-                    btnRoute.className = 'flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition bg-emerald-600 text-white shadow';
-                    btnSpot.className = 'flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white';
+                    btnRoute.className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition bg-emerald-600 text-white shadow";
+                    btnSpot.className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white";
                     contentRoute.classList.remove('hidden');
                     contentSpot.classList.add('hidden');
                     
@@ -644,10 +661,11 @@
                     }, 200);
                 }
             } catch (e) {
-                console.error('switchTab error:', e);
+                console.error("switchTab error:", e);
             }
         }
 
+        // --- RENDER TAB 1 ---
         function renderSpots() {
             try {
                 const searchInput = document.getElementById('searchInput');
@@ -810,7 +828,7 @@
             }
         }
 
-        // --- MAP & 3-COLOR PINS ENGINE ---
+        // --- TAB 2: MAP & 3-COLOR PINS ENGINE ---
         let map = null;
         let routeWaypoints = [];
         let routePolyline = null;
@@ -855,13 +873,30 @@
                     }
 
                     const marker = L.marker([spot.lat, spot.lng], markerOpts).addTo(map);
+
+                    // ★ ホバー時（カーソルを合わせた時）のツールチップ（営業時間・定休日）
+                    if (spot.hours && spot.holiday) {
+                        const tooltipContent = '<div style="font-weight:bold; color:#f8fafc;">' + spot.name + '</div>' +
+                                               '<div style="color:#34d399;">🕒 営業時間: ' + spot.hours + '</div>' +
+                                               '<div style="color:#f43f5e;">📅 定休日: ' + spot.holiday + '</div>';
+                        marker.bindTooltip(tooltipContent, {
+                            className: 'custom-hover-tooltip',
+                            direction: 'top',
+                            offset: [0, -10]
+                        });
+                    }
+
                     const infoBadge = spot.info ? '<div class="text-amber-300 font-bold mt-1 text-[11px]">' + spot.info + '</div>' : '';
+                    
+                    // ★ クリックした時のポップアップ内部にも営業時間と定休日を追加
+                    const hoursPopup = spot.hours ? '<div class="text-emerald-600 font-semibold text-[11px] mt-1">🕒 営業時間: ' + spot.hours + '<br>📅 定休日: ' + spot.holiday + '</div>' : '';
 
                     marker.bindPopup(
                         '<div class="text-slate-900 text-xs font-sans">' +
                         '<strong class="text-sm font-bold block mb-1">' + spot.name + '</strong>' +
                         '<span class="inline-block bg-slate-200 px-1.5 py-0.5 rounded text-[10px] mb-1">' + spot.cat + '</span>' +
                         infoBadge +
+                        hoursPopup +
                         '<button onclick="addWaypoint(\'' + spot.name.replace(/'/g, "\\'") + '\', ' + spot.lat + ', ' + spot.lng + ')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded text-xs w-full mt-2">' +
                         '＋ 散歩ルートに追加' +
                         '</button>' +
@@ -1169,6 +1204,7 @@
             loadSavedRoutes();
         }
 
+        // イベントリスナー設定
         const searchInput = document.getElementById('searchInput');
         const prefFilter = document.getElementById('prefFilter');
         const monthFilter = document.getElementById('monthFilter');
@@ -1177,6 +1213,7 @@
         if (prefFilter) prefFilter.addEventListener('change', renderSpots);
         if (monthFilter) monthFilter.addEventListener('change', renderSpots);
 
+        // 安全なDOMロード後発火
         window.addEventListener('DOMContentLoaded', () => {
             try {
                 setTimeout(() => {
