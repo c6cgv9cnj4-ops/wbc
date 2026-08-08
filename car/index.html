@@ -14,6 +14,11 @@
 </head>
 <body class="p-4 pb-20">
     <div class="max-w-md mx-auto space-y-4">
+        <!-- モーダルを開くボタン（追加） -->
+        <button id="openPressureBtn" class="w-full bg-sky-600 text-white py-3 rounded-xl font-bold">
+            タイヤ空気圧記録を開く
+        </button>
+
         <!-- 空気圧モーダル -->
         <div id="pressureModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
             <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4 text-xs">
@@ -63,23 +68,44 @@
                 }
             });
 
-            // 以下、モーダル表示・保存ロジック...
-            const toggleModal = (id, show) => document.getElementById(id).classList.toggle('hidden', !show);
-            document.getElementById('openPressureBtn').onclick = () => toggleModal('pressureModal', true);
-            document.getElementById('closePressureBtn').onclick = () => toggleModal('pressureModal', false);
+            // モーダル表示・非表示の切り替え
+            const toggleModal = (id, show) => {
+                const modal = document.getElementById(id);
+                if (modal) {
+                    modal.classList.toggle('hidden', !show);
+                    // モーダルを開くときに今日の日付をセットする
+                    if (show) {
+                        const today = new Date().toISOString().split('T')[0];
+                        document.getElementById('pDate').value = today;
+                    }
+                }
+            };
+
+            const openBtn = document.getElementById('openPressureBtn');
+            if (openBtn) {
+                openBtn.onclick = () => toggleModal('pressureModal', true);
+            }
+            
+            const closeBtn = document.getElementById('closePressureBtn');
+            if (closeBtn) {
+                closeBtn.onclick = () => toggleModal('pressureModal', false);
+            }
             
             // 保存時は select の value をそのまま取得
-            document.getElementById('savePressureBtn').onclick = () => {
-                const pData = {
-                    date: document.getElementById('pDate').value,
-                    fl: document.getElementById('pFL').value,
-                    fr: document.getElementById('pFR').value,
-                    rl: document.getElementById('pRL').value,
-                    rr: document.getElementById('pRR').value
+            const saveBtn = document.getElementById('savePressureBtn');
+            if (saveBtn) {
+                saveBtn.onclick = () => {
+                    const pData = {
+                        date: document.getElementById('pDate').value,
+                        fl: document.getElementById('pFL').value,
+                        fr: document.getElementById('pFR').value,
+                        rl: document.getElementById('pRL').value,
+                        rr: document.getElementById('pRR').value
+                    };
+                    console.log("保存データ:", pData);
+                    toggleModal('pressureModal', false);
                 };
-                console.log("保存データ:", pData);
-                toggleModal('pressureModal', false);
-            };
+            }
         });
     </script>
 </body>
