@@ -46,7 +46,7 @@
     }
     .version-badge {
       font-size: 0.9rem;
-      background: var(--danger);
+      background: var(--success);
       color: white;
       padding: 2px 8px;
       border-radius: 12px;
@@ -218,7 +218,7 @@
 <div class="container">
   <header>
     <div>
-      <h1>経済ポータルダッシュボード <span class="version-badge">最新版 v5 (ローカル・自動修復版)</span></h1>
+      <h1>経済ポータルダッシュボード <span class="version-badge">最新版 v6 (完全版)</span></h1>
       <div class="quick-links">
         <a href="https://www.sbisec.co.jp/" target="_blank" rel="noopener">▶ SBI証券ログイン</a>
         <a href="https://shikiho.toyokeizai.net/" target="_blank" rel="noopener">▶ 会社四季報オンライン</a>
@@ -243,13 +243,13 @@
             "name": "主要指標・注目銘柄",
             "originalName": "Indices",
             "symbols": [
-              { "name": "TVC:NI225", "displayName": "日経平均株価" },
+              { "name": "OANDA:JP225JPY", "displayName": "日経平均株価" },
               { "name": "AMEX:SPY", "displayName": "S&P 500 (ETF)" },
-              { "name": "FX:USDJPY", "displayName": "ドル/円" },
+              { "name": "FX_IDC:USDJPY", "displayName": "ドル/円" },
               { "name": "TVC:US10Y", "displayName": "米10年債利回り" },
-              { "name": "AMEX:SOXX", "displayName": "SOX指数 (半導体ETF)" },
+              { "name": "NASDAQ:SOX", "displayName": "SOX指数" },
               { "name": "TVC:USOIL", "displayName": "WTI原油" },
-              { "name": "TVC:VIX", "displayName": "VIX指数" },
+              { "name": "CBOE:VIX", "displayName": "VIX指数" },
               { "name": "TSE:7532", "displayName": "PPIH (ドンキホーテ)" }
             ]
           }
@@ -405,42 +405,29 @@
     });
   }
 
-  // 自動修復機能付きのGemini呼び出し関数
-  async function callGeminiWithFallback(prompt, apiKey) {
-    // 複数のモデル名を定義（エラーが出たら次のモデルに自動で切り替えて再挑戦します）
-    const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-pro'];
-    let lastErrorMessage = "";
+  async function processWithGemini(prompt, apiKey) {
+    // 余計なループを排除し、一番確実な gemini-1.5-flash 一本で実行します。
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.2 }
+      })
+    });
 
-    for (let model of modelsToTry) {
-      try {
-        console.log(`モデル [${model}] で試行中...`);
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.2 }
-          })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          let html = data.candidates[0].content.parts[0].text;
-          return html.replace(/```html/g, '').replace(/```/g, '').trim();
-        } else {
-          // エラーだった場合は次のモデルへ
-          const errData = await response.json().catch(() => ({}));
-          lastErrorMessage = errData.error?.message || response.statusText;
-          console.warn(`[${model}] 失敗:`, lastErrorMessage);
-        }
-      } catch (e) {
-        lastErrorMessage = e.message;
-        console.warn(`[${model}] 接続エラー:`, e);
-      }
+    if (!response.ok) {
+      // エラーを隠さず、Google側から返ってきた本当の理由を取得して表示します
+      const errData = await response.json().catch(() => ({}));
+      const errorMsg = errData.error?.message || response.statusText;
+      throw new Error(`APIエラー: ${errorMsg}`);
     }
-    // 全て失敗した場合のみエラーを投げる
-    throw new Error(`利用可能なすべてのAIモデルで拒否されました。詳細: ${lastErrorMessage}`);
+
+    const data = await response.json();
+    let html = data.candidates[0].content.parts[0].text;
+    return html.replace(/```html/g, '').replace(/```/g, '').trim();
   }
 
   async function autoProcessCNBC() {
@@ -493,8 +480,7 @@ ${videoTitle}
 ${videoDesc}
 `;
       
-      // 新しい自動修復機能付きの関数で呼び出し
-      const generatedHtml = await callGeminiWithFallback(prompt, apiKey);
+      const generatedHtml = await processWithGemini(prompt, apiKey);
 
       const newEntry = {
         date: new Date().toLocaleDateString('ja-JP'),
@@ -552,8 +538,7 @@ ${transcript}
 `;
       
     try {
-      // 新しい自動修復機能付きの関数で呼び出し
-      const generatedHtml = await callGeminiWithFallback(prompt, apiKey);
+      const generatedHtml = await processWithGemini(prompt, apiKey);
 
       const newEntry = {
         date: new Date().toLocaleDateString('ja-JP'),
