@@ -2,75 +2,56 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Car Maintenance</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Maintenance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; background-color: #f5f5f7; }
-        .apple-card { background: white; border: 1px solid #e5e5ea; border-radius: 20px; }
-        /* タップの反応を良くする */
-        button, summary, .clickable { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f5f5f7; }
+        .apple-card { background: white; border-radius: 20px; border: 1px solid #e5e5ea; }
     </style>
 </head>
-<body class="pb-20">
+<body class="p-4">
+    <div class="max-w-md mx-auto space-y-4">
+        <header class="flex justify-between items-center py-2">
+            <h1 class="font-bold text-xl">Note E11 管理</h1>
+            <button onclick="testClick()" class="bg-blue-600 text-white px-4 py-2 rounded-full text-xs font-bold">テストボタン</button>
+        </header>
 
-    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-200">
-        <div class="max-w-md mx-auto px-4 py-3 flex justify-between items-center">
-            <h1 class="font-bold text-lg">Note E11 管理</h1>
-            <button onclick="copyDataForGemini()" class="bg-blue-600 text-white text-[11px] font-bold px-4 py-2 rounded-full shadow-md active:scale-95 transition">データ出力</button>
-        </div>
-    </header>
+        <section class="apple-card p-6">
+            <h2 class="font-bold mb-4">給油記録</h2>
+            <button id="openFuelBtn" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold">給油を記録</button>
+        </section>
+    </div>
 
-    <main class="max-w-md mx-auto px-4 py-4 space-y-4">
-        <div id="urgentAlertContainer" class="space-y-2"></div>
-
-        <!-- 給油 -->
-        <details class="apple-card overflow-hidden" open>
-            <summary class="flex justify-between items-center p-5 font-bold text-gray-900">
-                <span class="flex items-center gap-2"><i class="fa-solid fa-gas-pump text-emerald-600"></i> 給油記録</span>
-                <i class="fa-solid fa-chevron-down text-xs text-gray-400"></i>
-            </summary>
-            <div id="fuelList" class="px-5 pb-4 space-y-2 border-t border-gray-100 pt-3"></div>
-            <div class="px-5 pb-4"><button onclick="openModal('fuel')" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold">給油を記録</button></div>
-        </details>
-
-        <!-- 空気圧 -->
-        <details class="apple-card overflow-hidden" open>
-            <summary class="flex justify-between items-center p-5 font-bold text-gray-900">
-                <span class="flex items-center gap-2"><i class="fa-solid fa-gauge text-sky-600"></i> タイヤ空気圧</span>
-                <i class="fa-solid fa-chevron-down text-xs text-gray-400"></i>
-            </summary>
-            <div id="pressureList" class="px-5 pb-4 space-y-2 border-t border-gray-100 pt-3"></div>
-            <div class="px-5 pb-4"><button onclick="openModal('pressure')" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold">点検を記録</button></div>
-        </details>
-    </main>
-
-    <!-- モーダルは全て「固定のクリックイベント」で動作するように修正 -->
-    <div id="fuelModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden" onclick="if(event.target==this)closeModal('fuel')">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm" onclick="event.stopPropagation()">
-            <h3 class="font-bold mb-4">給油記録の追加</h3>
-            <form onsubmit="saveFuel(event)" class="space-y-3">
-                <input type="date" id="fuelDate" class="w-full bg-gray-100 p-3 rounded-xl">
-                <input type="number" id="fuelMileage" placeholder="走行距離(km)" class="w-full bg-gray-100 p-3 rounded-xl">
-                <input type="number" step="0.01" id="fuelAmount" placeholder="給油量(L)" class="w-full bg-gray-100 p-3 rounded-xl">
-                <input type="number" id="fuelPrice" placeholder="単価(円/L)" class="w-full bg-gray-100 p-3 rounded-xl">
-                <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold">保存</button>
-            </form>
+    <!-- モーダル -->
+    <div id="fuelModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm">
+            <h3 class="font-bold mb-4">給油記録</h3>
+            <button onclick="closeFuelModal()" class="w-full bg-gray-200 py-3 rounded-xl font-bold">閉じる</button>
         </div>
     </div>
 
     <script>
-        // 基本設定
-        function openModal(id) { document.getElementById(id + 'Modal').classList.remove('hidden'); }
-        function closeModal(id) { document.getElementById(id + 'Modal').classList.add('hidden'); }
+        // 確実に動作するよう、関数をwindowオブジェクトに直結
+        window.testClick = function() {
+            alert('タップ/クリック成功！');
+        };
 
-        // データとレンダリングは前回までと同様...
-        // スマホでタップを拾うために明示的に関数を定義
-        window.openModal = openModal;
-        window.closeModal = closeModal;
-        
-        // （以下、前回までのレンダリングロジックを継続）
+        window.openModal = function(id) {
+            document.getElementById(id + 'Modal').classList.remove('hidden');
+        };
+
+        window.closeFuelModal = function() {
+            document.getElementById('fuelModal').classList.add('hidden');
+        };
+
+        // ボタンのIDを取得して確実にイベント登録
+        document.getElementById('openFuelBtn').addEventListener('click', function() {
+            window.openModal('fuel');
+        });
+
+        console.log("スクリプトは正常にロードされました");
     </script>
 </body>
 </html>
