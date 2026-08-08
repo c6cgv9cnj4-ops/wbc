@@ -329,7 +329,6 @@
       width: 100%;
     }
 
-    /* 現場損益（横並びカード）スタイル */
     .profit-summary-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -565,7 +564,7 @@
           </div>
         </div>
 
-        <!-- ★ 現場損益の横並びカード配置 ★ -->
+        <!-- 現場損益の横並びカード配置 -->
         <div class="profit-summary-grid">
           <div class="profit-card">
             <div class="profit-card-label">💰 本日の純損益</div>
@@ -768,7 +767,7 @@
     let editingDocId = null;
     let selectedMemberFees = new Map();
     let currentCalculatedNetBalance = 0;
-    let accumulatedProfitSinceAug7 = 0; // ★ 8月7日からの累計損益
+    let accumulatedProfitSinceAug7 = 0;
 
     const mainPage = document.getElementById("mainPage");
     const reportPage = document.getElementById("reportPage");
@@ -925,7 +924,6 @@
       const totalIncome = (count700 * 700) + (count500 * 500);
       const profit = totalIncome - courtFee;
 
-      // ★ 本日の純損益表示
       if (todayNetProfitDisplay) {
         todayNetProfitDisplay.textContent = `${profit >= 0 ? '+' : ''}${profit.toLocaleString()} 円`;
         todayNetProfitDisplay.style.color = profit >= 0 ? 'var(--primary-color)' : 'var(--danger-color)';
@@ -1200,7 +1198,7 @@
       let totalCourt = 0;
       let totalShuttleBuy = 0;
       let totalShuttleBoughtBalls = 0;
-      accumulatedProfitSinceAug7 = 0; // Reset
+      accumulatedProfitSinceAug7 = 0;
 
       const monthlyData = {};
       const memberStats = {};
@@ -1223,9 +1221,10 @@
           totalIncome += (d.totalIncome || 0);
           totalCourt += (d.courtFee || 0);
 
+          // ★ コート代（d.courtFee）を正確に引いた「純損益」を算出
           const netProfit = (d.totalIncome || 0) - (d.courtFee || 0);
 
-          // ★ 8月7日以降の現場純損益を自動集計 ★
+          // 2026年8月7日以降の練習について、コート代差引後の純損益（netProfit）のみを累計加算
           if (d.date && d.date >= "2026-08-07") {
             accumulatedProfitSinceAug7 += netProfit;
           }
@@ -1320,7 +1319,7 @@
         }
       });
 
-      // ★ 8/7からの累計損益表示を更新
+      // 8/7からの累計損益表示（コート代控除後）
       const sinceAug7Display = document.getElementById("sinceAug7ProfitDisplay");
       if (sinceAug7Display) {
         sinceAug7Display.textContent = `${accumulatedProfitSinceAug7 >= 0 ? '+' : ''}${accumulatedProfitSinceAug7.toLocaleString()} 円`;
