@@ -34,7 +34,7 @@
             <div class="apple-card p-3 text-center"><div class="text-[10px] text-gray-500">今年平均</div><div class="font-bold text-purple-600 text-sm"><span id="sYear">0.0</span></div></div>
         </div>
 
-        <!-- 1. 給油記録 (アコーディオン) -->
+        <!-- 1. 給油記録 -->
         <details class="apple-card p-5" open>
             <summary class="flex justify-between items-center font-bold text-base cursor-pointer">
                 <span class="flex items-center gap-2"><i class="fa-solid fa-gas-pump text-emerald-600"></i> 給油記録</span>
@@ -44,7 +44,7 @@
             <button id="openFuelBtn" class="w-full mt-4 bg-gray-900 text-white py-3 rounded-xl font-bold text-xs">給油を記録</button>
         </details>
 
-        <!-- 2. 空気圧 (アコーディオン) -->
+        <!-- 2. 空気圧 -->
         <details class="apple-card p-5" open>
             <summary class="flex justify-between items-center font-bold text-base cursor-pointer">
                 <span class="flex items-center gap-2"><i class="fa-solid fa-gauge text-sky-600"></i> タイヤ空気圧 (4輪)</span>
@@ -105,14 +105,21 @@
         </div>
     </div>
 
-    <!-- オイルモーダル -->
+    <!-- オイルモーダル（エレメント交換チェックボックス追加） -->
     <div id="oilModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-3 text-xs">
             <h3 class="font-bold text-sm">オイル交換の記録</h3>
             <input type="date" id="oDate" class="w-full bg-gray-100 p-3 rounded-xl">
             <input type="number" id="oMileage" placeholder="交換時走行距離 (km)" class="w-full bg-gray-100 p-3 rounded-xl">
             <input type="number" id="oCost" placeholder="費用 (円)" class="w-full bg-gray-100 p-3 rounded-xl">
-            <input type="text" id="oMemo" placeholder="メモ (例:エレメント同時)" class="w-full bg-gray-100 p-3 rounded-xl">
+            
+            <!-- エレメント交換チェック項目 -->
+            <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-xl cursor-pointer">
+                <input type="checkbox" id="oElement" class="w-4 h-4 text-amber-600 rounded">
+                <span class="font-medium text-gray-800">オイルエレメントも交換した</span>
+            </label>
+
+            <input type="text" id="oMemo" placeholder="メモ (その他特記事項)" class="w-full bg-gray-100 p-3 rounded-xl">
             <div class="flex gap-2 pt-2">
                 <button id="closeOilBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">キャンセル</button>
                 <button id="saveOilBtn" class="flex-1 bg-amber-600 text-white py-3 rounded-xl font-bold">保存</button>
@@ -137,7 +144,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            let data = JSON.parse(localStorage.getItem('note_e11_data')) || {
+            let data = JSON.parse(localStorage.getItem('note_e11_data_v4')) || {
                 odometer: 78500, fuels: [], pressures: [], oils: [], inspections: []
             };
 
@@ -174,7 +181,7 @@
                     mileage, amount, price, cost: Math.floor(amount * price), efficiency
                 });
                 if(mileage > data.odometer) data.odometer = mileage;
-                localStorage.setItem('note_e11_data', JSON.stringify(data));
+                localStorage.setItem('note_e11_data_v4', JSON.stringify(data));
                 toggleModal('fuelModal', false);
                 render();
             };
@@ -189,21 +196,23 @@
                     rr: document.getElementById('pRR').value,
                     cost: Number(document.getElementById('pCost').value) || 0
                 });
-                localStorage.setItem('note_e11_data', JSON.stringify(data));
+                localStorage.setItem('note_e11_data_v4', JSON.stringify(data));
                 toggleModal('pressureModal', false);
                 render();
             };
 
             document.getElementById('saveOilBtn').onclick = () => {
                 const mileage = Number(document.getElementById('oMileage').value);
+                const isElement = document.getElementById('oElement').checked;
                 data.oils.push({
                     id: Date.now(),
                     date: document.getElementById('oDate').value,
                     mileage, cost: Number(document.getElementById('oCost').value),
+                    element: isElement,
                     memo: document.getElementById('oMemo').value
                 });
                 if(mileage > data.odometer) data.odometer = mileage;
-                localStorage.setItem('note_e11_data', JSON.stringify(data));
+                localStorage.setItem('note_e11_data_v4', JSON.stringify(data));
                 toggleModal('oilModal', false);
                 render();
             };
@@ -217,7 +226,7 @@
                     memo: document.getElementById('iMemo').value
                 });
                 if(mileage > data.odometer) data.odometer = mileage;
-                localStorage.setItem('note_e11_data', JSON.stringify(data));
+                localStorage.setItem('note_e11_data_v4', JSON.stringify(data));
                 toggleModal('inspModal', false);
                 render();
             };
@@ -255,10 +264,11 @@
                     `<div class="bg-amber-100 border border-amber-300 p-3 rounded-xl text-amber-900 text-xs font-bold"><i class="fa-solid fa-triangle-exclamation"></i> ${a}</div>`
                 ).join('');
 
-                // オイル・車検リスト
-                document.getElementById('oilList').innerHTML = [...data.oils].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0,1).map(o => 
-                    `<div class="bg-gray-50 p-3 rounded-xl flex justify-between"><span>${o.date} | ${o.memo || 'オイル交換'} (${o.mileage}km)</span><b>${o.cost}円</b></div>`
-                ).join('') || '記録なし';
+                // オイルリスト（エレメント交換の有無を表示）
+                document.getElementById('oilList').innerHTML = [...data.oils].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0,1).map(o => {
+                    const elemText = o.element ? ' [エレメント交換あり]' : '';
+                    return `<div class="bg-gray-50 p-3 rounded-xl flex justify-between"><span>${o.date} | オイル交換${elemText} (${o.mileage}km)</span><b>${o.cost}円</b></div>`;
+                }).join('') || '記録なし';
 
                 const lastI = [...data.inspections].sort((a,b) => new Date(b.date) - new Date(a.date))[0];
                 let inspMsg = "車検記録なし";
