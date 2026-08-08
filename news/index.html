@@ -46,7 +46,7 @@
     }
     .version-badge {
       font-size: 0.9rem;
-      background: var(--primary);
+      background: var(--danger);
       color: white;
       padding: 2px 8px;
       border-radius: 12px;
@@ -139,14 +139,6 @@
       font-size: 1rem;
       box-sizing: border-box;
     }
-    .api-key-help {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      margin-top: 5px;
-    }
-    .api-key-help a {
-      color: var(--primary);
-    }
     .btn {
       background: var(--primary);
       color: #fff;
@@ -220,12 +212,6 @@
       font-size: 0.95rem;
       border-top: 1px solid var(--border);
     }
-    
-    .loading {
-      text-align: center;
-      padding: 20px;
-      color: var(--text-muted);
-    }
   </style>
 </head>
 <body>
@@ -233,7 +219,7 @@
 <div class="container">
   <header>
     <div>
-      <h1>経済ポータルダッシュボード <span class="version-badge">最新版 v3</span></h1>
+      <h1>経済ポータルダッシュボード <span class="version-badge">最新版 v4</span></h1>
       <div class="quick-links">
         <a href="https://www.sbisec.co.jp/" target="_blank" rel="noopener">▶ SBI証券ログイン</a>
         <a href="https://shikiho.toyokeizai.net/" target="_blank" rel="noopener">▶ 会社四季報オンライン</a>
@@ -244,7 +230,7 @@
     </div>
   </header>
 
-  <!-- ① リアルタイム市況 (TradingView Widget) -->
+  <!-- ① リアルタイム市況 -->
   <section>
     <h2>① リアルタイム市況</h2>
     <div class="tradingview-widget-container">
@@ -264,8 +250,7 @@
               { "name": "TVC:US10Y", "displayName": "米10年債利回り" },
               { "name": "AMEX:SOXX", "displayName": "SOX指数 (半導体ETF)" },
               { "name": "TVC:USOIL", "displayName": "WTI原油" },
-              { "name": "TVC:VIX", "displayName": "VIX指数" },
-              { "name": "TSE:7532", "displayName": "PPIH (ドンキホーテ)" }
+              { "name": "TVC:VIX", "displayName": "VIX指数" }
             ]
           }
         ],
@@ -278,16 +263,13 @@
     </div>
   </section>
 
-  <!-- ② 日経CNBC 深掘り（完全自動化対応） -->
+  <!-- ② 日経CNBC 深掘り -->
   <section>
     <h2>② 日経CNBC 深掘り（最大5日分蓄積）</h2>
     
     <div class="api-key-section">
       <label>🔑 Gemini API キーを設定してください</label>
       <input type="password" id="api-key" placeholder="AQ. または AIzaSy から始まるキーを貼り付けてください（自動で保存されます）">
-      <div class="api-key-help">
-        ※AIに動画を要約させるための専用キーです。
-      </div>
     </div>
 
     <div style="margin-bottom: 20px;">
@@ -295,7 +277,7 @@
       <span id="process-status" style="margin-left:10px; font-size:1rem; font-weight:bold;"></span>
     </div>
 
-    <!-- 手動追加用のアコーディオン -->
+    <!-- 手動追加用 -->
     <details style="margin-bottom:20px; font-size:0.9rem;">
       <summary style="background:#eef2f6; color:var(--text-muted); font-weight:normal; padding:8px; border-radius:4px;">▶ 字幕テキストを手動で貼り付けて処理したい場合はこちらを開く</summary>
       <div class="deep-dive-controls">
@@ -307,9 +289,7 @@
       </div>
     </details>
 
-    <div id="deep-dive-container">
-      <!-- 処理結果が蓄積されます -->
-    </div>
+    <div id="deep-dive-container"></div>
   </section>
 
   <!-- ③ 新聞各紙 ニュース比較 -->
@@ -318,15 +298,15 @@
     <div class="news-grid">
       <div class="news-source">
         <h3>日経新聞</h3>
-        <ul id="news-nikkei" class="news-list"><li class="loading">取得中...</li></ul>
+        <ul id="news-nikkei" class="news-list"><li>取得中...</li></ul>
       </div>
       <div class="news-source">
         <h3>毎日新聞</h3>
-        <ul id="news-mainichi" class="news-list"><li class="loading">取得中...</li></ul>
+        <ul id="news-mainichi" class="news-list"><li>取得中...</li></ul>
       </div>
       <div class="news-source">
         <h3>ロイター (国際・ビジネス)</h3>
-        <ul id="news-reuters" class="news-list"><li class="loading">取得中...</li></ul>
+        <ul id="news-reuters" class="news-list"><li>取得中...</li></ul>
       </div>
     </div>
   </section>
@@ -334,13 +314,11 @@
 </div>
 
 <script>
-  // --- 共通ユーティリティ ---
   function updateTime() {
     const now = new Date();
     document.getElementById('last-updated').textContent = now.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
   }
 
-  // --- ③ ニュース(RSS)の取得 ---
   async function fetchNews() {
     const feeds = {
       'news-nikkei': 'https://assets.wor.jp/rss/rdf/nikkei/news.rdf',
@@ -378,7 +356,6 @@
     }
   }
 
-  // --- ② CNBC 深掘り (全自動取得 ＆ LocalStorage蓄積) ---
   const STORAGE_KEY = 'economic_dashboard_deepdives';
   const API_KEY_STORAGE = 'gemini_api_key';
 
@@ -429,7 +406,6 @@
     });
   }
 
-  // 【全自動処理】YouTubeのRSSから最新動画のタイトルと番組概要を取得し、Geminiに要約させる
   async function autoProcessCNBC() {
     const apiKey = document.getElementById('api-key').value.trim();
     if (!apiKey) {
@@ -445,7 +421,6 @@
     statusEl.style.color = 'var(--primary)';
 
     try {
-      // 日経CNBC公式のYouTube RSSフィード
       const rssUrl = 'https://www.youtube.com/feeds/videos.xml?channel_id=UClVsQnfs-jKkjKmUKUHnT2g';
       const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
       const data = await res.json();
@@ -454,12 +429,10 @@
         throw new Error('動画リストの取得に失敗しました。');
       }
 
-      // 最新の動画を取得
       const latestVideo = data.items[0];
       const videoTitle = latestVideo.title;
       const videoDesc = latestVideo.description || '';
       
-      // 既に取得済みの動画かチェック
       let savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
       if (savedData.length > 0 && savedData[0].title === `[自動取得] ${videoTitle}`) {
         statusEl.textContent = '最新の動画はすでにダッシュボードに反映済みです。';
@@ -471,11 +444,10 @@
 
       statusEl.textContent = `「${videoTitle.substring(0,20)}...」をAIで構造化中...`;
 
-      // Geminiへのプロンプト生成
       const prompt = `
-以下の日経CNBCの最新動画のタイトルと【番組概要テキスト（番組内容が記載されています）】を読み込み、内容をお題別に構造化してください。
+以下の日経CNBCの最新動画のタイトルと【番組概要テキスト】を読み込み、内容をお題別に構造化してください。
 推測での創作や水増しはせず、テキストにある情報のみに基づいて箇条書きや要約を作成してください。
-出力は純粋なHTML形式のみとし、各トピックごとに <details><summary>トピックの見出し</summary><div class="details-content">要約内容</div></details> というタグを使って出力してください。HTMLブロック以外の余計な文章（「承知しました」など）は出力しないでください。
+出力は純粋なHTML形式のみとし、各トピックごとに <details><summary>トピックの見出し</summary><div class="details-content">要約内容</div></details> というタグを使って出力してください。HTMLブロック以外の余計な文章は出力しないでください。
 
 【タイトル】
 ${videoTitle}
@@ -483,8 +455,8 @@ ${videoTitle}
 【番組概要テキスト】
 ${videoDesc}
 `;
-
-      const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      // モデル名を「gemini-1.5-flash-latest」に修正しました
+      const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -494,7 +466,6 @@ ${videoDesc}
       });
 
       if (!geminiRes.ok) {
-        // エラー詳細を取得して画面に表示
         let errorMsg = geminiRes.statusText;
         try {
           const errData = await geminiRes.json();
@@ -508,7 +479,6 @@ ${videoDesc}
       const geminiData = await geminiRes.json();
       let generatedHtml = geminiData.candidates[0].content.parts[0].text;
       
-      // AIがMarkdownのコードブロックをつけて返した場合の除去
       generatedHtml = generatedHtml.replace(/```html/g, '').replace(/```/g, '').trim();
 
       const newEntry = {
@@ -519,7 +489,7 @@ ${videoDesc}
 
       savedData.unshift(newEntry);
       if (savedData.length > 5) {
-        savedData = savedData.slice(0, 5); // 5日(5件)分を維持
+        savedData = savedData.slice(0, 5);
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
 
@@ -537,7 +507,6 @@ ${videoDesc}
     }
   }
 
-  // 【手動処理】従来のコピペ用
   async function manualProcessTranscript() {
     const apiKey = document.getElementById('api-key').value.trim();
     const title = document.getElementById('video-title').value.trim();
@@ -561,15 +530,14 @@ ${videoDesc}
 
     const prompt = `
 以下の動画の字幕テキストを読み込み、内容をお題別に構造化してください。
-数値や発言はすべて実際の内容に基づき、絶対に創作・水増しをしないでください。
 出力は純粋なHTML形式のみとし、各トピックごとに <details><summary>トピックの見出し</summary><div class="details-content">要約内容</div></details> というタグを使って出力してください。HTMLブロック以外の余計な文章は出力しないでください。
 
 【字幕テキスト】
 ${transcript}
 `;
-
+      // モデル名を「gemini-1.5-flash-latest」に修正しました
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -620,13 +588,11 @@ ${transcript}
     }
   }
 
-  // --- 初期化処理 ---
   window.onload = () => {
     updateTime();
     fetchNews();
     loadDeepDives();
     
-    // 時刻を更新 (TradingView自体は独自にリアルタイム更新されます)
     setInterval(() => {
       updateTime();
     }, 60 * 1000);
