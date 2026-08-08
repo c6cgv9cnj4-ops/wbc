@@ -3,83 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Note E11 管理</title>
+    <title>Car Maintenance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f5f5f7; }
         .apple-card { background: white; border-radius: 20px; border: 1px solid #e5e5ea; }
-        select { -webkit-appearance: none; appearance: none; }
     </style>
 </head>
-<body class="p-4 pb-20">
+<body class="p-4">
     <div class="max-w-md mx-auto space-y-4">
-        <!-- 空気圧モーダル -->
-        <div id="pressureModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
-            <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4 text-xs">
-                <h3 class="font-bold text-sm">タイヤ空気圧 (4輪) 記録</h3>
-                <input type="date" id="pDate" class="w-full bg-gray-100 p-3 rounded-xl">
-                
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-[10px] text-gray-500 mb-1 block">前左 (FL)</label>
-                        <select id="pFL" class="w-full bg-gray-100 p-3 rounded-xl font-bold"></select>
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-gray-500 mb-1 block">前右 (FR)</label>
-                        <select id="pFR" class="w-full bg-gray-100 p-3 rounded-xl font-bold"></select>
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-gray-500 mb-1 block">後左 (RL)</label>
-                        <select id="pRL" class="w-full bg-gray-100 p-3 rounded-xl font-bold"></select>
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-gray-500 mb-1 block">後右 (RR)</label>
-                        <select id="pRR" class="w-full bg-gray-100 p-3 rounded-xl font-bold"></select>
-                    </div>
-                </div>
-                
-                <div class="flex gap-2 pt-2">
-                    <button id="closePressureBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">キャンセル</button>
-                    <button id="savePressureBtn" class="flex-1 bg-sky-600 text-white py-3 rounded-xl font-bold">保存</button>
-                </div>
-            </div>
+        <header class="flex justify-between items-center py-2">
+            <h1 class="font-bold text-xl">Note E11 管理</h1>
+            <button id="testBtn" class="bg-blue-600 text-white px-4 py-2 rounded-full text-xs font-bold">テストボタン</button>
+        </header>
+
+        <section class="apple-card p-6">
+            <h2 class="font-bold mb-4">給油記録</h2>
+            <button id="openFuelBtn" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold">給油を記録</button>
+        </section>
+    </div>
+
+    <!-- モーダル -->
+    <div id="fuelModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm">
+            <h3 class="font-bold mb-4">給油記録</h3>
+            <button id="closeFuelBtn" class="w-full bg-gray-200 py-3 rounded-xl font-bold">閉じる</button>
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // プルダウンの生成: 1.5 〜 3.0 を 0.1 刻みで生成
-            const selectIds = ['pFL', 'pFR', 'pRL', 'pRR'];
-            selectIds.forEach(id => {
-                const select = document.getElementById(id);
-                for (let i = 15; i <= 30; i++) {
-                    const val = (i / 10).toFixed(1);
-                    const option = document.createElement('option');
-                    option.value = val;
-                    option.textContent = val;
-                    if (val === "2.3") option.selected = true; // デフォルトを2.3に
-                    select.appendChild(option);
-                }
-            });
-
-            // 以下、モーダル表示・保存ロジック...
-            const toggleModal = (id, show) => document.getElementById(id).classList.toggle('hidden', !show);
-            document.getElementById('openPressureBtn').onclick = () => toggleModal('pressureModal', true);
-            document.getElementById('closePressureBtn').onclick = () => toggleModal('pressureModal', false);
-            
-            // 保存時は select の value をそのまま取得
-            document.getElementById('savePressureBtn').onclick = () => {
-                const pData = {
-                    date: document.getElementById('pDate').value,
-                    fl: document.getElementById('pFL').value,
-                    fr: document.getElementById('pFR').value,
-                    rl: document.getElementById('pRL').value,
-                    rr: document.getElementById('pRR').value
-                };
-                console.log("保存データ:", pData);
-                toggleModal('pressureModal', false);
+            const openModal = (modalId) => {
+                const targetModal = document.getElementById(modalId);
+                if (targetModal) targetModal.classList.remove('hidden');
             };
+
+            const closeModal = (modalId) => {
+                const targetModal = document.getElementById(modalId);
+                if (targetModal) targetModal.classList.add('hidden');
+            };
+
+            const testBtn = document.getElementById('testBtn');
+            if (testBtn) {
+                testBtn.addEventListener('click', () => {
+                    alert('タップ/クリック成功！');
+                });
+            }
+
+            const openFuelBtn = document.getElementById('openFuelBtn');
+            if (openFuelBtn) {
+                openFuelBtn.addEventListener('click', () => {
+                    openModal('fuelModal');
+                });
+            }
+
+            const closeFuelBtn = document.getElementById('closeFuelBtn');
+            if (closeFuelBtn) {
+                closeFuelBtn.addEventListener('click', () => {
+                    closeModal('fuelModal');
+                });
+            }
+
+            const fuelModal = document.getElementById('fuelModal');
+            if (fuelModal) {
+                fuelModal.addEventListener('click', (e) => {
+                    if (e.target === fuelModal) {
+                        closeModal('fuelModal');
+                    }
+                });
+            }
         });
     </script>
 </body>
