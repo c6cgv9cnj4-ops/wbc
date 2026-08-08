@@ -2,12 +2,12 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>バドミントン管理</title>
   
   <!-- PWA (iPhone / Android アプリ化設定) -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="バド管理">
   <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2906/2906206.png">
 
@@ -17,247 +17,490 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #f4f6f9;
-      margin: 0;
-      padding: 12px;
-      color: #333;
-      overflow-x: hidden;
+    :root {
+      --primary-color: #0071e3;
+      --primary-hover: #0077ed;
+      --success-color: #34c759;
+      --warning-color: #ff9500;
+      --danger-color: #ff3b30;
+      --purple-color: #af52de;
+      --bg-color: #f5f5f7;
+      --card-bg: #ffffff;
+      --text-main: #1d1d1f;
+      --text-sub: #86868b;
+      --border-color: #e5e5ea;
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+      --radius-sm: 10px;
+      --radius-md: 16px;
+      --radius-lg: 20px;
     }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      margin: 0;
+      padding: 16px 12px 40px 12px;
+      color: var(--text-main);
+      overflow-x: hidden;
+      line-height: 1.47059;
+      letter-spacing: -0.022em;
+    }
+
+    .app-header {
+      max-width: 640px;
+      margin: 0 auto 16px auto;
+      text-align: center;
+      padding: 12px 0;
+    }
+
+    .app-header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -0.015em;
+      color: var(--text-main);
+    }
+
     .container {
-      max-width: 600px;
+      max-width: 640px;
       width: 100%;
       margin: 0 auto 16px auto;
-      background: #ffffff;
-      padding: 16px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      transition: all 0.2s ease;
     }
-    h1 { text-align: center; font-size: 1.2rem; margin: 0 0 12px 0; }
-    
+
     .today-guide-card {
-      background: linear-gradient(135deg, #eef5ff 0%, #e3f2fd 100%);
-      border: 1px solid #bbdefb;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 12px;
+      background: linear-gradient(135deg, #e3f2fd 0%, #f0f7ff 100%);
+      border: 1px solid #bae0ff;
+      padding: 16px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 16px;
       text-align: center;
     }
-    .today-guide-title { font-size: 0.75rem; color: #1565c0; font-weight: bold; margin-bottom: 4px; }
-    .today-guide-value { font-size: 1.05rem; font-weight: bold; color: #0d47a1; word-break: break-all; }
+
+    .today-guide-title {
+      font-size: 0.8rem;
+      color: #0050b3;
+      font-weight: 600;
+      margin-bottom: 6px;
+      letter-spacing: -0.01em;
+    }
+
+    .today-guide-value {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #002c8c;
+      word-break: break-all;
+    }
+
+    .today-guide-value strong {
+      font-size: 1.25rem;
+      color: var(--primary-color);
+    }
 
     .section-title {
-      font-weight: bold;
-      font-size: 0.9rem;
-      margin-bottom: 8px;
-      border-bottom: 2px solid #eef5ff;
-      padding-bottom: 4px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      color: var(--text-main);
     }
-    .input-group { display: flex; gap: 6px; margin-bottom: 10px; width: 100%; }
-    input[type="text"], input[type="date"], select, input[type="number"] {
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
       width: 100%;
-      padding: 8px 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 0.9rem;
     }
-    button.btn-primary {
-      background-color: #0066ff;
-      color: white;
+
+    input[type="text"],
+    input[type="date"],
+    select,
+    input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      color: var(--text-main);
+      background-color: #fafafa;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: border-color 0.2s ease, background-color 0.2s ease;
+      font-family: inherit;
+    }
+
+    input[type="text"]:focus,
+    input[type="date"]:focus,
+    select:focus,
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      background-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+    }
+
+    button {
+      font-family: inherit;
       border: none;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-weight: bold;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
       cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button.btn-primary {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 10px 16px;
       white-space: nowrap;
       font-size: 0.85rem;
     }
+
+    button.btn-primary:hover {
+      background-color: var(--primary-hover);
+    }
+
     button.btn-save {
       width: 100%;
-      padding: 12px;
-      background-color: #28a745;
+      padding: 14px;
+      background-color: var(--success-color);
       color: white;
-      border: none;
-      border-radius: 6px;
       font-size: 1rem;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 6px;
+      margin-top: 8px;
+      box-shadow: 0 4px 12px rgba(52, 199, 89, 0.25);
     }
+
     button.btn-adjust {
       width: 100%;
-      padding: 12px;
-      background-color: #fd7e14;
+      padding: 14px;
+      background-color: var(--warning-color);
       color: white;
-      border: none;
-      border-radius: 6px;
       font-size: 0.95rem;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 6px;
+      margin-top: 8px;
+      box-shadow: 0 4px 12px rgba(255, 149, 0, 0.25);
     }
+
     button.btn-csv {
-      background-color: #17a2b8;
-      color: white;
-      border: none;
-      padding: 4px 8px;
-      border-radius: 4px;
+      background-color: #efeff4;
+      color: var(--text-main);
+      padding: 6px 12px;
       font-size: 0.75rem;
-      font-weight: bold;
-      cursor: pointer;
+      border: 1px solid var(--border-color);
     }
+
+    button.btn-csv:hover {
+      background-color: #e5e5ea;
+    }
+
     button.btn-report-toggle {
       width: 100%;
-      padding: 10px;
-      background-color: #6f42c1;
+      padding: 12px;
+      background-color: var(--purple-color);
       color: white;
-      border: none;
-      border-radius: 6px;
       font-size: 0.9rem;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 10px;
+      margin-top: 12px;
+      box-shadow: 0 4px 12px rgba(175, 82, 222, 0.25);
     }
+
     button.btn-back {
-      background-color: #6c757d;
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 4px;
+      background-color: #e5e5ea;
+      color: var(--text-main);
+      padding: 6px 14px;
       font-size: 0.85rem;
-      font-weight: bold;
-      cursor: pointer;
+    }
+
+    .btn-edit {
+      background-color: #e5e5ea;
+      color: var(--text-main);
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      margin-right: 4px;
+    }
+
+    .btn-del {
+      background-color: #ffe5e5;
+      color: var(--danger-color);
+      padding: 4px 10px;
+      font-size: 0.75rem;
     }
 
     .member-list {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-bottom: 10px;
-      min-height: 48px;
-      padding: 8px;
+      margin-bottom: 12px;
+      min-height: 52px;
+      padding: 10px;
       background: #fafafa;
-      border-radius: 6px;
-      border: 1px dashed #ddd;
+      border-radius: var(--radius-sm);
+      border: 1px dashed var(--border-color);
     }
+
     .member-chip {
-      background-color: #e0e0e0;
-      color: #555;
-      padding: 8px 12px;
+      background-color: #e5e5ea;
+      color: #3a3a3c;
+      padding: 8px 14px;
       border-radius: 20px;
-      font-size: 0.9rem;
-      font-weight: bold;
+      font-size: 0.85rem;
+      font-weight: 600;
       cursor: pointer;
       user-select: none;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      border: 2px solid transparent;
-      transition: all 0.15s ease;
+      border: 1.5px solid transparent;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .member-chip.selected {
-      background-color: #0066ff;
-      color: #ffffff;
-      border-color: #0044cc;
-      box-shadow: 0 2px 4px rgba(0,102,255,0.3);
-    }
-    .delete-btn {
-      color: #999;
-      font-weight: bold;
-      cursor: pointer;
-      font-size: 0.85rem;
-      margin-left: 4px;
-    }
-    .member-chip.selected .delete-btn { color: #bbd5ff; }
-    .delete-btn:hover { color: #dc3545; }
 
-    .form-row { margin-bottom: 10px; width: 100%; }
-    .form-row label { display: block; font-size: 0.75rem; color: #666; margin-bottom: 2px; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+    .member-chip.selected-700 {
+      background-color: var(--primary-color);
+      color: #ffffff;
+      border-color: var(--primary-color);
+      box-shadow: 0 2px 8px rgba(0, 113, 227, 0.3);
+    }
+
+    .member-chip.selected-500 {
+      background-color: var(--success-color);
+      color: #ffffff;
+      border-color: var(--success-color);
+      box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
+    }
+
+    .delete-btn {
+      color: #8e8e93;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-left: 2px;
+      transition: color 0.15s ease;
+    }
+
+    .member-chip.selected-700 .delete-btn,
+    .member-chip.selected-500 .delete-btn {
+      color: #ffffff;
+      opacity: 0.8;
+    }
+
+    .delete-btn:hover {
+      color: var(--danger-color) !important;
+      opacity: 1 !important;
+    }
+
+    .form-row {
+      margin-bottom: 12px;
+      width: 100%;
+    }
+
+    .form-row label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-sub);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+    }
 
     .dashboard-mini {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 10px;
       margin-top: 10px;
     }
+
     .dash-card-mini {
-      background: #f8f9fa;
-      border: 1px solid #e9ecef;
-      padding: 8px;
-      border-radius: 6px;
+      background: #fafafa;
+      border: 1px solid var(--border-color);
+      padding: 12px;
+      border-radius: var(--radius-sm);
       font-size: 0.8rem;
     }
 
     .history-card {
-      background: #fafafa;
-      border: 1px solid #e0e0e0;
-      border-radius: 6px;
-      padding: 10px;
-      margin-bottom: 8px;
-      font-size: 0.8rem;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      font-size: 0.825rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
     }
-    .history-header { font-weight: bold; color: #0052cc; display: flex; justify-content: space-between; margin-bottom: 4px; }
+
+    .history-header {
+      font-weight: 600;
+      color: var(--primary-color);
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 0.875rem;
+    }
+
+    .action-btns {
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px dashed var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+    }
 
     .reserve-check-row {
-      padding: 8px 10px;
-      border-radius: 6px;
-      margin-bottom: 6px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 8px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-size: 0.85rem;
-      border: 1px solid #e0e0e0;
+      border: 1px solid var(--border-color);
     }
+
     .reserve-check-row.reserved {
-      background-color: #e8f5e9;
-      border-color: #a5d6a7;
+      background-color: #eefbf1;
+      border-color: #b7ebc6;
     }
+
     .reserve-check-row.unreserved {
-      background-color: #ffebee;
-      border-color: #ffcdd2;
+      background-color: #fff2f2;
+      border-color: #ffccc7;
     }
-    .status-badge-ok { color: #2e7d32; font-weight: bold; }
-    .status-badge-ng { color: #c62828; font-weight: bold; }
+
+    .status-badge-ok {
+      color: var(--success-color);
+      font-weight: 600;
+    }
+
+    .status-badge-ng {
+      color: var(--danger-color);
+      font-weight: 600;
+    }
 
     .stats-table {
       width: 100%;
-      border-collapse: collapse;
+      border-collapse: separate;
+      border-spacing: 0;
       font-size: 0.8rem;
-      margin-top: 8px;
+      margin-top: 10px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--border-color);
     }
-    .stats-table th, .stats-table td { border: 1px solid #e0e0e0; padding: 6px; text-align: center; }
-    .stats-table th { background: #f0f4f8; }
 
-    details { background: #fff; border-radius: 8px; margin-bottom: 12px; border: 1px solid #e0e0e0; width: 100%; }
-    details summary { padding: 12px; font-weight: bold; font-size: 0.9rem; cursor: pointer; outline: none; user-select: none; color: #333; }
-    details[open] summary { border-bottom: 1px solid #eee; }
-    .accordion-content { padding: 12px; }
+    .stats-table th,
+    .stats-table td {
+      padding: 10px 8px;
+      text-align: center;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .stats-table th {
+      background: #fafafa;
+      color: var(--text-sub);
+      font-weight: 600;
+    }
+
+    .stats-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    details {
+      background: var(--card-bg);
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      box-shadow: var(--shadow-sm);
+      width: 100%;
+      overflow: hidden;
+    }
+
+    details summary {
+      padding: 16px 20px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      outline: none;
+      user-select: none;
+      color: var(--text-main);
+      transition: background-color 0.2s ease;
+    }
+
+    details summary:hover {
+      background-color: #fafafa;
+    }
+
+    details[open] summary {
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .accordion-content {
+      padding: 16px 20px 20px 20px;
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 8px 6px 30px 6px;
+      }
+      .container {
+        padding: 14px;
+        border-radius: var(--radius-sm);
+      }
+      .accordion-content {
+        padding: 12px;
+      }
+      details summary {
+        padding: 14px;
+      }
+    }
   </style>
 </head>
 <body>
 
+  <div class="app-header">
+    <h1>🏸 バドミントン現場記録</h1>
+  </div>
+
   <!-- メイン画面 -->
   <div id="mainPage">
     <!-- 📱 1. 本日の現場入力エリア -->
-    <div class="container" style="border-top: 4px solid #0066ff;">
-      <h1>🏸 バドミントン現場記録</h1>
+    <div class="container" style="border-top: 4px solid var(--primary-color);">
 
       <div class="today-guide-card">
         <div class="today-guide-title">⚖️ 本日の推奨黒字ライン (ポチポチ選択と連動)</div>
         <div id="todayBreakEven" class="today-guide-value">
-          参加 0名 ｜ 利益 0円 ➔ 消耗 <strong>0球</strong> まで黒字
+          参加 0名 (700円:0名 / 500円:0名) ｜ 利益 0円 ➔ 消耗 <strong>0球</strong> まで黒字
         </div>
       </div>
 
       <div class="section-title">
-        <span>👥 本日の参加メンバー選択</span>
-        <span style="font-size:0.75rem; color:#666; font-weight:normal;">(タップで出席/欠席切替)</span>
+        <span>👥 参加メンバー選択</span>
+        <span style="font-size:0.75rem; color:var(--text-sub); font-weight:normal;">(タップ: 700円青 ➔ 500円緑 ➔ 未選択)</span>
       </div>
       <div id="memberList" class="member-list"></div>
 
@@ -284,8 +527,8 @@
 
         <div class="grid-2 form-row">
           <div>
-            <label>会費単価 (円)</label>
-            <input type="number" id="feePerPerson" value="700">
+            <label>会費単価 (固定)</label>
+            <input type="text" value="700円 / 500円" readonly style="background:#f0f0f5; color:var(--text-sub); font-weight:600;">
           </div>
           <div>
             <label>事前予約コート代 (自動読み込み)</label>
@@ -295,7 +538,7 @@
 
         <div class="form-row">
           <label>シャトル損益個数 (切り捨て黒字限界球数)</label>
-          <input type="text" id="usedShuttleBallsDisplay" value="0 球" readonly style="background:#eef5ff; color:#0052cc; font-weight:bold; font-size:1.05rem;">
+          <input type="text" id="usedShuttleBallsDisplay" value="0 球" readonly style="background:#eef5ff; color:var(--primary-color); font-weight:700; font-size:1.05rem;">
         </div>
 
         <button type="button" id="saveEventBtn" class="btn-save">💾 本日の練習記録を保存</button>
@@ -303,18 +546,18 @@
     </div>
 
     <!-- 📅 2. 3ヶ月先までの全金曜日 一括予約チェック -->
-    <details class="container" open style="border-left: 4px solid #28a745;">
+    <details class="container" open style="border-left: 4px solid var(--success-color);">
       <summary>📅 3ヶ月先までのコート予約・支払い (直近12〜13回分一括点検)</summary>
       <div class="accordion-content">
         <form id="reserveForm" action="#">
           <div class="form-row">
             <label>コート使用予定日 (練習日)</label>
             <input type="date" id="reserveTargetDate">
-            <div id="targetDateWithDay" style="font-size:0.8rem; color:#0052cc; font-weight:bold; margin-top:2px;"></div>
+            <div id="targetDateWithDay" style="font-size:0.8rem; color:var(--primary-color); font-weight:600; margin-top:4px;"></div>
           </div>
           <div class="form-row">
             <label>予約手続き日 (正確な3ヶ月前 & 曜日)</label>
-            <input type="text" id="reserveCalcDate" readonly style="background:#eef5ff; color:#0052cc; font-weight:bold; font-size:0.95rem;">
+            <input type="text" id="reserveCalcDate" readonly style="background:#eef5ff; color:var(--primary-color); font-weight:600; font-size:0.95rem;">
           </div>
           <div class="form-row">
             <label>支払いコート代 (円)</label>
@@ -323,8 +566,8 @@
           <button type="button" id="saveReserveBtn" class="btn-save">💾 コート予約代を保存</button>
         </form>
 
-        <div style="margin-top:20px; border-top:2px dashed #e0e0e0; padding-top:12px;">
-          <div style="font-weight:bold; font-size:0.85rem; color:#0052cc; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="margin-top:20px; border-top:1px dashed var(--border-color); padding-top:14px;">
+          <div style="font-weight:600; font-size:0.85rem; color:var(--primary-color); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
             <span>📋 直近3ヶ月先の全金曜日 予約点検表 (約12行)</span>
           </div>
 
@@ -366,15 +609,15 @@
       <div class="section-title">💰 サークル財務サマリー</div>
       <div class="dashboard-mini">
         <div class="dash-card-mini">
-          <div style="color:#666;">現在のサークルプール金</div>
-          <div id="dashBalance" style="font-size:1.1rem; font-weight:bold;">0 円</div>
+          <div style="color:var(--text-sub);">現在のサークルプール金</div>
+          <div id="dashBalance" style="font-size:1.15rem; font-weight:700; margin-top:2px;">0 円</div>
         </div>
         <div class="dash-card-mini">
-          <div style="color:#666;">シャトル仕入れ累計</div>
-          <div id="dashStock" style="font-size:1.1rem; font-weight:bold;">0 球</div>
+          <div style="color:var(--text-sub);">シャトル仕入れ累計</div>
+          <div id="dashStock" style="font-size:1.15rem; font-weight:700; margin-top:2px;">0 球</div>
         </div>
       </div>
-      <div id="dashGuide" style="font-size:0.75rem; color:#555; margin-top:6px;">データ計算中...</div>
+      <div id="dashGuide" style="font-size:0.75rem; color:var(--text-sub); margin-top:8px;">データ計算中...</div>
 
       <button type="button" id="goToReportBtn" class="btn-report-toggle">📈 損益分岐グラフ & 参加率レポートを見る ➔</button>
     </div>
@@ -389,8 +632,8 @@
     </div>
 
     <!-- 🔧 6. 残高の直接調整エリア -->
-    <div class="container" style="border-top: 4px solid #fd7e14;">
-      <div class="section-title" style="color: #d97706;">
+    <div class="container" style="border-top: 4px solid var(--warning-color);">
+      <div class="section-title" style="color: var(--warning-color);">
         <span>🔧 残高の直接調整 (手元の現金ピッタリ合わせ・初期残高)</span>
       </div>
       <form id="adjustForm" action="#" style="margin-top: 10px;">
@@ -420,19 +663,19 @@
         <span></span>
       </div>
 
-      <div style="margin-top:12px;">
-        <div style="font-weight:bold; font-size:0.85rem; margin-bottom:4px;">📊 月別 収支推移</div>
+      <div style="margin-top:16px;">
+        <div style="font-weight:600; font-size:0.85rem; margin-bottom:6px;">📊 月別 収支推移</div>
         <canvas id="financeChart" width="400" height="180"></canvas>
       </div>
 
-      <div style="margin-top:20px;">
-        <div style="font-weight:bold; font-size:0.85rem; margin-bottom:4px;">⚖️ 各回の損益分岐点（会費利益 vs シャトル代）</div>
-        <div style="font-size:0.75rem; color:#666; margin-bottom:8px;">※緑（利益）が赤（シャトル代）より高ければその回は黒字です</div>
+      <div style="margin-top:24px;">
+        <div style="font-weight:600; font-size:0.85rem; margin-bottom:4px;">⚖️ 各回の損益分岐点（会費利益 vs シャトル代）</div>
+        <div style="font-size:0.75rem; color:var(--text-sub); margin-bottom:10px;">※緑（利益）が赤（シャトル代）より高ければその回は黒字です</div>
         <canvas id="breakEvenChart" width="400" height="200"></canvas>
       </div>
 
-      <div style="margin-top:20px;">
-        <div style="font-weight:bold; font-size:0.85rem; margin-bottom:6px;">👥 メンバー別 参加回数・参加率</div>
+      <div style="margin-top:24px;">
+        <div style="font-weight:600; font-size:0.85rem; margin-bottom:8px;">👥 メンバー別 参加回数・参加率</div>
         <table class="stats-table">
           <thead>
             <tr>
@@ -488,7 +731,9 @@
     if (adjustDateInput) adjustDateInput.valueAsDate = today;
 
     let editingDocId = null;
-    let selectedMemberNames = new Set();
+    
+    // ★ メンバーの料金設定管理（Map: name -> 700 | 500）
+    let selectedMemberFees = new Map();
     let currentCalculatedNetBalance = 0;
 
     const mainPage = document.getElementById("mainPage");
@@ -547,22 +792,31 @@
         currentMembers.push({ id, ...data });
 
         const chip = document.createElement("div");
-        const isSelected = selectedMemberNames.has(data.name);
-        chip.className = `member-chip ${isSelected ? 'selected' : ''}`;
+        const currentFee = selectedMemberFees.get(data.name);
+        
+        chip.className = `member-chip ${currentFee === 700 ? 'selected-700' : currentFee === 500 ? 'selected-500' : ''}`;
         chip.dataset.id = id;
         chip.dataset.name = data.name;
 
+        let feeLabel = '';
+        if (currentFee === 700) feeLabel = '✓ 700円';
+        else if (currentFee === 500) feeLabel = '★ 500円';
+
         chip.innerHTML = `
-          <span>${isSelected ? '✓ ' : ''}${data.name}</span>
+          <span>${feeLabel ? feeLabel + ' ' : ''}${data.name}</span>
           <span class="delete-btn">×</span>
         `;
 
+        // 3段階タップ切り替え: 未選択 -> 700円 -> 500円 -> 未選択
         chip.addEventListener("click", (e) => {
           if (e.target.classList.contains("delete-btn")) return;
-          if (selectedMemberNames.has(data.name)) {
-            selectedMemberNames.delete(data.name);
+          const status = selectedMemberFees.get(data.name);
+          if (!status) {
+            selectedMemberFees.set(data.name, 700);
+          } else if (status === 700) {
+            selectedMemberFees.set(data.name, 500);
           } else {
-            selectedMemberNames.add(data.name);
+            selectedMemberFees.delete(data.name);
           }
           renderMemberChips();
           updateSummary();
@@ -571,7 +825,7 @@
         chip.querySelector(".delete-btn").addEventListener("click", async (e) => {
           e.stopPropagation();
           if (confirm(`${data.name} さんを登録メンバーから削除しますか？`)) {
-            selectedMemberNames.delete(data.name);
+            selectedMemberFees.delete(data.name);
             await deleteDoc(doc(db, "members", id));
           }
         });
@@ -585,9 +839,15 @@
       const chips = memberListContainer.querySelectorAll(".member-chip");
       chips.forEach(chip => {
         const name = chip.dataset.name;
-        const isSelected = selectedMemberNames.has(name);
-        chip.className = `member-chip ${isSelected ? 'selected' : ''}`;
-        chip.querySelector("span").textContent = `${isSelected ? '✓ ' : ''}${name}`;
+        const currentFee = selectedMemberFees.get(name);
+        
+        chip.className = `member-chip ${currentFee === 700 ? 'selected-700' : currentFee === 500 ? 'selected-500' : ''}`;
+        
+        let feeLabel = '';
+        if (currentFee === 700) feeLabel = '✓ 700円';
+        else if (currentFee === 500) feeLabel = '★ 500円';
+
+        chip.querySelector("span").textContent = `${feeLabel ? feeLabel + ' ' : ''}${name}`;
       });
     }
 
@@ -608,25 +868,30 @@
       e.preventDefault();
       const name = document.getElementById("memberInput").value.trim();
       if (!name) return;
-      selectedMemberNames.add(name);
+      selectedMemberFees.set(name, 700); // デフォルトは700円選択
       await addDoc(membersCol, { name, order: currentMembers.length, createdAt: serverTimestamp() });
       document.getElementById("memberInput").value = "";
     });
 
-    const feePerPersonInput = document.getElementById("feePerPerson");
     const courtFeeInput = document.getElementById("courtFee");
     const usedShuttleBallsDisplay = document.getElementById("usedShuttleBallsDisplay");
 
-    if (feePerPersonInput) feePerPersonInput.addEventListener("input", updateSummary);
     if (courtFeeInput) courtFeeInput.addEventListener("input", updateSummary);
 
     let latestShuttleBallUnitPrice = 333;
 
     function updateSummary() {
-      const count = selectedMemberNames.size;
-      const unitFee = parseInt(feePerPersonInput ? feePerPersonInput.value : 700, 10) || 0;
+      let count700 = 0;
+      let count500 = 0;
+
+      selectedMemberFees.forEach((fee) => {
+        if (fee === 700) count700++;
+        else if (fee === 500) count500++;
+      });
+
+      const totalCount = count700 + count500;
       const courtFee = parseInt(courtFeeInput ? courtFeeInput.value : 0, 10) || 0;
-      const totalIncome = count * unitFee;
+      const totalIncome = (count700 * 700) + (count500 * 500);
       const profit = totalIncome - courtFee;
 
       const maxBreakEvenBalls = profit > 0 ? Math.floor(profit / latestShuttleBallUnitPrice) : 0;
@@ -638,7 +903,7 @@
       const targetElem = document.getElementById("todayBreakEven");
       if (targetElem) {
         targetElem.innerHTML = 
-          `参加 <strong>${count}名</strong> ｜ 利益 <strong>${profit.toLocaleString()}円</strong> ➔ 消耗 <strong>${maxBreakEvenBalls}球</strong> まで黒字`;
+          `参加 <strong>${totalCount}名</strong> (700円:${count700}名 / 500円:${count500}名) ｜ 利益 <strong>${profit.toLocaleString()}円</strong> ➔ 消耗 <strong>${maxBreakEvenBalls}球</strong> まで黒字`;
       }
     }
 
@@ -712,9 +977,9 @@
               <div>
                 <strong>📅 ${m}/${d} (金)</strong>
                 <span class="status-badge-ng" style="margin-left:6px;">⚠️ 未予約</span>
-                <span style="font-size:0.7rem; color:#666; margin-left:4px;">(予約解禁: ${py}/${pm}/${pd} ${pw})</span>
+                <span style="font-size:0.7rem; color:var(--text-sub); margin-left:4px;">(解禁: ${py}/${pm}/${pd} ${pw})</span>
               </div>
-              <button type="button" class="btn-primary" style="padding:2px 8px; font-size:0.75rem;" onclick="setQuickReserve('${dateStr}')">予約登録</button>
+              <button type="button" class="btn-primary" style="padding:4px 10px; font-size:0.75rem;" onclick="setQuickReserve('${dateStr}')">予約登録</button>
             `;
           }
 
@@ -724,7 +989,7 @@
       }
 
       if (fridayCount === 0) {
-        reserveCheckList.innerHTML = '<div style="color:#888; font-size:0.8rem;">対象期間に金曜日がありません</div>';
+        reserveCheckList.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">対象期間に金曜日がありません</div>';
       }
     }
 
@@ -759,17 +1024,22 @@
       updateSummary();
     }
 
-    // ★ メンバー0名でもダイアログを出さずにそのまま保存するロジックへ修正
     const saveEventBtn = document.getElementById("saveEventBtn");
     if (saveEventBtn) {
       saveEventBtn.onclick = async function() {
         try {
-          const selectedMembersArray = Array.from(selectedMemberNames);
-          const unitFee = parseInt(feePerPersonInput ? feePerPersonInput.value : 700, 10) || 0;
+          const members700 = [];
+          const members500 = [];
+
+          selectedMemberFees.forEach((fee, name) => {
+            if (fee === 700) members700.push(name);
+            else if (fee === 500) members500.push(name);
+          });
+
+          const totalMembers = [...members700, ...members500];
           const courtFeeVal = parseInt(courtFeeInput ? courtFeeInput.value : 0, 10) || 0;
 
-          // メンバー未選択の場合は収入0円（ダイアログの警告は一切出さない）
-          const calculatedIncome = selectedMembersArray.length * unitFee;
+          const calculatedIncome = (members700.length * 700) + (members500.length * 500);
           const netProfit = calculatedIncome - courtFeeVal;
           const breakEvenBalls = netProfit > 0 ? Math.floor(netProfit / latestShuttleBallUnitPrice) : 0;
 
@@ -780,8 +1050,10 @@
             type: "practice",
             date: eventDateInput ? eventDateInput.value : today.toISOString().substring(0,10),
             time: timeVal,
-            memberCount: selectedMembersArray.length,
-            members: selectedMembersArray,
+            memberCount: totalMembers.length,
+            members: totalMembers,
+            members700: members700,
+            members500: members500,
             totalIncome: calculatedIncome,
             courtFee: courtFeeVal,
             usedShuttleBalls: breakEvenBalls,
@@ -796,14 +1068,14 @@
             saveEventBtn.textContent = "💾 本日の練習記録を保存";
           } else {
             await addDoc(eventsCol, payload);
-            if (selectedMembersArray.length === 0) {
+            if (totalMembers.length === 0) {
               alert(`中止/コート代（${courtFeeVal.toLocaleString()}円）を支出として記録しました！`);
             } else {
               alert("練習記録を保存しました！");
             }
           }
 
-          selectedMemberNames.clear();
+          selectedMemberFees.clear();
           renderMemberChips();
           updateSummary();
         } catch (err) {
@@ -812,7 +1084,6 @@
       };
     }
 
-    // 保存処理②: コート予約
     const saveReserveBtn = document.getElementById("saveReserveBtn");
     if (saveReserveBtn) {
       saveReserveBtn.onclick = async function() {
@@ -835,7 +1106,6 @@
       };
     }
 
-    // 保存処理③: シャトル仕入れ
     const saveShuttleBtn = document.getElementById("saveShuttleBtn");
     if (saveShuttleBtn) {
       saveShuttleBtn.onclick = async function() {
@@ -858,7 +1128,6 @@
       };
     }
 
-    // 保存処理④: 残高の直接調整
     const saveAdjustBtn = document.getElementById("saveAdjustBtn");
     if (saveAdjustBtn) {
       saveAdjustBtn.onclick = async function() {
@@ -888,7 +1157,6 @@
       };
     }
 
-    // 履歴取得 & 集計
     let rawEventsData = [];
     let financeChart = null;
     let breakEvenChart = null;
@@ -944,14 +1212,25 @@
           }
 
           const isCancelled = !d.members || d.members.length === 0;
+          
+          let memberDetailText = '';
+          if (isCancelled) {
+            memberDetailText = '<span style="color:var(--warning-color); font-weight:600;">なし(中止)</span>';
+          } else if (d.members700 || d.members500) {
+            const list700 = (d.members700 && d.members700.length) ? `700円: ${d.members700.join(", ")}` : '';
+            const list500 = (d.members500 && d.members500.length) ? `500円: ${d.members500.join(", ")}` : '';
+            memberDetailText = [list700, list500].filter(Boolean).join(" ｜ ");
+          } else {
+            memberDetailText = d.members.join(", ");
+          }
 
           card.innerHTML = `
             <div class="history-header">
               <span>🏸 ${isCancelled ? '中止/コート代のみ' : '練習'}: ${d.date} (${d.time||'3h'})</span>
               <span>収入: ${(d.totalIncome||0).toLocaleString()}円</span>
             </div>
-            <div>👥 参加 (${d.memberCount}名): ${isCancelled ? '<span style="color:#d97706; font-weight:bold;">なし(中止)</span>' : d.members.join(", ")}</div>
-            <div>🏟️ コート代: ${(d.courtFee||0).toLocaleString()}円 ｜ ⚖️ 損益分岐: ${recBalls}球分</div>
+            <div>👥 参加 (${d.memberCount||0}名): ${memberDetailText}</div>
+            <div style="margin-top:2px;">🏟️ コート代: ${(d.courtFee||0).toLocaleString()}円 ｜ ⚖️ 損益分岐: ${recBalls}球分</div>
             <div class="action-btns">
               <button type="button" class="btn-edit" onclick="editEvent('${id}')">✏️ 編集</button>
               <button type="button" class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
@@ -963,7 +1242,7 @@
           latestShuttleBallUnitPrice = d.ballUnitPrice || 333;
 
           card.innerHTML = `
-            <div class="history-header" style="color:#d97706;">
+            <div class="history-header" style="color:var(--warning-color);">
               <span>📦 シャトル購入: ${d.date}</span>
               <span>支出: ${(d.totalFee||0).toLocaleString()}円</span>
             </div>
@@ -980,7 +1259,7 @@
           }
 
           card.innerHTML = `
-            <div class="history-header" style="color:#fd7e14;">
+            <div class="history-header" style="color:var(--warning-color);">
               <span>🔧 残高直接調整: ${d.date}</span>
               <span>設定残高: ${(d.targetBalance||0).toLocaleString()}円 (${d.diffAmount >= 0 ? '+' : ''}${(d.diffAmount||0).toLocaleString()}円)</span>
             </div>
@@ -1049,11 +1328,11 @@
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td style="font-weight:bold;">${m}</td>
+          <td style="font-weight:600; text-align:left; padding-left:12px;">${m}</td>
           <td>${data.total} 回</td>
           <td>${data.year} 回</td>
           <td>${data.month} 回</td>
-          <td style="color:#0052cc; font-weight:bold;">${rate}%</td>
+          <td style="color:var(--primary-color); font-weight:700;">${rate}%</td>
         `;
         tbody.appendChild(tr);
       });
@@ -1069,7 +1348,16 @@
       if (timeElem) timeElem.value = target.time || "19:00〜22:00 (3h)";
       courtFeeInput.value = target.courtFee || 0;
 
-      selectedMemberNames = new Set(target.members || []);
+      selectedMemberFees.clear();
+      
+      if (target.members700 || target.members500) {
+        (target.members700 || []).forEach(name => selectedMemberFees.set(name, 700));
+        (target.members500 || []).forEach(name => selectedMemberFees.set(name, 500));
+      } else if (target.members) {
+        // 旧データ互換性（すべて700円扱い）
+        target.members.forEach(name => selectedMemberFees.set(name, 700));
+      }
+
       renderMemberChips();
       
       saveEventBtn.textContent = "✏️ 編集内容を上書き保存する";
@@ -1086,16 +1374,17 @@
     document.getElementById("downloadCsvBtn").addEventListener("click", () => {
       if (rawEventsData.length === 0) return alert("出力できる履歴データがありません");
 
-      let csvContent = "\uFEFF日付,種別,時間帯,参加人数,参加メンバー,会費収入,コート代,シャトル損益個数,支出額,備考\n";
+      let csvContent = "\uFEFF日付,種別,時間帯,参加人数,700円メンバー,500円メンバー,会費収入,コート代,シャトル損益個数,支出額,備考\n";
 
       rawEventsData.forEach(item => {
         if (item.type === "practice") {
-          const membersStr = item.members ? `"${item.members.join(';')}"` : '""';
-          csvContent += `${item.date},練習,${item.time||''},${item.memberCount||0},${membersStr},${item.totalIncome||0},${item.courtFee||0},${item.usedShuttleBalls||0},0,""\n`;
+          const m700Str = item.members700 ? `"${item.members700.join(';')}"` : '""';
+          const m500Str = item.members500 ? `"${item.members500.join(';')}"` : '""';
+          csvContent += `${item.date},練習,${item.time||''},${item.memberCount||0},${m700Str},${m500Str},${item.totalIncome||0},${item.courtFee||0},${item.usedShuttleBalls||0},0,""\n`;
         } else if (item.type === "shuttle_buy") {
-          csvContent += `${item.date},シャトル仕入れ,"",0,"",0,0,0,${item.totalFee||0},"${item.name||''} (${item.totalCount||0}箱)"\n`;
+          csvContent += `${item.date},シャトル仕入れ,"",0,"","",0,0,0,${item.totalFee||0},"${item.name||''} (${item.totalCount||0}箱)"\n`;
         } else if (item.type === "balance_adjust") {
-          csvContent += `${item.date},残高調整,"",0,"",${item.diffAmount||0},0,0,0,"${item.reason||''} (設定残高:${item.targetBalance||0}円)"\n`;
+          csvContent += `${item.date},残高調整,"",0,"","",${item.diffAmount||0},0,0,0,"${item.reason||''} (設定残高:${item.targetBalance||0}円)"\n`;
         }
       });
 
@@ -1121,8 +1410,8 @@
         data: {
           labels: labels,
           datasets: [
-            { label: '収入(会費)', data: incData, backgroundColor: '#28a745' },
-            { label: '支出(コート+シャトル仕入れ)', data: expData, backgroundColor: '#dc3545' }
+            { label: '収入(会費)', data: incData, backgroundColor: '#34c759' },
+            { label: '支出(コート+シャトル仕入れ)', data: expData, backgroundColor: '#ff3b30' }
           ]
         },
         options: { responsive: true, scales: { y: { beginAtZero: true } } }
@@ -1142,8 +1431,8 @@
         data: {
           labels: labels,
           datasets: [
-            { label: '会費純利益(円)', data: profitData, backgroundColor: '#28a745' },
-            { label: 'シャトル消費額(円)', data: shuttleData, backgroundColor: '#dc3545' }
+            { label: '会費純利益(円)', data: profitData, backgroundColor: '#34c759' },
+            { label: 'シャトル消費額(円)', data: shuttleData, backgroundColor: '#ff3b30' }
           ]
         },
         options: { responsive: true, scales: { y: { beginAtZero: true } } }
