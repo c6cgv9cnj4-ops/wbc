@@ -14,6 +14,7 @@
       --success: #0f9d58;
       --danger: #d23f31;
       --border: #e0e0e0;
+      --highlight: #fff8e1;
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -39,6 +40,17 @@
       margin: 0;
       font-size: 1.8rem;
       color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .version-badge {
+      font-size: 0.9rem;
+      background: var(--primary);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: normal;
     }
     .header-info {
       text-align: right;
@@ -107,32 +119,48 @@
 
     /* CNBC Deep Dive Styles */
     .api-key-section {
-      background: #eef2f6;
+      background: var(--highlight);
       padding: 15px;
+      border: 2px solid #ffe082;
       border-radius: 6px;
       margin-bottom: 15px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    }
+    .api-key-section label {
+      font-weight: bold;
+      color: #b79100;
+      display: block;
+      margin-bottom: 5px;
     }
     .api-key-section input {
-      flex: 1;
-      padding: 8px;
+      width: 100%;
+      padding: 10px;
       border: 1px solid #ccc;
       border-radius: 4px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    .api-key-help {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+    .api-key-help a {
+      color: var(--primary);
     }
     .btn {
       background: var(--primary);
       color: #fff;
       border: none;
-      padding: 10px 20px;
+      padding: 12px 24px;
       border-radius: 4px;
       cursor: pointer;
       font-weight: bold;
+      font-size: 1rem;
       transition: background 0.2s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .btn:hover { background: #1557b0; }
-    .btn:disabled { background: #999; cursor: not-allowed; }
+    .btn:disabled { background: #999; cursor: not-allowed; box-shadow: none; }
     
     .deep-dive-controls {
       background: #fafafa;
@@ -205,7 +233,7 @@
 <div class="container">
   <header>
     <div>
-      <h1>経済ポータルダッシュボード</h1>
+      <h1>経済ポータルダッシュボード <span class="version-badge">最新版 v3</span></h1>
       <div class="quick-links">
         <a href="https://www.sbisec.co.jp/" target="_blank" rel="noopener">▶ SBI証券ログイン</a>
         <a href="https://shikiho.toyokeizai.net/" target="_blank" rel="noopener">▶ 会社四季報オンライン</a>
@@ -216,7 +244,7 @@
     </div>
   </header>
 
-  <!-- ① リアルタイム市況 (TradingView Widget: エラーフリーで確実に動作します) -->
+  <!-- ① リアルタイム市況 (TradingView Widget) -->
   <section>
     <h2>① リアルタイム市況</h2>
     <div class="tradingview-widget-container">
@@ -230,13 +258,13 @@
             "name": "主要指標・注目銘柄",
             "originalName": "Indices",
             "symbols": [
-              { "name": "INDEX:NKY", "displayName": "日経平均株価" },
-              { "name": "SP:SPX", "displayName": "S&P 500" },
+              { "name": "TVC:NI225", "displayName": "日経平均株価" },
+              { "name": "AMEX:SPY", "displayName": "S&P 500 (ETF)" },
               { "name": "FX:USDJPY", "displayName": "ドル/円" },
               { "name": "TVC:US10Y", "displayName": "米10年債利回り" },
-              { "name": "NASDAQ:SOX", "displayName": "SOX指数" },
+              { "name": "AMEX:SOXX", "displayName": "SOX指数 (半導体ETF)" },
               { "name": "TVC:USOIL", "displayName": "WTI原油" },
-              { "name": "CBOE:VIX", "displayName": "VIX指数" },
+              { "name": "TVC:VIX", "displayName": "VIX指数" },
               { "name": "TSE:7532", "displayName": "PPIH (ドンキホーテ)" }
             ]
           }
@@ -255,24 +283,27 @@
     <h2>② 日経CNBC 深掘り（最大5日分蓄積）</h2>
     
     <div class="api-key-section">
-      <label>Gemini API キー:</label>
-      <input type="password" id="api-key" placeholder="AIzaSy... (初回のみ入力・保存されます)">
+      <label>🔑 Gemini API キーを設定してください</label>
+      <input type="password" id="api-key" placeholder="AQ. または AIzaSy から始まるキーを貼り付けてください（自動で保存されます）">
+      <div class="api-key-help">
+        ※AIに動画を要約させるための専用キーです。
+      </div>
     </div>
 
     <div style="margin-bottom: 20px;">
       <button id="auto-fetch-btn" class="btn" onclick="autoProcessCNBC()">✨ 日経CNBCの最新動画を全自動取得して要約</button>
-      <span id="process-status" style="margin-left:10px; font-size:0.9rem; font-weight:bold;"></span>
+      <span id="process-status" style="margin-left:10px; font-size:1rem; font-weight:bold;"></span>
     </div>
 
-    <!-- 手動追加用のアコーディオン（普段は閉じておく） -->
+    <!-- 手動追加用のアコーディオン -->
     <details style="margin-bottom:20px; font-size:0.9rem;">
-      <summary style="background:#eef2f6; color:var(--text-muted); font-weight:normal;">字幕テキストを手動で貼り付けて処理したい場合はこちらを開く</summary>
+      <summary style="background:#eef2f6; color:var(--text-muted); font-weight:normal; padding:8px; border-radius:4px;">▶ 字幕テキストを手動で貼り付けて処理したい場合はこちらを開く</summary>
       <div class="deep-dive-controls">
         <label>動画タイトル / テーマ:</label>
         <input type="text" id="video-title" placeholder="例: 【〇月〇日】日経平均株価は大幅続伸...">
         <label>実字幕テキスト:</label>
         <textarea id="video-transcript" placeholder="動画からコピーした字幕テキストをここに貼り付けてください..."></textarea>
-        <button id="manual-process-btn" class="btn" style="background:#666;" onclick="manualProcessTranscript()">手動入力でダッシュボードに追加</button>
+        <button id="manual-process-btn" class="btn" style="background:#666; font-size:0.9rem; padding:8px 16px;" onclick="manualProcessTranscript()">手動入力でダッシュボードに追加</button>
       </div>
     </details>
 
@@ -402,7 +433,7 @@
   async function autoProcessCNBC() {
     const apiKey = document.getElementById('api-key').value.trim();
     if (!apiKey) {
-      alert('Gemini APIキーを入力してください。');
+      alert('エラー：黄色い枠にGeminiの「APIキー」を入力してください。');
       return;
     }
     localStorage.setItem(API_KEY_STORAGE, apiKey);
@@ -414,7 +445,7 @@
     statusEl.style.color = 'var(--primary)';
 
     try {
-      // 日経CNBC公式のYouTube RSSフィード (channel_id: UClVsQnfs-jKkjKmUKUHnT2g)
+      // 日経CNBC公式のYouTube RSSフィード
       const rssUrl = 'https://www.youtube.com/feeds/videos.xml?channel_id=UClVsQnfs-jKkjKmUKUHnT2g';
       const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
       const data = await res.json();
@@ -463,7 +494,15 @@ ${videoDesc}
       });
 
       if (!geminiRes.ok) {
-        throw new Error('AI処理に失敗しました。APIキーが正しいか確認してください。');
+        // エラー詳細を取得して画面に表示
+        let errorMsg = geminiRes.statusText;
+        try {
+          const errData = await geminiRes.json();
+          if (errData.error && errData.error.message) {
+            errorMsg = errData.error.message;
+          }
+        } catch(e) {}
+        throw new Error(`API接続エラー (コード:${geminiRes.status}) - ${errorMsg}`);
       }
 
       const geminiData = await geminiRes.json();
@@ -506,8 +545,12 @@ ${videoDesc}
     const statusEl = document.getElementById('process-status');
     const btn = document.getElementById('manual-process-btn');
 
-    if (!apiKey || !title || !transcript) {
-      alert('APIキー、タイトル、実字幕テキストをすべて入力してください。');
+    if (!apiKey) {
+      alert('エラー：黄色い枠にGeminiの「APIキー」を入力してください。');
+      return;
+    }
+    if (!title || !transcript) {
+      alert('タイトルと実字幕テキストを入力してください。');
       return;
     }
 
@@ -535,7 +578,16 @@ ${transcript}
         })
       });
 
-      if (!response.ok) throw new Error('APIリクエストに失敗しました。');
+      if (!response.ok) {
+        let errorMsg = response.statusText;
+        try {
+          const errData = await response.json();
+          if (errData.error && errData.error.message) {
+            errorMsg = errData.error.message;
+          }
+        } catch(e) {}
+        throw new Error(`API接続エラー (コード:${response.status}) - ${errorMsg}`);
+      }
 
       const data = await response.json();
       let generatedHtml = data.candidates[0].content.parts[0].text;
