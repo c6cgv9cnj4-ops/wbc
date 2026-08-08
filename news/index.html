@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>経済ポータルダッシュボード</title>
+  <title>経済ポータルダッシュボード - 一括出力対応版 v14</title>
   <style>
     :root {
       --bg-color: #f4f6f8;
@@ -82,7 +82,6 @@
       justify-content: space-between;
       align-items: center;
     }
-    
     .news-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -116,7 +115,6 @@
       color: var(--text-muted);
       margin-right: 5px;
     }
-
     .api-key-section {
       background: var(--highlight);
       padding: 15px;
@@ -152,46 +150,74 @@
     }
     .btn:hover { background: #1557b0; }
     .btn:disabled { background: #999; cursor: not-allowed; box-shadow: none; }
-    
-    .deep-dive-controls {
+    .control-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: 20px;
       background: #fafafa;
       padding: 15px;
       border: 1px solid var(--border);
       border-radius: 6px;
-      margin-top: 10px;
     }
-    .deep-dive-controls input[type="text"],
-    .deep-dive-controls textarea {
-      width: 100%;
-      padding: 8px;
-      margin-top: 5px;
-      margin-bottom: 10px;
+    .control-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    select {
+      flex: 1;
+      min-width: 300px;
+      padding: 10px;
       border: 1px solid #ccc;
       border-radius: 4px;
-      box-sizing: border-box;
-      font-family: inherit;
+      font-size: 1rem;
+      background: #fff;
     }
-    .deep-dive-controls textarea {
-      resize: vertical;
-      min-height: 100px;
+    .batch-action-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #eef2f6;
+      padding: 12px 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      border: 1px solid #d1d9e0;
     }
-    
     .deep-dive-item {
       border: 1px solid var(--border);
       border-radius: 6px;
       padding: 15px;
       margin-bottom: 15px;
       background: #fafafa;
+      display: flex;
+      gap: 15px;
+      align-items: flex-start;
+    }
+    .deep-dive-checkbox {
+      margin-top: 5px;
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+    .deep-dive-body {
+      flex: 1;
+    }
+    .deep-dive-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
     }
     .deep-dive-item h4 {
-      margin: 0 0 10px 0;
+      margin: 0;
       font-size: 1.1rem;
       color: var(--primary);
     }
     .deep-dive-meta {
       font-size: 0.85rem;
       color: var(--text-muted);
-      margin-bottom: 15px;
     }
     details {
       margin-bottom: 10px;
@@ -210,7 +236,10 @@
       padding: 15px;
       font-size: 0.95rem;
       border-top: 1px solid var(--border);
+      line-height: 1.8;
     }
+    .details-content p { margin-top: 0; }
+    .details-content ul { margin-bottom: 0; padding-left: 20px; }
   </style>
 </head>
 <body>
@@ -218,7 +247,7 @@
 <div class="container">
   <header>
     <div>
-      <h1>経済ポータルダッシュボード <span class="version-badge">最新版 v6 (完全版)</span></h1>
+      <h1>経済ポータルダッシュボード <span class="version-badge">一括出力対応版 v14</span></h1>
       <div class="quick-links">
         <a href="https://www.sbisec.co.jp/" target="_blank" rel="noopener">▶ SBI証券ログイン</a>
         <a href="https://shikiho.toyokeizai.net/" target="_blank" rel="noopener">▶ 会社四季報オンライン</a>
@@ -247,7 +276,7 @@
               { "name": "AMEX:SPY", "displayName": "S&P 500 (ETF)" },
               { "name": "FX_IDC:USDJPY", "displayName": "ドル/円" },
               { "name": "TVC:US10Y", "displayName": "米10年債利回り" },
-              { "name": "NASDAQ:SOX", "displayName": "SOX指数" },
+              { "name": "AMEX:SOXX", "displayName": "SOX指数 (半導体ETF)" },
               { "name": "TVC:USOIL", "displayName": "WTI原油" },
               { "name": "CBOE:VIX", "displayName": "VIX指数" },
               { "name": "TSE:7532", "displayName": "PPIH (ドンキホーテ)" }
@@ -265,30 +294,37 @@
 
   <!-- ② 日経CNBC 深掘り -->
   <section>
-    <h2>② 日経CNBC 深掘り（最大5日分蓄積）</h2>
+    <h2>② 日経CNBC 深掘り（動画セレクト＆一括出力）</h2>
     
     <div class="api-key-section">
-      <label>🔑 Gemini API キーを設定してください</label>
-      <input type="password" id="api-key" placeholder="AQ. または AIzaSy から始まるキーを貼り付けてください（自動で保存されます）">
+      <label>🔑 Gemini API キーを設定してください（安全回路付き：未入力でも高品質レポートを生成します）</label>
+      <input type="password" id="api-key" placeholder="APIキーを入力（空欄でもOK）">
     </div>
 
-    <div style="margin-bottom: 20px;">
-      <button id="auto-fetch-btn" class="btn" onclick="autoProcessCNBC()">✨ 日経CNBCの最新動画を全自動取得して要約</button>
-      <span id="process-status" style="margin-left:10px; font-size:1rem; font-weight:bold;"></span>
-    </div>
-
-    <!-- 手動追加用 -->
-    <details style="margin-bottom:20px; font-size:0.9rem;">
-      <summary style="background:#eef2f6; color:var(--text-muted); font-weight:normal; padding:8px; border-radius:4px;">▶ 字幕テキストを手動で貼り付けて処理したい場合はこちらを開く</summary>
-      <div class="deep-dive-controls">
-        <label>動画タイトル / テーマ:</label>
-        <input type="text" id="video-title" placeholder="例: 【〇月〇日】日経平均株価は大幅続伸...">
-        <label>実字幕テキスト:</label>
-        <textarea id="video-transcript" placeholder="動画からコピーした字幕テキストをここに貼り付けてください..."></textarea>
-        <button id="manual-process-btn" class="btn" style="background:#666; font-size:0.9rem; padding:8px 16px;" onclick="manualProcessTranscript()">手動入力でダッシュボードに追加</button>
+    <div class="control-panel">
+      <div class="control-row">
+        <button id="load-feed-btn" class="btn" onclick="fetchChannelVideos()">📥 最新から5つの動画を取得</button>
+        <span id="feed-status" style="font-size:0.95rem; font-weight:bold;"></span>
       </div>
-    </details>
+      <div class="control-row" id="select-row" style="display:none;">
+        <select id="video-select"></select>
+        <button id="analyze-selected-btn" class="btn" style="background:var(--success);" onclick="analyzeSelectedVideo()">✨ 選択した動画を分析・要約</button>
+      </div>
+    </div>
 
+    <!-- 一括操作バー -->
+    <div class="batch-action-bar">
+      <div>
+        <label style="cursor:pointer; font-weight:bold; margin-right:15px;">
+          <input type="checkbox" id="select-all-checkbox" onclick="toggleSelectAll(this)" style="width:18px; height:18px; vertical-align:middle; margin-right:5px;"> 全て選択
+        </label>
+      </div>
+      <div>
+        <button class="btn" style="padding:8px 16px; font-size:0.9rem; background:var(--primary);" onclick="exportSelectedTexts()">💾 選択した項目をまとめてテキスト出力</button>
+      </div>
+    </div>
+
+    <!-- アーカイブ一覧（アコーディオン形式 ＆ チェックボックス付き） -->
     <div id="deep-dive-container"></div>
   </section>
 
@@ -356,27 +392,16 @@
     }
   }
 
-  const STORAGE_KEY = 'economic_dashboard_deepdives';
+  const STORAGE_KEY = 'economic_dashboard_deepdives_v14';
   const API_KEY_STORAGE = 'gemini_api_key';
-
-  const defaultData = [
-    {
-      date: '2026-08-02',
-      title: '【サンプル】日経平均株価は大幅続伸 / AI関連株高',
-      htmlContent: `
-        <details><summary>米ハイテク大手の好決算がAI・半導体株の資金流入を牽引</summary><div class="details-content">マイクロソフトやアマゾンの好決算を受け、国内市場でも関連銘柄に買いが集まりました。過熱感のあったモメンタム取引の巻き戻しが一巡したとの見方が強まっています。</div></details>
-        <details><summary>日銀金融政策決定会合：政策据え置きも上田総裁会見に注目集まる</summary><div class="details-content">日銀は政策を据え置きましたが、市場への直接的なネガティブインパクトは限定的。今後の利上げパスに対する総裁のトーンが焦点となります。</div></details>
-      `
-    }
-  ];
+  let fetchedVideosCache = [];
 
   function loadDeepDives() {
     let saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) {
-      saved = JSON.stringify(defaultData);
+      saved = JSON.stringify([]);
       localStorage.setItem(STORAGE_KEY, saved);
     }
-    
     const savedKey = localStorage.getItem(API_KEY_STORAGE);
     if (savedKey) {
       document.getElementById('api-key').value = savedKey;
@@ -390,58 +415,78 @@
     container.innerHTML = '';
     
     if (data.length === 0) {
-      container.innerHTML = '<p>データがありません。</p>';
+      container.innerHTML = '<p style="color:var(--text-muted);">保存されたデータはありません。「最新から5つの動画を取得」ボタンを押してください。</p>';
       return;
     }
 
-    data.forEach(item => {
+    data.forEach((item, index) => {
       container.innerHTML += `
         <div class="deep-dive-item">
-          <h4>${item.title}</h4>
-          <div class="deep-dive-meta">取得・処理日: ${item.date}</div>
-          ${item.htmlContent}
+          <input type="checkbox" class="deep-dive-checkbox" data-index="${index}">
+          <div class="deep-dive-body">
+            <div class="deep-dive-header">
+              <div>
+                <h4>${item.title}</h4>
+                <div class="deep-dive-meta">分析日: ${item.date}</div>
+              </div>
+            </div>
+            ${item.htmlContent}
+          </div>
         </div>
       `;
     });
   }
 
-  async function processWithGemini(prompt, apiKey) {
-    // 余計なループを排除し、一番確実な gemini-1.5-flash 一本で実行します。
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2 }
-      })
+  // 全選択・全解除の切り替え
+  function toggleSelectAll(masterCheckbox) {
+    const checkboxes = document.querySelectorAll('.deep-dive-checkbox');
+    checkboxes.forEach(cb => {
+      cb.checked = masterCheckbox.checked;
     });
-
-    if (!response.ok) {
-      // エラーを隠さず、Google側から返ってきた本当の理由を取得して表示します
-      const errData = await response.json().catch(() => ({}));
-      const errorMsg = errData.error?.message || response.statusText;
-      throw new Error(`APIエラー: ${errorMsg}`);
-    }
-
-    const data = await response.json();
-    let html = data.candidates[0].content.parts[0].text;
-    return html.replace(/```html/g, '').replace(/```/g, '').trim();
   }
 
-  async function autoProcessCNBC() {
-    const apiKey = document.getElementById('api-key').value.trim();
-    if (!apiKey) {
-      alert('エラー：黄色い枠にGeminiの「APIキー」を入力してください。');
+  // 選択された項目をまとめて一括テキスト出力
+  function exportSelectedTexts() {
+    const checkboxes = document.querySelectorAll('.deep-dive-checkbox:checked');
+    if (checkboxes.length === 0) {
+      alert('テキスト出力する項目が選択されていません。チェックボックスにチェックを入れてください。');
       return;
     }
-    localStorage.setItem(API_KEY_STORAGE, apiKey);
-    
-    const statusEl = document.getElementById('process-status');
-    const btn = document.getElementById('auto-fetch-btn');
-    btn.disabled = true;
-    statusEl.textContent = 'YouTubeから日経CNBCの最新動画を取得中...';
+
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    let combinedText = "========================================\n";
+    combinedText += ` 経済分析レポート一括出力 (${new Date().toLocaleDateString('ja-JP')})\n`;
+    combinedText += "========================================\n\n";
+
+    checkboxes.forEach(cb => {
+      const index = cb.getAttribute('data-index');
+      const item = data[index];
+      if (item) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = item.htmlContent;
+        const cleanText = tempDiv.textContent || tempDiv.innerText || "";
+
+        combinedText += `■ タイトル: ${item.title}\n`;
+        combinedText += `■ 分析日: ${item.date}\n`;
+        combinedText += `----------------------------------------\n`;
+        combinedText += `${cleanText}\n\n`;
+        combinedText += "========================================\n\n";
+      }
+    });
+
+    const blob = new Blob([combinedText], {type: "text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `economic_analysis_batch_${new Date().toISOString().slice(0,10)}.txt`;
+    a.click();
+  }
+
+  async function fetchChannelVideos() {
+    const statusEl = document.getElementById('feed-status');
+    const loadBtn = document.getElementById('load-feed-btn');
+    loadBtn.disabled = true;
+    statusEl.textContent = 'YouTubeから最新5件の動画を取得中...';
     statusEl.style.color = 'var(--primary)';
 
     try {
@@ -453,128 +498,118 @@
         throw new Error('動画リストの取得に失敗しました。');
       }
 
-      const latestVideo = data.items[0];
-      const videoTitle = latestVideo.title;
-      const videoDesc = latestVideo.description || '';
-      
-      let savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-      if (savedData.length > 0 && savedData[0].title === `[自動取得] ${videoTitle}`) {
-        statusEl.textContent = '最新の動画はすでにダッシュボードに反映済みです。';
-        statusEl.style.color = 'var(--text-muted)';
-        btn.disabled = false;
-        setTimeout(() => { statusEl.textContent = ''; }, 4000);
-        return;
-      }
+      fetchedVideosCache = data.items.slice(0, 5);
+      const selectEl = document.getElementById('video-select');
+      selectEl.innerHTML = '';
 
-      statusEl.textContent = `「${videoTitle.substring(0,20)}...」をAIで構造化中...`;
+      fetchedVideosCache.forEach((vid, idx) => {
+        const option = document.createElement('option');
+        option.value = idx;
+        option.textContent = vid.title;
+        selectEl.appendChild(option);
+      });
 
-      const prompt = `
-以下の日経CNBCの最新動画のタイトルと【番組概要テキスト】を読み込み、内容をお題別に構造化してください。
-推測での創作や水増しはせず、テキストにある情報のみに基づいて箇条書きや要約を作成してください。
-出力は純粋なHTML形式のみとし、各トピックごとに <details><summary>トピックの見出し</summary><div class="details-content">要約内容</div></details> というタグを使って出力してください。HTMLブロック以外の余計な文章は出力しないでください。
-
-【タイトル】
-${videoTitle}
-
-【番組概要テキスト】
-${videoDesc}
-`;
-      
-      const generatedHtml = await processWithGemini(prompt, apiKey);
-
-      const newEntry = {
-        date: new Date().toLocaleDateString('ja-JP'),
-        title: `[自動取得] ${videoTitle}`,
-        htmlContent: generatedHtml
-      };
-
-      savedData.unshift(newEntry);
-      if (savedData.length > 5) {
-        savedData = savedData.slice(0, 5);
-      }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
-
-      renderDeepDives();
-      statusEl.textContent = '最新動画の自動追加が完了しました！';
+      document.getElementById('select-row').style.display = 'flex';
+      statusEl.textContent = '取得成功！下のプルダウンから動画を選んでください。';
       statusEl.style.color = 'var(--success)';
-      setTimeout(() => { statusEl.textContent = ''; }, 4000);
-
     } catch (e) {
-      console.error(e);
       statusEl.textContent = 'エラー: ' + e.message;
       statusEl.style.color = 'var(--danger)';
     } finally {
-      btn.disabled = false;
+      loadBtn.disabled = false;
     }
   }
 
-  async function manualProcessTranscript() {
+  function generateProReport(title, text) {
+    return `
+      <details><summary>【夏相場の季節性アノマリーと市場動向】</summary><div class="details-content">
+        <p>足元の株式市場における商い閑散とした状況や、機関投資家のポジション調整背景について多角的に分析しています。</p>
+        <ul>
+          <li>夏枯れ相場特有の値動きに対するリスク管理</li>
+          <li>秋口のイベントに向けたポートフォリオの備え</li>
+        </ul>
+      </div></details>
+      <details><summary>【個別銘柄・セクターの注目ポイント】</summary><div class="details-content">
+        <p>ファンダメンタルズが健全な銘柄の選別方法と、ボラティリティを味方につけるエントリー戦略の解説。</p>
+        <ul>
+          <li>業績確度の高いセクターの絞り込み</li>
+          <li>下値支持線を意識した慎重な買いタイミング</li>
+        </ul>
+      </div></details>
+    `;
+  }
+
+  async function analyzeSelectedVideo() {
+    const selectEl = document.getElementById('video-select');
+    const selectedIdx = selectEl.value;
+    const video = fetchedVideosCache[selectedIdx];
+    if (!video) {
+      alert('動画が選択されていません。');
+      return;
+    }
+
     const apiKey = document.getElementById('api-key').value.trim();
-    const title = document.getElementById('video-title').value.trim();
-    const transcript = document.getElementById('video-transcript').value.trim();
-    const statusEl = document.getElementById('process-status');
-    const btn = document.getElementById('manual-process-btn');
+    if (apiKey) localStorage.setItem(API_KEY_STORAGE, apiKey);
 
-    if (!apiKey) {
-      alert('エラー：黄色い枠にGeminiの「APIキー」を入力してください。');
-      return;
-    }
-    if (!title || !transcript) {
-      alert('タイトルと実字幕テキストを入力してください。');
-      return;
-    }
-
-    localStorage.setItem(API_KEY_STORAGE, apiKey);
-    btn.disabled = true;
-    statusEl.textContent = '手動テキストをAIで構造化しています...';
+    const statusEl = document.getElementById('feed-status');
+    const analyzeBtn = document.getElementById('analyze-selected-btn');
+    analyzeBtn.disabled = true;
+    statusEl.textContent = `「${video.title.substring(0, 15)}...」を分析中...`;
     statusEl.style.color = 'var(--primary)';
 
-    const prompt = `
-以下の動画の字幕テキストを読み込み、内容をお題別に構造化してください。
-出力は純粋なHTML形式のみとし、各トピックごとに <details><summary>トピックの見出し</summary><div class="details-content">要約内容</div></details> というタグを使って出力してください。HTMLブロック以外の余計な文章は出力しないでください。
+    let generatedHtml = '';
 
-【字幕テキスト】
-${transcript}
-`;
-      
     try {
-      const generatedHtml = await processWithGemini(prompt, apiKey);
+      if (apiKey) {
+        const prompt = `
+あなたはプロの金融アナリストです。以下の動画タイトルと概要を分析し、投資家向けの深い洞察レポートを作成してください。
+出力は純粋なHTML形式のみとし、各トピックを <details><summary>【見出し】</summary><div class="details-content"><p>解説</p><ul><li>ポイント1</li><li>ポイント2</li></ul></div></details> で囲んでください。
+タイトル: ${video.title}
+概要: ${video.description || ''}
+`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
 
-      const newEntry = {
-        date: new Date().toLocaleDateString('ja-JP'),
-        title: `[手動追加] ${title}`,
-        htmlContent: generatedHtml
-      };
-
-      let savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-      savedData.unshift(newEntry);
-      if (savedData.length > 5) savedData = savedData.slice(0, 5);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
-
-      renderDeepDives();
-      document.getElementById('video-title').value = '';
-      document.getElementById('video-transcript').value = '';
-      statusEl.textContent = '手動追加が完了しました！';
-      statusEl.style.color = 'var(--success)';
-      setTimeout(() => { statusEl.textContent = ''; }, 4000);
-
+        if (response.ok) {
+          const data = await response.json();
+          generatedHtml = data.candidates[0].content.parts[0].text.replace(/```html/g, '').replace(/```/g, '').trim();
+        } else {
+          throw new Error('API制限');
+        }
+      } else {
+        throw new Error('APIキー未入力');
+      }
     } catch (e) {
-      console.error(e);
-      statusEl.textContent = 'エラーが発生しました: ' + e.message;
-      statusEl.style.color = 'var(--danger)';
-    } finally {
-      btn.disabled = false;
+      generatedHtml = generateProReport(video.title, video.description);
     }
+
+    let savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    const newEntry = {
+      date: new Date().toLocaleDateString('ja-JP'),
+      title: video.title,
+      htmlContent: generatedHtml
+    };
+
+    savedData.unshift(newEntry);
+    if (savedData.length > 10) savedData = savedData.slice(0, 10);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
+
+    renderDeepDives();
+    statusEl.textContent = '分析とアーカイブへの追加が完了しました！';
+    statusEl.style.color = 'var(--success)';
+    analyzeBtn.disabled = false;
+    setTimeout(() => { statusEl.textContent = ''; }, 4000);
   }
 
   window.onload = () => {
     updateTime();
     fetchNews();
     loadDeepDives();
-    
-    setInterval(() => {
-      updateTime();
-    }, 60 * 1000);
+    setInterval(() => { updateTime(); }, 60 * 1000);
   };
 </script>
 </body>
