@@ -28,30 +28,30 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         h2 {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             border-bottom: 2px solid var(--primary-green);
-            padding-bottom: 5px;
+            padding-bottom: 4px;
             margin-top: 0;
         }
         .section {
             background: #fff;
             border: 1px solid var(--border-color);
             border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 15px;
+            padding: 10px;
+            margin-bottom: 12px;
         }
         .member-chips {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 10px;
+            gap: 5px;
+            margin-bottom: 8px;
         }
         .chip {
             background: #e0e0e0;
             border: none;
-            padding: 6px 12px;
-            border-radius: 16px;
-            font-size: 0.85rem;
+            padding: 5px 10px;
+            border-radius: 14px;
+            font-size: 0.8rem;
             cursor: pointer;
         }
         .chip.active {
@@ -59,30 +59,30 @@
             color: #fff;
         }
         .form-group {
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         label {
             display: block;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: #666;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
         input[type="text"], input[type="date"], input[type="number"], select {
             width: 100%;
-            padding: 8px;
+            padding: 6px;
             box-sizing: border-box;
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
         .btn {
             background: var(--primary-green);
             color: white;
             border: none;
-            padding: 10px;
+            padding: 8px;
             width: 100%;
             border-radius: 4px;
-            font-size: 1rem;
+            font-size: 0.9rem;
             cursor: pointer;
             font-weight: bold;
             text-align: center;
@@ -99,16 +99,16 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 0;
+            padding: 6px 0;
             border-bottom: 1px solid #eee;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
         .badge {
             background: #4caf50;
             color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.75rem;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 0.7rem;
         }
         .badge-warning {
             background: #ff9800;
@@ -117,15 +117,16 @@
             display: flex;
             justify-content: space-between;
             background: #f9f9f9;
-            padding: 10px;
+            padding: 8px;
             border-radius: 4px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         .summary-item text {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
+            color: #555;
         }
         .summary-item val {
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: bold;
             color: var(--primary-green);
         }
@@ -134,10 +135,10 @@
 <body>
 
 <div class="container">
-    <!-- 本日の参加者・基本情報入力 -->
+    <!-- 1. 本日の参加者・基本情報入力 -->
     <div class="section">
         <h2>🏸 バドミントン環境記帳</h2>
-        <div style="font-size: 0.8rem; color: #555; margin-bottom: 8px;">
+        <div style="font-size: 0.75rem; color: #555; margin-bottom: 6px; background: var(--light-green); padding: 5px; border-radius: 4px;">
             📌 本日の参加者プラン（中学生高校生利用）<br>
             <strong>早い10名｜料金 0円 ⇒ 残り 0名まで完了</strong>
         </div>
@@ -157,25 +158,25 @@
             <button class="chip active" onclick="toggleChip(this)">大口</button>
         </div>
 
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 6px;">
             <div class="form-group" style="flex: 1;">
                 <label>開催日</label>
-                <input type="date" value="2026-08-08">
+                <input type="date" id="targetDate" value="2026-08-08">
             </div>
             <div class="form-group" style="flex: 1;">
                 <label>時間帯</label>
-                <input type="text" value="13:00〜17:00 (4h)">
+                <input type="text" id="timeSlot" value="13:00〜17:00 (4h)">
             </div>
         </div>
 
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 6px;">
             <div class="form-group" style="flex: 1;">
                 <label>コート代 (¥)</label>
-                <input type="number" value="700">
+                <input type="number" id="courtFee" value="700">
             </div>
             <div class="form-group" style="flex: 1;">
                 <label>シャトル代 / コート (¥)</label>
-                <input type="number" value="0">
+                <input type="number" id="shuttleFee" value="0">
             </div>
         </div>
 
@@ -184,98 +185,163 @@
             <input type="text" value="0球" readonly style="background:#f0f0f0;">
         </div>
 
-        <button class="btn">💾 本日の調整を保存保存</button>
+        <button class="btn" onclick="saveBasicData()">💾 本日調整を基本保存</button>
     </div>
 
-    <!-- 過去・次月でのコーナリング・支払い設定 -->
+    <!-- 2. 3ヶ月先までのコーナリング・支払い設定 -->
     <div class="section">
-        <div style="font-size: 0.85rem; font-weight: bold; margin-bottom: 6px;">
+        <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 6px;">
             📅 3ヶ月先までのコーナリング・支払い（全12〜13件仕入・調整枠）
         </div>
         <div class="form-group">
             <label>仕入予定日（次回数日）</label>
-            <input type="date" value="2026-08-08">
+            <input type="date" id="nextPurchaseDate" value="2026-08-08">
         </div>
-        <div style="font-size: 0.8rem; color: #333; margin-bottom: 4px;">
+        <div style="font-size: 0.75rem; color: #333; margin-bottom: 4px;">
             臨時予定日: <strong>2026年08月08日 (金)</strong>
         </div>
-        <div style="font-size: 0.8rem; color: #333; margin-bottom: 8px;">
+        <div style="font-size: 0.75rem; color: #333; margin-bottom: 6px;">
             1回手続仕入メンバー料金小計: <strong>500円</strong>
         </div>
-        <button class="btn">💾 二ート予約代保存保存</button>
+        <button class="btn" onclick="saveReservationData()">💾 ニート予約代保存</button>
 
-        <hr style="border:0; border-top:1px dashed #ddd; margin: 12px 0;">
+        <hr style="border:0; border-top:1px dashed #ddd; margin: 8px 0;">
 
-        <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 6px;">📋 勘定科目別の金銭勘定 (2026年)</div>
+        <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 4px;">📋 勘定科目別の金銭勘定 (2026年)</div>
         <ul class="schedule-list">
-            <li class="schedule-item"><span>08/14 (金)</span> <span class="badge">✔ 手続済 (500円)</span> <button class="chip">変更</button></li>
-            <li class="schedule-item"><span>08/21 (金)</span> <span class="badge">✔ 予約済 (1,000円)</span> <button class="chip">変更</button></li>
-            <li class="schedule-item"><span>08/28 (水)</span> <span class="badge">✔ 手続済 (1,000円)</span> <button class="chip">変更</button></li>
-            <li class="schedule-item"><span>09/04 (金)</span> <span class="badge">✔ 予約済 (1,000円)</span> <button class="chip">変更</button></li>
-            <li class="schedule-item"><span>11/18 (土)</span> <span class="badge badge-warning">⚠ 未受領 (500円)</span> <button class="chip" style="background:#2196f3; color:#fff;">手続済</button></li>
+            <li class="schedule-item"><span>08/14 (金)</span> <span class="badge">✔ 手続済 (500円)</span> <button class="chip" style="padding:2px 6px; font-size:0.7rem;">変更</button></li>
+            <li class="schedule-item"><span>08/21 (金)</span> <span class="badge">✔ 予約済 (1,000円)</span> <button class="chip" style="padding:2px 6px; font-size:0.7rem;">変更</button></li>
+            <li class="schedule-item"><span>08/28 (金)</span> <span class="badge">✔ 手続済 (1,000円)</span> <button class="chip" style="padding:2px 6px; font-size:0.7rem;">変更</button></li>
+            <li class="schedule-item"><span>09/04 (金)</span> <span class="badge">✔ 予約済 (1,000円)</span> <button class="chip" style="padding:2px 6px; font-size:0.7rem;">変更</button></li>
+            <li class="schedule-item"><span>09/11 (金)</span> <span class="badge">✔ 手続済 (1,200円)</span> <button class="chip" style="padding:2px 6px; font-size:0.7rem;">変更</button></li>
+            <li class="schedule-item"><span>09/18 (金)</span> <span class="badge">✔ 予約済 (1,000円)</span> <button class="chip" style="padding:2px 6px; font-size:0.7rem;">変更</button></li>
+            <li class="schedule-item"><span>09/25 (金)</span> <span class="badge">✔ 手続済 (1,000円)</span> <button class="chip" style="padding:2px 6px; font-size:0.7rem;">変更</button></li>
+            <li class="schedule-item"><span>10/02 (金)</span> <span class="badge">✔ 手続済 (1,200円)</span> <button class="chip" style="padding:2px 6px; font-size:0.7rem;">変更</button></li>
+            <li class="schedule-item"><span>10/09 (金)</span> <span class="badge">✔ 手続済 (800円)</span> <button class="chip" style="padding:2px 6px; font-size:0.7rem;">変更</button></li>
+            <li class="schedule-item"><span>10/16 (金)</span> <span class="badge">✔ 手続済 (900円)</span> <button class="chip" style="padding:2px 6px; font-size:0.7rem;">変更</button></li>
+            <li class="schedule-item"><span>10/23 (金)</span> <span class="badge">✔ 手続済 (1,000円)</span> <button class="chip" style="padding:2px 6px; font-size:0.7rem;">変更</button></li>
+            <li class="schedule-item"><span>10/30 (金)</span> <span class="badge">✔ 手続済 (900円)</span> <button class="chip" style="padding:2px 6px; font-size:0.7rem;">変更</button></li>
+            <li class="schedule-item"><span>11/06 (金)</span> <span class="badge badge-warning">⚠ 未受領 (1,500円)</span> <button class="chip" style="background:#2196f3; color:#fff; padding:2px 6px; font-size:0.7rem;">手続済</button></li>
         </ul>
     </div>
 
-    <!-- サークル財政サマリー -->
+    <!-- 3. シャトルまと言分履歴（受け入れ） -->
+    <div class="section" style="padding: 6px 10px;">
+        <div style="font-size: 0.8rem; font-weight: bold; color: #333;">▶ 📦 シャトルまと言分履歴（受け入れ）</div>
+    </div>
+
+    <!-- 4. サークル財政サマリー -->
     <div class="section">
         <h2>💰 サークル財政サマリー</h2>
         <div class="summary-box">
             <div class="summary-item">
                 <text>合計サークルバランス</text><br>
-                <val>+153,680 円</val>
+                <val id="totalBalance">+153,680 円</val>
             </div>
             <div class="summary-item">
                 <text>トータル・入金回数</text><br>
                 <val>84 本</val>
             </div>
         </div>
-        <div style="font-size: 0.75rem; color: #666; margin-bottom: 8px;">
+        <div style="font-size: 0.7rem; color: #666; margin-bottom: 6px;">
             データソース: 100%公式同期 / 自動計算
         </div>
-        <button class="btn" style="background: #7b1fa2;">📊 収支収支グラフ＆参加レポートを見る →</button>
+        <button class="btn" style="background: #7b1fa2; font-size: 0.85rem;" onclick="alert('収支グラフ＆参加レポート画面へ遷移します')">📊 収支収支グラフ＆参加レポートを見る →</button>
     </div>
 
-    <!-- 直近・今月・仕入履歴 -->
+    <!-- 5. 直近・今月・仕入履歴 -->
     <div class="section">
         <h2>📦 直近・今月・仕入履歴</h2>
-        <div style="font-size: 0.85rem; margin-bottom: 4px;">
+        <div style="font-size: 0.8rem; margin-bottom: 4px;">
             📌 Tコート化(02/24〜2026-07-21) 1回につき -5,000 円
         </div>
-        <div style="font-size: 0.75rem; color: #666;">
+        <div style="font-size: 0.7rem; color: #666; margin-bottom: 6px;">
             📅 実行日(2026-07-21) | 🗂️ ニート仕入区分 | ➕ 随時反映: 0.4kg
         </div>
-        <hr style="border:0; border-top:1px solid #eee; margin: 8px 0;">
-        <div style="font-size: 0.85rem; margin-bottom: 4px;">
-            📦 シャトル購入: 02/03〜07-21 <span>合計: ¥4,350円</span>
+        <hr style="border:0; border-top:1px solid #eee; margin: 6px 0;">
+        <div style="font-size: 0.8rem; margin-bottom: 4px;">
+            📦 シャトル購入: 02/03〜07-21 <span style="float: right; font-weight: bold;">合計: ¥4,350円</span>
         </div>
-        <div style="font-size: 0.75rem; color: #666;">
+        <div style="font-size: 0.7rem; color: #666;">
             💡 完了・シャトルGRAPH (5球/一箱25%OFF)
+        </div>
+        <hr style="border:0; border-top:1px solid #eee; margin: 6px 0;">
+        <div style="font-size: 0.8rem; margin-bottom: 4px;">
+            🛠️ 施設使用料改定 (2026-06-01より適用開始) [-18K,285円]
+        </div>
+        <div style="font-size: 0.7rem; color: #666;">
+            🏷️ 区分: 固定費系 - 会場費
         </div>
     </div>
 
-    <!-- 当月の店舗会費（中学生高校生ピッタリかなめ・免税別） -->
+    <!-- 6. 当月の店舗会費（中学生高校生ピッタリかなめ・免税別） -->
     <div class="section" style="border: 2px solid var(--accent-orange);">
         <h2>🏫 当月の店舗会費（中学生高校生ピッタリかなめ・免税別）</h2>
         <div class="form-group">
             <label>対象月</label>
-            <input type="date" value="2026-08-08">
+            <input type="date" id="monthlyFeeDate" value="2026-08-08">
         </div>
         <div class="form-group">
             <label>収支調整額 (マイナス可)</label>
-            <input type="text" value="-159100">
+            <input type="text" id="adjustmentFee" value="-159100">
         </div>
         <div class="form-group">
             <label>調整理由・備考欄 (免税商品含む領収書照合)</label>
-            <input type="text" value="欠損調整金">
+            <input type="text" id="adjustmentReason" value="欠損調整金">
         </div>
-        <button class="btn btn-orange">💾 収支をこの金額に調整する</button>
+        <button class="btn btn-orange" onclick="saveAdjustment()">💾 収支をこの金額に調整する</button>
     </div>
 </div>
 
 <script>
     function toggleChip(button) {
         button.classList.toggle('active');
+        saveState();
     }
+
+    function saveBasicData() {
+        saveState();
+        alert('本日の調整を保存しました');
+    }
+
+    function saveReservationData() {
+        saveState();
+        alert('ニート予約代を保存しました');
+    }
+
+    function saveAdjustment() {
+        saveState();
+        alert('収支金額を調整しました');
+    }
+
+    function saveState() {
+        const data = {
+            targetDate: document.getElementById('targetDate').value,
+            timeSlot: document.getElementById('timeSlot').value,
+            courtFee: document.getElementById('courtFee').value,
+            shuttleFee: document.getElementById('shuttleFee').value,
+            nextPurchaseDate: document.getElementById('nextPurchaseDate').value,
+            monthlyFeeDate: document.getElementById('monthlyFeeDate').value,
+            adjustmentFee: document.getElementById('adjustmentFee').value,
+            adjustmentReason: document.getElementById('adjustmentReason').value,
+        };
+        localStorage.setItem('badminton_kicho_data', JSON.stringify(data));
+    }
+
+    window.onload = function() {
+        const saved = localStorage.getItem('badminton_kicho_data');
+        if (saved) {
+            const data = JSON.parse(saved);
+            if(data.targetDate) document.getElementById('targetDate').value = data.targetDate;
+            if(data.timeSlot) document.getElementById('timeSlot').value = data.timeSlot;
+            if(data.courtFee) document.getElementById('courtFee').value = data.courtFee;
+            if(data.shuttleFee) document.getElementById('shuttleFee').value = data.shuttleFee;
+            if(data.nextPurchaseDate) document.getElementById('nextPurchaseDate').value = data.nextPurchaseDate;
+            if(data.monthlyFeeDate) document.getElementById('monthlyFeeDate').value = data.monthlyFeeDate;
+            if(data.adjustmentFee) document.getElementById('adjustmentFee').value = data.adjustmentFee;
+            if(data.adjustmentReason) document.getElementById('adjustmentReason').value = data.adjustmentReason;
+        }
+    };
 </script>
 
 </body>
