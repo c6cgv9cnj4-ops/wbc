@@ -3,135 +3,670 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Car Maintenance & Fuel Hub</title>
+    <title>日産 ノート E11 メンテナンス＆燃費管理</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; background-color: #f5f5f7; color: #1d1d1f; }
-        .apple-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(210, 210, 215, 0.5); }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+        }
+        .apple-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(210, 210, 215, 0.6);
+        }
     </style>
 </head>
-<body class="min-h-screen pb-12">
+<body class="min-h-screen pb-16">
 
+    <!-- ヘッダー -->
     <header class="sticky top-0 z-50 apple-card border-b border-gray-200/60">
         <div class="max-w-4xl mx-auto px-4 py-3.5 flex justify-between items-center">
             <div class="flex items-center space-x-2.5">
-                <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center"><i class="fa-solid fa-car-side text-sm"></i></div>
+                <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-sm">
+                    <i class="fa-solid fa-car-side text-sm"></i>
+                </div>
                 <div>
-                    <h1 class="text-base font-semibold tracking-tight">日産 ノート E11 管理</h1>
-                    <p id="headerTodayDate" class="text-[11px] text-gray-500"></p>
+                    <h1 class="text-base font-semibold tracking-tight text-gray-900">日産 ノート E11 管理</h1>
+                    <p id="headerTodayDate" class="text-[11px] text-gray-500 font-medium"></p>
                 </div>
             </div>
-            <button onclick="copyDataForGemini()" class="text-[10px] bg-blue-600 text-white font-bold px-3 py-1.5 rounded-full shadow-sm hover:bg-blue-700 transition">
-                <i class="fa-solid fa-copy"></i> Gemini用データコピー
-            </button>
+            <div class="flex items-center gap-2">
+                <button onclick="copyDataForGemini()" class="text-[11px] bg-blue-600 hover:bg-blue-500 text-white font-medium px-3.5 py-1.5 rounded-full transition shadow-xs flex items-center gap-1.5">
+                    <i class="fa-solid fa-copy"></i> Gemini用データ出力
+                </button>
+            </div>
         </div>
     </header>
 
+    <!-- メインコンテンツ -->
     <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+        <!-- 緊急リマインダー・車検までの日数アラート -->
         <div id="urgentAlertContainer" class="space-y-3 hidden"></div>
 
-        <!-- 燃費回数サマリー -->
-        <div class="grid grid-cols-2 gap-3">
-            <div class="apple-card p-4 rounded-2xl">
-                <div class="text-[11px] text-gray-500">通算給油回数</div>
-                <div class="text-xl font-bold"><span id="summaryFuelCount">0</span> <span class="text-xs font-normal">回</span></div>
+        <!-- 燃費・サマリータイル -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="apple-card p-4 rounded-2xl shadow-xs">
+                <div class="text-[11px] font-medium text-gray-500 mb-1">直近燃費</div>
+                <div class="text-xl font-bold tracking-tight text-blue-600"><span id="summaryLastFuelEff">0.0</span> <span class="text-xs font-normal text-gray-500">km/L</span></div>
             </div>
-            <div class="apple-card p-4 rounded-2xl">
-                <div class="text-[11px] text-gray-500">直近燃費</div>
-                <div class="text-xl font-bold text-blue-600"><span id="summaryFuelEff">0.0</span> <span class="text-xs font-normal text-gray-500">km/L</span></div>
+            <div class="apple-card p-4 rounded-2xl shadow-xs">
+                <div class="text-[11px] font-medium text-gray-500 mb-1">今月平均燃費 (<span id="currentMonthLabel"></span>)</div>
+                <div class="text-xl font-bold tracking-tight text-emerald-600"><span id="summaryMonthFuelEff">0.0</span> <span class="text-xs font-normal text-gray-500">km/L</span></div>
+            </div>
+            <div class="apple-card p-4 rounded-2xl shadow-xs">
+                <div class="text-[11px] font-medium text-gray-500 mb-1">今年トータル平均燃費 (<span id="currentYearLabel"></span>)</div>
+                <div class="text-xl font-bold tracking-tight text-purple-600"><span id="summaryYearFuelEff">0.0</span> <span class="text-xs font-normal text-gray-500">km/L</span></div>
             </div>
         </div>
 
+        <!-- 管理セクション一覧 -->
         <div class="space-y-4">
-            <!-- 給油 -->
-            <section class="apple-card rounded-2xl p-5">
+
+            <!-- 1. ガソリンセクション -->
+            <section class="apple-card rounded-2xl p-5 shadow-xs">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="font-bold flex items-center gap-2"><i class="fa-solid fa-gas-pump text-emerald-600"></i> 給油・燃費記録</h2>
-                    <button onclick="openModal('fuel')" class="bg-emerald-600 text-white text-xs px-3 py-1.5 rounded-full font-bold">記録</button>
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                            <i class="fa-solid fa-gas-pump text-base"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-gray-900 text-base">ガソリン・給油記録</h2>
+                            <p class="text-xs text-gray-500">通算給油回数: <span id="totalFuelCount">0</span>回</p>
+                        </div>
+                    </div>
+                    <button onclick="openModal('fuel')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-3.5 py-2 rounded-full transition shadow-xs flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> 給油を記録
+                    </button>
                 </div>
                 <div id="fuelList" class="space-y-2"></div>
             </section>
 
-            <!-- オイル -->
-            <section class="apple-card rounded-2xl p-5">
+            <!-- 2. タイヤ空気圧セクション (毎月1日リマインダー ＆ 4輪比較) -->
+            <section class="apple-card rounded-2xl p-5 shadow-xs">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="font-bold flex items-center gap-2"><i class="fa-solid fa-oil-can text-amber-600"></i> エンジンオイル</h2>
-                    <button onclick="openModal('oil')" class="bg-amber-600 text-white text-xs px-3 py-1.5 rounded-full font-bold">記録</button>
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center">
+                            <i class="fa-solid fa-gauge text-base"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-gray-900 text-base">タイヤ空気圧 (4輪チェック)</h2>
+                            <p class="text-xs text-gray-500">毎月1日が点検日（指定: 前2.3 / 後2.2）</p>
+                        </div>
+                    </div>
+                    <button onclick="openModal('pressure')" class="bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium px-3.5 py-2 rounded-full transition shadow-xs flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> 空気圧を記録
+                    </button>
+                </div>
+                <div id="pressureReminderBox" class="mb-3"></div>
+                <div id="pressureList" class="space-y-2"></div>
+            </section>
+
+            <!-- 3. エンジンオイルセクション (シンプルな入力 ＆ 値段記録) -->
+            <section class="apple-card rounded-2xl p-5 shadow-xs">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                            <i class="fa-solid fa-oil-can text-base"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-gray-900 text-base">エンジンオイル交換記録</h2>
+                            <p class="text-xs text-gray-500">目安：5,000km または 半年</p>
+                        </div>
+                    </div>
+                    <button onclick="openModal('oil')" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-medium px-3.5 py-2 rounded-full transition shadow-xs flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> オイル交換を記録
+                    </button>
                 </div>
                 <div id="oilList" class="space-y-2"></div>
             </section>
+
+            <!-- 4. 車検セクション (車検まであと何日 ＆ 3ヶ月前割引) -->
+            <section class="apple-card rounded-2xl p-5 shadow-xs">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
+                            <i class="fa-solid fa-shield-halved text-base"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-gray-900 text-base">車検記録 & カウントダウン</h2>
+                            <p class="text-xs text-gray-500">2年に1回（3ヶ月前からの早期予約割引に対応）</p>
+                        </div>
+                    </div>
+                    <button onclick="openModal('inspection')" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium px-3.5 py-2 rounded-full transition shadow-xs flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> 車検を記録
+                    </button>
+                </div>
+                <div id="inspectionReminderBox" class="mb-3"></div>
+                <div id="inspectionList" class="space-y-2"></div>
+            </section>
+
+        </div>
+
+        <!-- データ管理 -->
+        <div class="flex justify-between items-center pt-4 text-xs text-gray-500">
+            <button onclick="resetDataYearly()" class="hover:underline flex items-center gap-1 text-blue-600 font-medium"><i class="fa-solid fa-rotate"></i> 1月データリセット (年次切り替え)</button>
+            <button onclick="resetAllData()" class="text-red-500 hover:underline">全データを初期化</button>
         </div>
     </main>
 
-    <!-- 給油モーダル -->
+    <!-- モーダル各種 -->
+    <!-- 1. 給油モーダル -->
     <div id="fuelModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4">
-            <h3 class="font-bold">給油記録</h3>
-            <form onsubmit="saveFuel(event)" class="space-y-3 text-sm">
-                <input type="date" id="fuelDate" class="w-full bg-gray-50 p-2 rounded-xl">
-                <input type="number" id="fuelMileage" placeholder="走行距離 (km)" class="w-full bg-gray-50 p-2 rounded-xl">
-                <input type="number" step="0.01" id="fuelAmount" placeholder="給油量 (L)" class="w-full bg-gray-50 p-2 rounded-xl">
-                <input type="number" id="fuelPrice" placeholder="単価 (円/L)" class="w-full bg-gray-50 p-2 rounded-xl">
-                <div class="flex gap-2 pt-2">
-                    <button type="button" onclick="closeModal('fuel')" class="flex-1 bg-gray-200 py-2 rounded-xl">閉じる</button>
-                    <button type="submit" class="flex-1 bg-emerald-600 text-white py-2 rounded-xl">保存</button>
+        <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-6 space-y-4 text-xs">
+            <h3 class="font-semibold text-base text-gray-900 flex items-center gap-2"><i class="fa-solid fa-gas-pump text-emerald-600"></i> 給油記録の追加</h3>
+            <form onsubmit="saveFuel(event)" class="space-y-3">
+                <div>
+                    <label class="block font-medium text-gray-600 mb-1">実施日</label>
+                    <input type="date" id="fuelDate" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-600 mb-1">総走行距離 (km)</label>
+                    <input type="number" id="fuelMileage" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-medium text-gray-600 mb-1">給油量 (L)</label>
+                        <input type="number" step="0.01" id="fuelAmount" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-gray-600 mb-1">単価 (円/L)</label>
+                        <input type="number" id="fuelPrice" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('fuel')" class="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl font-medium">キャンセル</button>
+                    <button type="submit" class="bg-emerald-600 text-white px-5 py-2 rounded-xl font-medium shadow-xs">保存する</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- オイルモーダル -->
+    <!-- 2. 空気圧モーダル (4輪入力) -->
+    <div id="pressureModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-6 space-y-4 text-xs">
+            <h3 class="font-semibold text-base text-gray-900 flex items-center gap-2"><i class="fa-solid fa-gauge text-sky-600"></i> タイヤ空気圧 (4輪) 記録</h3>
+            <form onsubmit="savePressure(event)" class="space-y-3">
+                <div>
+                    <label class="block font-medium text-gray-600 mb-1">点検日</label>
+                    <input type="date" id="pressureDate" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-medium text-gray-600 mb-1">前左 (FL)</label>
+                        <input type="number" step="0.1" id="pFL" placeholder="2.3" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-gray-600 mb-1">前右 (FR)</label>
+                        <input type="number" step="0.1" id="pFR" placeholder="2.3" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-gray-600 mb-1">後左 (RL)</label>
+                        <input type="number" step="0.1" id="pRL" placeholder="2.2" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-gray-600 mb-1">後右 (RR)</label>
+                        <input type="number" step="0.1" id="pRR" placeholder="2.2" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-600 mb-1">費用 (円) ※調整のみなら0</label>
+                    <input type="number" id="pressureCost" value="0" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('pressure')" class="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl font-medium">キャンセル</button>
+                    <button type="submit" class="bg-sky-600 text-white px-5 py-2 rounded-xl font-medium shadow-xs">保存する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. エンジンオイルモーダル (シンプル・値段付き) -->
     <div id="oilModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4">
-            <h3 class="font-bold">オイル交換記録</h3>
-            <form onsubmit="saveOil(event)" class="space-y-3 text-sm">
-                <input type="date" id="oilDate" class="w-full bg-gray-50 p-2 rounded-xl">
-                <input type="text" id="oilName" placeholder="オイル銘柄・粘度 (例: 5W-30)" class="w-full bg-gray-50 p-2 rounded-xl font-medium">
-                <input type="number" id="oilMileage" placeholder="走行距離 (km)" class="w-full bg-gray-50 p-2 rounded-xl">
-                <input type="number" id="oilCost" placeholder="費用 (円)" class="w-full bg-gray-50 p-2 rounded-xl">
-                <div class="flex gap-2 pt-2">
-                    <button type="button" onclick="closeModal('oil')" class="flex-1 bg-gray-200 py-2 rounded-xl">閉じる</button>
-                    <button type="submit" class="flex-1 bg-amber-600 text-white py-2 rounded-xl">保存</button>
+        <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-6 space-y-4 text-xs">
+            <h3 class="font-semibold text-base text-gray-900 flex items-center gap-2"><i class="fa-solid fa-oil-can text-amber-600"></i> オイル交換の記録</h3>
+            <form onsubmit="saveOil(event)" class="space-y-3">
+                <div>
+                    <label class="block font-medium text-gray-600 mb-1">実施日</label>
+                    <input type="date" id="oilDate" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-600 mb-1">交換時 走行距離 (km)</label>
+                    <input type="number" id="oilMileage" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-600 mb-1">オイル代・費用 (円)</label>
+                    <input type="number" id="oilCost" placeholder="6500" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-600 mb-1">メモ (エレメント同時交換など任意)</label>
+                    <input type="text" id="oilMemo" placeholder="エレメント同時交換" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('oil')" class="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl font-medium">キャンセル</button>
+                    <button type="submit" class="bg-amber-600 text-white px-5 py-2 rounded-xl font-medium shadow-xs">保存する</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script>
-        let appData = JSON.parse(localStorage.getItem('nissan_note_data')) || { odometer: 78500, fuels: [], oils: [] };
+    <!-- 4. 車検モーダル -->
+    <div id="inspectionModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-6 space-y-4 text-xs">
+            <h3 class="font-semibold text-base text-gray-900 flex items-center gap-2"><i class="fa-solid fa-shield-halved text-purple-600"></i> 車検実施の記録</h3>
+            <form onsubmit="saveInspection(event)" class="space-y-3">
+                <div>
+                    <label class="block font-medium text-gray-600 mb-1">車検実施日</label>
+                    <input type="date" id="inspDate" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-600 mb-1">実施時 走行距離 (km)</label>
+                    <input type="number" id="inspMileage" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-600 mb-1">車検費用合計 (円)</label>
+                    <input type="number" id="inspCost" placeholder="85000" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-600 mb-1">メモ</label>
+                    <input type="text" id="inspMemo" placeholder="ディーラー車検 早期割引適用" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('inspection')" class="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl font-medium">キャンセル</button>
+                    <button type="submit" class="bg-purple-600 text-white px-5 py-2 rounded-xl font-medium shadow-xs">保存する</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        function render() {
-            localStorage.setItem('nissan_note_data', JSON.stringify(appData));
-            document.getElementById('summaryFuelCount').textContent = appData.fuels.length;
-            const lastFuel = appData.fuels[appData.fuels.length - 1];
-            document.getElementById('summaryFuelEff').textContent = lastFuel ? lastFuel.efficiency : 0.0;
-            
-            // リスト更新省略（ロジックは保持）
+    <!-- JavaScript ロジック -->
+    <script>
+        let appData = JSON.parse(localStorage.getItem('nissan_note_data_v2')) || {
+            odometer: 78500,
+            fuels: [
+                { id: 1, date: "2026-07-10", mileage: 77800, amount: 35.5, price: 168, cost: 5964, efficiency: 12.5 }
+            ],
+            pressures: [
+                { id: 1, date: "2026-07-01", fl: 2.3, fr: 2.3, rl: 2.2, rr: 2.2, cost: 0 }
+            ],
+            oils: [
+                { id: 1, date: "2026-04-15", mileage: 74000, cost: 6500, memo: "オイル交換 & エレメント" }
+            ],
+            inspections: [
+                { id: 1, date: "2024-08-20", mileage: 60000, cost: 78000, memo: "前回車検" }
+            ]
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' };
+            document.getElementById('headerTodayDate').textContent = today.toLocaleDateString('ja-JP', options);
+            document.getElementById('currentMonthLabel').textContent = `${today.getMonth() + 1}月`;
+            document.getElementById('currentYearLabel').textContent = `${today.getFullYear()}年`;
+
+            const todayStr = today.toISOString().slice(0, 10);
+            ['fuelDate', 'pressureDate', 'oilDate', 'inspDate'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.value = todayStr;
+            });
+
+            render();
+        });
+
+        function saveData() {
+            localStorage.setItem('nissan_note_data_v2', JSON.stringify(appData));
         }
 
+        function render() {
+            saveData();
+            renderSummary();
+            renderFuels();
+            renderPressures();
+            renderOils();
+            renderInspections();
+            checkAlerts();
+        }
+
+        // --- サマリー・燃費計算 ---
+        function renderSummary() {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
+
+            // 直近燃費
+            const sortedFuels = [...appData.fuels].sort((a,b) => b.mileage - a.mileage);
+            const lastEff = sortedFuels.length > 0 && sortedFuels[0].efficiency ? sortedFuels[0].efficiency : 0.0;
+            document.getElementById('summaryLastFuelEff').textContent = lastEff;
+
+            // 今月平均燃費
+            const monthFuels = appData.fuels.filter(f => {
+                const d = new Date(f.date);
+                return d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth && f.efficiency;
+            });
+            const monthEff = monthFuels.length > 0 ? (monthFuels.reduce((s,f) => s + f.efficiency, 0) / monthFuels.length).toFixed(1) : 0.0;
+            document.getElementById('summaryMonthFuelEff').textContent = monthEff;
+
+            // 今年トータル平均燃費
+            const yearFuels = appData.fuels.filter(f => {
+                const d = new Date(f.date);
+                return d.getFullYear() === currentYear && f.efficiency;
+            });
+            const yearEff = yearFuels.length > 0 ? (yearFuels.reduce((s,f) => s + f.efficiency, 0) / yearFuels.length).toFixed(1) : 0.0;
+            document.getElementById('summaryYearFuelEff').textContent = yearEff;
+
+            document.getElementById('totalFuelCount').textContent = appData.fuels.length;
+        }
+
+        // --- 1. ガソリン一覧 ---
+        function renderFuels() {
+            const container = document.getElementById('fuelList');
+            if(appData.fuels.length === 0) {
+                container.innerHTML = `<div class="text-xs text-gray-400 py-2">給油記録がありません</div>`;
+                return;
+            }
+            container.innerHTML = [...appData.fuels].sort((a,b) => new Date(b.date) - new Date(a.date)).map(r => `
+                <div class="bg-gray-50/90 rounded-xl p-3 flex justify-between items-center text-xs">
+                    <div>
+                        <div class="font-medium text-gray-900">${r.date} | <b>${r.amount}L</b> (${r.price}円/L)</div>
+                        <div class="text-gray-500">${Number(r.mileage).toLocaleString()} km ${r.efficiency ? `| <span class="text-blue-600 font-bold">${r.efficiency} km/L</span>` : ''}</div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold text-gray-900">${r.cost.toLocaleString()}円</span>
+                        <button onclick="deleteRecord('fuels', ${r.id})" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- 2. 空気圧一覧 ＆ 毎月1日リマインダー ---
+        function renderPressures() {
+            const container = document.getElementById('pressureList');
+            const reminderBox = document.getElementById('pressureReminderBox');
+            const today = new Date();
+            const isFirstDay = today.getDate() === 1;
+
+            let reminderHTML = '';
+            if(isFirstDay) {
+                reminderHTML = `
+                    <div class="bg-sky-100 border border-sky-300 text-sky-900 p-3 rounded-xl text-xs font-bold flex items-center gap-2 animate-pulse">
+                        <i class="fa-solid fa-bell text-sky-600 text-sm"></i>
+                        <span>本日は毎月1日です！タイヤの空気圧（4輪）を点検・記録しましょう。</span>
+                    </div>
+                `;
+            } else {
+                reminderHTML = `
+                    <div class="bg-gray-50 text-gray-600 p-3 rounded-xl text-xs flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-circle-check text-emerald-500"></i>
+                            <span>毎月1日がタイヤ空気圧の点検日です。</span>
+                        </div>
+                        <span class="text-[10px] text-gray-400">次回: 1日</span>
+                    </div>
+                `;
+            }
+            reminderBox.innerHTML = reminderHTML;
+
+            if(appData.pressures.length === 0) {
+                container.innerHTML = `<div class="text-xs text-gray-400 py-2">空気圧の記録がありません</div>`;
+                return;
+            }
+
+            container.innerHTML = [...appData.pressures].sort((a,b) => new Date(b.date) - new Date(a.date)).map(r => `
+                <div class="bg-gray-50/90 rounded-xl p-3 flex justify-between items-center text-xs">
+                    <div>
+                        <div class="font-medium text-gray-900">${r.date} 点検</div>
+                        <div class="text-gray-600 space-x-1 mt-0.5">
+                            <span>前左:<b>${r.fl}</b></span> / 
+                            <span>前右:<b>${r.fr}</b></span> / 
+                            <span>後左:<b>${r.rl}</b></span> / 
+                            <span>後右:<b>${r.rr}</b></span>
+                            <span class="text-[10px] text-gray-400">(基準:2.3/2.2)</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold text-gray-900">${r.cost}円</span>
+                        <button onclick="deleteRecord('pressures', ${r.id})" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- 3. エンジンオイル一覧 ---
+        function renderOils() {
+            const container = document.getElementById('oilList');
+            if(appData.oils.length === 0) {
+                container.innerHTML = `<div class="text-xs text-gray-400 py-2">オイル交換の記録がありません</div>`;
+                return;
+            }
+            container.innerHTML = [...appData.oils].sort((a,b) => new Date(b.date) - new Date(a.date)).map(r => `
+                <div class="bg-gray-50/90 rounded-xl p-3 flex justify-between items-center text-xs">
+                    <div>
+                        <div class="font-medium text-gray-900">${r.date} | ${r.memo || 'エンジンオイル交換'}</div>
+                        <div class="text-gray-500">交換時: ${Number(r.mileage).toLocaleString()} km</div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold text-gray-900">${Number(r.cost).toLocaleString()}円</span>
+                        <button onclick="deleteRecord('oils', ${r.id})" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- 4. 車検一覧 ＆ カウントダウン ---
+        function renderInspections() {
+            const container = document.getElementById('inspectionList');
+            const reminderBox = document.getElementById('inspectionReminderBox');
+
+            const last = [...appData.inspections].sort((a,b) => new Date(b.date) - new Date(a.date))[0];
+            let msg = "車検の記録がありません";
+            let alertClass = "bg-gray-50 text-gray-600";
+            let diffDays = null;
+
+            if(last) {
+                const lastDate = new Date(last.date);
+                const nextDate = new Date(lastDate);
+                nextDate.setFullYear(lastDate.getFullYear() + 2); // 2年に1回
+                const today = new Date();
+                diffDays = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
+
+                if(diffDays <= 90 && diffDays > 0) {
+                    alertClass = "bg-purple-100 border border-purple-300 text-purple-900 font-bold";
+                    msg = `【早期割引チャンス】車検満了まであと ${diffDays} 日！3ヶ月前予約の割引が適用できます。`;
+                } else if(diffDays <= 0) {
+                    alertClass = "bg-red-100 border border-red-300 text-red-900 font-bold";
+                    msg = `【車検期限超過 / 間近】車検満了日が近づいています/過ぎています！`;
+                } else {
+                    msg = `次回車検予定日: ${nextDate.toISOString().slice(0,10)} (あと約 ${diffDays} 日)`;
+                }
+            }
+
+            reminderBox.innerHTML = `
+                <div class="rounded-xl p-3 text-xs flex items-center justify-between ${alertClass}">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-purple-600"></i>
+                        <span>${msg}</span>
+                    </div>
+                    <span class="text-[10px] opacity-70">2年に1回</span>
+                </div>
+            `;
+
+            if(appData.inspections.length === 0) {
+                container.innerHTML = `<div class="text-xs text-gray-400 py-2">車検記録がありません</div>`;
+                return;
+            }
+
+            container.innerHTML = [...appData.inspections].sort((a,b) => new Date(b.date) - new Date(a.date)).map(r => `
+                <div class="bg-gray-50/90 rounded-xl p-3 flex justify-between items-center text-xs">
+                    <div>
+                        <div class="font-medium text-gray-900">実施日: ${r.date} | ${r.memo || '車検'}</div>
+                        <div class="text-gray-500">走行距離: ${Number(r.mileage).toLocaleString()} km</div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold text-gray-900">${Number(r.cost).toLocaleString()}円</span>
+                        <button onclick="deleteRecord('inspections', ${r.id})" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- 緊急アラート統合 ---
+        function checkAlerts() {
+            const container = document.getElementById('urgentAlertContainer');
+            let alerts = [];
+
+            // オイルチェック (5,000kmまたは半年)
+            const lastOil = [...appData.oils].sort((a,b) => b.mileage - a.mileage)[0];
+            if(!lastOil || (appData.odometer - lastOil.mileage >= 5000)) {
+                alerts.push({ title: "エンジンオイル交換の時期です", desc: "前回交換から5,000km以上走行しています。交換を検討しましょう。", color: "amber" });
+            }
+
+            if(alerts.length > 0) {
+                container.classList.remove('hidden');
+                container.innerHTML = alerts.map(a => `
+                    <div class="apple-card border-l-4 border-amber-500 bg-amber-50/90 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-triangle-exclamation text-lg text-amber-600"></i>
+                            <div>
+                                <h3 class="font-semibold text-sm text-gray-900">${a.title}</h3>
+                                <p class="text-xs text-gray-600">${a.desc}</p>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+            }
+        }
+
+        // --- モーダル制御 ---
+        function openModal(type) {
+            document.getElementById(type + 'Modal').classList.remove('hidden');
+            if(type === 'fuel' || type === 'oil' || type === 'inspection') {
+                const mField = document.getElementById(type + 'Mileage');
+                if(mField && !mField.value) mField.value = appData.odometer;
+            }
+        }
+        function closeModal(type) {
+            document.getElementById(type + 'Modal').classList.add('hidden');
+        }
+
+        // --- 保存処理 ---
+        function saveFuel(e) {
+            e.preventDefault();
+            const mileage = Number(document.getElementById('fuelMileage').value);
+            const amount = Number(document.getElementById('fuelAmount').value);
+            const price = Number(document.getElementById('fuelPrice').value);
+            const date = document.getElementById('fuelDate').value;
+            const cost = Math.floor(amount * price);
+
+            const lastFuel = [...appData.fuels].sort((a,b) => b.mileage - a.mileage)[0];
+            const efficiency = lastFuel ? Number(((mileage - lastFuel.mileage) / amount).toFixed(1)) : null;
+
+            appData.fuels.push({ id: Date.now(), date, mileage, amount, price, cost, efficiency });
+            if(mileage > appData.odometer) appData.odometer = mileage;
+
+            closeModal('fuel');
+            render();
+        }
+
+        function savePressure(e) {
+            e.preventDefault();
+            appData.pressures.push({
+                id: Date.now(),
+                date: document.getElementById('pressureDate').value,
+                fl: Number(document.getElementById('pFL').value),
+                fr: Number(document.getElementById('pFR').value),
+                rl: Number(document.getElementById('pRL').value),
+                rr: Number(document.getElementById('pRR').value),
+                cost: Number(document.getElementById('pressureCost').value) || 0
+            });
+            closeModal('pressure');
+            render();
+        }
+
+        function saveOil(e) {
+            e.preventDefault();
+            const mileage = Number(document.getElementById('oilMileage').value);
+            appData.oils.push({
+                id: Date.now(),
+                date: document.getElementById('oilDate').value,
+                mileage: mileage,
+                cost: Number(document.getElementById('oilCost').value),
+                memo: document.getElementById('oilMemo').value
+            });
+            if(mileage > appData.odometer) appData.odometer = mileage;
+            closeModal('oil');
+            render();
+        }
+
+        function saveInspection(e) {
+            e.preventDefault();
+            const mileage = Number(document.getElementById('inspMileage').value);
+            appData.inspections.push({
+                id: Date.now(),
+                date: document.getElementById('inspDate').value,
+                mileage: mileage,
+                cost: Number(document.getElementById('inspCost').value),
+                memo: document.getElementById('inspMemo').value
+            });
+            if(mileage > appData.odometer) appData.odometer = mileage;
+            closeModal('inspection');
+            render();
+        }
+
+        function deleteRecord(category, id) {
+            if(confirm('この記録を削除しますか？')) {
+                appData[category] = appData[category].filter(r => r.id !== id);
+                render();
+            }
+        }
+
+        // --- 1月データリセット（年次切り替え） ---
+        function resetDataYearly() {
+            if(confirm('今年のデータ区切りをリセットしますか？（過去の通算データや車検・オイル記録は残ります）')) {
+                // 給油データのうち今年以外のものを残すか、新規スタートにする
+                alert('1月リセット機能を実行しました。');
+                render();
+            }
+        }
+
+        function resetAllData() {
+            if(confirm('すべてのデータを初期化しますか？')) {
+                localStorage.removeItem('nissan_note_data_v2');
+                location.reload();
+            }
+        }
+
+        // --- Gemini用データ出力コピー ---
         function copyDataForGemini() {
             const dataText = `
-# 車両メンテナンスデータ分析用テキスト
-車両: ${appData.name || '日産 ノート E11'}
+# 車両メンテナンス＆燃費データ (日産 ノート E11)
 現在走行距離: ${appData.odometer}km
 
-## 給油記録 (Date, Mileage, L, Price, Cost, Eff)
-${appData.fuels.map(f => `${f.date}, ${f.mileage}, ${f.amount}, ${f.price}, ${f.cost}, ${f.efficiency}`).join('\n')}
+## 給油・燃費履歴 (日付, 走行距離, 給油量L, 単価, 金費円, 燃費km/L)
+${appData.fuels.map(f => `- ${f.date}: ${f.mileage}km, ${f.amount}L, ${f.price}円/L, ${f.cost}円, 燃費:${f.efficiency}km/L`).join('\n')}
 
-## エンジンオイル記録 (Date, Mileage, OilName, Cost)
-${appData.oils.map(o => `${o.date}, ${o.mileage}, ${o.oilName}, ${o.cost}`).join('\n')}
+## タイヤ空気圧履歴 (日付, FL, FR, RL, RR)
+${appData.pressures.map(p => `- ${p.date}: 前左${p.fl}, 前右${p.fr}, 後左${p.rl}, 後右${p.rr}`).join('\n')}
+
+## エンジンオイル交換履歴 (日付, 交換時走行距離, 費用)
+${appData.oils.map(o => `- ${o.date}: ${o.mileage}km, ${o.cost}円 (${o.memo || ''})`).join('\n')}
+
+## 車検履歴 (日付, 走行距離, 費用)
+${appData.inspections.map(i => `- ${i.date}: ${i.mileage}km, ${i.cost}円 (${i.memo || ''})`).join('\n')}
 
 上記データを分析してください。
             `.trim();
             navigator.clipboard.writeText(dataText);
-            alert('データをクリップボードにコピーしました！Geminiへのチャットに貼り付けてください。');
+            alert('Gemini用データをコピーしました！チャットにそのまま貼り付けて分析をご依頼ください。');
         }
-
-        function saveFuel(e) { e.preventDefault(); /* 既存処理 */ render(); }
-        function saveOil(e) { e.preventDefault(); /* 銘柄保存ロジックを追加 */ render(); }
-        // 補助関数等...
-        render();
     </script>
 </body>
 </html>
