@@ -3,60 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日産 ノート E11 管理</title>
+    <title>Note E11 管理</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f5f5f7; color: #1d1d1f; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f5f5f7; }
         .apple-card { background: white; border-radius: 20px; border: 1px solid #e5e5ea; }
-        summary { list-style: none; }
-        summary::-webkit-details-marker { display: none; }
+        select { -webkit-appearance: none; appearance: none; }
     </style>
 </head>
 <body class="p-4 pb-20">
     <div class="max-w-md mx-auto space-y-4">
-        <!-- ヘッダー・サマリー等は前回と同様 -->
-        <header class="flex justify-between items-center py-2">
-            <h1 class="font-bold text-xl">Note E11 管理</h1>
-            <button id="exportBtn" class="bg-blue-600 text-white px-3.5 py-2 rounded-full text-xs font-bold">データ出力</button>
-        </header>
-
-        <!-- 空気圧入力モーダル（プルダウン改良版） -->
+        <!-- 空気圧モーダル -->
         <div id="pressureModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
             <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4 text-xs">
                 <h3 class="font-bold text-sm">タイヤ空気圧 (4輪) 記録</h3>
                 <input type="date" id="pDate" class="w-full bg-gray-100 p-3 rounded-xl">
                 
-                <!-- 基準値選択プルダウン -->
-                <div>
-                    <label class="text-[10px] text-gray-500 mb-1 block">基準値を選択 (一括適用)</label>
-                    <select id="pPreset" onchange="applyPreset()" class="w-full bg-gray-100 p-3 rounded-xl font-bold">
-                        <option value="">手動入力</option>
-                        <option value="2.0">2.0</option>
-                        <option value="2.1">2.1</option>
-                        <option value="2.2">2.2</option>
-                        <option value="2.3" selected>2.3</option>
-                        <option value="2.4">2.4</option>
-                        <option value="2.5">2.5</option>
-                    </select>
-                </div>
-
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="text-[10px] text-gray-500 mb-1 block">前左 (FL)</label>
-                        <input type="number" step="0.1" id="pFL" class="w-full bg-gray-100 p-3 rounded-xl">
+                        <select id="pFL" class="w-full bg-gray-100 p-3 rounded-xl font-bold"></select>
                     </div>
                     <div>
                         <label class="text-[10px] text-gray-500 mb-1 block">前右 (FR)</label>
-                        <input type="number" step="0.1" id="pFR" class="w-full bg-gray-100 p-3 rounded-xl">
+                        <select id="pFR" class="w-full bg-gray-100 p-3 rounded-xl font-bold"></select>
                     </div>
                     <div>
                         <label class="text-[10px] text-gray-500 mb-1 block">後左 (RL)</label>
-                        <input type="number" step="0.1" id="pRL" class="w-full bg-gray-100 p-3 rounded-xl">
+                        <select id="pRL" class="w-full bg-gray-100 p-3 rounded-xl font-bold"></select>
                     </div>
                     <div>
                         <label class="text-[10px] text-gray-500 mb-1 block">後右 (RR)</label>
-                        <input type="number" step="0.1" id="pRR" class="w-full bg-gray-100 p-3 rounded-xl">
+                        <select id="pRR" class="w-full bg-gray-100 p-3 rounded-xl font-bold"></select>
                     </div>
                 </div>
                 
@@ -69,28 +48,38 @@
     </div>
 
     <script>
-        // プリセット適用関数
-        window.applyPreset = function() {
-            const val = document.getElementById('pPreset').value;
-            if(val) {
-                document.getElementById('pFL').value = val;
-                document.getElementById('pFR').value = val;
-                document.getElementById('pRL').value = val;
-                document.getElementById('pRR').value = val;
-            }
-        };
-
-        // ... その他のロジックは前回同様
         document.addEventListener('DOMContentLoaded', () => {
-             // 日付初期化など
-             const todayStr = new Date().toISOString().slice(0, 10);
-             document.getElementById('pDate').value = todayStr;
-             
-             // モーダル開く時に初期値をセットする処理
-             document.getElementById('openPressureBtn').onclick = () => {
-                 document.getElementById('pressureModal').classList.remove('hidden');
-                 applyPreset(); // デフォルトで2.3が入るように
-             };
+            // プルダウンの生成: 1.5 〜 3.0 を 0.1 刻みで生成
+            const selectIds = ['pFL', 'pFR', 'pRL', 'pRR'];
+            selectIds.forEach(id => {
+                const select = document.getElementById(id);
+                for (let i = 15; i <= 30; i++) {
+                    const val = (i / 10).toFixed(1);
+                    const option = document.createElement('option');
+                    option.value = val;
+                    option.textContent = val;
+                    if (val === "2.3") option.selected = true; // デフォルトを2.3に
+                    select.appendChild(option);
+                }
+            });
+
+            // 以下、モーダル表示・保存ロジック...
+            const toggleModal = (id, show) => document.getElementById(id).classList.toggle('hidden', !show);
+            document.getElementById('openPressureBtn').onclick = () => toggleModal('pressureModal', true);
+            document.getElementById('closePressureBtn').onclick = () => toggleModal('pressureModal', false);
+            
+            // 保存時は select の value をそのまま取得
+            document.getElementById('savePressureBtn').onclick = () => {
+                const pData = {
+                    date: document.getElementById('pDate').value,
+                    fl: document.getElementById('pFL').value,
+                    fr: document.getElementById('pFR').value,
+                    rl: document.getElementById('pRL').value,
+                    rr: document.getElementById('pRR').value
+                };
+                console.log("保存データ:", pData);
+                toggleModal('pressureModal', false);
+            };
         });
     </script>
 </body>
