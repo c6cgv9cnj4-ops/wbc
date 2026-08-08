@@ -1,672 +1,596 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Car Maintenance & Fuel Hub</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts (SF Pro類似・Apple風フォント設定) -->
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
-            background-color: #f5f5f7;
-            color: #1d1d1f;
-        }
-        .apple-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(210, 210, 215, 0.5);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>経済ポータルダッシュボード</title>
+  <style>
+    :root {
+      --bg-color: #f4f6f8;
+      --card-bg: #ffffff;
+      --text-main: #333333;
+      --text-muted: #666666;
+      --primary: #1a73e8;
+      --success: #0f9d58;
+      --danger: #d23f31;
+      --border: #e0e0e0;
+      --highlight: #fff8e1;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.8rem;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .version-badge {
+      font-size: 0.9rem;
+      background: var(--danger);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: normal;
+    }
+    .header-info {
+      text-align: right;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .quick-links a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: bold;
+      margin-left: 15px;
+    }
+    .quick-links a:hover {
+      text-decoration: underline;
+    }
+    section {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    section h2 {
+      margin-top: 0;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      font-size: 1.3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    .news-source h3 {
+      font-size: 1.1rem;
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+    .news-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .news-list li {
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+      border-bottom: 1px dashed var(--border);
+      padding-bottom: 8px;
+    }
+    .news-list a {
+      color: var(--text-main);
+      text-decoration: none;
+    }
+    .news-list a:hover {
+      color: var(--primary);
+    }
+    .news-time {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-right: 5px;
+    }
+
+    .api-key-section {
+      background: var(--highlight);
+      padding: 15px;
+      border: 2px solid #ffe082;
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+    .api-key-section label {
+      font-weight: bold;
+      color: #b79100;
+      display: block;
+      margin-bottom: 5px;
+    }
+    .api-key-section input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    .btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+      transition: background 0.2s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .btn:hover { background: #1557b0; }
+    .btn:disabled { background: #999; cursor: not-allowed; box-shadow: none; }
+    
+    .deep-dive-controls {
+      background: #fafafa;
+      padding: 15px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+    .deep-dive-controls input[type="text"],
+    .deep-dive-controls textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+    .deep-dive-controls textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+    
+    .deep-dive-item {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 15px;
+      background: #fafafa;
+    }
+    .deep-dive-item h4 {
+      margin: 0 0 10px 0;
+      font-size: 1.1rem;
+      color: var(--primary);
+    }
+    .deep-dive-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 15px;
+    }
+    details {
+      margin-bottom: 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+    }
+    summary {
+      padding: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      background: #f9f9f9;
+    }
+    summary:hover { background: #f1f1f1; }
+    .details-content {
+      padding: 15px;
+      font-size: 0.95rem;
+      border-top: 1px solid var(--border);
+    }
+  </style>
 </head>
-<body class="min-h-screen pb-12">
+<body>
 
-    <!-- ヘッダー -->
-    <header class="sticky top-0 z-50 apple-card border-b border-gray-200/60">
-        <div class="max-w-4xl mx-auto px-4 py-3.5 flex justify-between items-center">
-            <div class="flex items-center space-x-2.5">
-                <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-sm">
-                    <i class="fa-solid fa-car-side text-sm"></i>
-                </div>
-                <h1 class="text-base font-semibold tracking-tight text-gray-900">日産 ノート E11 管理</h1>
-            </div>
-            <div class="flex items-center gap-2">
-                <button onclick="openCarModal()" class="text-xs bg-gray-200/70 hover:bg-gray-300 text-gray-700 font-medium px-3 py-1.5 rounded-full transition">
-                    <i class="fa-solid fa-gear"></i> 車両設定
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <!-- メインコンテンツ -->
-    <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
-
-        <!-- ★最重要：時期が来たリマインダーが一番上に目立って表示されるエリア -->
-        <div id="urgentAlertContainer" class="space-y-3 hidden">
-            <!-- JSで動的に挿入 -->
-        </div>
-
-        <!-- 車両サマリー（Apple風タイル） -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div class="apple-card p-4 rounded-2xl shadow-xs">
-                <div class="text-[11px] font-medium text-gray-500 mb-1">現在の総走行距離</div>
-                <div class="text-xl font-bold tracking-tight text-gray-900"><span id="summaryOdometer">0</span> <span class="text-xs font-normal text-gray-500">km</span></div>
-            </div>
-            <div class="apple-card p-4 rounded-2xl shadow-xs">
-                <div class="text-[11px] font-medium text-gray-500 mb-1">直近の実燃費</div>
-                <div class="text-xl font-bold tracking-tight text-blue-600"><span id="summaryFuelEff">0.0</span> <span class="text-xs font-normal text-gray-500">km/L</span></div>
-            </div>
-            <div class="apple-card p-4 rounded-2xl shadow-xs col-span-2 sm:col-span-1">
-                <div class="text-[11px] font-medium text-gray-500 mb-1">累計維持費合計</div>
-                <div class="text-xl font-bold tracking-tight text-gray-900"><span id="summaryTotalCost">0</span> <span class="text-xs font-normal text-gray-500">円</span></div>
-            </div>
-        </div>
-
-        <!-- 4つの管理セクション（指定レイアウト：1.ガソリン 2.空気圧 3.エンジンオイル 4.車検） -->
-        <div class="space-y-4">
-
-            <!-- 1. ガソリンセクション -->
-            <section class="apple-card rounded-2xl p-5 shadow-xs transition hover:shadow-md">
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-                            <i class="fa-solid fa-gas-pump text-base"></i>
-                        </div>
-                        <div>
-                            <h2 class="font-semibold text-gray-900 text-base">ガソリン・給油記録</h2>
-                            <p class="text-xs text-gray-500">単価・給油量から燃費を自動算出</p>
-                        </div>
-                    </div>
-                    <button onclick="openModal('fuel')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-3.5 py-2 rounded-full transition shadow-xs flex items-center gap-1.5">
-                        <i class="fa-solid fa-plus"></i> 記録する
-                    </button>
-                </div>
-                <div id="fuelList" class="space-y-2 mt-3"></div>
-            </section>
-
-            <!-- 2. タイヤ空気圧セクション -->
-            <section class="apple-card rounded-2xl p-5 shadow-xs transition hover:shadow-md">
-                <div class="flex justify-between items-center mb-3">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center">
-                            <i class="fa-solid fa-gauge text-base"></i>
-                        </div>
-                        <div>
-                            <h2 class="font-semibold text-gray-900 text-base">タイヤの空気圧</h2>
-                            <p class="text-xs text-gray-500">目安：月1回 / 夏冬の変わり目</p>
-                        </div>
-                    </div>
-                    <button onclick="openModal('pressure')" class="bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium px-3.5 py-2 rounded-full transition shadow-xs flex items-center gap-1.5">
-                        <i class="fa-solid fa-plus"></i> 点検を記録
-                    </button>
-                </div>
-                <!-- 空気圧リマインダーカード情報 -->
-                <div id="pressureStatusCard" class="mb-3"></div>
-                <div id="pressureList" class="space-y-2"></div>
-            </section>
-
-            <!-- 3. エンジンオイルセクション -->
-            <section class="apple-card rounded-2xl p-5 shadow-xs transition hover:shadow-md">
-                <div class="flex justify-between items-center mb-3">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
-                            <i class="fa-solid fa-oil-can text-base"></i>
-                        </div>
-                        <div>
-                            <h2 class="font-semibold text-gray-900 text-base">エンジンオイル</h2>
-                            <p class="text-xs text-gray-500">目安：5,000km または 半年</p>
-                        </div>
-                    </div>
-                    <button onclick="openModal('oil')" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-medium px-3.5 py-2 rounded-full transition shadow-xs flex items-center gap-1.5">
-                        <i class="fa-solid fa-plus"></i> 交換を記録
-                    </button>
-                </div>
-                <div id="oilStatusCard" class="mb-3"></div>
-                <div id="oilList" class="space-y-2"></div>
-            </section>
-
-            <!-- 4. 車検セクション（一番下） -->
-            <section class="apple-card rounded-2xl p-5 shadow-xs transition hover:shadow-md">
-                <div class="flex justify-between items-center mb-3">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
-                            <i class="fa-solid fa-shield-halved text-base"></i>
-                        </div>
-                        <div>
-                            <h2 class="font-semibold text-gray-900 text-base">車検記録 & 割引リマインダー</h2>
-                            <p class="text-xs text-gray-500">2年に1回（3ヶ月前からの早期予約割引に対応）</p>
-                        </div>
-                    </div>
-                    <button onclick="openModal('inspection')" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium px-3.5 py-2 rounded-full transition shadow-xs flex items-center gap-1.5">
-                        <i class="fa-solid fa-plus"></i> 車検を記録
-                    </button>
-                </div>
-                <div id="inspectionStatusCard" class="mb-3"></div>
-                <div id="inspectionList" class="space-y-2"></div>
-            </section>
-
-        </div>
-
-        <!-- データバックアップ・初期化 -->
-        <div class="flex justify-between items-center pt-4 text-xs text-gray-500">
-            <button onclick="exportData()" class="hover:underline flex items-center gap-1"><i class="fa-solid fa-download"></i> バックアップ保存</button>
-            <button onclick="resetData()" class="text-red-500 hover:underline">データを初期化</button>
-        </div>
-
-    </main>
-
-    <!-- 各種モーダル -->
-    <!-- 1. 給油モーダル -->
-    <div id="fuelModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-6 space-y-4">
-            <h3 class="font-semibold text-base text-gray-900 flex items-center gap-2"><i class="fa-solid fa-gas-pump text-emerald-600"></i> 給油記録の追加</h3>
-            <form onsubmit="saveFuel(event)" class="space-y-3 text-xs">
-                <div>
-                    <label class="block font-medium text-gray-600 mb-1">実施日</label>
-                    <input type="date" id="fuelDate" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
-                </div>
-                <div>
-                    <label class="block font-medium text-gray-600 mb-1">給油時の総走行距離 (km)</label>
-                    <input type="number" id="fuelMileage" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block font-medium text-gray-600 mb-1">給油量 (L)</label>
-                        <input type="number" step="0.01" id="fuelAmount" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
-                    </div>
-                    <div>
-                        <label class="block font-medium text-gray-600 mb-1">単価 (円/L)</label>
-                        <input type="number" id="fuelPrice" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
-                    </div>
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeModal('fuel')" class="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl font-medium">キャンセル</button>
-                    <button type="submit" class="bg-emerald-600 text-white px-5 py-2 rounded-xl font-medium shadow-xs">保存する</button>
-                </div>
-            </form>
-        </div>
+<div class="container">
+  <header>
+    <div>
+      <h1>経済ポータルダッシュボード <span class="version-badge">最新版 v5 (ローカル・自動修復版)</span></h1>
+      <div class="quick-links">
+        <a href="https://www.sbisec.co.jp/" target="_blank" rel="noopener">▶ SBI証券ログイン</a>
+        <a href="https://shikiho.toyokeizai.net/" target="_blank" rel="noopener">▶ 会社四季報オンライン</a>
+      </div>
     </div>
-
-    <!-- 2. 空気圧モーダル -->
-    <div id="pressureModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-6 space-y-4">
-            <h3 class="font-semibold text-base text-gray-900 flex items-center gap-2"><i class="fa-solid fa-gauge text-sky-600"></i> タイヤ空気圧点検の記録</h3>
-            <form onsubmit="savePressure(event)" class="space-y-3 text-xs">
-                <div>
-                    <label class="block font-medium text-gray-600 mb-1">実施日</label>
-                    <input type="date" id="pressureDate" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
-                </div>
-                <div>
-                    <label class="block font-medium text-gray-600 mb-1">作業時走行距離 (km)</label>
-                    <input type="number" id="pressureMileage" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
-                </div>
-                <div>
-                    <label class="block font-medium text-gray-600 mb-1">費用 (円) ※調整のみなら0円</label>
-                    <input type="number" id="pressureCost" value="0" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
-                </div>
-                <div>
-                    <label class="block font-medium text-gray-600 mb-1">メモ</label>
-                    <input type="text" id="pressureMemo" placeholder="前 2.3 / 後 2.2 調整完了" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeModal('pressure')" class="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl font-medium">キャンセル</button>
-                    <button type="submit" class="bg-sky-600 text-white px-5 py-2 rounded-xl font-medium shadow-xs">保存する</button>
-                </div>
-            </form>
-        </div>
+    <div class="header-info">
+      最終生成: <span id="last-updated">ロード中...</span><br>
     </div>
+  </header>
 
-    <!-- 3. エンジンオイルモーダル -->
-    <div id="oilModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-6 space-y-4">
-            <h3 class="font-semibold text-base text-gray-900 flex items-center gap-2"><i class="fa-solid fa-oil-can text-amber-600"></i> エンジンオイル交換の記録</h3>
-            <form onsubmit="saveOil(event)" class="space-y-3 text-xs">
-                <div>
-                    <label class="block font-medium text-gray-600 mb-1">実施日</label>
-                    <input type="date" id="oilDate" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
-                </div>
-                <div>
-                    <label class="block font-medium text-gray-600 mb-1">交換時走行距離 (km)</label>
-                    <input type="number" id="oilMileage" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
-                </div>
-                <div>
-                    <label class="block font-medium text-gray-600 mb-1">費用 (円)</label>
-                    <input type="number" id="oilCost" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
-                </div>
-                <div>
-                    <label class="block font-medium text-gray-600 mb-1">メモ (粘度・エレメント同時交換など)</label>
-                    <input type="text" id="oilMemo" placeholder="5W-30, エレメント同時交換" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeModal('oil')" class="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl font-medium">キャンセル</button>
-                    <button type="submit" class="bg-amber-600 text-white px-5 py-2 rounded-xl font-medium shadow-xs">保存する</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- 4. 車検モーダル -->
-    <div id="inspectionModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-6 space-y-4">
-            <h3 class="font-semibold text-base text-gray-900 flex items-center gap-2"><i class="fa-solid fa-shield-halved text-purple-600"></i> 車検記録の追加</h3>
-            <form onsubmit="saveInspection(event)" class="space-y-3 text-xs">
-                <div>
-                    <label class="block font-medium text-gray-600 mb-1">車検実施日</label>
-                    <input type="date" id="inspDate" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
-                </div>
-                <div>
-                    <label class="block font-medium text-gray-600 mb-1">実施時走行距離 (km)</label>
-                    <input type="number" id="inspMileage" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
-                </div>
-                <div>
-                    <label class="block font-medium text-gray-600 mb-1">車検費用合計 (円)</label>
-                    <input type="number" id="inspCost" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
-                </div>
-                <div>
-                    <label class="block font-medium text-gray-600 mb-1">メモ</label>
-                    <input type="text" id="inspMemo" placeholder="ディーラー車検 早期割引適用" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeModal('inspection')" class="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl font-medium">キャンセル</button>
-                    <button type="submit" class="bg-purple-600 text-white px-5 py-2 rounded-xl font-medium shadow-xs">保存する</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- 車両設定モーダル -->
-    <div id="carModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-6 space-y-4">
-            <h3 class="font-semibold text-base text-gray-900">車両基本設定</h3>
-            <form onsubmit="saveCar(event)" class="space-y-3 text-xs">
-                <div>
-                    <label class="block font-medium text-gray-600 mb-1">現在の総走行距離 (km)</label>
-                    <input type="number" id="carOdometer" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm">
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeModal('car')" class="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl font-medium">キャンセル</button>
-                    <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-xl font-medium shadow-xs">更新する</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- JavaScript ロジック -->
-    <script>
-        // 初期データ（サンプル）
-        let appData = JSON.parse(localStorage.getItem('nissan_note_data')) || {
-            odometer: 78500,
-            fuels: [
-                { id: 1, date: "2026-07-10", mileage: 77800, amount: 35.5, price: 168, cost: 5964, efficiency: 12.5 }
-            ],
-            pressures: [
-                { id: 1, date: "2026-07-01", mileage: 77600, cost: 0, memo: "夏前空気圧調整" }
-            ],
-            oils: [
-                { id: 1, date: "2026-04-15", mileage: 74000, cost: 6500, memo: "5W-30 エレメント交換" }
-            ],
-            inspections: [
-                { id: 1, date: "2024-08-20", mileage: 60000, cost: 78000, memo: "前回車検" }
+  <!-- ① リアルタイム市況 -->
+  <section>
+    <h2>① リアルタイム市況</h2>
+    <div class="tradingview-widget-container">
+      <div class="tradingview-widget-container__widget"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js" async>
+      {
+        "width": "100%",
+        "height": 450,
+        "symbolsGroups": [
+          {
+            "name": "主要指標・注目銘柄",
+            "originalName": "Indices",
+            "symbols": [
+              { "name": "TVC:NI225", "displayName": "日経平均株価" },
+              { "name": "AMEX:SPY", "displayName": "S&P 500 (ETF)" },
+              { "name": "FX:USDJPY", "displayName": "ドル/円" },
+              { "name": "TVC:US10Y", "displayName": "米10年債利回り" },
+              { "name": "AMEX:SOXX", "displayName": "SOX指数 (半導体ETF)" },
+              { "name": "TVC:USOIL", "displayName": "WTI原油" },
+              { "name": "TVC:VIX", "displayName": "VIX指数" },
+              { "name": "TSE:7532", "displayName": "PPIH (ドンキホーテ)" }
             ]
-        };
+          }
+        ],
+        "showSymbolLogo": true,
+        "isTransparent": true,
+        "colorTheme": "light",
+        "locale": "ja"
+      }
+      </script>
+    </div>
+  </section>
 
-        window.addEventListener('DOMContentLoaded', () => {
-            render();
-            // 日付の初期値を今日に
-            const today = new Date().toISOString().slice(0,10);
-            ['fuelDate', 'pressureDate', 'oilDate', 'inspDate'].forEach(id => {
-                const el = document.getElementById(id);
-                if(el) el.value = today;
-            });
+  <!-- ② 日経CNBC 深掘り -->
+  <section>
+    <h2>② 日経CNBC 深掘り（最大5日分蓄積）</h2>
+    
+    <div class="api-key-section">
+      <label>🔑 Gemini API キーを設定してください</label>
+      <input type="password" id="api-key" placeholder="AQ. または AIzaSy から始まるキーを貼り付けてください（自動で保存されます）">
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <button id="auto-fetch-btn" class="btn" onclick="autoProcessCNBC()">✨ 日経CNBCの最新動画を全自動取得して要約</button>
+      <span id="process-status" style="margin-left:10px; font-size:1rem; font-weight:bold;"></span>
+    </div>
+
+    <!-- 手動追加用 -->
+    <details style="margin-bottom:20px; font-size:0.9rem;">
+      <summary style="background:#eef2f6; color:var(--text-muted); font-weight:normal; padding:8px; border-radius:4px;">▶ 字幕テキストを手動で貼り付けて処理したい場合はこちらを開く</summary>
+      <div class="deep-dive-controls">
+        <label>動画タイトル / テーマ:</label>
+        <input type="text" id="video-title" placeholder="例: 【〇月〇日】日経平均株価は大幅続伸...">
+        <label>実字幕テキスト:</label>
+        <textarea id="video-transcript" placeholder="動画からコピーした字幕テキストをここに貼り付けてください..."></textarea>
+        <button id="manual-process-btn" class="btn" style="background:#666; font-size:0.9rem; padding:8px 16px;" onclick="manualProcessTranscript()">手動入力でダッシュボードに追加</button>
+      </div>
+    </details>
+
+    <div id="deep-dive-container"></div>
+  </section>
+
+  <!-- ③ 新聞各紙 ニュース比較 -->
+  <section>
+    <h2>③ 主要ニュース (RSS自動取得)</h2>
+    <div class="news-grid">
+      <div class="news-source">
+        <h3>日経新聞</h3>
+        <ul id="news-nikkei" class="news-list"><li>取得中...</li></ul>
+      </div>
+      <div class="news-source">
+        <h3>毎日新聞</h3>
+        <ul id="news-mainichi" class="news-list"><li>取得中...</li></ul>
+      </div>
+      <div class="news-source">
+        <h3>ロイター (国際・ビジネス)</h3>
+        <ul id="news-reuters" class="news-list"><li>取得中...</li></ul>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  function updateTime() {
+    const now = new Date();
+    document.getElementById('last-updated').textContent = now.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+  }
+
+  async function fetchNews() {
+    const feeds = {
+      'news-nikkei': 'https://assets.wor.jp/rss/rdf/nikkei/news.rdf',
+      'news-mainichi': 'https://mainichi.jp/rss/etc/mainichi-flash.rss',
+      'news-reuters': 'https://assets.wor.jp/rss/rdf/reuters/top.rdf'
+    };
+
+    for (const [elementId, url] of Object.entries(feeds)) {
+      const rss2jsonUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`;
+      try {
+        const res = await fetch(rss2jsonUrl);
+        const data = await res.json();
+        
+        const ul = document.getElementById(elementId);
+        ul.innerHTML = '';
+        
+        if (data.status === 'ok' && data.items.length > 0) {
+          const items = data.items.slice(0, 5);
+          items.forEach(item => {
+            const pubDate = new Date(item.pubDate);
+            const timeStr = `${String(pubDate.getHours()).padStart(2, '0')}:${String(pubDate.getMinutes()).padStart(2, '0')}`;
+            ul.innerHTML += `
+              <li>
+                <span class="news-time">${timeStr}</span>
+                <a href="${item.link}" target="_blank" rel="noopener">${item.title}</a>
+              </li>
+            `;
+          });
+        } else {
+          ul.innerHTML = '<li>記事が見つかりませんでした</li>';
+        }
+      } catch (e) {
+        document.getElementById(elementId).innerHTML = '<li>取得エラー</li>';
+      }
+    }
+  }
+
+  const STORAGE_KEY = 'economic_dashboard_deepdives';
+  const API_KEY_STORAGE = 'gemini_api_key';
+
+  const defaultData = [
+    {
+      date: '2026-08-02',
+      title: '【サンプル】日経平均株価は大幅続伸 / AI関連株高',
+      htmlContent: `
+        <details><summary>米ハイテク大手の好決算がAI・半導体株の資金流入を牽引</summary><div class="details-content">マイクロソフトやアマゾンの好決算を受け、国内市場でも関連銘柄に買いが集まりました。過熱感のあったモメンタム取引の巻き戻しが一巡したとの見方が強まっています。</div></details>
+        <details><summary>日銀金融政策決定会合：政策据え置きも上田総裁会見に注目集まる</summary><div class="details-content">日銀は政策を据え置きましたが、市場への直接的なネガティブインパクトは限定的。今後の利上げパスに対する総裁のトーンが焦点となります。</div></details>
+      `
+    }
+  ];
+
+  function loadDeepDives() {
+    let saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) {
+      saved = JSON.stringify(defaultData);
+      localStorage.setItem(STORAGE_KEY, saved);
+    }
+    
+    const savedKey = localStorage.getItem(API_KEY_STORAGE);
+    if (savedKey) {
+      document.getElementById('api-key').value = savedKey;
+    }
+    renderDeepDives();
+  }
+
+  function renderDeepDives() {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    const container = document.getElementById('deep-dive-container');
+    container.innerHTML = '';
+    
+    if (data.length === 0) {
+      container.innerHTML = '<p>データがありません。</p>';
+      return;
+    }
+
+    data.forEach(item => {
+      container.innerHTML += `
+        <div class="deep-dive-item">
+          <h4>${item.title}</h4>
+          <div class="deep-dive-meta">取得・処理日: ${item.date}</div>
+          ${item.htmlContent}
+        </div>
+      `;
+    });
+  }
+
+  // 自動修復機能付きのGemini呼び出し関数
+  async function callGeminiWithFallback(prompt, apiKey) {
+    // 複数のモデル名を定義（エラーが出たら次のモデルに自動で切り替えて再挑戦します）
+    const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-pro'];
+    let lastErrorMessage = "";
+
+    for (let model of modelsToTry) {
+      try {
+        console.log(`モデル [${model}] で試行中...`);
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.2 }
+          })
         });
 
-        function saveData() {
-            localStorage.setItem('nissan_note_data', JSON.stringify(appData));
+        if (response.ok) {
+          const data = await response.json();
+          let html = data.candidates[0].content.parts[0].text;
+          return html.replace(/```html/g, '').replace(/```/g, '').trim();
+        } else {
+          // エラーだった場合は次のモデルへ
+          const errData = await response.json().catch(() => ({}));
+          lastErrorMessage = errData.error?.message || response.statusText;
+          console.warn(`[${model}] 失敗:`, lastErrorMessage);
         }
+      } catch (e) {
+        lastErrorMessage = e.message;
+        console.warn(`[${model}] 接続エラー:`, e);
+      }
+    }
+    // 全て失敗した場合のみエラーを投げる
+    throw new Error(`利用可能なすべてのAIモデルで拒否されました。詳細: ${lastErrorMessage}`);
+  }
 
-        function render() {
-            saveData();
+  async function autoProcessCNBC() {
+    const apiKey = document.getElementById('api-key').value.trim();
+    if (!apiKey) {
+      alert('エラー：黄色い枠にGeminiの「APIキー」を入力してください。');
+      return;
+    }
+    localStorage.setItem(API_KEY_STORAGE, apiKey);
+    
+    const statusEl = document.getElementById('process-status');
+    const btn = document.getElementById('auto-fetch-btn');
+    btn.disabled = true;
+    statusEl.textContent = 'YouTubeから日経CNBCの最新動画を取得中...';
+    statusEl.style.color = 'var(--primary)';
 
-            // 1. サマリー計算
-            const latestFuel = appData.fuels.sort((a,b) => b.mileage - a.mileage)[0];
-            const lastEff = latestFuel && latestFuel.efficiency ? latestFuel.efficiency : 0.0;
-            const totalFuelCost = appData.fuels.reduce((s,r) => s + r.cost, 0);
-            const totalPressCost = appData.pressures.reduce((s,r) => s + r.cost, 0);
-            const totalOilCost = appData.oils.reduce((s,r) => s + r.cost, 0);
-            const totalInspCost = appData.inspections.reduce((s,r) => s + r.cost, 0);
-            const totalCost = totalFuelCost + totalPressCost + totalOilCost + totalInspCost;
+    try {
+      const rssUrl = 'https://www.youtube.com/feeds/videos.xml?channel_id=UClVsQnfs-jKkjKmUKUHnT2g';
+      const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
+      const data = await res.json();
+      
+      if (data.status !== 'ok' || data.items.length === 0) {
+        throw new Error('動画リストの取得に失敗しました。');
+      }
 
-            document.getElementById('summaryOdometer').textContent = Number(appData.odometer).toLocaleString();
-            document.getElementById('summaryFuelEff').textContent = lastEff;
-            document.getElementById('summaryTotalCost').textContent = totalCost.toLocaleString();
+      const latestVideo = data.items[0];
+      const videoTitle = latestVideo.title;
+      const videoDesc = latestVideo.description || '';
+      
+      let savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      if (savedData.length > 0 && savedData[0].title === `[自動取得] ${videoTitle}`) {
+        statusEl.textContent = '最新の動画はすでにダッシュボードに反映済みです。';
+        statusEl.style.color = 'var(--text-muted)';
+        btn.disabled = false;
+        setTimeout(() => { statusEl.textContent = ''; }, 4000);
+        return;
+      }
 
-            // 2. リスト描画
-            renderFuels();
-            renderPressures();
-            renderOils();
-            renderInspections();
+      statusEl.textContent = `「${videoTitle.substring(0,20)}...」をAIで構造化中...`;
 
-            // 3. 上部「時期が来たら目立つリマインダー」の判定・生成
-            renderUrgentAlerts();
-        }
+      const prompt = `
+以下の日経CNBCの最新動画のタイトルと【番組概要テキスト】を読み込み、内容をお題別に構造化してください。
+推測での創作や水増しはせず、テキストにある情報のみに基づいて箇条書きや要約を作成してください。
+出力は純粋なHTML形式のみとし、各トピックごとに <details><summary>トピックの見出し</summary><div class="details-content">要約内容</div></details> というタグを使って出力してください。HTMLブロック以外の余計な文章は出力しないでください。
 
-        // --- 描画個別関数 ---
-        function renderFuels() {
-            const container = document.getElementById('fuelList');
-            if(appData.fuels.length === 0) {
-                container.innerHTML = `<div class="text-xs text-gray-400 py-2">記録がありません</div>`;
-                return;
-            }
-            container.innerHTML = appData.fuels.sort((a,b) => new Date(b.date) - new Date(a.date)).map(r => `
-                <div class="bg-gray-50/80 rounded-xl p-3 flex justify-between items-center text-xs">
-                    <div>
-                        <div class="font-medium text-gray-900">${r.date} | <b>${r.amount}L</b> (${r.price}円/L)</div>
-                        <div class="text-gray-500">${Number(r.mileage).toLocaleString()} km ${r.efficiency ? `| <span class="text-blue-600 font-bold">${r.efficiency} km/L</span>` : ''}</div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="font-bold text-gray-900">${r.cost.toLocaleString()}円</span>
-                        <button onclick="deleteRecord('fuels', ${r.id})" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                </div>
-            `).join('');
-        }
+【タイトル】
+${videoTitle}
 
-        function renderPressures() {
-            const container = document.getElementById('pressureList');
-            const statusContainer = document.getElementById('pressureStatusCard');
-            
-            // 空気圧リマインダー判定 (前回から1ヶ月以上経過、または距離1,000km以上)
-            const last = appData.pressures.sort((a,b) => new Date(b.date) - new Date(a.date))[0];
-            let isAlert = false;
-            let msg = "正常：定期的にチェックされています";
-            if(!last) {
-                isAlert = true;
-                msg = "空気圧の記録がありません。月1回の点検をしましょう。";
-            } else {
-                const diffDays = (new Date() - new Date(last.date)) / (1000 * 60 * 60 * 24);
-                if(diffDays >= 30) {
-                    isAlert = true;
-                    msg = `前回の点検から約 ${Math.floor(diffDays)}日経過しています。自然抜け対策に点検しましょう。`;
-                }
-            }
+【番組概要テキスト】
+${videoDesc}
+`;
+      
+      // 新しい自動修復機能付きの関数で呼び出し
+      const generatedHtml = await callGeminiWithFallback(prompt, apiKey);
 
-            statusContainer.innerHTML = `
-                <div class="rounded-xl p-3 text-xs flex items-center justify-between ${isAlert ? 'bg-sky-50 border border-sky-200 text-sky-900' : 'bg-gray-50 text-gray-600'}">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid ${isAlert ? 'fa-triangle-exclamation text-sky-600 animate-pulse' : 'fa-circle-check text-emerald-500'}"></i>
-                        <span>${msg}</span>
-                    </div>
-                    <span class="text-[10px] text-gray-500 font-medium">目安: 月1回</span>
-                </div>
-            `;
+      const newEntry = {
+        date: new Date().toLocaleDateString('ja-JP'),
+        title: `[自動取得] ${videoTitle}`,
+        htmlContent: generatedHtml
+      };
 
-            container.innerHTML = appData.pressures.sort((a,b) => new Date(b.date) - new Date(a.date)).map(r => `
-                <div class="bg-gray-50/80 rounded-xl p-3 flex justify-between items-center text-xs">
-                    <div>
-                        <div class="font-medium text-gray-900">${r.date} | ${r.memo || '空気圧点検・調整'}</div>
-                        <div class="text-gray-500">${Number(r.mileage).toLocaleString()} km</div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="font-bold text-gray-900">${r.cost.toLocaleString()}円</span>
-                        <button onclick="deleteRecord('pressures', ${r.id})" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                </div>
-            `).join('');
-        }
+      savedData.unshift(newEntry);
+      if (savedData.length > 5) {
+        savedData = savedData.slice(0, 5);
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
 
-        function renderOils() {
-            const container = document.getElementById('oilList');
-            const statusContainer = document.getElementById('oilStatusCard');
+      renderDeepDives();
+      statusEl.textContent = '最新動画の自動追加が完了しました！';
+      statusEl.style.color = 'var(--success)';
+      setTimeout(() => { statusEl.textContent = ''; }, 4000);
 
-            const last = appData.oils.sort((a,b) => b.mileage - a.mileage)[0];
-            let isAlert = false;
-            let msg = "エンジンオイル良好";
-            if(!last) {
-                isAlert = true;
-                msg = "オイル交換記録がありません。";
-            } else {
-                const distDiff = appData.odometer - last.mileage;
-                const dateDiff = (new Date() - new Date(last.date)) / (1000 * 60 * 60 * 24);
-                if(distDiff >= 5000 || dateDiff >= 180) {
-                    isAlert = true;
-                    msg = `前回交換から ${distDiff}km / ${Math.floor(dateDiff)}日経過。交換目安(5,000km/半年)に達しています。`;
-                } else {
-                    msg = `次回まであと約 ${5000 - distDiff} km`;
-                }
-            }
+    } catch (e) {
+      console.error(e);
+      statusEl.textContent = 'エラー: ' + e.message;
+      statusEl.style.color = 'var(--danger)';
+    } finally {
+      btn.disabled = false;
+    }
+  }
 
-            statusContainer.innerHTML = `
-                <div class="rounded-xl p-3 text-xs flex items-center justify-between ${isAlert ? 'bg-amber-50 border border-amber-200 text-amber-900' : 'bg-gray-50 text-gray-600'}">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid ${isAlert ? 'fa-triangle-exclamation text-amber-600 animate-pulse' : 'fa-circle-check text-emerald-500'}"></i>
-                        <span>${msg}</span>
-                    </div>
-                    <span class="text-[10px] text-gray-500 font-medium">目安: 5,000km/半年</span>
-                </div>
-            `;
+  async function manualProcessTranscript() {
+    const apiKey = document.getElementById('api-key').value.trim();
+    const title = document.getElementById('video-title').value.trim();
+    const transcript = document.getElementById('video-transcript').value.trim();
+    const statusEl = document.getElementById('process-status');
+    const btn = document.getElementById('manual-process-btn');
 
-            container.innerHTML = appData.oils.sort((a,b) => new Date(b.date) - new Date(a.date)).map(r => `
-                <div class="bg-gray-50/80 rounded-xl p-3 flex justify-between items-center text-xs">
-                    <div>
-                        <div class="font-medium text-gray-900">${r.date} | ${r.memo || 'オイル交換'}</div>
-                        <div class="text-gray-500">交換時: ${Number(r.mileage).toLocaleString()} km</div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="font-bold text-gray-900">${r.cost.toLocaleString()}円</span>
-                        <button onclick="deleteRecord('oils', ${r.id})" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                </div>
-            `).join('');
-        }
+    if (!apiKey) {
+      alert('エラー：黄色い枠にGeminiの「APIキー」を入力してください。');
+      return;
+    }
+    if (!title || !transcript) {
+      alert('タイトルと実字幕テキストを入力してください。');
+      return;
+    }
 
-        function renderInspections() {
-            const container = document.getElementById('inspectionList');
-            const statusContainer = document.getElementById('inspectionStatusCard');
+    localStorage.setItem(API_KEY_STORAGE, apiKey);
+    btn.disabled = true;
+    statusEl.textContent = '手動テキストをAIで構造化しています...';
+    statusEl.style.color = 'var(--primary)';
 
-            const last = appData.inspections.sort((a,b) => new Date(b.date) - new Date(a.date))[0];
-            let isAlert = false;
-            let msg = "車検時期はまだ先です";
-            let isDiscountPeriod = false;
+    const prompt = `
+以下の動画の字幕テキストを読み込み、内容をお題別に構造化してください。
+出力は純粋なHTML形式のみとし、各トピックごとに <details><summary>トピックの見出し</summary><div class="details-content">要約内容</div></details> というタグを使って出力してください。HTMLブロック以外の余計な文章は出力しないでください。
 
-            if(!last) {
-                isAlert = true;
-                msg = "車検の記録がありません。車検日を登録してください。";
-            } else {
-                // 2年に1回（730日）
-                const lastDate = new Date(last.date);
-                const nextInspDate = new Date(lastDate);
-                nextInspDate.setFullYear(lastDate.getFullYear() + 2);
+【字幕テキスト】
+${transcript}
+`;
+      
+    try {
+      // 新しい自動修復機能付きの関数で呼び出し
+      const generatedHtml = await callGeminiWithFallback(prompt, apiKey);
 
-                const today = new Date();
-                const diffTime = nextInspDate - today;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const newEntry = {
+        date: new Date().toLocaleDateString('ja-JP'),
+        title: `[手動追加] ${title}`,
+        htmlContent: generatedHtml
+      };
 
-                // 3ヶ月前（約90日前）から早期割引対象
-                if(diffDays <= 90 && diffDays > 0) {
-                    isAlert = true;
-                    isDiscountPeriod = true;
-                    msg = `【早期割引チャンス】車検満了まであと ${diffDays} 日！3ヶ月前予約の割引が適用できます。`;
-                } else if(diffDays <= 0) {
-                    isAlert = true;
-                    msg = `【車検期限超過 / 間近】車検期限が近づいています/過ぎています！`;
-                } else {
-                    msg = `次回車検予定: ${nextInspDate.toISOString().slice(0,10)} (あと約 ${diffDays} 日)`;
-                }
-            }
+      let savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      savedData.unshift(newEntry);
+      if (savedData.length > 5) savedData = savedData.slice(0, 5);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
 
-            statusContainer.innerHTML = `
-                <div class="rounded-xl p-3 text-xs flex items-center justify-between ${isDiscountPeriod ? 'bg-purple-100 border border-purple-300 text-purple-900 font-bold' : (isAlert ? 'bg-red-50 border border-red-200 text-red-900' : 'bg-gray-50 text-gray-600')}">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid ${isAlert ? 'fa-bell text-purple-600 animate-bounce' : 'fa-circle-check text-emerald-500'}"></i>
-                        <span>${msg}</span>
-                    </div>
-                    <span class="text-[10px] text-gray-500 font-medium">2年に1回</span>
-                </div>
-            `;
+      renderDeepDives();
+      document.getElementById('video-title').value = '';
+      document.getElementById('video-transcript').value = '';
+      statusEl.textContent = '手動追加が完了しました！';
+      statusEl.style.color = 'var(--success)';
+      setTimeout(() => { statusEl.textContent = ''; }, 4000);
 
-            container.innerHTML = appData.inspections.sort((a,b) => new Date(b.date) - new Date(a.date)).map(r => `
-                <div class="bg-gray-50/80 rounded-xl p-3 flex justify-between items-center text-xs">
-                    <div>
-                        <div class="font-medium text-gray-900">実施日: ${r.date} | ${r.memo || '車検'}</div>
-                        <div class="text-gray-500">走行距離: ${Number(r.mileage).toLocaleString()} km</div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="font-bold text-gray-900">${r.cost.toLocaleString()}円</span>
-                        <button onclick="deleteRecord('inspections', ${r.id})" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                </div>
-            `).join('');
-        }
+    } catch (e) {
+      console.error(e);
+      statusEl.textContent = 'エラーが発生しました: ' + e.message;
+      statusEl.style.color = 'var(--danger)';
+    } finally {
+      btn.disabled = false;
+    }
+  }
 
-        // 時期が来たアラートを最上部にまとめるロジック
-        function renderUrgentAlerts() {
-            const container = document.getElementById('urgentAlertContainer');
-            let alerts = [];
-
-            // オイルチェック
-            const lastOil = appData.oils.sort((a,b) => b.mileage - a.mileage)[0];
-            if(!lastOil || (appData.odometer - lastOil.mileage >= 5000)) {
-                alerts.push({ title: "エンジンオイル交換の時期です", desc: "前回交換から5,000km以上走行しています。オイル交換を検討しましょう。", color: "amber" });
-            }
-
-            // 車検チェック (3ヶ月以内)
-            const lastInsp = appData.inspections.sort((a,b) => new Date(b.date) - new Date(a.date))[0];
-            if(lastInsp) {
-                const nextDate = new Date(lastInsp.date);
-                nextDate.setFullYear(nextDate.getFullYear() + 2);
-                const diffDays = Math.ceil((nextDate - new Date()) / (1000 * 60 * 60 * 24));
-                if(diffDays <= 90 && diffDays > 0) {
-                    alerts.push({ title: "【車検】3ヶ月前早期割引の予約チャンス！", desc: `車検満了まであと ${diffDays} 日です。今予約すると割引が受けられます。`, color: "purple" });
-                }
-            }
-
-            if(alerts.length > 0) {
-                container.classList.remove('hidden');
-                container.innerHTML = alerts.map(a => `
-                    <div class="apple-card border-l-4 ${a.color === 'purple' ? 'border-purple-500 bg-purple-50/90' : 'border-amber-500 bg-amber-50/90'} rounded-2xl p-4 shadow-xs flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <i class="fa-solid fa-triangle-exclamation text-lg ${a.color === 'purple' ? 'text-purple-600' : 'text-amber-600'}"></i>
-                            <div>
-                                <h3 class="font-semibold text-sm text-gray-900">${a.title}</h3>
-                                <p class="text-xs text-gray-600">${a.desc}</p>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                container.classList.add('hidden');
-                container.innerHTML = '';
-            }
-        }
-
-        // --- モーダル制御 ---
-        function openModal(type) {
-            document.getElementById(type + 'Modal').classList.remove('hidden');
-            if(type === 'fuel' || type === 'pressure' || type === 'oil' || type === 'inspection') {
-                const mField = document.getElementById(type + 'Mileage');
-                if(mField && !mField.value) mField.value = appData.odometer;
-            }
-        }
-        function closeModal(type) {
-            document.getElementById(type + 'Modal').classList.add('hidden');
-        }
-        function openCarModal() {
-            document.getElementById('carOdometer').value = appData.odometer;
-            document.getElementById('carModal').classList.remove('hidden');
-        }
-
-        // --- データ保存処理 ---
-        function saveFuel(e) {
-            e.preventDefault();
-            const mileage = Number(document.getElementById('fuelMileage').value);
-            const amount = Number(document.getElementById('fuelAmount').value);
-            const price = Number(document.getElementById('fuelPrice').value);
-            const date = document.getElementById('fuelDate').value;
-            const cost = Math.floor(amount * price);
-
-            const lastFuel = appData.fuels.sort((a,b) => b.mileage - a.mileage)[0];
-            const efficiency = lastFuel ? Number(((mileage - lastFuel.mileage) / amount).toFixed(1)) : null;
-
-            appData.fuels.push({ id: Date.now(), date, mileage, amount, price, cost, efficiency });
-            if(mileage > appData.odometer) appData.odometer = mileage;
-
-            closeModal('fuel');
-            render();
-        }
-
-        function savePressure(e) {
-            e.preventDefault();
-            appData.pressures.push({
-                id: Date.now(),
-                date: document.getElementById('pressureDate').value,
-                mileage: Number(document.getElementById('pressureMileage').value) || appData.odometer,
-                cost: Number(document.getElementById('pressureCost').value) || 0,
-                memo: document.getElementById('pressureMemo').value
-            });
-            closeModal('pressure');
-            render();
-        }
-
-        function saveOil(e) {
-            e.preventDefault();
-            appData.oils.push({
-                id: Date.now(),
-                date: document.getElementById('oilDate').value,
-                mileage: Number(document.getElementById('oilMileage').value),
-                cost: Number(document.getElementById('oilCost').value),
-                memo: document.getElementById('oilMemo').value
-            });
-            closeModal('oil');
-            render();
-        }
-
-        function saveInspection(e) {
-            e.preventDefault();
-            appData.inspections.push({
-                id: Date.now(),
-                date: document.getElementById('inspDate').value,
-                mileage: Number(document.getElementById('inspMileage').value),
-                cost: Number(document.getElementById('inspCost').value),
-                memo: document.getElementById('inspMemo').value
-            });
-            closeModal('inspection');
-            render();
-        }
-
-        function saveCar(e) {
-            e.preventDefault();
-            appData.odometer = Number(document.getElementById('carOdometer').value);
-            closeModal('car');
-            render();
-        }
-
-        function deleteRecord(category, id) {
-            if(confirm('この記録を削除しますか？')) {
-                appData[category] = appData[category].filter(r => r.id !== id);
-                render();
-            }
-        }
-
-        function exportData() {
-            const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `car_management_${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function resetData() {
-            if(confirm('データを初期化しますか？')) {
-                localStorage.removeItem('nissan_note_data');
-                location.reload();
-            }
-        }
-    </script>
+  window.onload = () => {
+    updateTime();
+    fetchNews();
+    loadDeepDives();
+    
+    setInterval(() => {
+      updateTime();
+    }, 60 * 1000);
+  };
+</script>
 </body>
 </html>
