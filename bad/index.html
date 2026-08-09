@@ -159,6 +159,7 @@
   </div>
 
   <div id="mainPage">
+    <!-- 📱 1. 本日の現場入力エリア -->
     <div class="container" style="border-top: 4px solid var(--primary-color);">
       <div class="today-guide-card">
         <div class="today-guide-title">📊 本日の参加状況サマリー</div>
@@ -205,6 +206,7 @@
           </div>
         </div>
 
+        <!-- 現場損益の横並びカード配置 -->
         <div class="profit-summary-grid">
           <div class="profit-card">
             <div class="profit-card-label">💰 本日の純損益</div>
@@ -217,11 +219,11 @@
         </div>
 
         <button type="button" id="saveEventBtn" class="btn-save">💾 本日の練習記録を保存</button>
-        <!-- 🚫 コート代のみ（中止）ワンタップ保存ボタン -->
         <button type="button" id="saveCancelEventBtn" class="btn-cancel-save">🚫 中止/コート代のみ（0名）を記録</button>
       </form>
     </div>
 
+    <!-- 📅 2. 3ヶ月先までのコート予約・支払い -->
     <details class="container" open style="border-left: 4px solid var(--success-color);">
       <summary>📅 3ヶ月先までのコート予約・支払い (直近12〜13回分一括点検)</summary>
       <div class="accordion-content">
@@ -251,6 +253,7 @@
       </div>
     </details>
 
+    <!-- 📦 3. シャトルまとめ買い記録 -->
     <details class="container">
       <summary>📦 シャトルまとめ買い記録 (資材仕入れ)</summary>
       <div class="accordion-content">
@@ -278,6 +281,7 @@
       </div>
     </details>
 
+    <!-- 💰 4. サークル財務サマリー -->
     <div class="container">
       <div class="section-title">💰 サークル財務サマリー（総金庫）</div>
       <div class="dashboard-mini">
@@ -294,6 +298,7 @@
       <button type="button" id="goToReportBtn" class="btn-report-toggle">📈 損益分岐グラフ & 参加率レポートを見る ➔</button>
     </div>
 
+    <!-- 📜 5. 会計履歴エリア -->
     <div class="container">
       <div class="section-title">
         <span>📜 会計・予約・仕入れ履歴</span>
@@ -302,6 +307,7 @@
       <div id="historyList">データなし</div>
     </div>
 
+    <!-- 🔧 6. 残高の直接調整エリア -->
     <div class="container" style="border-top: 4px solid var(--warning-color);">
       <div class="section-title" style="color: var(--warning-color);">
         <span>🔧 残高の直接調整 (手元の現金ピッタリ合わせ・初期残高)</span>
@@ -324,6 +330,7 @@
     </div>
   </div>
 
+  <!-- レポート画面 -->
   <div id="reportPage" style="display:none;">
     <div class="container">
       <div class="section-title">
@@ -342,7 +349,7 @@
   </div>
 
   <script>
-    // --- ローカルストレージ管理 (通信不要で完全動作) ---
+    // --- ローカルストレージ管理 ---
     const STORAGE_KEY_MEMBERS = "badminton_members_data";
     const STORAGE_KEY_EVENTS = "badminton_events_data";
     const STORAGE_KEY_RESERVES = "badminton_reserves_data";
@@ -356,7 +363,6 @@
       localStorage.setItem(key, JSON.stringify(data));
     }
 
-    // デフォルトメンバー（初期状態）
     let membersData = getLocalData(STORAGE_KEY_MEMBERS, [
       { id: "1", name: "細川", order: 0 }
     ]);
@@ -490,7 +496,7 @@
     if (courtFeeInput) courtFeeInput.addEventListener("input", updateSummary);
     if (eventDateInput) eventDateInput.addEventListener("change", updateSummary);
 
-    // ★ 純損益＆累計損益のコア計算処理
+    // ★ 純損益＆累計損益の正確な計算処理（二重加算防止修正版）
     function updateSummary() {
       let count700 = 0;
       let count500 = 0;
@@ -518,12 +524,31 @@
           `参加 <strong>${totalCount}名</strong> (700円:${count700}名 / 500円:${count500}名) ｜ 会費合計 <strong>${totalIncome.toLocaleString()}円</strong>`;
       }
 
-      // 累計損益 = 8/7以降の保存済み純損益の積立 + (新規リアルタイム入力分の純損益)
+      // ★ 二重加算を完全に防止する累計損益ロジック
       const currentSelectedDate = eventDateInput ? eventDateInput.value : "";
-      let displayAccumulated = accumulatedProfitSinceAug7Base;
+      
+      // 選択中の日付がすでに保存済み履歴（eventsData）に存在するか確認
+      const existingEvent = eventsData.find(e => e.type === "practice" && e.date === currentSelectedDate);
 
-      if (!editingDocId && currentSelectedDate >= "2026-08-07") {
-        displayAccumulated += todayNetProfit;
+      let displayAccumulated = 0;
+
+      if (existingEvent && !editingDocId) {
+        // 既存の履歴日付を選択している場合：該当履歴の古い金額を除外し、現在フォームに入力中の試算値に置き換えて集計
+        eventsData.forEach(d => {
+          if (d.type === "practice" && d.date >= "2026-08-07") {
+            if (d.id === existingEvent.id) {
+              displayAccumulated += todayNetProfit; // 入力中の試算値で置換
+            } else {
+              displayAccumulated += (d.netProfit !== undefined ? d.netProfit : ((d.totalIncome||0) - (d.courtFee||0)));
+            }
+          }
+        });
+      } else {
+        // 未保存の新しい日付を入力中の場合：保存済みベース ＋ 入力中の試算値
+        displayAccumulated = accumulatedProfitSinceAug7Base;
+        if (!editingDocId && currentSelectedDate >= "2026-08-07") {
+          displayAccumulated += todayNetProfit;
+        }
       }
 
       const sinceAug7Display = document.getElementById("sinceAug7ProfitDisplay");
@@ -659,7 +684,7 @@
       refreshAll();
     }
 
-    // ★ 履歴および累計損益の正確な計算
+    // ★ 履歴および累計損益の正確な再集計処理
     function refreshAll() {
       const historyList = document.getElementById("historyList");
       historyList.innerHTML = "";
@@ -686,7 +711,7 @@
           totalIncome += practiceIncome;
           totalCourt += practiceCourt;
 
-          // 2026年8月7日以降の純損益（収入 - コート代）を正確に積立
+          // 2026年8月7日以降の純損益を積立
           if (d.date && d.date >= "2026-08-07") {
             accumulatedProfitSinceAug7Base += calculatedNetProfit;
           }
