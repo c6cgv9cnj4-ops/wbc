@@ -4,8 +4,33 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>バドミントン管理</title>
+
+  <!-- 🚀 自動キャッシュクリア＆最新版強制読み込みスクリプト (PWA/スマホブラウザ対策) -->
+  <script>
+    (function() {
+      // コードを更新・修正したら、このバージョン数字を "1.0.2", "1.0.3" のように上げて保存します
+      const CURRENT_VERSION = "1.0.1";
+      const KEY = "app_build_version";
+
+      const storedVersion = localStorage.getItem(KEY);
+
+      if (storedVersion !== CURRENT_VERSION) {
+        localStorage.setItem(KEY, CURRENT_VERSION);
+
+        // Service Worker や Cache Storage を完全消去
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for (let name of names) caches.delete(name);
+          });
+        }
+
+        // キャッシュを完全に無視して最新版を強制再取得
+        window.location.reload(true);
+      }
+    })();
+  </script>
   
-  <!-- 🚀 キャッシュ自動無効化設定（古いキャッシュによる誤作動を永久防止） -->
+  <!-- HTTPヘッダーレベルでのキャッシュ無効化（補助） -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -733,12 +758,12 @@
     </div>
   </div>
 
-  <!-- Firebase & スクリプト -->
+  <!-- Firebase & スクリプト (キャッシュ回避用パラメータ付き) -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js?v=1.0.1";
     import { 
       getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, writeBatch, serverTimestamp 
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js?v=1.0.1";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDummyKeyForInitialization",
