@@ -206,7 +206,6 @@
           </div>
         </div>
 
-        <!-- 現場損益の横並びカード配置 -->
         <div class="profit-summary-grid">
           <div class="profit-card">
             <div class="profit-card-label">💰 本日の純損益</div>
@@ -330,7 +329,6 @@
     </div>
   </div>
 
-  <!-- レポート画面 -->
   <div id="reportPage" style="display:none;">
     <div class="container">
       <div class="section-title">
@@ -345,11 +343,27 @@
         <div style="font-weight:600; font-size:0.85rem; margin-bottom:4px;">⚖️ 各回の損益（会費利益 vs コート代）</div>
         <canvas id="breakEvenChart" width="400" height="200"></canvas>
       </div>
+      <div style="margin-top:24px;">
+        <div style="font-weight:600; font-size:0.85rem; margin-bottom:8px;">👥 メンバー別 参加回数・参加率</div>
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>メンバー</th>
+              <th>通算</th>
+              <th>今年</th>
+              <th>今月</th>
+              <th>参加率</th>
+            </tr>
+          </thead>
+          <tbody id="memberStatsBody">
+            <tr><td colspan="5">データ計算中...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
   <script>
-    // --- ローカルストレージ管理 ---
     const STORAGE_KEY_MEMBERS = "badminton_members_data";
     const STORAGE_KEY_EVENTS = "badminton_events_data";
     const STORAGE_KEY_RESERVES = "badminton_reserves_data";
@@ -391,7 +405,6 @@
     let accumulatedProfitSinceAug7Base = 0;
     let reservedCourtsMap = {};
 
-    // 画面切り替え
     document.getElementById("goToReportBtn").addEventListener("click", () => {
       document.getElementById("mainPage").style.display = "none";
       document.getElementById("reportPage").style.display = "block";
@@ -427,7 +440,6 @@
       document.getElementById("reserveCalcDate").value = `${py}年${pm}月${pd}日 (${pw})`;
     }
 
-    // メンバー描画
     function renderMembers() {
       const memberListContainer = document.getElementById("memberList");
       memberListContainer.innerHTML = "";
@@ -496,7 +508,6 @@
     if (courtFeeInput) courtFeeInput.addEventListener("input", updateSummary);
     if (eventDateInput) eventDateInput.addEventListener("change", updateSummary);
 
-    // ★ 純損益＆累計損益の正確な計算処理（二重加算防止修正版）
     function updateSummary() {
       let count700 = 0;
       let count500 = 0;
@@ -510,7 +521,6 @@
       const courtFee = parseInt(courtFeeInput ? courtFeeInput.value : 0, 10) || 0;
       const totalIncome = (count700 * 700) + (count500 * 500);
       
-      // 本日純損益 = 参加者料金合計 - コート代
       const todayNetProfit = totalIncome - courtFee;
 
       if (todayNetProfitDisplay) {
@@ -524,27 +534,22 @@
           `参加 <strong>${totalCount}名</strong> (700円:${count700}名 / 500円:${count500}名) ｜ 会費合計 <strong>${totalIncome.toLocaleString()}円</strong>`;
       }
 
-      // ★ 二重加算を完全に防止する累計損益ロジック
       const currentSelectedDate = eventDateInput ? eventDateInput.value : "";
-      
-      // 選択中の日付がすでに保存済み履歴（eventsData）に存在するか確認
       const existingEvent = eventsData.find(e => e.type === "practice" && e.date === currentSelectedDate);
 
       let displayAccumulated = 0;
 
       if (existingEvent && !editingDocId) {
-        // 既存の履歴日付を選択している場合：該当履歴の古い金額を除外し、現在フォームに入力中の試算値に置き換えて集計
         eventsData.forEach(d => {
           if (d.type === "practice" && d.date >= "2026-08-07") {
             if (d.id === existingEvent.id) {
-              displayAccumulated += todayNetProfit; // 入力中の試算値で置換
+              displayAccumulated += todayNetProfit;
             } else {
               displayAccumulated += (d.netProfit !== undefined ? d.netProfit : ((d.totalIncome||0) - (d.courtFee||0)));
             }
           }
         });
       } else {
-        // 未保存の新しい日付を入力中の場合：保存済みベース ＋ 入力中の試算値
         displayAccumulated = accumulatedProfitSinceAug7Base;
         if (!editingDocId && currentSelectedDate >= "2026-08-07") {
           displayAccumulated += todayNetProfit;
@@ -558,7 +563,6 @@
       }
     }
 
-    // 予約チェック更新
     function refreshReserves() {
       reservedCourtsMap = {};
       reservesData.forEach(d => {
@@ -626,12 +630,10 @@
       }
     };
 
-    // 通常の練習記録保存
     document.getElementById("saveEventBtn").onclick = function() {
       executeSaveEvent(false);
     };
 
-    // 🚫 中止/コート代のみ（0名）の一発保存
     document.getElementById("saveCancelEventBtn").onclick = function() {
       selectedMemberFees.clear();
       renderMembers();
@@ -684,7 +686,79 @@
       refreshAll();
     }
 
-    // ★ 履歴および累計損益の正確な再集計処理
+    // シャトル購入保存
+    document.getElementById("saveShuttleBtn").onclick = function() {
+      const totalFee = parseInt(document.getElementById("shuttleTotalFee").value, 10) || 0;
+      const totalCount = parseInt(document.getElementById("shuttleTotalCount").value, 10) || 0;
+      
+      eventsData.push({
+        id: Date.now().toString(),
+        type: "shuttle_buy",
+        date: shuttleBuyDate.value,
+        name: document.getElementById("shuttleName").value,
+        totalFee: totalFee,
+        totalCount: totalCount,
+        ballUnitPrice: Math.round(totalFee / (totalCount * 12))
+      });
+
+      saveLocalData(STORAGE_KEY_EVENTS, eventsData);
+      alert("シャトル仕入れを保存しました！");
+      refreshAll();
+    };
+
+    // 残高調整保存
+    document.getElementById("saveAdjustBtn").onclick = function() {
+      const targetBalStr = document.getElementById("adjustTargetBalance").value;
+      if (targetBalStr === "") return alert("調整後のピッタリ残高を入力してください");
+
+      const targetBal = parseInt(targetBalStr, 10);
+      const reason = document.getElementById("adjustReason").value.trim() || "残高直接調整";
+      const diffAmount = targetBal - currentCalculatedNetBalance;
+
+      eventsData.push({
+        id: Date.now().toString(),
+        type: "balance_adjust",
+        date: adjustDateInput.value,
+        targetBalance: targetBal,
+        diffAmount: diffAmount,
+        reason: reason
+      });
+
+      saveLocalData(STORAGE_KEY_EVENTS, eventsData);
+      alert(`残高を ${targetBal.toLocaleString()} 円へ調整・固定しました！`);
+      document.getElementById("adjustTargetBalance").value = "";
+      refreshAll();
+    };
+
+    // CSV出力
+    document.getElementById("downloadCsvBtn").addEventListener("click", () => {
+      if (eventsData.length === 0) return alert("出力できる履歴データがありません");
+
+      let csvContent = "\uFEFF日付,種別,時間帯,参加人数,700円メンバー,500円メンバー,会費収入,コート代,純損益,支出額,備考\n";
+
+      eventsData.forEach(item => {
+        if (item.type === "practice") {
+          const m700Str = item.members700 ? `"${item.members700.join(';')}"` : '""';
+          const m500Str = item.members500 ? `"${item.members500.join(';')}"` : '""';
+          const netProfit = (item.totalIncome||0) - (item.courtFee||0);
+          csvContent += `${item.date},練習,${item.time||''},${item.memberCount||0},${m700Str},${m500Str},${item.totalIncome||0},${item.courtFee||0},${netProfit},0,""\n`;
+        } else if (item.type === "shuttle_buy") {
+          csvContent += `${item.date},シャトル仕入れ,"",0,"","",0,0,0,${item.totalFee||0},"${item.name||''} (${item.totalCount||0}箱)"\n`;
+        } else if (item.type === "balance_adjust") {
+          csvContent += `${item.date},残高調整,"",0,"","",${item.diffAmount||0},0,0,0,"${item.reason||''} (設定残高:${item.targetBalance||0}円)"\n`;
+        }
+      });
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const aElem = document.createElement("a");
+      aElem.href = url;
+      aElem.download = `バドミントンサークル会計履歴_${new Date().toISOString().substring(0,10)}.csv`;
+      aElem.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // 履歴・財務の完全更新（全イベントタイプ＆統計対応）
     function refreshAll() {
       const historyList = document.getElementById("historyList");
       historyList.innerHTML = "";
@@ -695,6 +769,12 @@
       let totalShuttleBoughtBalls = 0;
       accumulatedProfitSinceAug7Base = 0;
 
+      const monthlyData = {};
+      const memberStats = {};
+      let totalPracticeCount = 0;
+
+      const nowYear = new Date().getFullYear().toString();
+      const nowMonth = `${nowYear}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
       const practiceBreakEvenData = [];
 
       eventsData.sort((a, b) => b.date.localeCompare(a.date)).forEach(d => {
@@ -702,21 +782,28 @@
         card.className = "history-card";
 
         if (d.type === "practice") {
+          totalPracticeCount++;
           const practiceIncome = d.totalIncome || 0;
           const practiceCourt = d.courtFee || 0;
-          
-          // 正確な純損益 = 会費収入 - コート代
           const calculatedNetProfit = practiceIncome - practiceCourt;
 
           totalIncome += practiceIncome;
           totalCourt += practiceCourt;
 
-          // 2026年8月7日以降の純損益を積立
           if (d.date && d.date >= "2026-08-07") {
             accumulatedProfitSinceAug7Base += calculatedNetProfit;
           }
 
           practiceBreakEvenData.push({ date: d.date.substring(5), profit: calculatedNetProfit });
+
+          if (d.members && d.members.length > 0) {
+            d.members.forEach(m => {
+              if (!memberStats[m]) memberStats[m] = { total: 0, year: 0, month: 0 };
+              memberStats[m].total++;
+              if (d.date && d.date.startsWith(nowYear)) memberStats[m].year++;
+              if (d.date && d.date.startsWith(nowMonth)) memberStats[m].month++;
+            });
+          }
 
           const isCancel = d.isCancelled || !d.members || d.members.length === 0;
 
@@ -731,16 +818,102 @@
               <button type="button" class="btn-del" onclick="deleteEvent('${d.id}')">🗑️ 削除</button>
             </div>
           `;
+        } else if (d.type === "shuttle_buy") {
+          totalShuttleBuy += (d.totalFee || 0);
+          totalShuttleBoughtBalls += ((d.totalCount || 0) * 12);
+
+          card.innerHTML = `
+            <div class="history-header" style="color:var(--warning-color);">
+              <span>📦 シャトル購入: ${d.date}</span>
+              <span>支出: ${(d.totalFee||0).toLocaleString()}円</span>
+            </div>
+            <div>銘柄: ${d.name} (${d.totalCount}箱 / 単価 ${d.ballUnitPrice||0}円/球)</div>
+            <div class="action-btns">
+              <button type="button" class="btn-del" onclick="deleteEvent('${d.id}')">🗑️ 削除</button>
+            </div>
+          `;
+        } else if (d.type === "balance_adjust") {
+          if (d.diffAmount >= 0) {
+            totalIncome += d.diffAmount;
+          } else {
+            totalCourt += Math.abs(d.diffAmount);
+          }
+
+          card.innerHTML = `
+            <div class="history-header" style="color:var(--warning-color);">
+              <span>🔧 残高直接調整: ${d.date}</span>
+              <span>設定残高: ${(d.targetBalance||0).toLocaleString()}円 (${d.diffAmount >= 0 ? '+' : ''}${(d.diffAmount||0).toLocaleString()}円)</span>
+            </div>
+            <div>メモ/理由: ${d.reason || 'なし'}</div>
+            <div class="action-btns">
+              <button type="button" class="btn-del" onclick="deleteEvent('${d.id}')">🗑️ 削除</button>
+            </div>
+          `;
         }
+
         historyList.appendChild(card);
+
+        if (d.date) {
+          const mKey = d.date.substring(0, 7);
+          if (!monthlyData[mKey]) monthlyData[mKey] = { inc: 0, exp: 0 };
+          if (d.type === "practice") {
+            monthlyData[mKey].inc += (d.totalIncome || 0);
+            monthlyData[mKey].exp += (d.courtFee || 0);
+          } else if (d.type === "shuttle_buy") {
+            monthlyData[mKey].exp += (d.totalFee || 0);
+          } else if (d.type === "balance_adjust") {
+            if (d.diffAmount >= 0) monthlyData[mKey].inc += d.diffAmount;
+            else monthlyData[mKey].exp += Math.abs(d.diffAmount);
+          }
+        }
       });
 
       currentCalculatedNetBalance = totalIncome - (totalCourt + totalShuttleBuy);
       document.getElementById("dashBalance").textContent = `${currentCalculatedNetBalance >= 0 ? '+' : ''}${currentCalculatedNetBalance.toLocaleString()} 円`;
+      document.getElementById("dashStock").textContent = `${totalShuttleBoughtBalls} 球`;
 
+      const targetBuy = 40000;
+      const dashGuide = document.getElementById("dashGuide");
+      if (dashGuide) {
+        if (currentCalculatedNetBalance >= targetBuy) {
+          dashGuide.innerHTML = `プール金十分！<strong>10箱(4万円)まとめ買いOK！</strong>`;
+        } else {
+          const short = targetBuy - currentCalculatedNetBalance;
+          dashGuide.innerHTML = `10箱(4万円)まとめ買いまで <strong>あと ${short.toLocaleString()} 円</strong>`;
+        }
+      }
+
+      updateMemberStatsTable(memberStats, totalPracticeCount);
       updateSummary();
       refreshReserves();
+      updateChart(monthlyData);
       updateBreakEvenChart(practiceBreakEvenData.reverse());
+    }
+
+    function updateMemberStatsTable(stats, totalPractice) {
+      const tbody = document.getElementById("memberStatsBody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      if (Object.keys(stats).length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">データがありません</td></tr>';
+        return;
+      }
+
+      Object.keys(stats).forEach(m => {
+        const data = stats[m];
+        const rate = totalPractice > 0 ? Math.round((data.total / totalPractice) * 100) : 0;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td style="font-weight:600; text-align:left; padding-left:12px;">${m}</td>
+          <td>${data.total} 回</td>
+          <td>${data.year} 回</td>
+          <td>${data.month} 回</td>
+          <td style="color:var(--primary-color); font-weight:700;">${rate}%</td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
 
     window.deleteEvent = function(id) {
@@ -750,6 +923,28 @@
         refreshAll();
       }
     };
+
+    let financeChart = null;
+    function updateChart(monthlyData) {
+      const labels = Object.keys(monthlyData).sort();
+      const incData = labels.map(k => monthlyData[k].inc);
+      const expData = labels.map(k => monthlyData[k].exp);
+
+      const ctx = document.getElementById('financeChart').getContext('2d');
+      if (financeChart) financeChart.destroy();
+
+      financeChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: '収入(会費)', data: incData, backgroundColor: '#34c759' },
+            { label: '支出(コート+シャトル仕入れ)', data: expData, backgroundColor: '#ff3b30' }
+          ]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      });
+    }
 
     let breakEvenChart = null;
     function updateBreakEvenChart(listData) {
