@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>バドミントン管理 (計算精度補正版)</title>
+  <title>バドミントン管理 (完全動作・完全復元版)</title>
 
   <!-- 🚀 キャッシュ自動無効化設定 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -75,7 +75,7 @@
     .section-title {
       font-weight: 600; font-size: 0.95rem; margin-bottom: 12px; padding-bottom: 6px;
       border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between;
-      align-items: center; color: var(--text-main);
+      align-items: center; color: var(--text-main); flex-wrap: wrap; gap: 6px;
     }
 
     .input-group { display: flex; gap: 8px; margin-bottom: 12px; width: 100%; }
@@ -103,8 +103,9 @@
     button.btn-save { width: 100%; padding: 14px; background-color: var(--success-color); color: white; font-size: 1rem; margin-top: 8px; box-shadow: 0 4px 12px rgba(52, 199, 89, 0.25); }
     button.btn-cancel-save { width: 100%; padding: 12px; background-color: var(--danger-color); color: white; font-size: 0.9rem; margin-top: 8px; box-shadow: 0 4px 12px rgba(255, 59, 48, 0.2); }
     button.btn-adjust { width: 100%; padding: 14px; background-color: var(--warning-color); color: white; font-size: 0.95rem; margin-top: 8px; box-shadow: 0 4px 12px rgba(255, 149, 0, 0.25); }
-    button.btn-csv { background-color: #efeff4; color: var(--text-main); padding: 6px 10px; font-size: 0.75rem; border: 1px solid var(--border-color); }
-    button.btn-backup { background-color: #e5e5ea; color: var(--text-main); padding: 6px 10px; font-size: 0.75rem; border: 1px solid var(--border-color); }
+    button.btn-csv { background-color: #efeff4; color: var(--text-main); padding: 6px 12px; font-size: 0.75rem; border: 1px solid var(--border-color); }
+    button.btn-backup { background-color: #e3f2fd; color: #0050b3; padding: 6px 12px; font-size: 0.75rem; border: 1px solid #bae0ff; }
+    button.btn-restore { background-color: #f6ffed; color: #274fee; padding: 6px 12px; font-size: 0.75rem; border: 1px solid #b7ebc6; }
     button.btn-report-toggle { width: 100%; padding: 12px; background-color: var(--purple-color); color: white; font-size: 0.9rem; margin-top: 12px; box-shadow: 0 4px 12px rgba(175, 82, 222, 0.25); }
     button.btn-back { background-color: #e5e5ea; color: var(--text-main); padding: 6px 14px; font-size: 0.85rem; }
     .btn-edit { background-color: #e5e5ea; color: var(--text-main); padding: 4px 10px; font-size: 0.75rem; margin-right: 4px; }
@@ -152,6 +153,8 @@
     details summary { padding: 16px 20px; font-weight: 600; font-size: 0.95rem; cursor: pointer; outline: none; user-select: none; color: var(--text-main); }
     details[open] summary { border-bottom: 1px solid var(--border-color); }
     .accordion-content { padding: 16px 20px 20px 20px; }
+
+    .header-btn-group { display: flex; gap: 4px; align-items: center; }
   </style>
 </head>
 <body>
@@ -308,7 +311,7 @@
     <div class="container">
       <div class="section-title">
         <span>📜 会計・予約・仕入れ履歴</span>
-        <div style="display:flex; gap:4px;">
+        <div class="header-btn-group">
           <button type="button" id="exportJsonBtn" class="btn-backup">📤 保存</button>
           <button type="button" id="importJsonBtn" class="btn-backup">📥 復元</button>
           <input type="file" id="importFileInput" accept=".json" style="display:none;">
@@ -427,7 +430,7 @@
     let latestShuttleBallUnitPrice = 333;
     let reservedCourtsMap = {};
 
-    // Drag and drop
+    // SortableJS Drag & Drop
     const memberListContainer = document.getElementById("memberList");
     new Sortable(memberListContainer, {
       animation: 150,
@@ -525,6 +528,7 @@
 
         memberListContainer.appendChild(chip);
       });
+      updateSummary();
     }
 
     document.getElementById("addMemberForm").addEventListener("submit", (e) => {
@@ -548,18 +552,17 @@
       updateSummary();
     });
 
-    // ★ 日付選択時のコート代自動同期処理（プロパティ不整合を完全吸収）
+    // 日付選択時のコート代自動同期処理
     function checkAutoCourtFee() {
       const selDate = eventDateInput ? eventDateInput.value : "";
       if (reservedCourtsMap[selDate] !== undefined) {
         if (courtFeeInput) courtFeeInput.value = reservedCourtsMap[selDate];
       } else {
-        // 未予約の日付を選択した場合は、勝手に1800円引かれないように0にリセット
         if (courtFeeInput) courtFeeInput.value = 0;
       }
     }
 
-    // ★ 純損益＆累計損益の精密計算ロジック
+    // ★ 純損益＆累計損益のリアルタイム強制反映ロジック
     function updateSummary() {
       let count700 = 0;
       let count500 = 0;
@@ -611,8 +614,7 @@
         });
       } else {
         displayAccumulated = accumulatedProfitSinceAug7Base;
-        // 未保存の新規日付で、参加メンバーが選択されているかコート代が入っている場合のみ試算値を足す
-        if (!editingDocId && currentSelectedDate >= "2026-08-07" && (totalCount > 0 || courtFee > 0)) {
+        if (!editingDocId && currentSelectedDate >= "2026-08-07") {
           displayAccumulated += todayNetProfit;
         }
       }
@@ -624,7 +626,7 @@
       }
     }
 
-    // 予約点検表（互換性のある全形式読み出し）
+    // ★ 予約点検表リスト（✏️ 編集 ボタン ＆ 🗑️ 削除 ボタンの両方を必ず生成）
     function refreshReserves() {
       reservedCourtsMap = {};
       reservesData.forEach(d => {
@@ -686,7 +688,7 @@
       checkAutoCourtFee();
     }
 
-    // コート予約編集機能
+    // ★ コート予約の「✏️ 編集」機能
     window.editReserve = function(dateStr) {
       const target = reservesData.find(r => (r.targetDate || r.date) === dateStr);
       if (!target) return;
@@ -904,6 +906,7 @@
             if (imported.events) { eventsData = imported.events; saveLocalData(STORAGE_KEY_EVENTS, eventsData); }
             if (imported.reserves) { reservesData = imported.reserves; saveLocalData(STORAGE_KEY_RESERVES, reservesData); }
             alert("データをバックアップから完全復元しました！");
+            selectedMemberFees.clear();
             renderMembers();
             refreshAll();
           }
@@ -1186,10 +1189,3 @@
   </script>
 </body>
 </html>
-```eof
-
-### 変更点
-1. **未予約日の勝手な1,800円引算を防止** (`checkAutoCourtFee`)  
-   未予約の日付を選んだ場合はコート代を0円にセットし、無関係に1,800円が試算から引かれて累計が狂ってしまう動作を解消しました。
-2. **予約データ（1,600円等）との100%連動**  
-   予約がある日付（8/14など）を選択した場合は、正確に予約済みの金額（1,600円）が読み込まれ、本日純損益および8/7からの累計損益に寸分の狂いもなく反映されます。
