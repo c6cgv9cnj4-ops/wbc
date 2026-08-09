@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>バドミントン管理 (完全機能＋JSONバックアップ版)</title>
+  <title>バドミントン管理 (完全統合・データ自動復元版)</title>
 
   <!-- 🚀 キャッシュ自動無効化設定 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -75,7 +75,7 @@
     .section-title {
       font-weight: 600; font-size: 0.95rem; margin-bottom: 12px; padding-bottom: 6px;
       border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between;
-      align-items: center; color: var(--text-main); flex-wrap: wrap; gap: 6px;
+      align-items: center; color: var(--text-main);
     }
 
     .input-group { display: flex; gap: 8px; margin-bottom: 12px; width: 100%; }
@@ -103,9 +103,8 @@
     button.btn-save { width: 100%; padding: 14px; background-color: var(--success-color); color: white; font-size: 1rem; margin-top: 8px; box-shadow: 0 4px 12px rgba(52, 199, 89, 0.25); }
     button.btn-cancel-save { width: 100%; padding: 12px; background-color: var(--danger-color); color: white; font-size: 0.9rem; margin-top: 8px; box-shadow: 0 4px 12px rgba(255, 59, 48, 0.2); }
     button.btn-adjust { width: 100%; padding: 14px; background-color: var(--warning-color); color: white; font-size: 0.95rem; margin-top: 8px; box-shadow: 0 4px 12px rgba(255, 149, 0, 0.25); }
-    button.btn-csv { background-color: #efeff4; color: var(--text-main); padding: 6px 12px; font-size: 0.75rem; border: 1px solid var(--border-color); }
-    button.btn-backup { background-color: #e3f2fd; color: #0050b3; padding: 6px 12px; font-size: 0.75rem; border: 1px solid #bae0ff; }
-    button.btn-restore { background-color: #f6ffed; color: #274fee; padding: 6px 12px; font-size: 0.75rem; border: 1px solid #b7ebc6; }
+    button.btn-csv { background-color: #efeff4; color: var(--text-main); padding: 6px 10px; font-size: 0.75rem; border: 1px solid var(--border-color); }
+    button.btn-backup { background-color: #e5e5ea; color: var(--text-main); padding: 6px 10px; font-size: 0.75rem; border: 1px solid var(--border-color); }
     button.btn-report-toggle { width: 100%; padding: 12px; background-color: var(--purple-color); color: white; font-size: 0.9rem; margin-top: 12px; box-shadow: 0 4px 12px rgba(175, 82, 222, 0.25); }
     button.btn-back { background-color: #e5e5ea; color: var(--text-main); padding: 6px 14px; font-size: 0.85rem; }
     .btn-edit { background-color: #e5e5ea; color: var(--text-main); padding: 4px 10px; font-size: 0.75rem; margin-right: 4px; }
@@ -153,8 +152,6 @@
     details summary { padding: 16px 20px; font-weight: 600; font-size: 0.95rem; cursor: pointer; outline: none; user-select: none; color: var(--text-main); }
     details[open] summary { border-bottom: 1px solid var(--border-color); }
     .accordion-content { padding: 16px 20px 20px 20px; }
-
-    .header-btn-group { display: flex; gap: 4px; align-items: center; }
   </style>
 </head>
 <body>
@@ -311,11 +308,11 @@
     <div class="container">
       <div class="section-title">
         <span>📜 会計・予約・仕入れ履歴</span>
-        <div class="header-btn-group">
-          <button type="button" id="downloadCsvBtn" class="btn-csv">📥 CSV出力</button>
-          <button type="button" id="exportJsonBtn" class="btn-backup">📤 全データバックアップ</button>
-          <button type="button" id="importJsonBtn" class="btn-restore">📥 復元</button>
+        <div style="display:flex; gap:4px;">
+          <button type="button" id="exportJsonBtn" class="btn-backup">📤 保存</button>
+          <button type="button" id="importJsonBtn" class="btn-backup">📥 復元</button>
           <input type="file" id="importFileInput" accept=".json" style="display:none;">
+          <button type="button" id="downloadCsvBtn" class="btn-csv">CSV</button>
         </div>
       </div>
       <div id="historyList">データなし</div>
@@ -380,14 +377,19 @@
   </div>
 
   <script>
-    // --- ローカルストレージ管理 ---
+    // --- ローカルストレージ管理 (柔軟なデータ構造吸収ロジック付き) ---
     const STORAGE_KEY_MEMBERS = "badminton_members_data";
     const STORAGE_KEY_EVENTS = "badminton_events_data";
     const STORAGE_KEY_RESERVES = "badminton_reserves_data";
 
     function getLocalData(key, defaultVal = []) {
-      const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : defaultVal;
+      try {
+        const data = localStorage.getItem(key);
+        return data ? JSON.parse(data) : defaultVal;
+      } catch (e) {
+        console.error("Storage error:", e);
+        return defaultVal;
+      }
     }
 
     function saveLocalData(key, data) {
@@ -421,10 +423,10 @@
     let selectedMemberFees = new Map();
     let currentCalculatedNetBalance = 0;
     let accumulatedProfitSinceAug7Base = 0;
-    let latestShuttleBallUnitPrice = 333; // 1球約333円標準
+    let latestShuttleBallUnitPrice = 333;
     let reservedCourtsMap = {};
 
-    // SortableJSドラッグ並び替え
+    // Drag and drop sorting
     const memberListContainer = document.getElementById("memberList");
     new Sortable(memberListContainer, {
       animation: 150,
@@ -438,7 +440,7 @@
       }
     });
 
-    // 画面切り替え
+    // Navigation
     document.getElementById("goToReportBtn").addEventListener("click", () => {
       document.getElementById("mainPage").style.display = "none";
       document.getElementById("reportPage").style.display = "block";
@@ -474,7 +476,7 @@
       document.getElementById("reserveCalcDate").value = `${py}年${pm}月${pd}日 (${pw})`;
     }
 
-    // メンバー描画
+    // Render Member Chips
     function renderMembers() {
       memberListContainer.innerHTML = "";
 
@@ -540,9 +542,20 @@
     });
 
     if (courtFeeInput) courtFeeInput.addEventListener("input", updateSummary);
-    if (eventDateInput) eventDateInput.addEventListener("change", updateSummary);
+    if (eventDateInput) eventDateInput.addEventListener("change", () => {
+      checkAutoCourtFee();
+      updateSummary();
+    });
 
-    // ★ 純損益＆累計損益のコア計算処理（二重計算防止機能付き）
+    // ★ 日付選択時のコート代自動同期処理（プロパティ不整合を吸収）
+    function checkAutoCourtFee() {
+      const selDate = eventDateInput ? eventDateInput.value : "";
+      if (reservedCourtsMap[selDate] !== undefined) {
+        if (courtFeeInput) courtFeeInput.value = reservedCourtsMap[selDate];
+      }
+    }
+
+    // ★ 純損益＆累計損益のコア計算処理（二重加算防止機能付き）
     function updateSummary() {
       let count700 = 0;
       let count500 = 0;
@@ -556,10 +569,8 @@
       const courtFee = parseInt(courtFeeInput ? courtFeeInput.value : 0, 10) || 0;
       const totalIncome = (count700 * 700) + (count500 * 500);
       
-      // 本日純損益 = 会費合計 - コート代
       const todayNetProfit = totalIncome - courtFee;
 
-      // シャトル限界球数換算
       const maxBreakEvenBalls = todayNetProfit > 0 ? Math.floor(todayNetProfit / latestShuttleBallUnitPrice) : 0;
       if (usedShuttleBallsDisplay) {
         usedShuttleBallsDisplay.value = `${maxBreakEvenBalls} 球`;
@@ -576,7 +587,7 @@
           `参加 <strong>${totalCount}名</strong> (700円:${count700}名 / 500円:${count500}名) ｜ 会費合計 <strong>${totalIncome.toLocaleString()}円</strong>`;
       }
 
-      // 二重加算を完全に防止する累計損益ロジック
+      // 二重加算防止ロジック
       const currentSelectedDate = eventDateInput ? eventDateInput.value : "";
       const existingEvent = eventsData.find(e => e.type === "practice" && e.date === currentSelectedDate);
 
@@ -588,7 +599,9 @@
             if (d.id === existingEvent.id) {
               displayAccumulated += todayNetProfit;
             } else {
-              displayAccumulated += (d.netProfit !== undefined ? d.netProfit : ((d.totalIncome||0) - (d.courtFee||0)));
+              const income = d.totalIncome !== undefined ? d.totalIncome : 0;
+              const court = d.courtFee !== undefined ? d.courtFee : 0;
+              displayAccumulated += (d.netProfit !== undefined ? d.netProfit : (income - court));
             }
           }
         });
@@ -606,11 +619,15 @@
       }
     }
 
-    // 予約チェック更新
+    // ★ 予約点検表（異なるデータ形式の互換読み出し）
     function refreshReserves() {
       reservedCourtsMap = {};
       reservesData.forEach(d => {
-        reservedCourtsMap[d.targetDate] = d.courtFee;
+        const dateKey = d.targetDate || d.date;
+        const feeVal = d.courtFee !== undefined ? d.courtFee : (d.fee || 1800);
+        if (dateKey) {
+          reservedCourtsMap[dateKey] = feeVal;
+        }
       });
 
       const reserveCheckList = document.getElementById("reserveCheckList");
@@ -657,6 +674,8 @@
         }
         curr.setDate(curr.getDate() + 1);
       }
+
+      checkAutoCourtFee();
     }
 
     window.setQuickReserve = function(dateStr) {
@@ -664,14 +683,28 @@
       reservesData.push({ id: Date.now().toString(), targetDate: dateStr, courtFee: feeVal });
       saveLocalData(STORAGE_KEY_RESERVES, reservesData);
       refreshReserves();
+      updateSummary();
     };
 
     window.deleteReserve = function(dateStr) {
       if (confirm("この予約データを削除しますか？")) {
-        reservesData = reservesData.filter(r => r.targetDate !== dateStr);
+        reservesData = reservesData.filter(r => (r.targetDate || r.date) !== dateStr);
         saveLocalData(STORAGE_KEY_RESERVES, reservesData);
         refreshReserves();
+        updateSummary();
       }
+    };
+
+    document.getElementById("saveReserveBtn").onclick = function() {
+      const targetDateVal = reserveTargetDate ? reserveTargetDate.value : "";
+      if (!targetDateVal) return alert("コート使用予定日を選択してください");
+
+      const feeVal = parseInt(reserveCourtFeeInput ? reserveCourtFeeInput.value : 1800, 10) || 0;
+      reservesData.push({ id: Date.now().toString(), targetDate: targetDateVal, courtFee: feeVal });
+      saveLocalData(STORAGE_KEY_RESERVES, reservesData);
+      alert("コート予約代を保存しました！");
+      refreshReserves();
+      updateSummary();
     };
 
     document.getElementById("saveEventBtn").onclick = function() {
@@ -754,7 +787,7 @@
     // 残高調整保存
     document.getElementById("saveAdjustBtn").onclick = function() {
       const targetBalStr = document.getElementById("adjustTargetBalance").value;
-      if (targetBalStr === "") return alert("調整後のピッタリ残高を入力してください");
+      if (targetBalStr === "") return alert("調整後のピッピッタリ残高を入力してください");
 
       const targetBal = parseInt(targetBalStr, 10);
       const reason = document.getElementById("adjustReason").value.trim() || "残高直接調整";
@@ -775,7 +808,54 @@
       refreshAll();
     };
 
-    // CSV一括出力
+    // ★ バックアップ機能 (JSONエクスポート)
+    document.getElementById("exportJsonBtn").onclick = function() {
+      const backupData = {
+        version: "1.0",
+        exportDate: new Date().toISOString(),
+        members: membersData,
+        events: eventsData,
+        reserves: reservesData
+      };
+
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `badminton_backup_${new Date().toISOString().substring(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    // ★ 復元機能 (JSONインポート)
+    document.getElementById("importJsonBtn").onclick = function() {
+      document.getElementById("importFileInput").click();
+    };
+
+    document.getElementById("importFileInput").onchange = function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const imported = JSON.parse(evt.target.result);
+          if (confirm("現在のデータがバックアップファイルの内容で一括更新されます。復元しても宜しいですか？")) {
+            if (imported.members) { membersData = imported.members; saveLocalData(STORAGE_KEY_MEMBERS, membersData); }
+            if (imported.events) { eventsData = imported.events; saveLocalData(STORAGE_KEY_EVENTS, eventsData); }
+            if (imported.reserves) { reservesData = imported.reserves; saveLocalData(STORAGE_KEY_RESERVES, reservesData); }
+            alert("データをバックアップから完全復元しました！");
+            renderMembers();
+            refreshAll();
+          }
+        } catch (err) {
+          alert("ファイルの読み込みに失敗しました: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+    };
+
+    // CSV出力
     document.getElementById("downloadCsvBtn").addEventListener("click", () => {
       if (eventsData.length === 0) return alert("出力できる履歴データがありません");
 
@@ -803,74 +883,7 @@
       URL.revokeObjectURL(url);
     });
 
-    // 🚀 【新規機能】JSONデータ全バックアップ（エクスポート）
-    document.getElementById("exportJsonBtn").addEventListener("click", () => {
-      const backupData = {
-        version: "1.0",
-        exportDate: new Date().toISOString(),
-        members: membersData,
-        events: eventsData,
-        reserves: reservesData
-      };
-
-      const jsonStr = JSON.stringify(backupData, null, 2);
-      const blob = new Blob([jsonStr], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      
-      const dateStr = new Date().toISOString().substring(0, 10).replace(/-/g, "");
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `badminton_backup_${dateStr}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    });
-
-    // 🚀 【新規機能】JSONデータ全復元（インポート）
-    const importFileInput = document.getElementById("importFileInput");
-    document.getElementById("importJsonBtn").addEventListener("click", () => {
-      importFileInput.click();
-    });
-
-    importFileInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      if (!confirm("現在のデータがバックアップファイルの内容で一括上書きされます。\n復元を実行しても宜しいですか？")) {
-        importFileInput.value = "";
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const importedData = JSON.parse(event.target.result);
-          
-          if (!importedData.members || !importedData.events || !importedData.reserves) {
-            throw new Error("正しいバックアップJSONデータの構造ではありません");
-          }
-
-          membersData = importedData.members;
-          eventsData = importedData.events;
-          reservesData = importedData.reserves;
-
-          saveLocalData(STORAGE_KEY_MEMBERS, membersData);
-          saveLocalData(STORAGE_KEY_EVENTS, eventsData);
-          saveLocalData(STORAGE_KEY_RESERVES, reservesData);
-
-          alert("全データを正常に復元・更新いたしました！");
-          selectedMemberFees.clear();
-          renderMembers();
-          refreshAll();
-        } catch (err) {
-          alert("復元エラー: ファイルの読み込みに失敗しました。\n" + err.message);
-        } finally {
-          importFileInput.value = "";
-        }
-      };
-      reader.readAsText(file);
-    });
-
-    // ★ 編集機能（editEvent）の完全復元
+    // ★ 編集機能 (editEvent)
     window.editEvent = function(id) {
       const target = eventsData.find(item => item.id === id);
       if (!target) return;
@@ -898,7 +911,7 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // 履歴・財務・全統計の再計算（全4種類のイベントカード完全対応）
+    // 履歴・財務・全統計の再計算
     function refreshAll() {
       const historyList = document.getElementById("historyList");
       historyList.innerHTML = "";
@@ -923,9 +936,9 @@
 
         if (d.type === "practice") {
           totalPracticeCount++;
-          const practiceIncome = d.totalIncome || 0;
-          const practiceCourt = d.courtFee || 0;
-          const calculatedNetProfit = practiceIncome - practiceCourt;
+          const practiceIncome = d.totalIncome !== undefined ? d.totalIncome : 0;
+          const practiceCourt = d.courtFee !== undefined ? d.courtFee : 0;
+          const calculatedNetProfit = d.netProfit !== undefined ? d.netProfit : (practiceIncome - practiceCourt);
 
           totalIncome += practiceIncome;
           totalCourt += practiceCourt;
@@ -969,7 +982,7 @@
               <span>📦 シャトル購入: ${d.date}</span>
               <span>支出: ${(d.totalFee||0).toLocaleString()}円</span>
             </div>
-            <div>銘柄: ${d.name} (${d.totalCount}箱 / 単価 ${d.ballUnitPrice||0}円/球)</div>
+            <div>銘柄: ${d.name || 'シャトル'} (${d.totalCount||0}箱 / 単価 ${d.ballUnitPrice||0}円/球)</div>
             <div class="action-btns">
               <button type="button" class="btn-del" onclick="deleteEvent('${d.id}')">🗑️ 削除</button>
             </div>
