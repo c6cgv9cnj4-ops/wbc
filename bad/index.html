@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>バドミントン管理 (完全統合・データ自動復元版)</title>
+  <title>バドミントン管理 (計算精度補正版)</title>
 
   <!-- 🚀 キャッシュ自動無効化設定 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -204,7 +204,7 @@
           </div>
           <div>
             <label>事前予約コート代 (自動読み込み/手入力)</label>
-            <input type="number" id="courtFee" value="1800" placeholder="コート代を入力">
+            <input type="number" id="courtFee" value="0" placeholder="コート代を入力">
           </div>
         </div>
 
@@ -216,11 +216,11 @@
         <div class="profit-summary-grid">
           <div class="profit-card">
             <div class="profit-card-label">💰 本日の純損益</div>
-            <div id="todayNetProfitDisplay" class="profit-card-value">-1,800 円</div>
+            <div id="todayNetProfitDisplay" class="profit-card-value">0 円</div>
           </div>
           <div class="profit-card" style="background:#f6ffed; border-color:#b7ebc6;">
             <div class="profit-card-label" style="color:#274fee;">📈 8/7からの累計損益</div>
-            <div id="sinceAug7ProfitDisplay" class="profit-card-value" style="color:var(--danger-color);">-1,800 円</div>
+            <div id="sinceAug7ProfitDisplay" class="profit-card-value" style="color:var(--success-color);">0 円</div>
           </div>
         </div>
 
@@ -230,7 +230,7 @@
     </div>
 
     <!-- 📅 2. 3ヶ月先までのコート予約・支払い -->
-    <details class="container" open style="border-left: 4px solid var(--success-color);">
+    <details class="container" id="reserveAccordionContainer" open style="border-left: 4px solid var(--success-color);">
       <summary>📅 3ヶ月先までのコート予約・支払い (直近12〜13回分一括点検)</summary>
       <div class="accordion-content">
         <form id="reserveForm" action="#">
@@ -245,7 +245,7 @@
           </div>
           <div class="form-row">
             <label>支払いコート代 (円)</label>
-            <input type="number" id="reserveCourtFee" value="1800">
+            <input type="number" id="reserveCourtFee" value="1600">
           </div>
           <button type="button" id="saveReserveBtn" class="btn-save">💾 コート予約代を保存</button>
         </form>
@@ -377,7 +377,7 @@
   </div>
 
   <script>
-    // --- ローカルストレージ管理 (柔軟なデータ構造吸収ロジック付き) ---
+    // --- ローカルストレージ管理 ---
     const STORAGE_KEY_MEMBERS = "badminton_members_data";
     const STORAGE_KEY_EVENTS = "badminton_events_data";
     const STORAGE_KEY_RESERVES = "badminton_reserves_data";
@@ -420,13 +420,14 @@
     if (adjustDateInput) adjustDateInput.valueAsDate = today;
 
     let editingDocId = null;
+    let editingReserveDate = null;
     let selectedMemberFees = new Map();
     let currentCalculatedNetBalance = 0;
     let accumulatedProfitSinceAug7Base = 0;
     let latestShuttleBallUnitPrice = 333;
     let reservedCourtsMap = {};
 
-    // Drag and drop sorting
+    // Drag and drop
     const memberListContainer = document.getElementById("memberList");
     new Sortable(memberListContainer, {
       animation: 150,
@@ -476,7 +477,7 @@
       document.getElementById("reserveCalcDate").value = `${py}年${pm}月${pd}日 (${pw})`;
     }
 
-    // Render Member Chips
+    // Render Members
     function renderMembers() {
       memberListContainer.innerHTML = "";
 
@@ -547,15 +548,18 @@
       updateSummary();
     });
 
-    // ★ 日付選択時のコート代自動同期処理（プロパティ不整合を吸収）
+    // ★ 日付選択時のコート代自動同期処理（プロパティ不整合を完全吸収）
     function checkAutoCourtFee() {
       const selDate = eventDateInput ? eventDateInput.value : "";
       if (reservedCourtsMap[selDate] !== undefined) {
         if (courtFeeInput) courtFeeInput.value = reservedCourtsMap[selDate];
+      } else {
+        // 未予約の日付を選択した場合は、勝手に1800円引かれないように0にリセット
+        if (courtFeeInput) courtFeeInput.value = 0;
       }
     }
 
-    // ★ 純損益＆累計損益のコア計算処理（二重加算防止機能付き）
+    // ★ 純損益＆累計損益の精密計算ロジック
     function updateSummary() {
       let count700 = 0;
       let count500 = 0;
@@ -587,7 +591,7 @@
           `参加 <strong>${totalCount}名</strong> (700円:${count700}名 / 500円:${count500}名) ｜ 会費合計 <strong>${totalIncome.toLocaleString()}円</strong>`;
       }
 
-      // 二重加算防止ロジック
+      // 二重加算防止＆精密累計算出
       const currentSelectedDate = eventDateInput ? eventDateInput.value : "";
       const existingEvent = eventsData.find(e => e.type === "practice" && e.date === currentSelectedDate);
 
@@ -607,7 +611,8 @@
         });
       } else {
         displayAccumulated = accumulatedProfitSinceAug7Base;
-        if (!editingDocId && currentSelectedDate >= "2026-08-07") {
+        // 未保存の新規日付で、参加メンバーが選択されているかコート代が入っている場合のみ試算値を足す
+        if (!editingDocId && currentSelectedDate >= "2026-08-07" && (totalCount > 0 || courtFee > 0)) {
           displayAccumulated += todayNetProfit;
         }
       }
@@ -619,12 +624,12 @@
       }
     }
 
-    // ★ 予約点検表（異なるデータ形式の互換読み出し）
+    // 予約点検表（互換性のある全形式読み出し）
     function refreshReserves() {
       reservedCourtsMap = {};
       reservesData.forEach(d => {
         const dateKey = d.targetDate || d.date;
-        const feeVal = d.courtFee !== undefined ? d.courtFee : (d.fee || 1800);
+        const feeVal = d.courtFee !== undefined ? d.courtFee : (d.fee || 1600);
         if (dateKey) {
           reservedCourtsMap[dateKey] = feeVal;
         }
@@ -658,7 +663,10 @@
                 <strong>📅 ${m}/${d} (金)</strong>
                 <span class="status-badge-ok" style="margin-left:8px;">✅ 予約済み (${fee.toLocaleString()}円)</span>
               </div>
-              <button type="button" class="btn-del" onclick="deleteReserve('${dateStr}')">削除</button>
+              <div style="display:flex; gap:4px;">
+                <button type="button" class="btn-edit" onclick="editReserve('${dateStr}')">✏️ 編集</button>
+                <button type="button" class="btn-del" onclick="deleteReserve('${dateStr}')">🗑️ 削除</button>
+              </div>
             `;
           } else {
             row.innerHTML = `
@@ -678,17 +686,47 @@
       checkAutoCourtFee();
     }
 
+    // コート予約編集機能
+    window.editReserve = function(dateStr) {
+      const target = reservesData.find(r => (r.targetDate || r.date) === dateStr);
+      if (!target) return;
+
+      editingReserveDate = dateStr;
+      if (reserveTargetDate) reserveTargetDate.value = dateStr;
+      calcExactReserveDate();
+      if (reserveCourtFeeInput) reserveCourtFeeInput.value = target.courtFee !== undefined ? target.courtFee : (target.fee || 1600);
+
+      const saveBtn = document.getElementById("saveReserveBtn");
+      if (saveBtn) saveBtn.textContent = "✏️ 予約内容を上書き保存する";
+
+      const formElem = document.getElementById("reserveAccordionContainer");
+      if (formElem) formElem.scrollIntoView({ behavior: 'smooth' });
+    };
+
     window.setQuickReserve = function(dateStr) {
-      const feeVal = parseInt(document.getElementById("reserveCourtFee").value, 10) || 1800;
-      reservesData.push({ id: Date.now().toString(), targetDate: dateStr, courtFee: feeVal });
+      const feeVal = parseInt(document.getElementById("reserveCourtFee").value, 10) || 1600;
+      
+      const existingIndex = reservesData.findIndex(r => (r.targetDate || r.date) === dateStr);
+      if (existingIndex >= 0) {
+        reservesData[existingIndex].courtFee = feeVal;
+        reservesData[existingIndex].targetDate = dateStr;
+      } else {
+        reservesData.push({ id: Date.now().toString(), targetDate: dateStr, courtFee: feeVal });
+      }
+
       saveLocalData(STORAGE_KEY_RESERVES, reservesData);
       refreshReserves();
       updateSummary();
     };
 
     window.deleteReserve = function(dateStr) {
-      if (confirm("この予約データを削除しますか？")) {
+      if (confirm(`${dateStr} の予約データを削除しますか？`)) {
         reservesData = reservesData.filter(r => (r.targetDate || r.date) !== dateStr);
+        if (editingReserveDate === dateStr) {
+          editingReserveDate = null;
+          const saveBtn = document.getElementById("saveReserveBtn");
+          if (saveBtn) saveBtn.textContent = "💾 コート予約代を保存";
+        }
         saveLocalData(STORAGE_KEY_RESERVES, reservesData);
         refreshReserves();
         updateSummary();
@@ -699,10 +737,31 @@
       const targetDateVal = reserveTargetDate ? reserveTargetDate.value : "";
       if (!targetDateVal) return alert("コート使用予定日を選択してください");
 
-      const feeVal = parseInt(reserveCourtFeeInput ? reserveCourtFeeInput.value : 1800, 10) || 0;
-      reservesData.push({ id: Date.now().toString(), targetDate: targetDateVal, courtFee: feeVal });
+      const feeVal = parseInt(reserveCourtFeeInput ? reserveCourtFeeInput.value : 1600, 10) || 0;
+
+      if (editingReserveDate) {
+        reservesData = reservesData.map(r => {
+          if ((r.targetDate || r.date) === editingReserveDate) {
+            return { ...r, targetDate: targetDateVal, courtFee: feeVal };
+          }
+          return r;
+        });
+        alert("コート予約内容を更新しました！");
+        editingReserveDate = null;
+        this.textContent = "💾 コート予約代を保存";
+      } else {
+        const existingIndex = reservesData.findIndex(r => (r.targetDate || r.date) === targetDateVal);
+        if (existingIndex >= 0) {
+          reservesData[existingIndex].courtFee = feeVal;
+          reservesData[existingIndex].targetDate = targetDateVal;
+          alert("該当日のコート予約代を上書き保存しました！");
+        } else {
+          reservesData.push({ id: Date.now().toString(), targetDate: targetDateVal, courtFee: feeVal });
+          alert("コート予約代を保存しました！");
+        }
+      }
+
       saveLocalData(STORAGE_KEY_RESERVES, reservesData);
-      alert("コート予約代を保存しました！");
       refreshReserves();
       updateSummary();
     };
@@ -787,7 +846,7 @@
     // 残高調整保存
     document.getElementById("saveAdjustBtn").onclick = function() {
       const targetBalStr = document.getElementById("adjustTargetBalance").value;
-      if (targetBalStr === "") return alert("調整後のピッピッタリ残高を入力してください");
+      if (targetBalStr === "") return alert("調整後のピッタリ残高を入力してください");
 
       const targetBal = parseInt(targetBalStr, 10);
       const reason = document.getElementById("adjustReason").value.trim() || "残高直接調整";
@@ -808,7 +867,7 @@
       refreshAll();
     };
 
-    // ★ バックアップ機能 (JSONエクスポート)
+    // バックアップ機能
     document.getElementById("exportJsonBtn").onclick = function() {
       const backupData = {
         version: "1.0",
@@ -827,7 +886,7 @@
       URL.revokeObjectURL(url);
     };
 
-    // ★ 復元機能 (JSONインポート)
+    // 復元機能
     document.getElementById("importJsonBtn").onclick = function() {
       document.getElementById("importFileInput").click();
     };
@@ -883,7 +942,7 @@
       URL.revokeObjectURL(url);
     });
 
-    // ★ 編集機能 (editEvent)
+    // 編集機能 (editEvent)
     window.editEvent = function(id) {
       const target = eventsData.find(item => item.id === id);
       if (!target) return;
@@ -1127,3 +1186,10 @@
   </script>
 </body>
 </html>
+```eof
+
+### 変更点
+1. **未予約日の勝手な1,800円引算を防止** (`checkAutoCourtFee`)  
+   未予約の日付を選んだ場合はコート代を0円にセットし、無関係に1,800円が試算から引かれて累計が狂ってしまう動作を解消しました。
+2. **予約データ（1,600円等）との100%連動**  
+   予約がある日付（8/14など）を選択した場合は、正確に予約済みの金額（1,600円）が読み込まれ、本日純損益および8/7からの累計損益に寸分の狂いもなく反映されます。
