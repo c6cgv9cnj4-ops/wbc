@@ -559,8 +559,8 @@
             <input type="text" value="700円 / 500円" readonly style="background:#f0f0f5; color:var(--text-sub); font-weight:600;">
           </div>
           <div>
-            <label>事前予約コート代 (自動読み込み)</label>
-            <input type="number" id="courtFee" value="0" placeholder="事前予約から自動取得">
+            <label>事前予約コート代 (自動読み込み/手入力)</label>
+            <input type="number" id="courtFee" value="0" placeholder="コート代を入力">
           </div>
         </div>
 
@@ -767,7 +767,7 @@
     let editingDocId = null;
     let selectedMemberFees = new Map();
     let currentCalculatedNetBalance = 0;
-    let accumulatedProfitSinceAug7 = 0;
+    let accumulatedProfitSinceAug7Base = 0; // DB保存済みの累計損益ベース
 
     const mainPage = document.getElementById("mainPage");
     const reportPage = document.getElementById("reportPage");
@@ -910,6 +910,7 @@
 
     if (courtFeeInput) courtFeeInput.addEventListener("input", updateSummary);
 
+    // ★ 純損益・累計損益のリアルタイム動的更新関数
     function updateSummary() {
       let count700 = 0;
       let count500 = 0;
@@ -922,17 +923,34 @@
       const totalCount = count700 + count500;
       const courtFee = parseInt(courtFeeInput ? courtFeeInput.value : 0, 10) || 0;
       const totalIncome = (count700 * 700) + (count500 * 500);
-      const profit = totalIncome - courtFee;
+      
+      // 【定義通り】本日純損益 = 参加者の料金 - コート代
+      const todayNetProfit = totalIncome - courtFee;
 
       if (todayNetProfitDisplay) {
-        todayNetProfitDisplay.textContent = `${profit >= 0 ? '+' : ''}${profit.toLocaleString()} 円`;
-        todayNetProfitDisplay.style.color = profit >= 0 ? 'var(--primary-color)' : 'var(--danger-color)';
+        todayNetProfitDisplay.textContent = `${todayNetProfit >= 0 ? '+' : ''}${todayNetProfit.toLocaleString()} 円`;
+        todayNetProfitDisplay.style.color = todayNetProfit >= 0 ? 'var(--primary-color)' : 'var(--danger-color)';
       }
 
       const targetElem = document.getElementById("todayBreakEven");
       if (targetElem) {
         targetElem.innerHTML = 
           `参加 <strong>${totalCount}名</strong> (700円:${count700}名 / 500円:${count500}名) ｜ 会費合計 <strong>${totalIncome.toLocaleString()}円</strong>`;
+      }
+
+      // 【定義通り】8/7からの累計損益 = 過去の積立損益 + (新規編集中の本日純損益)
+      const currentSelectedDate = eventDateInput ? eventDateInput.value : "";
+      let displayAccumulated = accumulatedProfitSinceAug7Base;
+
+      // 新規入力中（editingDocIdがない）かつ選択日が2026-08-07以降の場合、画面上のリアルタイム純損益も加算して即座に反映
+      if (!editingDocId && currentSelectedDate >= "2026-08-07") {
+        displayAccumulated += todayNetProfit;
+      }
+
+      const sinceAug7Display = document.getElementById("sinceAug7ProfitDisplay");
+      if (sinceAug7Display) {
+        sinceAug7Display.textContent = `${displayAccumulated >= 0 ? '+' : ''}${displayAccumulated.toLocaleString()} 円`;
+        sinceAug7Display.style.color = displayAccumulated >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
       }
     }
 
@@ -1069,6 +1087,8 @@
           const courtFeeVal = parseInt(courtFeeInput ? courtFeeInput.value : 0, 10) || 0;
 
           const calculatedIncome = (members700.length * 700) + (members500.length * 500);
+          
+          // 本日純損益 = 参加者料金 - コート代
           const netProfit = calculatedIncome - courtFeeVal;
 
           const timeElem = document.getElementById("eventTime");
@@ -1198,7 +1218,7 @@
       let totalCourt = 0;
       let totalShuttleBuy = 0;
       let totalShuttleBoughtBalls = 0;
-      accumulatedProfitSinceAug7 = 0;
+      accumulatedProfitSinceAug7Base = 0; // 初期化
 
       const monthlyData = {};
       const memberStats = {};
@@ -1221,12 +1241,12 @@
           totalIncome += (d.totalIncome || 0);
           totalCourt += (d.courtFee || 0);
 
-          // ★ コート代（d.courtFee）を正確に引いた「純損益」を算出
+          // ★ 1開催の純損益 = 参加者料金（d.totalIncome） - コート代（d.courtFee）
           const netProfit = (d.totalIncome || 0) - (d.courtFee || 0);
 
-          // 2026年8月7日以降の練習について、コート代差引後の純損益（netProfit）のみを累計加算
+          // 2026年8月7日以降のサークル1開催ごとの純損益を積立（累計損益）
           if (d.date && d.date >= "2026-08-07") {
-            accumulatedProfitSinceAug7 += netProfit;
+            accumulatedProfitSinceAug7Base += netProfit;
           }
 
           practiceBreakEvenData.push({
@@ -1319,13 +1339,6 @@
         }
       });
 
-      // 8/7からの累計損益表示（コート代控除後）
-      const sinceAug7Display = document.getElementById("sinceAug7ProfitDisplay");
-      if (sinceAug7Display) {
-        sinceAug7Display.textContent = `${accumulatedProfitSinceAug7 >= 0 ? '+' : ''}${accumulatedProfitSinceAug7.toLocaleString()} 円`;
-        sinceAug7Display.style.color = accumulatedProfitSinceAug7 >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
-      }
-
       currentCalculatedNetBalance = totalIncome - (totalCourt + totalShuttleBuy);
 
       const dashBalance = document.getElementById("dashBalance");
@@ -1346,7 +1359,7 @@
       }
 
       updateMemberStatsTable(memberStats, totalPracticeCount);
-      updateSummary();
+      updateSummary(); // 画面上部のカード表示（本日の純損益 & 累計損益）を更新
       updateChart(monthlyData);
       updateBreakEvenChart(practiceBreakEvenData.reverse());
     }, (err) => console.log("Events listener info:", err));
@@ -1423,7 +1436,7 @@
         } else if (item.type === "shuttle_buy") {
           csvContent += `${item.date},シャトル仕入れ,"",0,"","",0,0,0,${item.totalFee||0},"${item.name||''} (${item.totalCount||0}箱)"\n`;
         } else if (item.type === "balance_adjust") {
-          csvContent += `${item.date},残高調整,"",0,"","",${item.diffAmount||0},0,0,0,"${item.reason||''} (設定残高:${item.targetBalance||0}円)"\n`;
+          csvContent += `${item.date},残高調整,"",0,","",${item.diffAmount||0},0,0,0,"${item.reason||''} (設定残高:${item.targetBalance||0}円)"\n`;
         }
       });
 
