@@ -8,8 +8,7 @@
   <!-- 🚀 自動キャッシュクリア＆最新版強制読み込みスクリプト (PWA/スマホブラウザ対策) -->
   <script>
     (function() {
-      // コードを更新・修正したら、このバージョン数字を "1.0.2", "1.0.3" のように上げて保存します
-      const CURRENT_VERSION = "1.0.1";
+      const CURRENT_VERSION = "1.0.2";
       const KEY = "app_build_version";
 
       const storedVersion = localStorage.getItem(KEY);
@@ -17,20 +16,18 @@
       if (storedVersion !== CURRENT_VERSION) {
         localStorage.setItem(KEY, CURRENT_VERSION);
 
-        // Service Worker や Cache Storage を完全消去
         if ('caches' in window) {
           caches.keys().then(function(names) {
             for (let name of names) caches.delete(name);
           });
         }
 
-        // キャッシュを完全に無視して最新版を強制再取得
         window.location.reload(true);
       }
     })();
   </script>
   
-  <!-- HTTPヘッダーレベルでのキャッシュ無効化（補助） -->
+  <!-- HTTPヘッダーレベルでのキャッシュ無効化 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -66,10 +63,7 @@
       --radius-lg: 20px;
     }
 
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
@@ -82,460 +76,103 @@
       letter-spacing: -0.022em;
     }
 
-    .app-header {
-      max-width: 640px;
-      margin: 0 auto 16px auto;
-      text-align: center;
-      padding: 12px 0;
-    }
-
-    .app-header h1 {
-      font-size: 1.4rem;
-      font-weight: 700;
-      margin: 0;
-      letter-spacing: -0.015em;
-      color: var(--text-main);
-    }
+    .app-header { max-width: 640px; margin: 0 auto 16px auto; text-align: center; padding: 12px 0; }
+    .app-header h1 { font-size: 1.4rem; font-weight: 700; margin: 0; letter-spacing: -0.015em; color: var(--text-main); }
 
     .container {
-      max-width: 640px;
-      width: 100%;
-      margin: 0 auto 16px auto;
-      background: var(--card-bg);
-      padding: 20px;
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-sm);
-      border: 1px solid rgba(0, 0, 0, 0.04);
-      transition: all 0.2s ease;
+      max-width: 640px; width: 100%; margin: 0 auto 16px auto; background: var(--card-bg);
+      padding: 20px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(0, 0, 0, 0.04); transition: all 0.2s ease;
     }
 
     .today-guide-card {
       background: linear-gradient(135deg, #e3f2fd 0%, #f0f7ff 100%);
-      border: 1px solid #bae0ff;
-      padding: 16px;
-      border-radius: var(--radius-sm);
-      margin-bottom: 16px;
-      text-align: center;
+      border: 1px solid #bae0ff; padding: 16px; border-radius: var(--radius-sm);
+      margin-bottom: 16px; text-align: center;
     }
 
-    .today-guide-title {
-      font-size: 0.8rem;
-      color: #0050b3;
-      font-weight: 600;
-      margin-bottom: 6px;
-      letter-spacing: -0.01em;
-    }
-
-    .today-guide-value {
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: #002c8c;
-      word-break: break-all;
-    }
-
-    .today-guide-value strong {
-      font-size: 1.25rem;
-      color: var(--primary-color);
-    }
+    .today-guide-title { font-size: 0.8rem; color: #0050b3; font-weight: 600; margin-bottom: 6px; }
+    .today-guide-value { font-size: 1.05rem; font-weight: 600; color: #002c8c; word-break: break-all; }
+    .today-guide-value strong { font-size: 1.25rem; color: var(--primary-color); }
 
     .section-title {
-      font-weight: 600;
-      font-size: 0.95rem;
-      margin-bottom: 12px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: var(--text-main);
+      font-weight: 600; font-size: 0.95rem; margin-bottom: 12px; padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between;
+      align-items: center; color: var(--text-main);
     }
 
-    .input-group {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-      width: 100%;
+    .input-group { display: flex; gap: 8px; margin-bottom: 12px; width: 100%; }
+
+    input[type="text"], input[type="date"], select, input[type="number"] {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm); font-size: 0.9rem; color: var(--text-main);
+      background-color: #fafafa; appearance: none; -webkit-appearance: none;
+      transition: border-color 0.2s ease, background-color 0.2s ease; font-family: inherit;
     }
 
-    input[type="text"],
-    input[type="date"],
-    select,
-    input[type="number"] {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      font-size: 0.9rem;
-      color: var(--text-main);
-      background-color: #fafafa;
-      appearance: none;
-      -webkit-appearance: none;
-      transition: border-color 0.2s ease, background-color 0.2s ease;
-      font-family: inherit;
-    }
-
-    input[type="text"]:focus,
-    input[type="date"]:focus,
-    select:focus,
-    input[type="number"]:focus {
-      outline: none;
-      border-color: var(--primary-color);
-      background-color: #ffffff;
+    input[type="text"]:focus, input[type="date"]:focus, select:focus, input[type="number"]:focus {
+      outline: none; border-color: var(--primary-color); background-color: #ffffff;
       box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
     }
 
     button {
-      font-family: inherit;
-      border: none;
-      border-radius: var(--radius-sm);
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
+      font-family: inherit; border: none; border-radius: var(--radius-sm); font-weight: 600;
+      cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center;
+      justify-content: center; user-select: none;
     }
-
-    button:active {
-      transform: scale(0.98);
-    }
-
-    button.btn-primary {
-      background-color: var(--primary-color);
-      color: white;
-      padding: 10px 16px;
-      white-space: nowrap;
-      font-size: 0.85rem;
-    }
-
-    button.btn-primary:hover {
-      background-color: var(--primary-hover);
-    }
-
-    button.btn-save {
-      width: 100%;
-      padding: 14px;
-      background-color: var(--success-color);
-      color: white;
-      font-size: 1rem;
-      margin-top: 8px;
-      box-shadow: 0 4px 12px rgba(52, 199, 89, 0.25);
-    }
-
-    button.btn-adjust {
-      width: 100%;
-      padding: 14px;
-      background-color: var(--warning-color);
-      color: white;
-      font-size: 0.95rem;
-      margin-top: 8px;
-      box-shadow: 0 4px 12px rgba(255, 149, 0, 0.25);
-    }
-
-    button.btn-csv {
-      background-color: #efeff4;
-      color: var(--text-main);
-      padding: 6px 12px;
-      font-size: 0.75rem;
-      border: 1px solid var(--border-color);
-    }
-
-    button.btn-csv:hover {
-      background-color: #e5e5ea;
-    }
-
-    button.btn-report-toggle {
-      width: 100%;
-      padding: 12px;
-      background-color: var(--purple-color);
-      color: white;
-      font-size: 0.9rem;
-      margin-top: 12px;
-      box-shadow: 0 4px 12px rgba(175, 82, 222, 0.25);
-    }
-
-    button.btn-back {
-      background-color: #e5e5ea;
-      color: var(--text-main);
-      padding: 6px 14px;
-      font-size: 0.85rem;
-    }
-
-    .btn-edit {
-      background-color: #e5e5ea;
-      color: var(--text-main);
-      padding: 4px 10px;
-      font-size: 0.75rem;
-      margin-right: 4px;
-    }
-
-    .btn-del {
-      background-color: #ffe5e5;
-      color: var(--danger-color);
-      padding: 4px 10px;
-      font-size: 0.75rem;
-    }
+    button:active { transform: scale(0.98); }
+    button.btn-primary { background-color: var(--primary-color); color: white; padding: 10px 16px; white-space: nowrap; font-size: 0.85rem; }
+    button.btn-primary:hover { background-color: var(--primary-hover); }
+    button.btn-save { width: 100%; padding: 14px; background-color: var(--success-color); color: white; font-size: 1rem; margin-top: 8px; box-shadow: 0 4px 12px rgba(52, 199, 89, 0.25); }
+    button.btn-adjust { width: 100%; padding: 14px; background-color: var(--warning-color); color: white; font-size: 0.95rem; margin-top: 8px; box-shadow: 0 4px 12px rgba(255, 149, 0, 0.25); }
+    button.btn-csv { background-color: #efeff4; color: var(--text-main); padding: 6px 12px; font-size: 0.75rem; border: 1px solid var(--border-color); }
+    button.btn-report-toggle { width: 100%; padding: 12px; background-color: var(--purple-color); color: white; font-size: 0.9rem; margin-top: 12px; box-shadow: 0 4px 12px rgba(175, 82, 222, 0.25); }
+    button.btn-back { background-color: #e5e5ea; color: var(--text-main); padding: 6px 14px; font-size: 0.85rem; }
+    .btn-edit { background-color: #e5e5ea; color: var(--text-main); padding: 4px 10px; font-size: 0.75rem; margin-right: 4px; }
+    .btn-del { background-color: #ffe5e5; color: var(--danger-color); padding: 4px 10px; font-size: 0.75rem; }
 
     .member-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 12px;
-      min-height: 52px;
-      padding: 10px;
-      background: #fafafa;
-      border-radius: var(--radius-sm);
-      border: 1px dashed var(--border-color);
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; min-height: 52px;
+      padding: 10px; background: #fafafa; border-radius: var(--radius-sm); border: 1px dashed var(--border-color);
     }
 
     .member-chip {
-      background-color: #e5e5ea;
-      color: #3a3a3c;
-      padding: 8px 14px;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      user-select: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      border: 1.5px solid transparent;
+      background-color: #e5e5ea; color: #3a3a3c; padding: 8px 14px; border-radius: 20px;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer; user-select: none;
+      display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid transparent;
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .member-chip.selected-700 {
-      background-color: var(--primary-color);
-      color: #ffffff;
-      border-color: var(--primary-color);
-      box-shadow: 0 2px 8px rgba(0, 113, 227, 0.3);
-    }
+    .member-chip.selected-700 { background-color: var(--primary-color); color: #ffffff; border-color: var(--primary-color); box-shadow: 0 2px 8px rgba(0, 113, 227, 0.3); }
+    .member-chip.selected-500 { background-color: var(--success-color); color: #ffffff; border-color: var(--success-color); box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3); }
+    .delete-btn { color: #8e8e93; font-weight: 700; cursor: pointer; font-size: 0.9rem; margin-left: 2px; }
 
-    .member-chip.selected-500 {
-      background-color: var(--success-color);
-      color: #ffffff;
-      border-color: var(--success-color);
-      box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
-    }
+    .form-row { margin-bottom: 12px; width: 100%; }
+    .form-row label { display: block; font-size: 0.75rem; color: var(--text-sub); margin-bottom: 4px; font-weight: 500; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+    .profit-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .profit-card { background: #f0f7ff; border: 1px solid #bae0ff; padding: 12px; border-radius: var(--radius-sm); text-align: center; }
+    .profit-card-label { font-size: 0.75rem; color: #0050b3; font-weight: 600; margin-bottom: 4px; }
+    .profit-card-value { font-size: 1.15rem; font-weight: 700; color: var(--primary-color); }
 
-    .delete-btn {
-      color: #8e8e93;
-      font-weight: 700;
-      cursor: pointer;
-      font-size: 0.9rem;
-      margin-left: 2px;
-      transition: color 0.15s ease;
-    }
+    .dashboard-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .dash-card-mini { background: #fafafa; border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-sm); font-size: 0.8rem; }
+    .history-card { background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px; font-size: 0.825rem; }
+    .history-header { font-weight: 600; color: var(--primary-color); display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.875rem; }
+    .action-btns { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border-color); display: flex; justify-content: flex-end; }
+    .reserve-check-row { padding: 10px 12px; border-radius: var(--radius-sm); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; border: 1px solid var(--border-color); }
+    .reserve-check-row.reserved { background-color: #eefbf1; border-color: #b7ebc6; }
+    .reserve-check-row.unreserved { background-color: #fff2f2; border-color: #ffccc7; }
+    .status-badge-ok { color: var(--success-color); font-weight: 600; }
+    .status-badge-ng { color: var(--danger-color); font-weight: 600; }
+    .stats-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.8rem; margin-top: 10px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border-color); }
+    .stats-table th, .stats-table td { padding: 10px 8px; text-align: center; border-bottom: 1px solid var(--border-color); }
+    .stats-table th { background: #fafafa; color: var(--text-sub); font-weight: 600; }
 
-    .member-chip.selected-700 .delete-btn,
-    .member-chip.selected-500 .delete-btn {
-      color: #ffffff;
-      opacity: 0.8;
-    }
-
-    .delete-btn:hover {
-      color: var(--danger-color) !important;
-      opacity: 1 !important;
-    }
-
-    .form-row {
-      margin-bottom: 12px;
-      width: 100%;
-    }
-
-    .form-row label {
-      display: block;
-      font-size: 0.75rem;
-      color: var(--text-sub);
-      margin-bottom: 4px;
-      font-weight: 500;
-    }
-
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      width: 100%;
-    }
-
-    .profit-summary-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-
-    .profit-card {
-      background: #f0f7ff;
-      border: 1px solid #bae0ff;
-      padding: 12px;
-      border-radius: var(--radius-sm);
-      text-align: center;
-    }
-
-    .profit-card-label {
-      font-size: 0.75rem;
-      color: #0050b3;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .profit-card-value {
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: var(--primary-color);
-    }
-
-    .dashboard-mini {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .dash-card-mini {
-      background: #fafafa;
-      border: 1px solid var(--border-color);
-      padding: 12px;
-      border-radius: var(--radius-sm);
-      font-size: 0.8rem;
-    }
-
-    .history-card {
-      background: #ffffff;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 12px 14px;
-      margin-bottom: 10px;
-      font-size: 0.825rem;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-    }
-
-    .history-header {
-      font-weight: 600;
-      color: var(--primary-color);
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
-      font-size: 0.875rem;
-    }
-
-    .action-btns {
-      margin-top: 8px;
-      padding-top: 6px;
-      border-top: 1px dashed var(--border-color);
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    .reserve-check-row {
-      padding: 10px 12px;
-      border-radius: var(--radius-sm);
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.85rem;
-      border: 1px solid var(--border-color);
-    }
-
-    .reserve-check-row.reserved {
-      background-color: #eefbf1;
-      border-color: #b7ebc6;
-    }
-
-    .reserve-check-row.unreserved {
-      background-color: #fff2f2;
-      border-color: #ffccc7;
-    }
-
-    .status-badge-ok {
-      color: var(--success-color);
-      font-weight: 600;
-    }
-
-    .status-badge-ng {
-      color: var(--danger-color);
-      font-weight: 600;
-    }
-
-    .stats-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      font-size: 0.8rem;
-      margin-top: 10px;
-      border-radius: var(--radius-sm);
-      overflow: hidden;
-      border: 1px solid var(--border-color);
-    }
-
-    .stats-table th,
-    .stats-table td {
-      padding: 10px 8px;
-      text-align: center;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .stats-table th {
-      background: #fafafa;
-      color: var(--text-sub);
-      font-weight: 600;
-    }
-
-    .stats-table tr:last-child td {
-      border-bottom: none;
-    }
-
-    details {
-      background: var(--card-bg);
-      border-radius: var(--radius-md);
-      margin-bottom: 16px;
-      border: 1px solid rgba(0, 0, 0, 0.04);
-      box-shadow: var(--shadow-sm);
-      width: 100%;
-      overflow: hidden;
-    }
-
-    details summary {
-      padding: 16px 20px;
-      font-weight: 600;
-      font-size: 0.95rem;
-      cursor: pointer;
-      outline: none;
-      user-select: none;
-      color: var(--text-main);
-      transition: background-color 0.2s ease;
-    }
-
-    details summary:hover {
-      background-color: #fafafa;
-    }
-
-    details[open] summary {
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .accordion-content {
-      padding: 16px 20px 20px 20px;
-    }
-
-    @media (max-width: 480px) {
-      body {
-        padding: 8px 6px 30px 6px;
-      }
-      .container {
-        padding: 14px;
-        border-radius: var(--radius-sm);
-      }
-      .accordion-content {
-        padding: 12px;
-      }
-      details summary {
-        padding: 14px;
-      }
-    }
+    details { background: var(--card-bg); border-radius: var(--radius-md); margin-bottom: 16px; border: 1px solid rgba(0, 0, 0, 0.04); box-shadow: var(--shadow-sm); width: 100%; overflow: hidden; }
+    details summary { padding: 16px 20px; font-weight: 600; font-size: 0.95rem; cursor: pointer; outline: none; user-select: none; color: var(--text-main); }
+    details[open] summary { border-bottom: 1px solid var(--border-color); }
+    .accordion-content { padding: 16px 20px 20px 20px; }
   </style>
 </head>
 <body>
@@ -544,11 +181,8 @@
     <h1>🏸 バドミントン現場記録</h1>
   </div>
 
-  <!-- メイン画面 -->
   <div id="mainPage">
-    <!-- 📱 1. 本日の現場入力エリア -->
     <div class="container" style="border-top: 4px solid var(--primary-color);">
-
       <div class="today-guide-card">
         <div class="today-guide-title">📊 本日の参加状況サマリー</div>
         <div id="todayBreakEven" class="today-guide-value">
@@ -594,7 +228,6 @@
           </div>
         </div>
 
-        <!-- 現場損益の横並びカード配置 -->
         <div class="profit-summary-grid">
           <div class="profit-card">
             <div class="profit-card-label">💰 本日の純損益</div>
@@ -610,7 +243,6 @@
       </form>
     </div>
 
-    <!-- 📅 2. 3ヶ月先までの全金曜日 一括予約チェック -->
     <details class="container" open style="border-left: 4px solid var(--success-color);">
       <summary>📅 3ヶ月先までのコート予約・支払い (直近12〜13回分一括点検)</summary>
       <div class="accordion-content">
@@ -632,16 +264,14 @@
         </form>
 
         <div style="margin-top:20px; border-top:1px dashed var(--border-color); padding-top:14px;">
-          <div style="font-weight:600; font-size:0.85rem; color:var(--primary-color); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-            <span>📋 直近3ヶ月先の全金曜日 予約点検表 (約12行)</span>
+          <div style="font-weight:600; font-size:0.85rem; color:var(--primary-color); margin-bottom:10px;">
+            <span>📋 直近3ヶ月先の全金曜日 予約点検表</span>
           </div>
-
           <div id="reserveCheckList">3ヶ月先までの金曜日を計算中...</div>
         </div>
       </div>
     </details>
 
-    <!-- 📦 3. シャトル買い出し記録 -->
     <details class="container">
       <summary>📦 シャトルまとめ買い記録 (資材仕入れ)</summary>
       <div class="accordion-content">
@@ -669,7 +299,6 @@
       </div>
     </details>
 
-    <!-- 💰 4. サークル財務サマリー -->
     <div class="container">
       <div class="section-title">💰 サークル財務サマリー（総金庫）</div>
       <div class="dashboard-mini">
@@ -683,11 +312,9 @@
         </div>
       </div>
       <div id="dashGuide" style="font-size:0.75rem; color:var(--text-sub); margin-top:8px;">データ計算中...</div>
-
       <button type="button" id="goToReportBtn" class="btn-report-toggle">📈 損益分岐グラフ & 参加率レポートを見る ➔</button>
     </div>
 
-    <!-- 📜 5. 会計履歴エリア -->
     <div class="container">
       <div class="section-title">
         <span>📜 会計・予約・仕入れ履歴</span>
@@ -696,7 +323,6 @@
       <div id="historyList">読み込み中...</div>
     </div>
 
-    <!-- 🔧 6. 残高の直接調整エリア -->
     <div class="container" style="border-top: 4px solid var(--warning-color);">
       <div class="section-title" style="color: var(--warning-color);">
         <span>🔧 残高の直接調整 (手元の現金ピッタリ合わせ・初期残高)</span>
@@ -719,7 +345,6 @@
     </div>
   </div>
 
-  <!-- レポート画面 -->
   <div id="reportPage" style="display:none;">
     <div class="container">
       <div class="section-title">
@@ -727,17 +352,14 @@
         <span>📊 詳細分析レポート</span>
         <span></span>
       </div>
-
       <div style="margin-top:16px;">
         <div style="font-weight:600; font-size:0.85rem; margin-bottom:6px;">📊 月別 収支推移</div>
         <canvas id="financeChart" width="400" height="180"></canvas>
       </div>
-
       <div style="margin-top:24px;">
         <div style="font-weight:600; font-size:0.85rem; margin-bottom:4px;">⚖️ 各回の損益（会費利益 vs コート代）</div>
         <canvas id="breakEvenChart" width="400" height="200"></canvas>
       </div>
-
       <div style="margin-top:24px;">
         <div style="font-weight:600; font-size:0.85rem; margin-bottom:8px;">👥 メンバー別 参加回数・参加率</div>
         <table class="stats-table">
@@ -758,20 +380,18 @@
     </div>
   </div>
 
-  <!-- Firebase & スクリプト (キャッシュ回避用パラメータ付き) -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js?v=1.0.1";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { 
       getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, writeBatch, serverTimestamp 
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js?v=1.0.1";
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+    // 💡 プロジェクト固有の完全なFirebase設定情報
     const firebaseConfig = {
-      apiKey: "AIzaSyDummyKeyForInitialization",
       authDomain: "newwbc-a6e29.firebaseapp.com",
       projectId: "newwbc-a6e29",
       storageBucket: "newwbc-a6e29.appstop.com",
-      messagingSenderId: "1234567890",
-      appId: "1:1234567890:web:abcdef"
+      messagingSenderId: "1234567890"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -798,6 +418,8 @@
     let selectedMemberFees = new Map();
     let currentCalculatedNetBalance = 0;
     let accumulatedProfitSinceAug7Base = 0;
+    let reservedCourtsMap = {};
+    let reservedDocIdsMap = {};
 
     const mainPage = document.getElementById("mainPage");
     const reportPage = document.getElementById("reportPage");
@@ -980,14 +602,11 @@
       }
     }
 
-    let reservedCourtsMap = {};
-    let reservedDocIdsMap = {};
     const reserveCheckList = document.getElementById("reserveCheckList");
 
     onSnapshot(query(reservesCol, orderBy("targetDate", "asc")), (snapshot) => {
       reservedCourtsMap = {};
       reservedDocIdsMap = {};
-
       let lastFee = null;
 
       snapshot.forEach((docSnap) => {
@@ -1089,10 +708,8 @@
     if (eventDateInput) eventDateInput.addEventListener("change", checkAutoCourtFee);
     function checkAutoCourtFee() {
       const selDate = eventDateInput ? eventDateInput.value : "";
-      if (reservedCourtsMap[selDate]) {
+      if (reservedCourtsMap[selDate] !== undefined) {
         if (courtFeeInput) courtFeeInput.value = reservedCourtsMap[selDate];
-      } else {
-        if (courtFeeInput) courtFeeInput.value = 0;
       }
       updateSummary();
     }
@@ -1170,7 +787,7 @@
             courtFee: feeVal,
             createdAt: serverTimestamp()
           });
-          alert("コート予約代を保存しました！リストが更新されます。");
+          alert("コート予約代を保存しました！");
         } catch (err) {
           alert("予約保存エラー: " + err.message);
         }
@@ -1384,7 +1001,7 @@
       }
 
       updateMemberStatsTable(memberStats, totalPracticeCount);
-      updateSummary();
+      checkAutoCourtFee();
       updateChart(monthlyData);
       updateBreakEvenChart(practiceBreakEvenData.reverse());
     }, (err) => console.log("Events listener info:", err));
@@ -1441,7 +1058,7 @@
     }
 
     window.deleteEvent = async function(id) {
-      if (confirm("本当にこのデータを削除しても宜しいですか？\n※削除すると計算残高も更新されます。")) {
+      if (confirm("本当にこのデータを削除しても宜しいですか？")) {
         await deleteDoc(doc(db, "events", id));
         alert("データを削除しました");
       }
@@ -1461,7 +1078,7 @@
         } else if (item.type === "shuttle_buy") {
           csvContent += `${item.date},シャトル仕入れ,"",0,"","",0,0,0,${item.totalFee||0},"${item.name||''} (${item.totalCount||0}箱)"\n`;
         } else if (item.type === "balance_adjust") {
-          csvContent += `${item.date},残高調整,"",0,"","",${item.diffAmount||0},0,0,0,"${item.reason||''} (設定残高:${item.targetBalance||0}円)"\n`;
+          csvContent += `${item.date},残高調整,"",0,","",${item.diffAmount||0},0,0,0,"${item.reason||''} (設定残高:${item.targetBalance||0}円)"\n`;
         }
       });
 
