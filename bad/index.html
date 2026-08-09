@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>バドミントン管理 (完全動作・完全復元版)</title>
+  <title>バドミントン管理 (コート予約編集機能完全固定版)</title>
 
   <!-- 🚀 キャッシュ自動無効化設定 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -562,7 +562,7 @@
       }
     }
 
-    // ★ 純損益＆累計損益のリアルタイム強制反映ロジック
+    // ★ 純損益＆累計損益のリアルタイム計算・即時描画ロジック
     function updateSummary() {
       let count700 = 0;
       let count500 = 0;
@@ -626,7 +626,7 @@
       }
     }
 
-    // ★ 予約点検表リスト（✏️ 編集 ボタン ＆ 🗑️ 削除 ボタンの両方を必ず生成）
+    // ★ コート予約点検表リスト（✏️ 編集 ボタン ＆ 🗑️ 削除 ボタンを必ず生成）
     function refreshReserves() {
       reservedCourtsMap = {};
       reservesData.forEach(d => {
