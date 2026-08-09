@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>バドミントン管理</title>
   
+  <!-- 🚀 キャッシュ自動無効化設定（古いキャッシュによる誤作動を永久防止） -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  
   <!-- PWA (iPhone / Android アプリ化設定) -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -767,7 +772,7 @@
     let editingDocId = null;
     let selectedMemberFees = new Map();
     let currentCalculatedNetBalance = 0;
-    let accumulatedProfitSinceAug7Base = 0; // DB保存済みの累計損益ベース
+    let accumulatedProfitSinceAug7Base = 0;
 
     const mainPage = document.getElementById("mainPage");
     const reportPage = document.getElementById("reportPage");
@@ -910,7 +915,6 @@
 
     if (courtFeeInput) courtFeeInput.addEventListener("input", updateSummary);
 
-    // ★ 純損益・累計損益のリアルタイム動的更新関数
     function updateSummary() {
       let count700 = 0;
       let count500 = 0;
@@ -924,7 +928,6 @@
       const courtFee = parseInt(courtFeeInput ? courtFeeInput.value : 0, 10) || 0;
       const totalIncome = (count700 * 700) + (count500 * 500);
       
-      // 【定義通り】本日純損益 = 参加者の料金 - コート代
       const todayNetProfit = totalIncome - courtFee;
 
       if (todayNetProfitDisplay) {
@@ -938,11 +941,9 @@
           `参加 <strong>${totalCount}名</strong> (700円:${count700}名 / 500円:${count500}名) ｜ 会費合計 <strong>${totalIncome.toLocaleString()}円</strong>`;
       }
 
-      // 【定義通り】8/7からの累計損益 = 過去の積立損益 + (新規編集中の本日純損益)
       const currentSelectedDate = eventDateInput ? eventDateInput.value : "";
       let displayAccumulated = accumulatedProfitSinceAug7Base;
 
-      // 新規入力中（editingDocIdがない）かつ選択日が2026-08-07以降の場合、画面上のリアルタイム純損益も加算して即座に反映
       if (!editingDocId && currentSelectedDate >= "2026-08-07") {
         displayAccumulated += todayNetProfit;
       }
@@ -1087,8 +1088,6 @@
           const courtFeeVal = parseInt(courtFeeInput ? courtFeeInput.value : 0, 10) || 0;
 
           const calculatedIncome = (members700.length * 700) + (members500.length * 500);
-          
-          // 本日純損益 = 参加者料金 - コート代
           const netProfit = calculatedIncome - courtFeeVal;
 
           const timeElem = document.getElementById("eventTime");
@@ -1218,7 +1217,7 @@
       let totalCourt = 0;
       let totalShuttleBuy = 0;
       let totalShuttleBoughtBalls = 0;
-      accumulatedProfitSinceAug7Base = 0; // 初期化
+      accumulatedProfitSinceAug7Base = 0;
 
       const monthlyData = {};
       const memberStats = {};
@@ -1238,21 +1237,22 @@
 
         if (d.type === "practice") {
           totalPracticeCount++;
-          totalIncome += (d.totalIncome || 0);
-          totalCourt += (d.courtFee || 0);
+          const practiceIncome = d.totalIncome || 0;
+          const practiceCourt = d.courtFee || 0;
 
-          // ★ 1開催の純損益 = 参加者料金（d.totalIncome） - コート代（d.courtFee）
-          const netProfit = (d.totalIncome || 0) - (d.courtFee || 0);
+          totalIncome += practiceIncome;
+          totalCourt += practiceCourt;
 
-          // 2026年8月7日以降のサークル1開催ごとの純損益を積立（累計損益）
+          const calculatedNetProfit = practiceIncome - practiceCourt;
+
           if (d.date && d.date >= "2026-08-07") {
-            accumulatedProfitSinceAug7Base += netProfit;
+            accumulatedProfitSinceAug7Base += calculatedNetProfit;
           }
 
           practiceBreakEvenData.push({
             date: d.date ? d.date.substring(5) : '',
-            profit: netProfit,
-            courtFee: d.courtFee || 0
+            profit: calculatedNetProfit,
+            courtFee: practiceCourt
           });
 
           if (d.members && d.members.length > 0) {
@@ -1280,10 +1280,10 @@
           card.innerHTML = `
             <div class="history-header">
               <span>🏸 ${isCancelled ? '中止/コート代のみ' : '練習'}: ${d.date} (${d.time||'3h'})</span>
-              <span>収入: ${(d.totalIncome||0).toLocaleString()}円</span>
+              <span>収入: ${practiceIncome.toLocaleString()}円</span>
             </div>
             <div>👥 参加 (${d.memberCount||0}名): ${memberDetailText}</div>
-            <div style="margin-top:2px;">🏟️ コート代: ${(d.courtFee||0).toLocaleString()}円 ｜ 💰 純損益: <strong style="color:${netProfit >= 0 ? 'var(--primary-color)' : 'var(--danger-color)'};">${netProfit >= 0 ? '+' : ''}${netProfit.toLocaleString()}円</strong></div>
+            <div style="margin-top:2px;">🏟️ コート代: ${practiceCourt.toLocaleString()}円 ｜ 💰 純損益: <strong style="color:${calculatedNetProfit >= 0 ? 'var(--primary-color)' : 'var(--danger-color)'};">${calculatedNetProfit >= 0 ? '+' : ''}${calculatedNetProfit.toLocaleString()}円</strong></div>
             <div class="action-btns">
               <button type="button" class="btn-edit" onclick="editEvent('${id}')">✏️ 編集</button>
               <button type="button" class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
@@ -1359,7 +1359,7 @@
       }
 
       updateMemberStatsTable(memberStats, totalPracticeCount);
-      updateSummary(); // 画面上部のカード表示（本日の純損益 & 累計損益）を更新
+      updateSummary();
       updateChart(monthlyData);
       updateBreakEvenChart(practiceBreakEvenData.reverse());
     }, (err) => console.log("Events listener info:", err));
@@ -1436,7 +1436,7 @@
         } else if (item.type === "shuttle_buy") {
           csvContent += `${item.date},シャトル仕入れ,"",0,"","",0,0,0,${item.totalFee||0},"${item.name||''} (${item.totalCount||0}箱)"\n`;
         } else if (item.type === "balance_adjust") {
-          csvContent += `${item.date},残高調整,"",0,","",${item.diffAmount||0},0,0,0,"${item.reason||''} (設定残高:${item.targetBalance||0}円)"\n`;
+          csvContent += `${item.date},残高調整,"",0,"","",${item.diffAmount||0},0,0,0,"${item.reason||''} (設定残高:${item.targetBalance||0}円)"\n`;
         }
       });
 
