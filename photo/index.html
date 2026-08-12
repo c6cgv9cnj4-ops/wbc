@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（営業時間・定休日完全対応版）</title>
+    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（ドラッグ並び替え対応版）</title>
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -20,7 +20,6 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #1E293B; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
         #map { height: 480px; z-index: 10; border-radius: 0.75rem; width: 100%; }
-        /* ホバー用ツールチップのスタイル */
         .custom-hover-tooltip {
             background-color: #1e293b;
             color: #f8fafc;
@@ -29,6 +28,14 @@
             padding: 6px 10px;
             font-size: 11px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+        /* ドラッグ中のスタイル */
+        .dragging {
+            opacity: 0.4;
+            background: #0f172a !important;
+        }
+        .drag-over {
+            border: 2px dashed #10B981 !important;
         }
     </style>
 </head>
@@ -63,7 +70,6 @@
 
     <!-- TAB 1: 関東撮影スポットNAVI -->
     <main id="tabContentSpot" class="max-w-7xl mx-auto px-3 sm:px-4 mt-4">
-        <!-- Filters Bar -->
         <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-5 flex flex-wrap justify-between items-center gap-3 text-xs sm:text-sm">
             <div class="flex items-center gap-1.5 text-slate-300">
                 <i data-lucide="map-pin" class="w-4 h-4 text-rose-400 shrink-0"></i>
@@ -121,7 +127,7 @@
                         <i data-lucide="compass" class="w-4 h-4 text-emerald-400"></i> 都内レトロ・散歩撮影ルート作成
                     </h2>
                     <p class="text-xs text-slate-300 leading-relaxed mb-3">
-                        マップ上のピン（青:スポット・駅 / オレンジ:そば / 茶:珈琲）にカーソルを合わせると営業時間が表示され、クリックすると詳細ポップアップが表示されます。
+                        下の経由地リストを<strong>ドラッグ＆ドロップ</strong>して順番を自由に変更できます。
                     </p>
                     <div class="flex gap-2">
                         <button onclick="clearRoute()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-2 rounded-lg font-bold transition flex items-center justify-center gap-1 border border-slate-600">
@@ -166,7 +172,7 @@
                 <!-- Route Waypoints List -->
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
                     <h3 class="font-bold text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
-                        <span>選択された経由地 (<span id="routeCount">0</span>)</span>
+                        <span>選択された経由地 (<span id="routeCount">0</span>) <span class="text-[10px] text-emerald-400 font-normal">※ドラッグで順番変更可</span></span>
                         <span id="routeDistText" class="text-emerald-400 font-bold">0.0 km</span>
                     </h3>
                     <div id="routeWaypointsList" class="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar text-xs text-slate-300">
@@ -827,7 +833,7 @@
             }
         }
 
-        // --- TAB 2: MAP & 3-COLOR PINS ENGINE ---
+        // --- TAB 2: MAP & 3-COLOR PINS ENGINE (ドラッグ＆ドロップ並び替え対応) ---
         let map = null;
         let routeWaypoints = [];
         let routePolyline = null;
@@ -873,7 +879,6 @@
 
                     const marker = L.marker([spot.lat, spot.lng], markerOpts).addTo(map);
 
-                    // ★ ホバー時（カーソルを合わせた時）のツールチップ（営業時間・定休日）
                     if (spot.hours && spot.holiday) {
                         const tooltipContent = '<div style="font-weight:bold; color:#f8fafc;">' + spot.name + '</div>' +
                                                '<div style="color:#34d399;">🕒 営業時間: ' + spot.hours + '</div>' +
@@ -886,8 +891,6 @@
                     }
 
                     const infoBadge = spot.info ? '<div class="text-amber-300 font-bold mt-1 text-[11px]">' + spot.info + '</div>' : '';
-                    
-                    // ★ クリックした時のポップアップ内部にも営業時間と定休日を表示
                     const hoursPopup = spot.hours ? '<div class="text-emerald-400 font-semibold text-[11px] mt-1">🕒 営業時間: ' + spot.hours + '<br>📅 定休日: ' + spot.holiday + '</div>' : '';
 
                     marker.bindPopup(
@@ -991,6 +994,44 @@
             updateRoute();
         }
 
+        // --- ドラッグ＆ドロップによる並び替え処理 ---
+        let draggedIndex = null;
+
+        function handleDragStart(e, index) {
+            draggedIndex = index;
+            e.dataTransfer.effectAllowed = 'move';
+            e.target.classList.add('dragging');
+        }
+
+        function handleDragOver(e, index) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const targetItem = e.currentTarget;
+            targetItem.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e, index) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            if (draggedIndex === null || draggedIndex === index) return;
+
+            // 配列の要素を入れ替え
+            const movedItem = routeWaypoints.splice(draggedIndex, 1)[0];
+            routeWaypoints.splice(index, 0, movedItem);
+            draggedIndex = null;
+            updateRoute();
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            document.querySelectorAll('#routeWaypointsList > div').forEach(el => el.classList.remove('drag-over'));
+            draggedIndex = null;
+        }
+
         async function updateRoute() {
             try {
                 const listEl = document.getElementById('routeWaypointsList');
@@ -1008,14 +1049,17 @@
                 for (let i = 0; i < routeWaypoints.length; i++) {
                     const wp = routeWaypoints[i];
                     waypointsHtml += 
-                        '<div class="flex items-center justify-between bg-slate-900/80 px-2.5 py-1.5 rounded border border-slate-700">' +
-                        '<span class="flex items-center gap-1.5 font-medium truncate">' +
+                        '<div draggable="true" ondragstart="handleDragStart(event, ' + i + ')" ondragover="handleDragOver(event, ' + i + ')" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, ' + i + ')" ondragend="handleDragEnd(event)" class="flex items-center justify-between bg-slate-900/80 px-2.5 py-1.5 rounded border border-slate-700 cursor-move hover:border-emerald-500 transition">' +
+                        '<span class="flex items-center gap-1.5 font-medium truncate pointer-events-none">' +
                         '<span class="w-4 h-4 rounded-full bg-emerald-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">' + (i + 1) + '</span>' +
-                        '<span class="truncate">' + wp.name + '</span>' +
+                        '<span class="truncate text-slate-200">' + wp.name + '</span>' +
                         '</span>' +
-                        '<button onclick="removeWaypoint(' + i + ')" class="text-slate-500 hover:text-rose-400 p-0.5">' +
+                        '<div class="flex items-center gap-1">' +
+                        '<span class="text-slate-500 text-[10px] hidden sm:inline">⠿ </span>' +
+                        '<button onclick="event.stopPropagation(); removeWaypoint(' + i + ')" class="text-slate-400 hover:text-rose-400 p-0.5">' +
                         '<i data-lucide="x-circle" class="w-3.5 h-3.5"></i>' +
                         '</button>' +
+                        '</div>' +
                         '</div>';
                 }
                 listEl.innerHTML = waypointsHtml;
