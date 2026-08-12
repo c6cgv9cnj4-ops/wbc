@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（スマホ・PC完全対応版）</title>
+    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（保存ルート総距離表示対応版）</title>
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -13,6 +13,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Chart.js for Elevation Profile -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- スマホ・タブレットのドラッグ＆ドロップ（タッチ操作）を有効にするポリフィル -->
+    <script src="https://unpkg.com/drag-drop-touch-js@0.2.2/dist/drag-drop-touch.esm.min.js" type="module"></script>
     <style>
         .month-active { background-color: #10B981; color: #FFFFFF; font-weight: 700; }
         .month-inactive { color: #64748B; background-color: rgba(30, 41, 59, 0.5); }
@@ -29,7 +31,6 @@
             font-size: 11px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
         }
-        /* タッチ＆ドラッグ中のスタイル */
         .sorting-item {
             touch-action: none;
             user-select: none;
@@ -1083,7 +1084,7 @@
                     item.addEventListener('drop', handleDrop);
                     item.addEventListener('dragend', handleDragEnd);
 
-                    // スマホのタッチ操作（Touchイベントによるシミュレーション）
+                    // スマホのタッチ操作シミュレーション
                     let touchStartY = 0;
                     item.addEventListener('touchstart', (e) => {
                         touchStartY = e.touches[0].clientY;
@@ -1156,7 +1157,10 @@
             }
         }
 
+        let currentRouteTotalDist = 0; // ルート総距離保持用変数
+
         function updateStats(distKm) {
+            currentRouteTotalDist = distKm; // 総距離を保持
             document.getElementById('routeDistText').textContent = distKm.toFixed(1) + ' km';
             document.getElementById('statDistance').textContent = distKm.toFixed(1);
 
@@ -1252,7 +1256,13 @@
             if (!title) return;
 
             const saved = JSON.parse(localStorage.getItem('savedWalkRoutes') || '[]');
-            saved.push({ title: title, waypoints: routeWaypoints, date: new Date().toLocaleDateString() });
+            // ★ 保存時に現在の総歩行距離 (currentRouteTotalDist) を一緒に保存するように変更
+            saved.push({ 
+                title: title, 
+                waypoints: routeWaypoints, 
+                totalDist: currentRouteTotalDist.toFixed(1), 
+                date: new Date().toLocaleDateString() 
+            });
             localStorage.setItem('savedWalkRoutes', JSON.stringify(saved));
             loadSavedRoutes();
         }
@@ -1269,10 +1279,13 @@
             let savedHtml = '';
             for (let i = 0; i < saved.length; i++) {
                 const r = saved[i];
+                // ★ 保存された総距離（存在する場合は表示、ない場合は経由地数のみ表示）
+                const distBadge = r.totalDist ? '<span class="text-emerald-400 font-bold ml-1">(' + r.totalDist + ' KM)</span>' : '';
+                
                 savedHtml += 
                     '<div class="flex items-center justify-between bg-slate-900/80 p-2 rounded border border-slate-700">' +
                     '<div>' +
-                    '<strong class="text-slate-200 text-xs block">' + r.title + '</strong>' +
+                    '<strong class="text-slate-200 text-xs block">' + r.title + distBadge + '</strong>' +
                     '<span class="text-[10px] text-slate-500">' + r.date + ' | 経由地: ' + r.waypoints.length + '箇所</span>' +
                     '</div>' +
                     '<div class="flex gap-1">' +
