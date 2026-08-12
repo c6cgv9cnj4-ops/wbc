@@ -112,8 +112,8 @@
                 </div>
             </div>
             <div class="flex gap-2 pt-2">
-                <button id="closeFuelBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">キャンセル</button>
-                <button id="saveFuelBtn" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold">保存</button>
+                <button type="button" id="closeFuelBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">キャンセル</button>
+                <button type="button" id="saveFuelBtn" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold">保存</button>
             </div>
         </div>
     </div>
@@ -147,8 +147,8 @@
             </div>
 
             <div class="flex gap-2 pt-2">
-                <button id="closePressureBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">キャンセル</button>
-                <button id="savePressureBtn" class="flex-1 bg-sky-600 text-white py-3 rounded-xl font-bold">保存</button>
+                <button type="button" id="closePressureBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">キャンセル</button>
+                <button type="button" id="savePressureBtn" class="flex-1 bg-sky-600 text-white py-3 rounded-xl font-bold">保存</button>
             </div>
         </div>
     </div>
@@ -180,8 +180,8 @@
                 <input type="text" id="oMemo" placeholder="例: 粘度5W-30" class="w-full bg-gray-100 p-3 rounded-xl">
             </div>
             <div class="flex gap-2 pt-2">
-                <button id="closeOilBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">キャンセル</button>
-                <button id="saveOilBtn" class="flex-1 bg-amber-600 text-white py-3 rounded-xl font-bold">保存</button>
+                <button type="button" id="closeOilBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">キャンセル</button>
+                <button type="button" id="saveOilBtn" class="flex-1 bg-amber-600 text-white py-3 rounded-xl font-bold">保存</button>
             </div>
         </div>
     </div>
@@ -207,18 +207,39 @@
                 <input type="text" id="iMemo" placeholder="例: 早期割引適用" class="w-full bg-gray-100 p-3 rounded-xl">
             </div>
             <div class="flex gap-2 pt-2">
-                <button id="closeInspBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">キャンセル</button>
-                <button id="saveInspBtn" class="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold">保存</button>
+                <button type="button" id="closeInspBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">キャンセル</button>
+                <button type="button" id="saveInspBtn" class="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold">保存</button>
             </div>
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // ローカルストレージデータの読み込み
-            let data = JSON.parse(localStorage.getItem('note_e11_v7_data')) || {
-                odometer: 78500, fuels: [], pressures: [], oils: [], inspections: []
-            };
+            // ローカルストレージデータの読み込みと安全な初期化
+            const STORAGE_KEY = 'note_e11_v7_data';
+            let data;
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                data = saved ? JSON.parse(saved) : null;
+            } catch (e) {
+                data = null;
+            }
+
+            if (!data || typeof data !== 'object') {
+                data = {
+                    odometer: 78500,
+                    fuels: [],
+                    pressures: [],
+                    oils: [],
+                    inspections: []
+                };
+            }
+
+            // 配列の存在保証
+            if (!Array.isArray(data.fuels)) data.fuels = [];
+            if (!Array.isArray(data.pressures)) data.pressures = [];
+            if (!Array.isArray(data.oils)) data.oils = [];
+            if (!Array.isArray(data.inspections)) data.inspections = [];
 
             const today = new Date();
             const todayStr = today.toISOString().slice(0, 10);
@@ -231,13 +252,13 @@
             // 今日の日付を各入力フォームにデフォルトセット
             ['fDate', 'pDate', 'oDate', 'iDate'].forEach(id => {
                 const el = document.getElementById(id);
-                if (el) el.value = todayStr;
+                if (el && !el.value) el.value = todayStr;
             });
 
             // 空気圧の選択肢（1.5 〜 3.0）をプルダウン生成
             ['pFL', 'pFR', 'pRL', 'pRR'].forEach(id => {
                 const select = document.getElementById(id);
-                if (select) {
+                if (select && select.children.length === 0) {
                     select.innerHTML = '';
                     for (let i = 15; i <= 30; i++) {
                         const val = (i / 10).toFixed(1);
@@ -250,16 +271,39 @@
                 }
             });
 
-            // モーダルの表示切替
+            // モーダルの表示切替関数
             const toggleModal = (modalId, show) => {
                 const modal = document.getElementById(modalId);
-                if (modal) modal.classList.toggle('hidden', !show);
+                if (modal) {
+                    modal.classList.toggle('hidden', !show);
+                    // モーダルを開く際に日付を当日へ自動セット
+                    if (show) {
+                        if (modalId === 'fuelModal') {
+                            const el = document.getElementById('fDate');
+                            if (el) el.value = todayStr;
+                        } else if (modalId === 'pressureModal') {
+                            const el = document.getElementById('pDate');
+                            if (el) el.value = todayStr;
+                        } else if (modalId === 'oilModal') {
+                            const el = document.getElementById('oDate');
+                            if (el) el.value = todayStr;
+                        } else if (modalId === 'inspModal') {
+                            const el = document.getElementById('iDate');
+                            if (el) el.value = todayStr;
+                        }
+                    }
+                }
             };
 
-            // ボタンクリックイベントの設定
+            // 安全なイベント登録ヘルパー
             const bindClick = (btnId, fn) => {
                 const btn = document.getElementById(btnId);
-                if (btn) btn.onclick = fn;
+                if (btn) {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        fn();
+                    });
+                }
             };
 
             bindClick('openFuelBtn', () => toggleModal('fuelModal', true));
@@ -275,25 +319,36 @@
             ['fuelModal', 'pressureModal', 'oilModal', 'inspModal'].forEach(id => {
                 const modal = document.getElementById(id);
                 if (modal) {
-                    modal.onclick = (e) => {
+                    modal.addEventListener('click', (e) => {
                         if (e.target === modal) toggleModal(id, false);
-                    };
+                    });
                 }
             });
 
+            // データの永続化と例外処理ラッピング
+            const saveDataAndRender = () => {
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                    render();
+                } catch (e) {
+                    alert('データの保存に失敗しました。ブラウザのストレージ容量やプライベートモード設定をご確認ください。');
+                }
+            };
+
             // 保存処理: 給油
             bindClick('saveFuelBtn', () => {
+                const fDate = document.getElementById('fDate').value || todayStr;
                 const mileage = Number(document.getElementById('fMileage').value) || data.odometer;
                 const amount = Number(document.getElementById('fAmount').value) || 0;
                 const price = Number(document.getElementById('fPrice').value) || 0;
 
-                const sortedFuels = [...data.fuels].sort((a,b) => b.mileage - a.mileage);
+                const sortedFuels = [...data.fuels].sort((a, b) => b.mileage - a.mileage);
                 const lastFuel = sortedFuels[0];
                 const efficiency = (lastFuel && amount > 0) ? Number(((mileage - lastFuel.mileage) / amount).toFixed(1)) : null;
 
                 data.fuels.push({
                     id: Date.now(),
-                    date: document.getElementById('fDate').value || todayStr,
+                    date: fDate,
                     mileage,
                     amount,
                     price,
@@ -302,9 +357,9 @@
                 });
 
                 if (mileage > data.odometer) data.odometer = mileage;
-                localStorage.setItem('note_e11_v7_data', JSON.stringify(data));
+                
                 toggleModal('fuelModal', false);
-                render();
+                saveDataAndRender();
             });
 
             // 保存処理: 空気圧
@@ -317,9 +372,9 @@
                     rl: document.getElementById('pRL').value,
                     rr: document.getElementById('pRR').value
                 });
-                localStorage.setItem('note_e11_v7_data', JSON.stringify(data));
+                
                 toggleModal('pressureModal', false);
-                render();
+                saveDataAndRender();
             });
 
             // 保存処理: オイル交換
@@ -337,9 +392,9 @@
                 });
 
                 if (mileage > data.odometer) data.odometer = mileage;
-                localStorage.setItem('note_e11_v7_data', JSON.stringify(data));
+                
                 toggleModal('oilModal', false);
-                render();
+                saveDataAndRender();
             });
 
             // 保存処理: 車検
@@ -355,9 +410,9 @@
                 });
 
                 if (mileage > data.odometer) data.odometer = mileage;
-                localStorage.setItem('note_e11_v7_data', JSON.stringify(data));
+                
                 toggleModal('inspModal', false);
-                render();
+                saveDataAndRender();
             });
 
             // データ出力（Gemini分析用テキストのクリップボードコピー）
@@ -381,6 +436,8 @@ ${data.inspections.map(i => `- ${i.date}: ${i.mileage}km / 費用:${i.cost}円 (
 
                 navigator.clipboard.writeText(exportText).then(() => {
                     alert('Gemini用データをコピーしました！チャット画面にそのまま貼り付けてください。');
+                }).catch(() => {
+                    alert('クリップボードへのコピーに失敗しました。');
                 });
             });
 
@@ -390,25 +447,25 @@ ${data.inspections.map(i => `- ${i.date}: ${i.mileage}km / 費用:${i.cost}円 (
                 const curMonth = today.getMonth() + 1;
 
                 // 燃費算出
-                const sortedF = [...data.fuels].sort((a,b) => b.mileage - a.mileage);
+                const sortedF = [...data.fuels].sort((a, b) => b.mileage - a.mileage);
                 const sLast = document.getElementById('sLast');
                 if (sLast) {
-                    sLast.textContent = (sortedF[0] && sortedF[0].efficiency) ? sortedF[0].efficiency + ' km/L' : '0.0 km/L';
+                    sLast.textContent = (sortedF[0] && sortedF[0].efficiency !== null && sortedF[0].efficiency !== undefined) ? sortedF[0].efficiency + ' km/L' : '0.0 km/L';
                 }
 
                 const mFuels = data.fuels.filter(f => {
                     const d = new Date(f.date);
-                    return d.getFullYear() === curYear && (d.getMonth() + 1) === curMonth && f.efficiency;
+                    return d.getFullYear() === curYear && (d.getMonth() + 1) === curMonth && f.efficiency !== null && f.efficiency !== undefined;
                 });
-                const mAvg = mFuels.length ? (mFuels.reduce((s,f) => s + f.efficiency, 0) / mFuels.length).toFixed(1) : '0.0';
+                const mAvg = mFuels.length ? (mFuels.reduce((s, f) => s + f.efficiency, 0) / mFuels.length).toFixed(1) : '0.0';
                 const sMonth = document.getElementById('sMonth');
                 if (sMonth) sMonth.textContent = mAvg + ' km/L';
 
                 const yFuels = data.fuels.filter(f => {
                     const d = new Date(f.date);
-                    return d.getFullYear() === curYear && f.efficiency;
+                    return d.getFullYear() === curYear && f.efficiency !== null && f.efficiency !== undefined;
                 });
-                const yAvg = yFuels.length ? (yFuels.reduce((s,f) => s + f.efficiency, 0) / yFuels.length).toFixed(1) : '0.0';
+                const yAvg = yFuels.length ? (yFuels.reduce((s, f) => s + f.efficiency, 0) / yFuels.length).toFixed(1) : '0.0';
                 const sYear = document.getElementById('sYear');
                 if (sYear) sYear.textContent = yAvg + ' km/L';
 
@@ -420,7 +477,7 @@ ${data.inspections.map(i => `- ${i.date}: ${i.mileage}km / 費用:${i.cost}円 (
                             <div>
                                 <div class="font-bold text-gray-900">${sortedF[0].date}</div>
                                 <div class="text-gray-500">${sortedF[0].amount}L (${sortedF[0].price}円/L) | ${sortedF[0].mileage}km</div>
-                                <div class="text-blue-600 font-bold mt-0.5">${sortedF[0].efficiency ? sortedF[0].efficiency + ' km/L' : '燃費計算中'}</div>
+                                <div class="text-blue-600 font-bold mt-0.5">${(sortedF[0].efficiency !== null && sortedF[0].efficiency !== undefined) ? sortedF[0].efficiency + ' km/L' : '燃費計算中'}</div>
                             </div>
                             <b class="text-sm text-gray-900">${sortedF[0].cost.toLocaleString()}円</b>
                         </div>
@@ -428,7 +485,7 @@ ${data.inspections.map(i => `- ${i.date}: ${i.mileage}km / 費用:${i.cost}円 (
                 }
 
                 // 2. 空気圧表示 (最新1件 ＆ 毎月1日リマインダー)
-                const sortedP = [...data.pressures].sort((a,b) => new Date(b.date) - new Date(a.date));
+                const sortedP = [...data.pressures].sort((a, b) => new Date(b.date) - new Date(a.date));
                 const pressureReminder = document.getElementById('pressureReminder');
                 if (pressureReminder) {
                     pressureReminder.innerHTML = (today.getDate() === 1) ? `
@@ -455,7 +512,7 @@ ${data.inspections.map(i => `- ${i.date}: ${i.mileage}km / 費用:${i.cost}円 (
 
                 // 半年(180日)経過アラート
                 let alerts = [];
-                const sortedO = [...data.oils].sort((a,b) => new Date(b.date) - new Date(a.date));
+                const sortedO = [...data.oils].sort((a, b) => new Date(b.date) - new Date(a.date));
                 const lastO = sortedO[0];
                 if (!lastO || (today - new Date(lastO.date)) / 86400000 > 180) {
                     alerts.push("エンジンオイル交換から半年（180日）以上経過しています");
@@ -491,7 +548,7 @@ ${data.inspections.map(i => `- ${i.date}: ${i.mileage}km / 費用:${i.cost}円 (
                 }
 
                 // 4. 車検表示 (カウントダウン)
-                const sortedI = [...data.inspections].sort((a,b) => new Date(b.date) - new Date(a.date));
+                const sortedI = [...data.inspections].sort((a, b) => new Date(b.date) - new Date(a.date));
                 const lastI = sortedI[0];
                 
                 const inspReminder = document.getElementById('inspReminder');
@@ -503,7 +560,7 @@ ${data.inspections.map(i => `- ${i.date}: ${i.mileage}km / 費用:${i.cost}円 (
                         const days = Math.ceil((nextD - today) / (1000 * 60 * 60 * 24));
                         inspMsg = (days <= 90 && days > 0) ? 
                             `【早期割引チャンス】車検満了まであと ${days} 日！3ヶ月前予約の割引が適用できます。` : 
-                            `次回車検予定: ${nextD.toISOString().slice(0,10)} (あと ${days} 日)`;
+                            `次回車検予定: ${nextD.toISOString().slice(0, 10)} (あと ${days} 日)`;
                     }
                     inspReminder.innerHTML = `<div class="bg-purple-50 text-purple-900 p-2.5 rounded-xl font-medium">${inspMsg}</div>`;
                 }
