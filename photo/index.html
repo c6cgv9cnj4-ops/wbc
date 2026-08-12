@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（ドラッグ並び替え対応版）</title>
+    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（完全クリーン・プロ品質版）</title>
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -29,7 +29,6 @@
             font-size: 11px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
         }
-        /* ドラッグ中のスタイル */
         .dragging {
             opacity: 0.4;
             background: #0f172a !important;
@@ -127,7 +126,7 @@
                         <i data-lucide="compass" class="w-4 h-4 text-emerald-400"></i> 都内レトロ・散歩撮影ルート作成
                     </h2>
                     <p class="text-xs text-slate-300 leading-relaxed mb-3">
-                        下の経由地リストを<strong>ドラッグ＆ドロップ</strong>して順番を自由に変更できます。
+                        下の経由地カードを<strong>ドラッグ＆ドロップ</strong>して順番を自由に変更できます。
                     </p>
                     <div class="flex gap-2">
                         <button onclick="clearRoute()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-2 rounded-lg font-bold transition flex items-center justify-center gap-1 border border-slate-600">
@@ -172,7 +171,7 @@
                 <!-- Route Waypoints List -->
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
                     <h3 class="font-bold text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
-                        <span>選択された経由地 (<span id="routeCount">0</span>) <span class="text-[10px] text-emerald-400 font-normal">※ドラッグで順番変更可</span></span>
+                        <span>選択された経由地 (<span id="routeCount">0</span>) <span class="text-[10px] text-emerald-400 font-normal">※ドラッグで順序変更可</span></span>
                         <span id="routeDistText" class="text-emerald-400 font-bold">0.0 km</span>
                     </h3>
                     <div id="routeWaypointsList" class="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar text-xs text-slate-300">
@@ -833,7 +832,7 @@
             }
         }
 
-        // --- TAB 2: MAP & 3-COLOR PINS ENGINE (ドラッグ＆ドロップ並び替え対応) ---
+        // --- TAB 2: MAP & 3-COLOR PINS ENGINE ---
         let map = null;
         let routeWaypoints = [];
         let routePolyline = null;
@@ -879,6 +878,7 @@
 
                     const marker = L.marker([spot.lat, spot.lng], markerOpts).addTo(map);
 
+                    // ホバー時のツールチップ（営業時間・定休日）
                     if (spot.hours && spot.holiday) {
                         const tooltipContent = '<div style="font-weight:bold; color:#f8fafc;">' + spot.name + '</div>' +
                                                '<div style="color:#34d399;">🕒 営業時間: ' + spot.hours + '</div>' +
@@ -891,7 +891,9 @@
                     }
 
                     const infoBadge = spot.info ? '<div class="text-amber-300 font-bold mt-1 text-[11px]">' + spot.info + '</div>' : '';
-                    const hoursPopup = spot.hours ? '<div class="text-emerald-400 font-semibold text-[11px] mt-1">🕒 営業時間: ' + spot.hours + '<br>📅 定休日: ' + spot.holiday + '</div>' : '';
+                    
+                    // ★ ポップアップ内部に営業時間と定休日を表示
+                    const hoursPopup = spot.hours ? '<div class="text-emerald-600 font-semibold text-[11px] mt-1">🕒 営業時間: ' + spot.hours + '<br>📅 定休日: ' + spot.holiday + '</div>' : '';
 
                     marker.bindPopup(
                         '<div class="text-slate-900 text-xs font-sans">' +
@@ -1006,8 +1008,7 @@
         function handleDragOver(e, index) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
-            const targetItem = e.currentTarget;
-            targetItem.classList.add('drag-over');
+            e.currentTarget.classList.add('drag-over');
         }
 
         function handleDragLeave(e) {
@@ -1019,7 +1020,6 @@
             e.currentTarget.classList.remove('drag-over');
             if (draggedIndex === null || draggedIndex === index) return;
 
-            // 配列の要素を入れ替え
             const movedItem = routeWaypoints.splice(draggedIndex, 1)[0];
             routeWaypoints.splice(index, 0, movedItem);
             draggedIndex = null;
