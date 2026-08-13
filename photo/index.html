@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（保存ルート総距離表示・完全対応版）</title>
+    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（保存ルート詳細情報対応版）</title>
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -13,7 +13,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Chart.js for Elevation Profile -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- スマホ・タブレットのドラッグ＆ドロップ（タッチ操作）を有効にするポリフィル -->
+    <!-- スマホ・タブレットのタッチ操作対応ポリフィル -->
     <script src="https://unpkg.com/drag-drop-touch-js@0.2.2/dist/drag-drop-touch.esm.min.js" type="module"></script>
     <style>
         .month-active { background-color: #10B981; color: #FFFFFF; font-weight: 700; }
@@ -1002,7 +1002,7 @@
         let currentRouteTotalDist = 0; // ルート総距離保持用
 
         function updateStats(distKm) {
-            currentRouteTotalDist = distKm; // デバッガー指示対応
+            currentRouteTotalDist = distKm;
             document.getElementById('routeDistText').textContent = distKm.toFixed(1) + ' km';
             document.getElementById('statDistance').textContent = distKm.toFixed(1);
 
@@ -1247,7 +1247,6 @@
             window.open(url, '_blank');
         }
 
-        // --- デバッガー指示対応: saveCurrentRoute (totalDist保存) ---
         function saveCurrentRoute() {
             if (routeWaypoints.length < 2) {
                 alert('保存するルートを作成してください。');
@@ -1262,7 +1261,7 @@
             saved.push({ 
                 title: title, 
                 waypoints: routeWaypoints, 
-                totalDist: currentRouteTotalDist.toFixed(1), // デバッガー指示対応
+                totalDist: currentRouteTotalDist.toFixed(1),
                 date: new Date().toLocaleDateString() 
             });
             
@@ -1270,7 +1269,6 @@
             loadSavedRoutes();
         }
 
-        // 古いデータ用の総距離自動計算ヘルパー
         function calculateSavedRouteDistance(waypoints) {
             if (!waypoints || waypoints.length < 2) return '0.0';
             let dist = 0;
@@ -1280,7 +1278,7 @@
             return (dist * 1.25).toFixed(1);
         }
 
-        // --- デバッガー指示対応: loadSavedRoutes (指示書通りのカード内総距離表示) ---
+        // --- デバッガー指示書準拠: loadSavedRoutes (総歩行距離の明示表示) ---
         function loadSavedRoutes() {
             const listEl = document.getElementById('savedRoutesList');
             const saved = JSON.parse(localStorage.getItem('savedWalkRoutes') || '[]');
@@ -1294,7 +1292,7 @@
             for (let i = 0; i < saved.length; i++) {
                 const r = saved[i];
                 
-                // ★ 総距離が存在する場合に表示するHTMLスニペットを作成（デバッガー指示書準拠）
+                // ★ 総距離が存在する場合に表示するHTMLスニペットを作成
                 const distVal = r.totalDist ? r.totalDist : calculateSavedRouteDistance(r.waypoints);
                 const distText = distVal ? ' | 総歩行距離: <strong class="text-emerald-300">' + distVal + ' km</strong>' : '';
                 
