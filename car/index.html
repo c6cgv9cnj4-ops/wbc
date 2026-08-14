@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日産 ノート E11 管理 & マップ</title>
+    <title>日産 ノート E11 管理 & クラウド同期</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <!-- Leaflet JavaScript -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; 
@@ -35,7 +35,10 @@
                 <h1 class="font-bold text-xl">Note E11 管理</h1>
                 <p id="headerDate" class="text-xs text-gray-500"></p>
             </div>
-            <button id="exportBtn" class="bg-blue-600 text-white px-3.5 py-2 rounded-full text-xs font-bold shadow-sm active:scale-95 transition">Gemini用データ出力</button>
+            <div class="flex items-center gap-2">
+                <span id="syncStatus" class="text-[10px] bg-gray-200 text-gray-700 px-2 py-1 rounded-full font-medium">オフライン</span>
+                <button id="configBtn" class="bg-gray-200 text-gray-700 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm active:scale-95 transition"><i class="fa-solid fa-cloud"></i> 同期設定</button>
+            </div>
         </header>
 
         <!-- 半年リマインダー・緊急アラート表示エリア -->
@@ -98,6 +101,26 @@
             <div id="inspList" class="space-y-2 text-xs mb-3"></div>
             <button id="openInspBtn" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold text-xs active:scale-95 transition">車検を記録</button>
         </section>
+    </div>
+
+    <!-- モーダル: 同期設定 -->
+    <div id="configModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-3 text-xs">
+            <h3 class="font-bold text-sm">クラウド同期設定 (JSONBin)</h3>
+            <p class="text-[11px] text-gray-500">無料のJSONBin.io等を使ってスマホとPCを同期します。設定しない場合はこの端末内のみに保存されます。</p>
+            <div>
+                <label class="text-[10px] text-gray-500 mb-1 block">Bin ID</label>
+                <input type="text" id="cfgBinId" placeholder="例: 650...abc" class="w-full bg-gray-100 p-3 rounded-xl">
+            </div>
+            <div>
+                <label class="text-[10px] text-gray-500 mb-1 block">Master Key ($2a$...)</label>
+                <input type="password" id="cfgApiKey" placeholder="例: $2a$10$..." class="w-full bg-gray-100 p-3 rounded-xl">
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button type="button" id="closeConfigBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">閉じる</button>
+                <button type="button" id="saveConfigBtn" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">接続・保存</button>
+            </div>
+        </div>
     </div>
 
     <!-- モーダル: 給油 -->
@@ -222,11 +245,10 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Leafletマップの初期化
             const map = L.map('map').setView([36.0232, 139.5372], 14);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 maxZoom: 19,
-                attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
+                attribution: '&copy; CARTO'
             }).addTo(map);
 
             L.marker([36.0232, 139.5372]).addTo(map)
@@ -234,29 +256,13 @@
 
             setTimeout(() => { map.invalidateSize(); }, 250);
 
-            const STORAGE_KEY = 'note_e11_v10_data';
-            let data;
-            try {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                data = saved ? JSON.parse(saved) : null;
-            } catch (e) {
-                data = null;
-            }
-
-            if (!data || typeof data !== 'object') {
-                data = {
-                    odometer: 78500,
-                    fuels: [],
-                    pressures: [],
-                    oils: [],
-                    inspections: []
-                };
-            }
-
-            if (!Array.isArray(data.fuels)) data.fuels = [];
-            if (!Array.isArray(data.pressures)) data.pressures = [];
-            if (!Array.isArray(data.oils)) data.oils = [];
-            if (!Array.isArray(data.inspections)) data.inspections = [];
+            const STORAGE_KEY = 'note_e11_cloud_v1';
+            const CONFIG_KEY = 'note_e11_cloud_config';
+            
+            let config = JSON.parse(localStorage.getItem(CONFIG_KEY)) || { binId: '', apiKey: '' };
+            let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+                odometer: 78500, fuels: [], pressures: [], oils: [], inspections: []
+            };
 
             const today = new Date();
             const todayStr = today.toISOString().slice(0, 10);
@@ -266,24 +272,72 @@
                 headerDate.textContent = today.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
             }
 
-            ['fDate', 'pDate', 'oDate', 'iDate'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el && !el.value) el.value = todayStr;
-            });
-
-            ['pFL', 'pFR', 'pRL', 'pRR'].forEach(id => {
-                const select = document.getElementById(id);
-                if (select && select.children.length === 0) {
-                    select.innerHTML = '';
-                    for (let i = 15; i <= 30; i++) {
-                        const val = (i / 10).toFixed(1);
-                        const opt = document.createElement('option');
-                        opt.value = val;
-                        opt.textContent = val;
-                        if (val === "2.3") opt.selected = true;
-                        select.appendChild(opt);
+            // クラウドから自動取得（設定されている場合）
+            async function fetchCloudData() {
+                if (!config.binId || !config.apiKey) return;
+                try {
+                    const res = await fetch(`https://api.jsonbin.io/v3/b/${config.binId}/latest`, {
+                        headers: { 'X-Master-Key': config.apiKey }
+                    });
+                    if (res.ok) {
+                        const json = await res.json();
+                        if (json.record) {
+                            data = json.record;
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                            render();
+                            document.getElementById('syncStatus').textContent = 'クラウド同期中';
+                            document.getElementById('syncStatus').className = 'text-[10px] bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-bold';
+                        }
                     }
+                } catch (e) {
+                    document.getElementById('syncStatus').textContent = '同期エラー(オフライン)';
+                    document.getElementById('syncStatus').className = 'text-[10px] bg-amber-100 text-amber-800 px-2 py-1 rounded-full font-bold';
                 }
+            }
+
+            // クラウドへ自動保存
+            async function saveCloudData() {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                render();
+
+                if (!config.binId || !config.apiKey) return;
+                try {
+                    const res = await fetch(`https://api.jsonbin.io/v3/b/${config.binId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': config.apiKey
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    if (res.ok) {
+                        document.getElementById('syncStatus').textContent = '同期完了';
+                        document.getElementById('syncStatus').className = 'text-[10px] bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-bold';
+                    }
+                } catch (e) {
+                    document.getElementById('syncStatus').textContent = '保存エラー';
+                }
+            }
+
+            if (config.binId && config.apiKey) {
+                fetchCloudData();
+            }
+
+            // 設定モーダル操作
+            document.getElementById('configBtn').addEventListener('click', () => {
+                document.getElementById('cfgBinId').value = config.binId;
+                document.getElementById('cfgApiKey').value = config.apiKey;
+                document.getElementById('configModal').classList.remove('hidden');
+            });
+            document.getElementById('closeConfigBtn').addEventListener('click', () => {
+                document.getElementById('configModal').classList.add('hidden');
+            });
+            document.getElementById('saveConfigBtn').addEventListener('click', () => {
+                config.binId = document.getElementById('cfgBinId').value.trim();
+                config.apiKey = document.getElementById('cfgApiKey').value.trim();
+                localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+                document.getElementById('configModal').classList.add('hidden');
+                fetchCloudData();
             });
 
             const toggleModal = (modalId, show) => {
@@ -292,23 +346,16 @@
                     modal.classList.toggle('hidden', !show);
                     if (show) {
                         if (modalId === 'fuelModal') {
-                            const el = document.getElementById('fDate');
-                            const mEl = document.getElementById('fMileage');
-                            if (el) el.value = todayStr;
-                            if (mEl) mEl.value = data.odometer;
+                            document.getElementById('fDate').value = todayStr;
+                            document.getElementById('fMileage').value = data.odometer;
                         } else if (modalId === 'pressureModal') {
-                            const el = document.getElementById('pDate');
-                            if (el) el.value = todayStr;
+                            document.getElementById('pDate').value = todayStr;
                         } else if (modalId === 'oilModal') {
-                            const el = document.getElementById('oDate');
-                            const mEl = document.getElementById('oMileage');
-                            if (el) el.value = todayStr;
-                            if (mEl) mEl.value = data.odometer;
+                            document.getElementById('oDate').value = todayStr;
+                            document.getElementById('oMileage').value = data.odometer;
                         } else if (modalId === 'inspModal') {
-                            const el = document.getElementById('iDate');
-                            const mEl = document.getElementById('iMileage');
-                            if (el) el.value = todayStr;
-                            if (mEl) mEl.value = data.odometer;
+                            document.getElementById('iDate').value = todayStr;
+                            document.getElementById('iMileage').value = data.odometer;
                         }
                     }
                 }
@@ -316,11 +363,7 @@
 
             const bindClick = (btnId, fn) => {
                 const btn = document.getElementById(btnId);
-                if (btn) {
-                    btn.addEventListener('click', (e) => {
-                        fn();
-                    });
-                }
+                if (btn) btn.addEventListener('click', (e) => fn());
             };
 
             bindClick('openFuelBtn', () => toggleModal('fuelModal', true));
@@ -332,25 +375,21 @@
             bindClick('openInspBtn', () => toggleModal('inspModal', true));
             bindClick('closeInspBtn', () => toggleModal('inspModal', false));
 
-            ['fuelModal', 'pressureModal', 'oilModal', 'inspModal'].forEach(id => {
-                const modal = document.getElementById(id);
-                if (modal) {
-                    modal.addEventListener('click', (e) => {
-                        if (e.target === modal) toggleModal(id, false);
-                    });
+            ['pFL', 'pFR', 'pRL', 'pRR'].forEach(id => {
+                const select = document.getElementById(id);
+                if (select && select.children.length === 0) {
+                    for (let i = 15; i <= 30; i++) {
+                        const val = (i / 10).toFixed(1);
+                        const opt = document.createElement('option');
+                        opt.value = val;
+                        opt.textContent = val;
+                        if (val === "2.3") opt.selected = true;
+                        select.appendChild(opt);
+                    }
                 }
             });
 
-            const saveDataAndRender = () => {
-                try {
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-                    render();
-                } catch (e) {
-                    alert('データの保存に失敗しました。');
-                }
-            };
-
-            // 保存処理: 給油
+            // 保存処理
             bindClick('saveFuelBtn', () => {
                 const fDate = document.getElementById('fDate').value || todayStr;
                 const mileage = parseFloat(document.getElementById('fMileage').value) || data.odometer;
@@ -361,23 +400,13 @@
                 const lastFuel = sortedFuels[0];
                 const efficiency = (lastFuel && amount > 0) ? Number(((mileage - lastFuel.mileage) / amount).toFixed(1)) : null;
 
-                data.fuels.push({
-                    id: Date.now(),
-                    date: fDate,
-                    mileage,
-                    amount,
-                    price,
-                    cost: Math.floor(amount * price),
-                    efficiency
-                });
-
+                data.fuels.push({ id: Date.now(), date: fDate, mileage, amount, price, cost: Math.floor(amount * price), efficiency });
                 if (mileage > data.odometer) data.odometer = mileage;
                 
                 toggleModal('fuelModal', false);
-                saveDataAndRender();
+                saveCloudData();
             });
 
-            // 保存処理: 空気圧
             bindClick('savePressureBtn', () => {
                 data.pressures.push({
                     id: Date.now(),
@@ -387,35 +416,27 @@
                     rl: document.getElementById('pRL').value,
                     rr: document.getElementById('pRR').value
                 });
-                
                 toggleModal('pressureModal', false);
-                saveDataAndRender();
+                saveCloudData();
             });
 
-            // 保存処理: オイル交換
             bindClick('saveOilBtn', () => {
                 const mileage = parseFloat(document.getElementById('oMileage').value) || data.odometer;
-                const isElement = document.getElementById('oElement').checked;
-
                 data.oils.push({
                     id: Date.now(),
                     date: document.getElementById('oDate').value || todayStr,
                     mileage,
                     cost: parseFloat(document.getElementById('oCost').value) || 0,
-                    element: isElement,
+                    element: document.getElementById('oElement').checked,
                     memo: document.getElementById('oMemo').value
                 });
-
                 if (mileage > data.odometer) data.odometer = mileage;
-                
                 toggleModal('oilModal', false);
-                saveDataAndRender();
+                saveCloudData();
             });
 
-            // 保存処理: 車検
             bindClick('saveInspBtn', () => {
                 const mileage = parseFloat(document.getElementById('iMileage').value) || data.odometer;
-
                 data.inspections.push({
                     id: Date.now(),
                     date: document.getElementById('iDate').value || todayStr,
@@ -423,100 +444,57 @@
                     cost: parseFloat(document.getElementById('iCost').value) || 0,
                     memo: document.getElementById('iMemo').value
                 });
-
                 if (mileage > data.odometer) data.odometer = mileage;
-                
                 toggleModal('inspModal', false);
-                saveDataAndRender();
+                saveCloudData();
             });
 
-            // データエクスポート
-            bindClick('exportBtn', () => {
-                const exportText = `# 日産ノートE11 メンテナンス＆給油データ
-現在総走行距離: ${data.odometer} km
-
-## 給油記録${data.fuels.map(f => `- ${f.date}: ${f.mileage}km / ${f.amount}L (${f.price}円/L) / 費用:${f.cost}円 / 燃費:${f.efficiency !== null ? f.efficiency + 'km/L' : '初給油のため計算不可'}`).join('\n')}
-
-## タイヤ空気圧記録 (4輪)${data.pressures.map(p => `- ${p.date}: FL=${p.fl}, FR=${p.fr}, RL=${p.rl}, RR=${p.rr}`).join('\n')}
-
-## オイル交換記録${data.oils.map(o => `- ${o.date}: ${o.mileage}km / 費用:${o.cost}円 / エレメント:${o.element ? '交換あり' : 'なし'} (${o.memo || ''})`).join('\n')}
-
-## 車検記録${data.inspections.map(i => `- ${i.date}: ${i.mileage}km / 費用:${i.cost}円 (${i.memo || ''})`).join('\n')}
-
-上記データをもとに分析を行ってください。`.trim();
-
-                navigator.clipboard.writeText(exportText).then(() => {
-                    alert('Gemini用データをコピーしました！チャット画面にそのまま貼り付けてください。');
-                }).catch(() => {
-                    alert('クリップボードへのコピーに失敗しました。');
-                });
-            });
-
-            // レンダリング＆計算ロジック
             function render() {
                 const curYear = today.getFullYear();
                 const curMonth = today.getMonth() + 1;
 
                 const sortedF = [...data.fuels].sort((a, b) => b.mileage - a.mileage);
-                const sLast = document.getElementById('sLast');
-                if (sLast) {
-                    sLast.textContent = (sortedF[0] && sortedF[0].efficiency !== null && sortedF[0].efficiency !== undefined) ? sortedF[0].efficiency + ' km/L' : '0.0';
-                }
+                document.getElementById('sLast').textContent = (sortedF[0] && sortedF[0].efficiency != null) ? sortedF[0].efficiency + ' km/L' : '0.0';
 
                 const mFuels = data.fuels.filter(f => {
                     const d = new Date(f.date);
-                    return d.getFullYear() === curYear && (d.getMonth() + 1) === curMonth && f.efficiency !== null && f.efficiency !== undefined;
+                    return d.getFullYear() === curYear && (d.getMonth() + 1) === curMonth && f.efficiency != null;
                 });
-                const mAvg = mFuels.length ? (mFuels.reduce((s, f) => s + f.efficiency, 0) / mFuels.length).toFixed(1) : '0.0';
-                const sMonth = document.getElementById('sMonth');
-                if (sMonth) sMonth.textContent = mAvg;
+                document.getElementById('sMonth').textContent = mFuels.length ? (mFuels.reduce((s, f) => s + f.efficiency, 0) / mFuels.length).toFixed(1) : '0.0';
 
                 const yFuels = data.fuels.filter(f => {
                     const d = new Date(f.date);
-                    return d.getFullYear() === curYear && f.efficiency !== null && f.efficiency !== undefined;
+                    return d.getFullYear() === curYear && f.efficiency != null;
                 });
-                const yAvg = yFuels.length ? (yFuels.reduce((s, f) => s + f.efficiency, 0) / yFuels.length).toFixed(1) : '0.0';
-                const sYear = document.getElementById('sYear');
-                if (sYear) sYear.textContent = yAvg;
+                document.getElementById('sYear').textContent = yFuels.length ? (yFuels.reduce((s, f) => s + f.efficiency, 0) / yFuels.length).toFixed(1) : '0.0';
 
-                const fuelList = document.getElementById('fuelList');
-                if (fuelList) {
-                    fuelList.innerHTML = sortedF[0] ? `
-                        <div class="bg-gray-50 p-3 rounded-xl flex justify-between items-center">
-                            <div>
-                                <div class="font-bold text-gray-900">${sortedF[0].date}</div>
-                                <div class="text-gray-500">${sortedF[0].amount}L (${sortedF[0].price}円/L) | ${sortedF[0].mileage}km</div>
-                                <div class="text-blue-600 font-bold mt-0.5">${(sortedF[0].efficiency !== null && sortedF[0].efficiency !== undefined) ? sortedF[0].efficiency + ' km/L' : '燃費計算中'}</div>
-                            </div>
-                            <b class="text-sm text-gray-900">${sortedF[0].cost.toLocaleString()}円</b>
+                document.getElementById('fuelList').innerHTML = sortedF[0] ? `
+                    <div class="bg-gray-50 p-3 rounded-xl flex justify-between items-center">
+                        <div>
+                            <div class="font-bold text-gray-900">${sortedF[0].date}</div>
+                            <div class="text-gray-500">${sortedF[0].amount}L (${sortedF[0].price}円/L) | ${sortedF[0].mileage}km</div>
+                            <div class="text-blue-600 font-bold mt-0.5">${sortedF[0].efficiency != null ? sortedF[0].efficiency + ' km/L' : '計算中'}</div>
                         </div>
-                    ` : '<div class="text-gray-400 py-1">給油記録がありません</div>';
-                }
+                        <b class="text-sm text-gray-900">${sortedF[0].cost.toLocaleString()}円</b>
+                    </div>
+                ` : '<div class="text-gray-400 py-1">給油記録がありません</div>';
 
                 const sortedP = [...data.pressures].sort((a, b) => new Date(b.date) - new Date(a.date));
-                const pressureReminder = document.getElementById('pressureReminder');
-                if (pressureReminder) {
-                    pressureReminder.innerHTML = (today.getDate() === 1) ? `
-                        <div class="bg-sky-100 text-sky-900 p-2.5 rounded-xl font-bold flex items-center gap-2">
-                            <i class="fa-solid fa-bell text-sky-600"></i> 本日は毎月1日です！タイヤ空気圧の点検日です
-                        </div>
-                    ` : '';
-                }
+                document.getElementById('pressureReminder').innerHTML = (today.getDate() === 1) ? `
+                    <div class="bg-sky-100 text-sky-900 p-2.5 rounded-xl font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-bell text-sky-600"></i> 本日は毎月1日です！タイヤ空気圧の点検日です
+                    </div>
+                ` : '';
 
-                const pressureList = document.getElementById('pressureList');
-                if (pressureList) {
-                    pressureList.innerHTML = sortedP[0] ? `
-                        <div class="bg-gray-50 p-3 rounded-xl">
-                            <div class="font-bold text-gray-900 mb-1">${sortedP[0].date} 点検</div>
-                            <div class="text-gray-600 space-x-1">
-                                <span>前左: <b>${sortedP[0].fl}</b></span> / 
-                                <span>前右: <b>${sortedP[0].fr}</b></span> / 
-                                <span>後左: <b>${sortedP[0].rl}</b></span> / 
-                                <span>後右: <b>${sortedP[0].rr}</b></span>
-                            </div>
+                document.getElementById('pressureList').innerHTML = sortedP[0] ? `
+                    <div class="bg-gray-50 p-3 rounded-xl">
+                        <div class="font-bold text-gray-900 mb-1">${sortedP[0].date} 点検</div>
+                        <div class="text-gray-600 space-x-1">
+                            <span>FL: <b>${sortedP[0].fl}</b></span> / <span>FR: <b>${sortedP[0].fr}</b></span> / 
+                            <span>RL: <b>${sortedP[0].rl}</b></span> / <span>RR: <b>${sortedP[0].rr}</b></span>
                         </div>
-                    ` : '<div class="text-gray-400 py-1">空気圧の点検記録がありません</div>';
-                }
+                    </div>
+                ` : '<div class="text-gray-400 py-1">空気圧の点検記録がありません</div>';
 
                 let alerts = [];
                 const sortedO = [...data.oils].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -528,60 +506,46 @@
                     alerts.push("タイヤ空気圧点検から半年（180日）以上経過しています");
                 }
 
-                const alertContainer = document.getElementById('alertContainer');
-                if (alertContainer) {
-                    alertContainer.innerHTML = alerts.map(a => `
-                        <div class="bg-amber-100 border border-amber-300 p-3 rounded-xl text-amber-900 text-xs font-bold flex items-center gap-2">
-                            <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> ${a}
-                        </div>
-                    `).join('');
-                }
+                document.getElementById('alertContainer').innerHTML = alerts.map(a => `
+                    <div class="bg-amber-100 border border-amber-300 p-3 rounded-xl text-amber-900 text-xs font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> ${a}
+                    </div>
+                `).join('');
 
-                const oilList = document.getElementById('oilList');
-                if (oilList) {
-                    oilList.innerHTML = lastO ? `
-                        <div class="bg-gray-50 p-3 rounded-xl flex justify-between items-center">
-                            <div>
-                                <div class="font-bold text-gray-900 flex items-center gap-2">
-                                    ${lastO.date}
-                                    ${lastO.element ? '<span class="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.5 rounded font-bold">エレメント交換あり</span>' : ''}
-                                </div>
-                                <div class="text-gray-500 mt-0.5">${lastO.mileage} km ${lastO.memo ? '| ' + lastO.memo : ''}</div>
+                document.getElementById('oilList').innerHTML = lastO ? `
+                    <div class="bg-gray-50 p-3 rounded-xl flex justify-between items-center">
+                        <div>
+                            <div class="font-bold text-gray-900 flex items-center gap-2">
+                                ${lastO.date} ${lastO.element ? '<span class="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.5 rounded font-bold">エレメント交換あり</span>' : ''}
                             </div>
-                            <b class="text-sm text-gray-900">${lastO.cost.toLocaleString()}円</b>
+                            <div class="text-gray-500 mt-0.5">${lastO.mileage} km ${lastO.memo ? '| ' + lastO.memo : ''}</div>
                         </div>
-                    ` : '<div class="text-gray-400 py-1">オイル交換の記録がありません</div>';
-                }
+                        <b class="text-sm text-gray-900">${lastO.cost.toLocaleString()}円</b>
+                    </div>
+                ` : '<div class="text-gray-400 py-1">オイル交換の記録がありません</div>';
 
                 const sortedI = [...data.inspections].sort((a, b) => new Date(b.date) - new Date(a.date));
                 const lastI = sortedI[0];
+                let inspMsg = "車検記録が未登録です";
+                if (lastI) {
+                    const nextD = new Date(lastI.date);
+                    nextD.setFullYear(nextD.getFullYear() + 2);
+                    const days = Math.ceil((nextD - today) / (1000 * 60 * 60 * 24));
+                    inspMsg = (days <= 90 && days > 0) ? 
+                        `【早期割引チャンス】車検満了まであと ${days} 日！3ヶ月前予約の割引が適用できます。` : 
+                        `次回車検予定: ${nextD.toISOString().slice(0, 10)} (あと ${days} 日)`;
+                }
+                document.getElementById('inspReminder').innerHTML = `<div class="bg-purple-50 text-purple-900 p-2.5 rounded-xl font-medium">${inspMsg}</div>`;
                 
-                const inspReminder = document.getElementById('inspReminder');
-                if (inspReminder) {
-                    let inspMsg = "車検記録が未登録です";
-                    if (lastI) {
-                        const nextD = new Date(lastI.date);
-                        nextD.setFullYear(nextD.getFullYear() + 2);
-                        const days = Math.ceil((nextD - today) / (1000 * 60 * 60 * 24));
-                        inspMsg = (days <= 90 && days > 0) ? 
-                            `【早期割引チャンス】車検満了まであと ${days} 日！3ヶ月前予約の割引が適用できます。` : 
-                            `次回車検予定: ${nextD.toISOString().slice(0, 10)} (あと ${days} 日)`;
-                    }
-                    inspReminder.innerHTML = `<div class="bg-purple-50 text-purple-900 p-2.5 rounded-xl font-medium">${inspMsg}</div>`;
-                }
-
-                const inspList = document.getElementById('inspList');
-                if (inspList) {
-                    inspList.innerHTML = lastI ? `
-                        <div class="bg-gray-50 p-3 rounded-xl flex justify-between items-center">
-                            <div>
-                                <div class="font-bold text-gray-900">${lastI.date} 実施</div>
-                                <div class="text-gray-500 mt-0.5">${lastI.mileage} km ${lastI.memo ? '| ' + lastI.memo : ''}</div>
-                            </div>
-                            <b class="text-sm text-gray-900">${lastI.cost.toLocaleString()}円</b>
+                document.getElementById('inspList').innerHTML = lastI ? `
+                    <div class="bg-gray-50 p-3 rounded-xl flex justify-between items-center">
+                        <div>
+                            <div class="font-bold text-gray-900">${lastI.date} 実施</div>
+                            <div class="text-gray-500 mt-0.5">${lastI.mileage} km ${lastI.memo ? '| ' + lastI.memo : ''}</div>
                         </div>
-                    ` : '<div class="text-gray-400 py-1">車検記録がありません</div>';
-                }
+                        <b class="text-sm text-gray-900">${lastI.cost.toLocaleString()}円</b>
+                    </div>
+                ` : '<div class="text-gray-400 py-1">車検記録がありません</div>';
             }
 
             render();
