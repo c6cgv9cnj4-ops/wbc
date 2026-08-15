@@ -3,13 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日産 ノート E11 管理 & クラウド同期</title>
+    <title>日産 ノート E11 管理</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
-    <!-- Leaflet JavaScript -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; 
@@ -24,7 +20,6 @@
         summary { list-style: none; }
         summary::-webkit-details-marker { display: none; }
         select { -webkit-appearance: none; appearance: none; }
-        #map { height: 300px; border-radius: 16px; z-index: 10; }
     </style>
 </head>
 <body class="p-4 pb-20">
@@ -59,12 +54,6 @@
                 <div class="font-bold text-purple-600 text-sm mt-0.5"><span id="sYear">0.0</span></div>
             </div>
         </div>
-
-        <!-- マップ表示セクション -->
-        <section class="apple-card p-5">
-            <h2 class="font-bold text-base mb-3 flex items-center gap-2"><i class="fa-solid fa-map-location-dot text-rose-600"></i> 周辺マップ</h2>
-            <div id="map"></div>
-        </section>
 
         <!-- 1. ガソリン・給油記録 -->
         <details class="apple-card p-5" open>
@@ -245,17 +234,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const map = L.map('map').setView([36.0232, 139.5372], 14);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                maxZoom: 19,
-                attribution: '&copy; CARTO'
-            }).addTo(map);
-
-            L.marker([36.0232, 139.5372]).addTo(map)
-                .bindPopup('<b>Note E11 拠点エリア</b>').openPopup();
-
-            setTimeout(() => { map.invalidateSize(); }, 250);
-
             const STORAGE_KEY = 'note_e11_cloud_v1';
             const CONFIG_KEY = 'note_e11_cloud_config';
             
