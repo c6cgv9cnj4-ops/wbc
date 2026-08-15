@@ -24,15 +24,20 @@
 </head>
 <body class="p-4 pb-20">
     <div class="max-w-md mx-auto space-y-4">
-        <!-- ヘッダー -->
+        <!-- ヘッダー（ファイル同期用ボタン搭載） -->
         <header class="flex justify-between items-center py-2">
             <div>
                 <h1 class="font-bold text-xl">Note E11 管理</h1>
                 <p id="headerDate" class="text-xs text-gray-500"></p>
             </div>
-            <div class="flex items-center gap-2">
-                <span id="syncStatus" class="text-[10px] bg-gray-200 text-gray-700 px-2 py-1 rounded-full font-medium">ローカル保存</span>
-                <button id="configBtn" class="bg-gray-200 text-gray-700 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm active:scale-95 transition"><i class="fa-solid fa-cloud"></i> 同期設定</button>
+            <div class="flex items-center gap-1.5">
+                <button onclick="exportData()" class="bg-blue-600 text-white px-3.5 py-1.5 rounded-full text-xs font-bold shadow-sm active:scale-95 transition" title="データをファイルに書き出す">
+                    <i class="fa-solid fa-download"></i> エクスポート
+                </button>
+                <button onclick="document.getElementById('importFile').click()" class="bg-gray-200 text-gray-700 px-3.5 py-1.5 rounded-full text-xs font-bold shadow-sm active:scale-95 transition" title="ファイルからデータを読み込む">
+                    <i class="fa-solid fa-upload"></i> インポート
+                </button>
+                <input type="file" id="importFile" onchange="importData(event)" class="hidden" accept=".json">
             </div>
         </header>
 
@@ -90,22 +95,6 @@
             <div id="inspList" class="space-y-2 text-xs mb-3"></div>
             <button id="openInspBtn" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold text-xs active:scale-95 transition">車検を記録</button>
         </section>
-    </div>
-
-    <!-- モーダル: 同期設定 -->
-    <div id="configModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-3 text-xs">
-            <h3 class="font-bold text-sm">クラウド同期設定 (同期ID)</h3>
-            <p class="text-[11px] text-gray-500">スマホとPCで同じ「同期ID」（例: riki-note-e11）を入力すると、自動でクラウド同期されます。未入力の場合はこの端末内のみに保存されます。</p>
-            <div>
-                <label class="text-[10px] text-gray-500 mb-1 block">同期ID</label>
-                <input type="text" id="cfgSyncId" placeholder="例: riki-note-e11" class="w-full bg-gray-100 p-3 rounded-xl font-mono text-center font-bold">
-            </div>
-            <div class="flex gap-2 pt-2">
-                <button type="button" id="closeConfigBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">キャンセル</button>
-                <button type="button" id="saveConfigBtn" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">保存して同期</button>
-            </div>
-        </div>
     </div>
 
     <!-- モーダル: 給油 -->
@@ -229,10 +218,7 @@
     </div>
 
     <script>
-        const STORAGE_KEY = 'note_e11_robust_v1';
-        const SYNC_ID_KEY = 'note_e11_robust_sync_id';
-        
-        let syncId = localStorage.getItem(SYNC_ID_KEY) || '';
+        const STORAGE_KEY = 'note_e11_local_file_sync';
         let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
             odometer: 78500, fuels: [], pressures: [], oils: [], inspections: []
         };
@@ -240,69 +226,13 @@
         const today = new Date();
         const todayStr = today.toISOString().slice(0, 10);
 
-        // 堅牢な非同期クラウド同期（try-catchによる完全な例外処理＆ローカルフォールバック）
-        async function fetchCloudData() {
-            if (!syncId) return;
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒でタイムアウト
-
-                const res = await fetch(`https://json.extendsclass.com/bin/${syncId}`, {
-                    signal: controller.signal
-                });
-                clearTimeout(timeoutId);
-
-                if (res.ok) {
-                    const cloudData = await res.json();
-                    if (cloudData && typeof cloudData === 'object' && Array.isArray(cloudData.fuels)) {
-                        data = cloudData;
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-                        render();
-                        document.getElementById('syncStatus').textContent = 'クラウド同期中';
-                        document.getElementById('syncStatus').className = 'text-[10px] bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-bold';
-                        return;
-                    }
-                }
-                throw new Error('Invalid data structure');
-            } catch (e) {
-                // エラー時はローカルストレージのデータで安全に継続（クラッシュ防止）
-                document.getElementById('syncStatus').textContent = 'オフライン(ローカル)';
-                document.getElementById('syncStatus').className = 'text-[10px] bg-amber-100 text-amber-800 px-2 py-1 rounded-full font-bold';
-            }
-        }
-
-        async function saveCloudData() {
-            // 1. まずローカルストレージへ確実に即時保存＆レンダリング
+        // ローカルストレージへの確実な保存と即時再描画を一本化
+        function saveDataAndRender() {
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
                 render();
             } catch (e) {
-                console.error('LocalStorage save error:', e);
-            }
-
-            // 2. クラウドへバックグラウンド同期（失敗してもアプリは停止しない）
-            if (!syncId) return;
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-                const res = await fetch(`https://json.extendsclass.com/bin/${syncId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data),
-                    signal: controller.signal
-                });
-                clearTimeout(timeoutId);
-
-                if (res.ok) {
-                    document.getElementById('syncStatus').textContent = '同期完了';
-                    document.getElementById('syncStatus').className = 'text-[10px] bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-bold';
-                } else {
-                    throw new Error('Server sync failed');
-                }
-            } catch (e) {
-                document.getElementById('syncStatus').textContent = '保存(ローカルのみ)';
-                document.getElementById('syncStatus').className = 'text-[10px] bg-amber-100 text-amber-800 px-2 py-1 rounded-full font-bold';
+                alert('データの保存に失敗しました。');
             }
         }
 
@@ -311,44 +241,6 @@
             if (headerDate) {
                 headerDate.textContent = today.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
             }
-
-            if (syncId) {
-                fetchCloudData();
-            }
-
-            // 同期設定モーダル
-            document.getElementById('configBtn').addEventListener('click', () => {
-                document.getElementById('cfgSyncId').value = syncId;
-                document.getElementById('configModal').classList.remove('hidden');
-            });
-            document.getElementById('closeConfigBtn').addEventListener('click', () => {
-                document.getElementById('configModal').classList.add('hidden');
-            });
-            document.getElementById('saveConfigBtn').addEventListener('click', async () => {
-                const idVal = document.getElementById('cfgSyncId').value.trim();
-                if (!idVal) {
-                    alert('同期IDを入力してください。');
-                    return;
-                }
-                syncId = idVal;
-                localStorage.setItem(SYNC_ID_KEY, syncId);
-                document.getElementById('configModal').classList.add('hidden');
-                
-                // サーバーに初期データがなければ作成
-                try {
-                    const res = await fetch(`https://json.extendsclass.com/bin/${syncId}`);
-                    if (!res.ok) {
-                        await fetch(`https://json.extendsclass.com/bin/${syncId}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(data)
-                        });
-                    }
-                } catch(e) {}
-
-                await fetchCloudData();
-                alert('同期IDを設定しました！');
-            });
 
             // タイヤ空気圧セレクト初期化
             ['pFL', 'pFR', 'pRL', 'pRR'].forEach(id => {
@@ -409,7 +301,7 @@
                 }
             });
 
-            // 各種保存処理（数値変換の厳格化と即時保存・反映）
+            // 各種保存処理（厳密な数値変換と確実な配列への追加）
             bindClick('saveFuelBtn', () => {
                 const fDate = document.getElementById('fDate').value || todayStr;
                 const mileage = parseFloat(document.getElementById('fMileage').value) || data.odometer;
@@ -424,7 +316,7 @@
                 if (mileage > data.odometer) data.odometer = mileage;
                 
                 toggleModal('fuelModal', false);
-                saveCloudData();
+                saveDataAndRender();
             });
 
             bindClick('savePressureBtn', () => {
@@ -437,7 +329,7 @@
                     rr: document.getElementById('pRR').value
                 });
                 toggleModal('pressureModal', false);
-                saveCloudData();
+                saveDataAndRender();
             });
 
             bindClick('saveOilBtn', () => {
@@ -452,7 +344,7 @@
                 });
                 if (mileage > data.odometer) data.odometer = mileage;
                 toggleModal('oilModal', false);
-                saveCloudData();
+                saveDataAndRender();
             });
 
             bindClick('saveInspBtn', () => {
@@ -466,7 +358,7 @@
                 });
                 if (mileage > data.odometer) data.odometer = mileage;
                 toggleModal('inspModal', false);
-                saveCloudData();
+                saveDataAndRender();
             });
 
             render();
@@ -592,6 +484,40 @@
                     </div>
                 ` : '<div class="text-gray-400 py-1">車検記録がありません</div>';
             }
+        }
+
+        // ファイルエクスポート（データ書き出し）機能
+        function exportData() {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `note_e11_backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // ファイルインポート（データ読み込み）機能
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.fuels)) {
+                        data = parsed;
+                        saveDataAndRender();
+                        alert('バックアップファイルを正常に読み込みました！');
+                    } else {
+                        alert('ファイル形式が正しくありません。');
+                    }
+                } catch (err) {
+                    alert('ファイルの読み込みに失敗しました。');
+                }
+                event.target.value = ''; // リセット
+            };
+            reader.readAsText(file);
         }
     </script>
 </body>
