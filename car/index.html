@@ -31,7 +31,7 @@
                 <p id="headerDate" class="text-xs text-gray-500"></p>
             </div>
             <div class="flex items-center gap-2">
-                <span id="syncStatus" class="text-[10px] bg-gray-200 text-gray-700 px-2 py-1 rounded-full font-medium">オフライン</span>
+                <span id="syncStatus" class="text-[10px] bg-gray-200 text-gray-700 px-2 py-1 rounded-full font-medium">ローカル保存</span>
                 <button id="configBtn" class="bg-gray-200 text-gray-700 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm active:scale-95 transition"><i class="fa-solid fa-cloud"></i> 同期設定</button>
             </div>
         </header>
@@ -95,20 +95,17 @@
     <!-- モーダル: 同期設定 -->
     <div id="configModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-3 text-xs">
-            <h3 class="font-bold text-sm">クラウド同期設定 (JSONBin)</h3>
-            <p class="text-[11px] text-gray-500">無料のJSONBin.io等を使ってスマホとPCを同期します。設定しない場合はこの端末内のみに保存されます。</p>
+            <h3 class="font-bold text-sm">スマホ・PC 端末間 同期設定</h3>
+            <p class="text-[11px] text-gray-500">片方の端末で「新しい同期コードを作成」を押してコードを生成し、もう片方の端末にそのコードを入力して「同期する」を押してください。</p>
             <div>
-                <label class="text-[10px] text-gray-500 mb-1 block">Bin ID</label>
-                <input type="text" id="cfgBinId" placeholder="例: 650...abc" class="w-full bg-gray-100 p-3 rounded-xl">
-            </div>
-            <div>
-                <label class="text-[10px] text-gray-500 mb-1 block">Master Key ($2a$...)</label>
-                <input type="password" id="cfgApiKey" placeholder="例: $2a$10$..." class="w-full bg-gray-100 p-3 rounded-xl">
+                <label class="text-[10px] text-gray-500 mb-1 block">同期コード</label>
+                <input type="text" id="cfgSyncCode" placeholder="例: note-e11-xxxxxx" class="w-full bg-gray-100 p-3 rounded-xl font-mono text-center font-bold">
             </div>
             <div class="flex gap-2 pt-2">
-                <button type="button" id="closeConfigBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">閉じる</button>
-                <button type="button" id="saveConfigBtn" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">接続・保存</button>
+                <button type="button" id="createCodeBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold text-[11px]">新しいコードを作成</button>
+                <button type="button" id="saveConfigBtn" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">同期する</button>
             </div>
+            <button type="button" id="closeConfigBtn" class="w-full bg-gray-100 py-2 rounded-xl text-gray-600 font-bold mt-1">閉じる</button>
         </div>
     </div>
 
@@ -234,10 +231,10 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const STORAGE_KEY = 'note_e11_cloud_v1';
-            const CONFIG_KEY = 'note_e11_cloud_config';
+            const STORAGE_KEY = 'note_e11_sync_v2';
+            const CODE_KEY = 'note_e11_sync_code';
             
-            let config = JSON.parse(localStorage.getItem(CONFIG_KEY)) || { binId: '', apiKey: '' };
+            let syncCode = localStorage.getItem(CODE_KEY) || '';
             let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
                 odometer: 78500, fuels: [], pressures: [], oils: [], inspections: []
             };
@@ -250,41 +247,41 @@
                 headerDate.textContent = today.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
             }
 
-            // クラウドから自動取得（設定されている場合）
+            // クラウドからデータ取得
             async function fetchCloudData() {
-                if (!config.binId || !config.apiKey) return;
+                if (!syncCode) return;
                 try {
-                    const res = await fetch(`https://api.jsonbin.io/v3/b/${config.binId}/latest`, {
-                        headers: { 'X-Master-Key': config.apiKey }
+                    const res = await fetch(`https://json.extendsclass.com/bin/${syncCode}`, {
+                        headers: { 'Security-Key': 'note_e11_secure' }
                     });
                     if (res.ok) {
-                        const json = await res.json();
-                        if (json.record) {
-                            data = json.record;
+                        const cloudData = await res.json();
+                        if (cloudData && typeof cloudData === 'object') {
+                            data = cloudData;
                             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
                             render();
-                            document.getElementById('syncStatus').textContent = 'クラウド同期中';
+                            document.getElementById('syncStatus').textContent = '同期中';
                             document.getElementById('syncStatus').className = 'text-[10px] bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-bold';
                         }
                     }
                 } catch (e) {
-                    document.getElementById('syncStatus').textContent = '同期エラー(オフライン)';
+                    document.getElementById('syncStatus').textContent = 'オフライン';
                     document.getElementById('syncStatus').className = 'text-[10px] bg-amber-100 text-amber-800 px-2 py-1 rounded-full font-bold';
                 }
             }
 
-            // クラウドへ自動保存
+            // クラウドへデータ保存
             async function saveCloudData() {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
                 render();
 
-                if (!config.binId || !config.apiKey) return;
+                if (!syncCode) return;
                 try {
-                    const res = await fetch(`https://api.jsonbin.io/v3/b/${config.binId}`, {
+                    const res = await fetch(`https://json.extendsclass.com/bin/${syncCode}`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-Master-Key': config.apiKey
+                            'Security-Key': 'note_e11_secure'
                         },
                         body: JSON.stringify(data)
                     });
@@ -297,25 +294,52 @@
                 }
             }
 
-            if (config.binId && config.apiKey) {
+            if (syncCode) {
                 fetchCloudData();
             }
 
-            // 設定モーダル操作
+            // 同期設定モーダル
             document.getElementById('configBtn').addEventListener('click', () => {
-                document.getElementById('cfgBinId').value = config.binId;
-                document.getElementById('cfgApiKey').value = config.apiKey;
+                document.getElementById('cfgSyncCode').value = syncCode;
                 document.getElementById('configModal').classList.remove('hidden');
             });
             document.getElementById('closeConfigBtn').addEventListener('click', () => {
                 document.getElementById('configModal').classList.add('hidden');
             });
+            
+            // 新規コード作成
+            document.getElementById('createCodeBtn').addEventListener('click', async () => {
+                const newCode = 'note-' + Math.random().toString(36.substring(2, 9));
+                try {
+                    const res = await fetch(`https://json.extendsclass.com/bin/${newCode}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    if (res.ok) {
+                        syncCode = newCode;
+                        localStorage.setItem(CODE_KEY, syncCode);
+                        document.getElementById('cfgSyncCode').value = syncCode;
+                        alert('新しい同期コードを作成しました！このコードをもう片方の端末に入力してください。');
+                        fetchCloudData();
+                    }
+                } catch (e) {
+                    alert('コードの作成に失敗しました。');
+                }
+            });
+
+            // 既存コードで同期
             document.getElementById('saveConfigBtn').addEventListener('click', () => {
-                config.binId = document.getElementById('cfgBinId').value.trim();
-                config.apiKey = document.getElementById('cfgApiKey').value.trim();
-                localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+                const inputCode = document.getElementById('cfgSyncCode').value.trim();
+                if (!inputCode) {
+                    alert('同期コードを入力してください。');
+                    return;
+                }
+                syncCode = inputCode;
+                localStorage.setItem(CODE_KEY, syncCode);
                 document.getElementById('configModal').classList.add('hidden');
                 fetchCloudData();
+                alert('同期コードを保存しました！');
             });
 
             const toggleModal = (modalId, show) => {
