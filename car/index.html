@@ -95,17 +95,16 @@
     <!-- モーダル: 同期設定 -->
     <div id="configModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-3 text-xs">
-            <h3 class="font-bold text-sm">スマホ・PC 端末間 同期設定</h3>
-            <p class="text-[11px] text-gray-500">片方の端末で「新しい同期コードを作成」を押してコードを生成し、もう片方の端末にそのコードを入力して「同期する」を押してください。</p>
+            <h3 class="font-bold text-sm">外部サーバー自動同期</h3>
+            <p class="text-[11px] text-gray-500">お好みの「同期ID」（例: riki-note）をスマホとPCで共通して入力してください。自動でクラウド同期されます。</p>
             <div>
-                <label class="text-[10px] text-gray-500 mb-1 block">同期コード</label>
-                <input type="text" id="cfgSyncCode" placeholder="例: note-e11-xxxxxx" class="w-full bg-gray-100 p-3 rounded-xl font-mono text-center font-bold">
+                <label class="text-[10px] text-gray-500 mb-1 block">共通の同期ID</label>
+                <input type="text" id="cfgSyncId" placeholder="例: riki-note-e11" class="w-full bg-gray-100 p-3 rounded-xl font-mono text-center font-bold">
             </div>
             <div class="flex gap-2 pt-2">
-                <button type="button" id="createCodeBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold text-[11px]">新しいコードを作成</button>
-                <button type="button" id="saveConfigBtn" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">同期する</button>
+                <button type="button" id="closeConfigBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">キャンセル</button>
+                <button type="button" id="saveConfigBtn" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">同期開始</button>
             </div>
-            <button type="button" id="closeConfigBtn" class="w-full bg-gray-100 py-2 rounded-xl text-gray-600 font-bold mt-1">閉じる</button>
         </div>
     </div>
 
@@ -230,116 +229,123 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const STORAGE_KEY = 'note_e11_sync_v2';
-            const CODE_KEY = 'note_e11_sync_code';
-            
-            let syncCode = localStorage.getItem(CODE_KEY) || '';
-            let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-                odometer: 78500, fuels: [], pressures: [], oils: [], inspections: []
-            };
+        const STORAGE_KEY = 'note_e11_cloud_v3';
+        const SYNC_ID_KEY = 'note_e11_sync_id';
+        
+        let syncId = localStorage.getItem(SYNC_ID_KEY) || '';
+        let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+            odometer: 78500, fuels: [], pressures: [], oils: [], inspections: []
+        };
 
-            const today = new Date();
-            const todayStr = today.toISOString().slice(0, 10);
-            
+        const today = new Date();
+        const todayStr = today.toISOString().slice(0, 10);
+
+        // 外部サーバーからのデータ取得
+        async function fetchFromServer() {
+            if (!syncId) return;
+            try {
+                const res = await fetch(`https://api.jsonbin.io/v3/b/${syncId}/latest`, {
+                    headers: { 'X-Master-Key': '$2a$10$7Xv... (public)' } // 仮の簡易パブリック領域
+                });
+                // 代替としてオープンな簡易ストレージAPIを利用
+            } catch(e) {}
+        }
+
+        // より確実な無料オープンAPI（json.extendsclass.com）を使用した同期関数
+        async function syncGet() {
+            if (!syncId) return;
+            try {
+                const res = await fetch(`https://json.extendsclass.com/bin/${syncId}`);
+                if (res.ok) {
+                    const cloudData = await res.json();
+                    if (cloudData && typeof cloudData === 'object' && cloudData.odometer) {
+                        data = cloudData;
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                        render();
+                        document.getElementById('syncStatus').textContent = 'クラウド同期中';
+                        document.getElementById('syncStatus').className = 'text-[10px] bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-bold';
+                    }
+                }
+            } catch (e) {
+                document.getElementById('syncStatus').textContent = 'オフライン';
+                document.getElementById('syncStatus').className = 'text-[10px] bg-amber-100 text-amber-800 px-2 py-1 rounded-full font-bold';
+            }
+        }
+
+        async function syncSave() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            render();
+
+            if (!syncId) return;
+            try {
+                await fetch(`https://json.extendsclass.com/bin/${syncId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                document.getElementById('syncStatus').textContent = '同期完了';
+                document.getElementById('syncStatus').className = 'text-[10px] bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-bold';
+            } catch (e) {
+                document.getElementById('syncStatus').textContent = '保存エラー';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
             const headerDate = document.getElementById('headerDate');
             if (headerDate) {
                 headerDate.textContent = today.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
             }
 
-            // クラウドからデータ取得
-            async function fetchCloudData() {
-                if (!syncCode) return;
-                try {
-                    const res = await fetch(`https://json.extendsclass.com/bin/${syncCode}`, {
-                        headers: { 'Security-Key': 'note_e11_secure' }
-                    });
-                    if (res.ok) {
-                        const cloudData = await res.json();
-                        if (cloudData && typeof cloudData === 'object') {
-                            data = cloudData;
-                            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-                            render();
-                            document.getElementById('syncStatus').textContent = '同期中';
-                            document.getElementById('syncStatus').className = 'text-[10px] bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-bold';
-                        }
-                    }
-                } catch (e) {
-                    document.getElementById('syncStatus').textContent = 'オフライン';
-                    document.getElementById('syncStatus').className = 'text-[10px] bg-amber-100 text-amber-800 px-2 py-1 rounded-full font-bold';
-                }
-            }
-
-            // クラウドへデータ保存
-            async function saveCloudData() {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-                render();
-
-                if (!syncCode) return;
-                try {
-                    const res = await fetch(`https://json.extendsclass.com/bin/${syncCode}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Security-Key': 'note_e11_secure'
-                        },
-                        body: JSON.stringify(data)
-                    });
-                    if (res.ok) {
-                        document.getElementById('syncStatus').textContent = '同期完了';
-                        document.getElementById('syncStatus').className = 'text-[10px] bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-bold';
-                    }
-                } catch (e) {
-                    document.getElementById('syncStatus').textContent = '保存エラー';
-                }
-            }
-
-            if (syncCode) {
-                fetchCloudData();
+            if (syncId) {
+                syncGet();
             }
 
             // 同期設定モーダル
             document.getElementById('configBtn').addEventListener('click', () => {
-                document.getElementById('cfgSyncCode').value = syncCode;
+                document.getElementById('cfgSyncId').value = syncId;
                 document.getElementById('configModal').classList.remove('hidden');
             });
             document.getElementById('closeConfigBtn').addEventListener('click', () => {
                 document.getElementById('configModal').classList.add('hidden');
             });
-            
-            // 新規コード作成
-            document.getElementById('createCodeBtn').addEventListener('click', async () => {
-                const newCode = 'note-' + Math.random().toString(36.substring(2, 9));
-                try {
-                    const res = await fetch(`https://json.extendsclass.com/bin/${newCode}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(data)
-                    });
-                    if (res.ok) {
-                        syncCode = newCode;
-                        localStorage.setItem(CODE_KEY, syncCode);
-                        document.getElementById('cfgSyncCode').value = syncCode;
-                        alert('新しい同期コードを作成しました！このコードをもう片方の端末に入力してください。');
-                        fetchCloudData();
-                    }
-                } catch (e) {
-                    alert('コードの作成に失敗しました。');
-                }
-            });
-
-            // 既存コードで同期
-            document.getElementById('saveConfigBtn').addEventListener('click', () => {
-                const inputCode = document.getElementById('cfgSyncCode').value.trim();
-                if (!inputCode) {
-                    alert('同期コードを入力してください。');
+            document.getElementById('saveConfigBtn').addEventListener('click', async () => {
+                const idVal = document.getElementById('cfgSyncId').value.trim();
+                if (!idVal) {
+                    alert('同期IDを入力してください。');
                     return;
                 }
-                syncCode = inputCode;
-                localStorage.setItem(CODE_KEY, syncCode);
+                syncId = idVal;
+                localStorage.setItem(SYNC_ID_KEY, syncId);
                 document.getElementById('configModal').classList.add('hidden');
-                fetchCloudData();
-                alert('同期コードを保存しました！');
+                
+                // サーバーに初期データがなければ作成、あれば取得
+                try {
+                    const res = await fetch(`https://json.extendsclass.com/bin/${syncId}`);
+                    if (!res.ok) {
+                        await fetch(`https://json.extendsclass.com/bin/${syncId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(data)
+                        });
+                    }
+                } catch(e) {}
+
+                syncGet();
+                alert('同期を設定しました！');
+            });
+
+            ['pFL', 'pFR', 'pRL', 'pRR'].forEach(id => {
+                const select = document.getElementById(id);
+                if (select && select.children.length === 0) {
+                    for (let i = 15; i <= 30; i++) {
+                        const val = (i / 10).toFixed(1);
+                        const opt = document.createElement('option');
+                        opt.value = val;
+                        opt.textContent = val;
+                        if (val === "2.3") opt.selected = true;
+                        select.appendChild(opt);
+                    }
+                }
             });
 
             const toggleModal = (modalId, show) => {
@@ -365,7 +371,7 @@
 
             const bindClick = (btnId, fn) => {
                 const btn = document.getElementById(btnId);
-                if (btn) btn.addEventListener('click', (e) => fn());
+                if (btn) btn.addEventListener('click', fn);
             };
 
             bindClick('openFuelBtn', () => toggleModal('fuelModal', true));
@@ -377,21 +383,15 @@
             bindClick('openInspBtn', () => toggleModal('inspModal', true));
             bindClick('closeInspBtn', () => toggleModal('inspModal', false));
 
-            ['pFL', 'pFR', 'pRL', 'pRR'].forEach(id => {
-                const select = document.getElementById(id);
-                if (select && select.children.length === 0) {
-                    for (let i = 15; i <= 30; i++) {
-                        const val = (i / 10).toFixed(1);
-                        const opt = document.createElement('option');
-                        opt.value = val;
-                        opt.textContent = val;
-                        if (val === "2.3") opt.selected = true;
-                        select.appendChild(opt);
-                    }
+            ['fuelModal', 'pressureModal', 'oilModal', 'inspModal'].forEach(id => {
+                const modal = document.getElementById(id);
+                if (modal) {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) toggleModal(id, false);
+                    });
                 }
             });
 
-            // 保存処理
             bindClick('saveFuelBtn', () => {
                 const fDate = document.getElementById('fDate').value || todayStr;
                 const mileage = parseFloat(document.getElementById('fMileage').value) || data.odometer;
@@ -406,7 +406,7 @@
                 if (mileage > data.odometer) data.odometer = mileage;
                 
                 toggleModal('fuelModal', false);
-                saveCloudData();
+                syncSave();
             });
 
             bindClick('savePressureBtn', () => {
@@ -419,7 +419,7 @@
                     rr: document.getElementById('pRR').value
                 });
                 toggleModal('pressureModal', false);
-                saveCloudData();
+                syncSave();
             });
 
             bindClick('saveOilBtn', () => {
@@ -434,7 +434,7 @@
                 });
                 if (mileage > data.odometer) data.odometer = mileage;
                 toggleModal('oilModal', false);
-                saveCloudData();
+                syncSave();
             });
 
             bindClick('saveInspBtn', () => {
@@ -448,29 +448,37 @@
                 });
                 if (mileage > data.odometer) data.odometer = mileage;
                 toggleModal('inspModal', false);
-                saveCloudData();
+                syncSave();
             });
 
-            function render() {
-                const curYear = today.getFullYear();
-                const curMonth = today.getMonth() + 1;
+            render();
+        });
 
-                const sortedF = [...data.fuels].sort((a, b) => b.mileage - a.mileage);
-                document.getElementById('sLast').textContent = (sortedF[0] && sortedF[0].efficiency != null) ? sortedF[0].efficiency + ' km/L' : '0.0';
+        function render() {
+            const curYear = today.getFullYear();
+            const curMonth = today.getMonth() + 1;
 
-                const mFuels = data.fuels.filter(f => {
-                    const d = new Date(f.date);
-                    return d.getFullYear() === curYear && (d.getMonth() + 1) === curMonth && f.efficiency != null;
-                });
-                document.getElementById('sMonth').textContent = mFuels.length ? (mFuels.reduce((s, f) => s + f.efficiency, 0) / mFuels.length).toFixed(1) : '0.0';
+            const sortedF = [...data.fuels].sort((a, b) => b.mileage - a.mileage);
+            const sLast = document.getElementById('sLast');
+            if(sLast) sLast.textContent = (sortedF[0] && sortedF[0].efficiency != null) ? sortedF[0].efficiency + ' km/L' : '0.0';
 
-                const yFuels = data.fuels.filter(f => {
-                    const d = new Date(f.date);
-                    return d.getFullYear() === curYear && f.efficiency != null;
-                });
-                document.getElementById('sYear').textContent = yFuels.length ? (yFuels.reduce((s, f) => s + f.efficiency, 0) / yFuels.length).toFixed(1) : '0.0';
+            const mFuels = data.fuels.filter(f => {
+                const d = new Date(f.date);
+                return d.getFullYear() === curYear && (d.getMonth() + 1) === curMonth && f.efficiency != null;
+            });
+            const sMonth = document.getElementById('sMonth');
+            if(sMonth) sMonth.textContent = mFuels.length ? (mFuels.reduce((s, f) => s + f.efficiency, 0) / mFuels.length).toFixed(1) : '0.0';
 
-                document.getElementById('fuelList').innerHTML = sortedF[0] ? `
+            const yFuels = data.fuels.filter(f => {
+                const d = new Date(f.date);
+                return d.getFullYear() === curYear && f.efficiency != null;
+            });
+            const sYear = document.getElementById('sYear');
+            if(sYear) sYear.textContent = yFuels.length ? (yFuels.reduce((s, f) => s + f.efficiency, 0) / yFuels.length).toFixed(1) : '0.0';
+
+            const fuelList = document.getElementById('fuelList');
+            if(fuelList) {
+                fuelList.innerHTML = sortedF[0] ? `
                     <div class="bg-gray-50 p-3 rounded-xl flex justify-between items-center">
                         <div>
                             <div class="font-bold text-gray-900">${sortedF[0].date}</div>
@@ -480,15 +488,21 @@
                         <b class="text-sm text-gray-900">${sortedF[0].cost.toLocaleString()}円</b>
                     </div>
                 ` : '<div class="text-gray-400 py-1">給油記録がありません</div>';
+            }
 
-                const sortedP = [...data.pressures].sort((a, b) => new Date(b.date) - new Date(a.date));
-                document.getElementById('pressureReminder').innerHTML = (today.getDate() === 1) ? `
+            const sortedP = [...data.pressures].sort((a, b) => new Date(b.date) - new Date(a.date));
+            const pressureReminder = document.getElementById('pressureReminder');
+            if(pressureReminder) {
+                pressureReminder.innerHTML = (today.getDate() === 1) ? `
                     <div class="bg-sky-100 text-sky-900 p-2.5 rounded-xl font-bold flex items-center gap-2">
                         <i class="fa-solid fa-bell text-sky-600"></i> 本日は毎月1日です！タイヤ空気圧の点検日です
                     </div>
                 ` : '';
+            }
 
-                document.getElementById('pressureList').innerHTML = sortedP[0] ? `
+            const pressureList = document.getElementById('pressureList');
+            if(pressureList) {
+                pressureList.innerHTML = sortedP[0] ? `
                     <div class="bg-gray-50 p-3 rounded-xl">
                         <div class="font-bold text-gray-900 mb-1">${sortedP[0].date} 点検</div>
                         <div class="text-gray-600 space-x-1">
@@ -497,24 +511,30 @@
                         </div>
                     </div>
                 ` : '<div class="text-gray-400 py-1">空気圧の点検記録がありません</div>';
+            }
 
-                let alerts = [];
-                const sortedO = [...data.oils].sort((a, b) => new Date(b.date) - new Date(a.date));
-                const lastO = sortedO[0];
-                if (!lastO || (today - new Date(lastO.date)) / 86400000 > 180) {
-                    alerts.push("エンジンオイル交換から半年（180日）以上経過しています");
-                }
-                if (!sortedP[0] || (today - new Date(sortedP[0].date)) / 86400000 > 180) {
-                    alerts.push("タイヤ空気圧点検から半年（180日）以上経過しています");
-                }
+            let alerts = [];
+            const sortedO = [...data.oils].sort((a, b) => new Date(b.date) - new Date(a.date));
+            const lastO = sortedO[0];
+            if (!lastO || (today - new Date(lastO.date)) / 86400000 > 180) {
+                alerts.push("エンジンオイル交換から半年（180日）以上経過しています");
+            }
+            if (!sortedP[0] || (today - new Date(sortedP[0].date)) / 86400000 > 180) {
+                alerts.push("タイヤ空気圧点検から半年（180日）以上経過しています");
+            }
 
-                document.getElementById('alertContainer').innerHTML = alerts.map(a => `
+            const alertContainer = document.getElementById('alertContainer');
+            if(alertContainer) {
+                alertContainer.innerHTML = alerts.map(a => `
                     <div class="bg-amber-100 border border-amber-300 p-3 rounded-xl text-amber-900 text-xs font-bold flex items-center gap-2">
                         <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> ${a}
                     </div>
                 `).join('');
+            }
 
-                document.getElementById('oilList').innerHTML = lastO ? `
+            const oilList = document.getElementById('oilList');
+            if(oilList) {
+                oilList.innerHTML = lastO ? `
                     <div class="bg-gray-50 p-3 rounded-xl flex justify-between items-center">
                         <div>
                             <div class="font-bold text-gray-900 flex items-center gap-2">
@@ -525,21 +545,25 @@
                         <b class="text-sm text-gray-900">${lastO.cost.toLocaleString()}円</b>
                     </div>
                 ` : '<div class="text-gray-400 py-1">オイル交換の記録がありません</div>';
+            }
 
-                const sortedI = [...data.inspections].sort((a, b) => new Date(b.date) - new Date(a.date));
-                const lastI = sortedI[0];
-                let inspMsg = "車検記録が未登録です";
-                if (lastI) {
-                    const nextD = new Date(lastI.date);
-                    nextD.setFullYear(nextD.getFullYear() + 2);
-                    const days = Math.ceil((nextD - today) / (1000 * 60 * 60 * 24));
-                    inspMsg = (days <= 90 && days > 0) ? 
-                        `【早期割引チャンス】車検満了まであと ${days} 日！3ヶ月前予約の割引が適用できます。` : 
-                        `次回車検予定: ${nextD.toISOString().slice(0, 10)} (あと ${days} 日)`;
-                }
-                document.getElementById('inspReminder').innerHTML = `<div class="bg-purple-50 text-purple-900 p-2.5 rounded-xl font-medium">${inspMsg}</div>`;
-                
-                document.getElementById('inspList').innerHTML = lastI ? `
+            const sortedI = [...data.inspections].sort((a, b) => new Date(b.date) - new Date(a.date));
+            const lastI = sortedI[0];
+            let inspMsg = "車検記録が未登録です";
+            if (lastI) {
+                const nextD = new Date(lastI.date);
+                nextD.setFullYear(nextD.getFullYear() + 2);
+                const days = Math.ceil((nextD - today) / (1000 * 60 * 60 * 24));
+                inspMsg = (days <= 90 && days > 0) ? 
+                    `【早期割引チャンス】車検満了まであと ${days} 日！3ヶ月前予約の割引が適用できます。` : 
+                    `次回車検予定: ${nextD.toISOString().slice(0, 10)} (あと ${days} 日)`;
+            }
+            const inspReminder = document.getElementById('inspReminder');
+            if(inspReminder) inspReminder.innerHTML = `<div class="bg-purple-50 text-purple-900 p-2.5 rounded-xl font-medium">${inspMsg}</div>`;
+            
+            const inspList = document.getElementById('inspList');
+            if(inspList) {
+                inspList.innerHTML = lastI ? `
                     <div class="bg-gray-50 p-3 rounded-xl flex justify-between items-center">
                         <div>
                             <div class="font-bold text-gray-900">${lastI.date} 実施</div>
@@ -549,9 +573,7 @@
                     </div>
                 ` : '<div class="text-gray-400 py-1">車検記録がありません</div>';
             }
-
-            render();
-        });
+        }
     </script>
 </body>
 </html>
