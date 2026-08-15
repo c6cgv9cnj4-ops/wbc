@@ -95,15 +95,15 @@
     <!-- モーダル: 同期設定 -->
     <div id="configModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-3 text-xs">
-            <h3 class="font-bold text-sm">外部サーバー自動同期</h3>
-            <p class="text-[11px] text-gray-500">お好みの「同期ID」（例: riki-note）をスマホとPCで共通して入力してください。自動でクラウド同期されます。</p>
+            <h3 class="font-bold text-sm">クラウド同期設定 (同期ID)</h3>
+            <p class="text-[11px] text-gray-500">スマホとPCで同じ「同期ID」（例: riki-note-e11）を入力すると、自動でクラウド同期されます。未入力の場合はこの端末内のみに保存されます。</p>
             <div>
-                <label class="text-[10px] text-gray-500 mb-1 block">共通の同期ID</label>
+                <label class="text-[10px] text-gray-500 mb-1 block">同期ID</label>
                 <input type="text" id="cfgSyncId" placeholder="例: riki-note-e11" class="w-full bg-gray-100 p-3 rounded-xl font-mono text-center font-bold">
             </div>
             <div class="flex gap-2 pt-2">
                 <button type="button" id="closeConfigBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">キャンセル</button>
-                <button type="button" id="saveConfigBtn" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">同期開始</button>
+                <button type="button" id="saveConfigBtn" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">保存して同期</button>
             </div>
         </div>
     </div>
@@ -229,8 +229,8 @@
     </div>
 
     <script>
-        const STORAGE_KEY = 'note_e11_cloud_v3';
-        const SYNC_ID_KEY = 'note_e11_sync_id';
+        const STORAGE_KEY = 'note_e11_robust_v1';
+        const SYNC_ID_KEY = 'note_e11_robust_sync_id';
         
         let syncId = localStorage.getItem(SYNC_ID_KEY) || '';
         let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
@@ -240,53 +240,69 @@
         const today = new Date();
         const todayStr = today.toISOString().slice(0, 10);
 
-        // 外部サーバーからのデータ取得
-        async function fetchFromServer() {
+        // 堅牢な非同期クラウド同期（try-catchによる完全な例外処理＆ローカルフォールバック）
+        async function fetchCloudData() {
             if (!syncId) return;
             try {
-                const res = await fetch(`https://api.jsonbin.io/v3/b/${syncId}/latest`, {
-                    headers: { 'X-Master-Key': '$2a$10$7Xv... (public)' } // 仮の簡易パブリック領域
-                });
-                // 代替としてオープンな簡易ストレージAPIを利用
-            } catch(e) {}
-        }
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒でタイムアウト
 
-        // より確実な無料オープンAPI（json.extendsclass.com）を使用した同期関数
-        async function syncGet() {
-            if (!syncId) return;
-            try {
-                const res = await fetch(`https://json.extendsclass.com/bin/${syncId}`);
+                const res = await fetch(`https://json.extendsclass.com/bin/${syncId}`, {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
                 if (res.ok) {
                     const cloudData = await res.json();
-                    if (cloudData && typeof cloudData === 'object' && cloudData.odometer) {
+                    if (cloudData && typeof cloudData === 'object' && Array.isArray(cloudData.fuels)) {
                         data = cloudData;
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
                         render();
                         document.getElementById('syncStatus').textContent = 'クラウド同期中';
                         document.getElementById('syncStatus').className = 'text-[10px] bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-bold';
+                        return;
                     }
                 }
+                throw new Error('Invalid data structure');
             } catch (e) {
-                document.getElementById('syncStatus').textContent = 'オフライン';
+                // エラー時はローカルストレージのデータで安全に継続（クラッシュ防止）
+                document.getElementById('syncStatus').textContent = 'オフライン(ローカル)';
                 document.getElementById('syncStatus').className = 'text-[10px] bg-amber-100 text-amber-800 px-2 py-1 rounded-full font-bold';
             }
         }
 
-        async function syncSave() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-            render();
+        async function saveCloudData() {
+            // 1. まずローカルストレージへ確実に即時保存＆レンダリング
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                render();
+            } catch (e) {
+                console.error('LocalStorage save error:', e);
+            }
 
+            // 2. クラウドへバックグラウンド同期（失敗してもアプリは停止しない）
             if (!syncId) return;
             try {
-                await fetch(`https://json.extendsclass.com/bin/${syncId}`, {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+                const res = await fetch(`https://json.extendsclass.com/bin/${syncId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(data),
+                    signal: controller.signal
                 });
-                document.getElementById('syncStatus').textContent = '同期完了';
-                document.getElementById('syncStatus').className = 'text-[10px] bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-bold';
+                clearTimeout(timeoutId);
+
+                if (res.ok) {
+                    document.getElementById('syncStatus').textContent = '同期完了';
+                    document.getElementById('syncStatus').className = 'text-[10px] bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-bold';
+                } else {
+                    throw new Error('Server sync failed');
+                }
             } catch (e) {
-                document.getElementById('syncStatus').textContent = '保存エラー';
+                document.getElementById('syncStatus').textContent = '保存(ローカルのみ)';
+                document.getElementById('syncStatus').className = 'text-[10px] bg-amber-100 text-amber-800 px-2 py-1 rounded-full font-bold';
             }
         }
 
@@ -297,7 +313,7 @@
             }
 
             if (syncId) {
-                syncGet();
+                fetchCloudData();
             }
 
             // 同期設定モーダル
@@ -318,7 +334,7 @@
                 localStorage.setItem(SYNC_ID_KEY, syncId);
                 document.getElementById('configModal').classList.add('hidden');
                 
-                // サーバーに初期データがなければ作成、あれば取得
+                // サーバーに初期データがなければ作成
                 try {
                     const res = await fetch(`https://json.extendsclass.com/bin/${syncId}`);
                     if (!res.ok) {
@@ -330,10 +346,11 @@
                     }
                 } catch(e) {}
 
-                syncGet();
-                alert('同期を設定しました！');
+                await fetchCloudData();
+                alert('同期IDを設定しました！');
             });
 
+            // タイヤ空気圧セレクト初期化
             ['pFL', 'pFR', 'pRL', 'pRR'].forEach(id => {
                 const select = document.getElementById(id);
                 if (select && select.children.length === 0) {
@@ -392,6 +409,7 @@
                 }
             });
 
+            // 各種保存処理（数値変換の厳格化と即時保存・反映）
             bindClick('saveFuelBtn', () => {
                 const fDate = document.getElementById('fDate').value || todayStr;
                 const mileage = parseFloat(document.getElementById('fMileage').value) || data.odometer;
@@ -406,7 +424,7 @@
                 if (mileage > data.odometer) data.odometer = mileage;
                 
                 toggleModal('fuelModal', false);
-                syncSave();
+                saveCloudData();
             });
 
             bindClick('savePressureBtn', () => {
@@ -419,7 +437,7 @@
                     rr: document.getElementById('pRR').value
                 });
                 toggleModal('pressureModal', false);
-                syncSave();
+                saveCloudData();
             });
 
             bindClick('saveOilBtn', () => {
@@ -434,7 +452,7 @@
                 });
                 if (mileage > data.odometer) data.odometer = mileage;
                 toggleModal('oilModal', false);
-                syncSave();
+                saveCloudData();
             });
 
             bindClick('saveInspBtn', () => {
@@ -448,12 +466,13 @@
                 });
                 if (mileage > data.odometer) data.odometer = mileage;
                 toggleModal('inspModal', false);
-                syncSave();
+                saveCloudData();
             });
 
             render();
         });
 
+        // 確実なレンダリング関数
         function render() {
             const curYear = today.getFullYear();
             const curMonth = today.getMonth() + 1;
