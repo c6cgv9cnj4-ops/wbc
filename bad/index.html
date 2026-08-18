@@ -3,18 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>バドミントン管理 (コート予約編集機能完全固定版)</title>
+  <title>バドミントン管理 (リアルタイム同期版)</title>
 
-  <!-- 🚀 キャッシュ自動無効化設定 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   
-  <!-- PWA (iPhone / Android アプリ化設定) -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="バド管理">
-  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2906/2906206.png">
 
   <!-- SortableJS / Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
@@ -34,10 +31,8 @@
       --text-sub: #86868b;
       --border-color: #e5e5ea;
       --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
-      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
       --radius-sm: 12px;
       --radius-md: 16px;
-      --radius-lg: 20px;
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -49,17 +44,17 @@
       padding: 16px 12px 40px 12px;
       color: var(--text-main);
       overflow-x: hidden;
-      line-height: 1.47059;
+      line-height: 1.47;
       letter-spacing: -0.022em;
     }
 
     .app-header { max-width: 640px; margin: 0 auto 16px auto; text-align: center; padding: 12px 0; }
-    .app-header h1 { font-size: 1.4rem; font-weight: 700; margin: 0; letter-spacing: -0.015em; color: var(--text-main); }
+    .app-header h1 { font-size: 1.4rem; font-weight: 700; margin: 0; color: var(--text-main); }
 
     .container {
       max-width: 640px; width: 100%; margin: 0 auto 16px auto; background: var(--card-bg);
       padding: 20px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);
-      border: 1px solid rgba(0, 0, 0, 0.04); transition: all 0.2s ease;
+      border: 1px solid rgba(0, 0, 0, 0.04);
     }
 
     .today-guide-card {
@@ -84,29 +79,25 @@
       width: 100%; padding: 10px 12px; border: 1px solid var(--border-color);
       border-radius: var(--radius-sm); font-size: 0.9rem; color: var(--text-main);
       background-color: #fafafa; appearance: none; -webkit-appearance: none;
-      transition: border-color 0.2s ease, background-color 0.2s ease; font-family: inherit;
+      font-family: inherit;
     }
 
-    input[type="text"]:focus, input[type="date"]:focus, select:focus, input[type="number"]:focus {
+    input:focus, select:focus {
       outline: none; border-color: var(--primary-color); background-color: #ffffff;
       box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
     }
 
     button {
       font-family: inherit; border: none; border-radius: var(--radius-sm); font-weight: 600;
-      cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center;
-      justify-content: center; user-select: none;
+      cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
     }
     button:active { transform: scale(0.98); }
     button.btn-primary { background-color: var(--primary-color); color: white; padding: 10px 16px; white-space: nowrap; font-size: 0.85rem; }
-    button.btn-primary:hover { background-color: var(--primary-hover); }
-    button.btn-save { width: 100%; padding: 14px; background-color: var(--success-color); color: white; font-size: 1rem; margin-top: 8px; box-shadow: 0 4px 12px rgba(52, 199, 89, 0.25); }
-    button.btn-cancel-save { width: 100%; padding: 12px; background-color: var(--danger-color); color: white; font-size: 0.9rem; margin-top: 8px; box-shadow: 0 4px 12px rgba(255, 59, 48, 0.2); }
-    button.btn-adjust { width: 100%; padding: 14px; background-color: var(--warning-color); color: white; font-size: 0.95rem; margin-top: 8px; box-shadow: 0 4px 12px rgba(255, 149, 0, 0.25); }
+    button.btn-save { width: 100%; padding: 14px; background-color: var(--success-color); color: white; font-size: 1rem; margin-top: 8px; }
+    button.btn-cancel-save { width: 100%; padding: 12px; background-color: var(--danger-color); color: white; font-size: 0.9rem; margin-top: 8px; }
+    button.btn-adjust { width: 100%; padding: 14px; background-color: var(--warning-color); color: white; font-size: 0.95rem; margin-top: 8px; }
     button.btn-csv { background-color: #efeff4; color: var(--text-main); padding: 6px 12px; font-size: 0.75rem; border: 1px solid var(--border-color); }
-    button.btn-backup { background-color: #e3f2fd; color: #0050b3; padding: 6px 12px; font-size: 0.75rem; border: 1px solid #bae0ff; }
-    button.btn-restore { background-color: #f6ffed; color: #274fee; padding: 6px 12px; font-size: 0.75rem; border: 1px solid #b7ebc6; }
-    button.btn-report-toggle { width: 100%; padding: 12px; background-color: var(--purple-color); color: white; font-size: 0.9rem; margin-top: 12px; box-shadow: 0 4px 12px rgba(175, 82, 222, 0.25); }
+    button.btn-report-toggle { width: 100%; padding: 12px; background-color: var(--purple-color); color: white; font-size: 0.9rem; margin-top: 12px; }
     button.btn-back { background-color: #e5e5ea; color: var(--text-main); padding: 6px 14px; font-size: 0.85rem; }
     .btn-edit { background-color: #e5e5ea; color: var(--text-main); padding: 4px 10px; font-size: 0.75rem; margin-right: 4px; }
     .btn-del { background-color: #ffe5e5; color: var(--danger-color); padding: 4px 10px; font-size: 0.75rem; }
@@ -120,11 +111,10 @@
       background-color: #e5e5ea; color: #3a3a3c; padding: 8px 14px; border-radius: 20px;
       font-size: 0.85rem; font-weight: 600; cursor: pointer; user-select: none;
       display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid transparent;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .member-chip.selected-700 { background-color: var(--primary-color); color: #ffffff; border-color: var(--primary-color); box-shadow: 0 2px 8px rgba(0, 113, 227, 0.3); }
-    .member-chip.selected-500 { background-color: var(--success-color); color: #ffffff; border-color: var(--success-color); box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3); }
+    .member-chip.selected-700 { background-color: var(--primary-color); color: #ffffff; }
+    .member-chip.selected-500 { background-color: var(--success-color); color: #ffffff; }
     .delete-btn { color: #8e8e93; font-weight: 700; cursor: pointer; font-size: 0.9rem; margin-left: 2px; }
 
     .form-row { margin-bottom: 12px; width: 100%; }
@@ -137,7 +127,7 @@
 
     .dashboard-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
     .dash-card-mini { background: #fafafa; border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-sm); font-size: 0.8rem; }
-    .history-card { background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px; font-size: 0.825rem; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    .history-card { background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px; font-size: 0.825rem; }
     .history-header { font-weight: 600; color: var(--primary-color); display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.875rem; }
     .action-btns { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border-color); display: flex; justify-content: flex-end; }
     .reserve-check-row { padding: 10px 12px; border-radius: var(--radius-sm); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; border: 1px solid var(--border-color); }
@@ -150,11 +140,9 @@
     .stats-table th { background: #fafafa; color: var(--text-sub); font-weight: 600; }
 
     details { background: var(--card-bg); border-radius: var(--radius-md); margin-bottom: 16px; border: 1px solid rgba(0, 0, 0, 0.04); box-shadow: var(--shadow-sm); width: 100%; overflow: hidden; }
-    details summary { padding: 16px 20px; font-weight: 600; font-size: 0.95rem; cursor: pointer; outline: none; user-select: none; color: var(--text-main); }
+    details summary { padding: 16px 20px; font-weight: 600; font-size: 0.95rem; cursor: pointer; outline: none; }
     details[open] summary { border-bottom: 1px solid var(--border-color); }
     .accordion-content { padding: 16px 20px 20px 20px; }
-
-    .header-btn-group { display: flex; gap: 4px; align-items: center; }
   </style>
 </head>
 <body>
@@ -164,10 +152,10 @@
   </div>
 
   <div id="mainPage">
-    <!-- 📱 1. 本日の現場入力エリア -->
+    <!-- 1. 現場入力 -->
     <div class="container" style="border-top: 4px solid var(--primary-color);">
       <div class="today-guide-card">
-        <div class="today-guide-title">⚖️ 本日の推奨黒字ライン (ポチポチ選択と連動)</div>
+        <div class="today-guide-title">⚖️ 本日の推奨黒字ライン</div>
         <div id="todayBreakEven" class="today-guide-value">
           参加 0名 ｜ 利益 0円 ➔ 消耗 <strong>0球</strong> まで黒字
         </div>
@@ -175,7 +163,7 @@
 
       <div class="section-title">
         <span>👥 参加メンバー選択</span>
-        <span style="font-size:0.75rem; color:var(--text-sub); font-weight:normal;">(タップ: 700円青 ➔ 500円緑 ➔ 未選択)</span>
+        <span style="font-size:0.75rem; color:var(--text-sub);">(タップ: 700円青 ➔ 500円緑 ➔ 未選択)</span>
       </div>
       <div id="memberList" class="member-list"></div>
 
@@ -206,13 +194,13 @@
             <input type="text" value="700円 / 500円" readonly style="background:#f0f0f5; color:var(--text-sub); font-weight:600;">
           </div>
           <div>
-            <label>事前予約コート代 (自動読み込み/手入力)</label>
+            <label>事前予約コート代</label>
             <input type="number" id="courtFee" value="0" placeholder="コート代を入力">
           </div>
         </div>
 
         <div class="form-row">
-          <label>シャトル損益個数 (切り捨て黒字限界球数)</label>
+          <label>シャトル損益個数 (黒字限界球数)</label>
           <input type="text" id="usedShuttleBallsDisplay" value="0 球" readonly style="background:#eef5ff; color:var(--primary-color); font-weight:700; font-size:1.05rem;">
         </div>
 
@@ -232,9 +220,9 @@
       </form>
     </div>
 
-    <!-- 📅 2. 3ヶ月先までのコート予約・支払い -->
+    <!-- 2. コート予約 -->
     <details class="container" id="reserveAccordionContainer" open style="border-left: 4px solid var(--success-color);">
-      <summary>📅 3ヶ月先までのコート予約・支払い (直近12〜13回分一括点検)</summary>
+      <summary>📅 3ヶ月先までのコート予約・支払い</summary>
       <div class="accordion-content">
         <form id="reserveForm" action="#">
           <div class="form-row">
@@ -243,8 +231,8 @@
             <div id="targetDateWithDay" style="font-size:0.8rem; color:var(--primary-color); font-weight:600; margin-top:4px;"></div>
           </div>
           <div class="form-row">
-            <label>予約手続き日 (正確な3ヶ月前 & 曜日)</label>
-            <input type="text" id="reserveCalcDate" readonly style="background:#eef5ff; color:var(--primary-color); font-weight:600; font-size:0.95rem;">
+            <label>予約手続き日 (正確な3ヶ月前)</label>
+            <input type="text" id="reserveCalcDate" readonly style="background:#eef5ff; color:var(--primary-color); font-weight:600;">
           </div>
           <div class="form-row">
             <label>支払いコート代 (円)</label>
@@ -262,9 +250,9 @@
       </div>
     </details>
 
-    <!-- 📦 3. シャトルまとめ買い記録 -->
+    <!-- 3. シャトル購入 -->
     <details class="container">
-      <summary>📦 シャトルまとめ買い記録 (資材仕入れ)</summary>
+      <summary>📦 シャトルまとめ買い記録</summary>
       <div class="accordion-content">
         <form id="shuttleForm" action="#">
           <div class="form-row">
@@ -290,7 +278,7 @@
       </div>
     </details>
 
-    <!-- 💰 4. サークル財務サマリー -->
+    <!-- 4. 財務サマリー -->
     <div class="container">
       <div class="section-title">💰 サークル財務サマリー（総金庫）</div>
       <div class="dashboard-mini">
@@ -307,24 +295,19 @@
       <button type="button" id="goToReportBtn" class="btn-report-toggle">📈 損益分岐グラフ & 参加率レポートを見る ➔</button>
     </div>
 
-    <!-- 📜 5. 会計・予約・仕入れ履歴 -->
+    <!-- 5. 履歴ログ -->
     <div class="container">
       <div class="section-title">
-        <span>📜 会計・予約・仕入れ履歴</span>
-        <div class="header-btn-group">
-          <button type="button" id="exportJsonBtn" class="btn-backup">📤 保存</button>
-          <button type="button" id="importJsonBtn" class="btn-backup">📥 復元</button>
-          <input type="file" id="importFileInput" accept=".json" style="display:none;">
-          <button type="button" id="downloadCsvBtn" class="btn-csv">CSV</button>
-        </div>
+        <span>📜 会計・予約・仕入れ履歴 (ログ)</span>
+        <button type="button" id="downloadCsvBtn" class="btn-csv">📥 CSV出力</button>
       </div>
-      <div id="historyList">データなし</div>
+      <div id="historyList">データを読み込み中...</div>
     </div>
 
-    <!-- 🔧 6. 残高の直接調整エリア -->
+    <!-- 6. 残高直接調整 -->
     <div class="container" style="border-top: 4px solid var(--warning-color);">
       <div class="section-title" style="color: var(--warning-color);">
-        <span>🔧 残高の直接調整 (手元の現金ピッタリ合わせ・初期残高)</span>
+        <span>🔧 残高の直接調整</span>
       </div>
       <form id="adjustForm" action="#" style="margin-top: 10px;">
         <div class="form-row">
@@ -336,7 +319,7 @@
           <input type="number" id="adjustTargetBalance" placeholder="例: 155130">
         </div>
         <div class="form-row">
-          <label>調整理由・メモ (例: 初期繰越金 / 端数調整 / 雑費など)</label>
+          <label>調整理由・メモ</label>
           <input type="text" id="adjustReason" value="初期繰越金">
         </div>
         <button type="button" id="saveAdjustBtn" class="btn-adjust">💾 残高をこの金額に調整する</button>
@@ -356,7 +339,7 @@
         <canvas id="financeChart" width="400" height="180"></canvas>
       </div>
       <div style="margin-top:24px;">
-        <div style="font-weight:600; font-size:0.85rem; margin-bottom:4px;">⚖️ 各回の損益（会費利益 vs コート代）</div>
+        <div style="font-weight:600; font-size:0.85rem; margin-bottom:4px;">⚖️ 各回の損益</div>
         <canvas id="breakEvenChart" width="400" height="200"></canvas>
       </div>
       <div style="margin-top:24px;">
@@ -379,34 +362,36 @@
     </div>
   </div>
 
-  <script>
-    // --- ローカルストレージ管理 ---
-    const STORAGE_KEY_MEMBERS = "badminton_members_data";
-    const STORAGE_KEY_EVENTS = "badminton_events_data";
-    const STORAGE_KEY_RESERVES = "badminton_reserves_data";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { 
+      getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, writeBatch, serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    function getLocalData(key, defaultVal = []) {
-      try {
-        const data = localStorage.getItem(key);
-        return data ? JSON.parse(data) : defaultVal;
-      } catch (e) {
-        console.error("Storage error:", e);
-        return defaultVal;
+    // 💡 ご自身のFirebaseプロジェクト情報に置き換えてください
+    const firebaseConfig = {
+      apiKey: "AIzaSyYOUR_ACTUAL_API_KEY_HERE",
+      authDomain: "newwbc-a6e29.firebaseapp.com",
+      projectId: "newwbc-a6e29",
+      storageBucket: "newwbc-a6e29.appspot.com",
+      messagingSenderId: "1234567890",
+      appId: "1:1234567890:web:actual_app_id"
+    };
+
+    let db = null;
+    let isFirebaseReady = false;
+
+    try {
+      if (firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("dummy") && !firebaseConfig.apiKey.includes("YOUR_ACTUAL")) {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        isFirebaseReady = true;
       }
+    } catch (err) {
+      console.warn("Firebase Init fallback:", err);
     }
-
-    function saveLocalData(key, data) {
-      localStorage.setItem(key, JSON.stringify(data));
-    }
-
-    let membersData = getLocalData(STORAGE_KEY_MEMBERS, [
-      { id: "1", name: "細川", order: 0 }
-    ]);
-    let eventsData = getLocalData(STORAGE_KEY_EVENTS, []);
-    let reservesData = getLocalData(STORAGE_KEY_RESERVES, []);
 
     const weekDays = ["日", "月", "火", "水", "木", "金", "土"];
-
     const eventDateInput = document.getElementById("eventDate");
     const reserveTargetDate = document.getElementById("reserveTargetDate");
     const shuttleBuyDate = document.getElementById("shuttleBuyDate");
@@ -423,28 +408,40 @@
     if (adjustDateInput) adjustDateInput.valueAsDate = today;
 
     let editingDocId = null;
-    let editingReserveDate = null;
+    let editingReserveDocId = null;
     let selectedMemberFees = new Map();
     let currentCalculatedNetBalance = 0;
     let accumulatedProfitSinceAug7Base = 0;
     let latestShuttleBallUnitPrice = 333;
-    let reservedCourtsMap = {};
 
-    // SortableJS Drag & Drop
+    let rawMembersData = JSON.parse(localStorage.getItem("bad_members") || "[]");
+    let rawEventsData = JSON.parse(localStorage.getItem("bad_events") || "[]");
+    let rawReservesData = JSON.parse(localStorage.getItem("bad_reserves") || "[]");
+    let reservedCourtsMap = {};
+    let reservedDocIdsMap = {};
+
     const memberListContainer = document.getElementById("memberList");
     new Sortable(memberListContainer, {
       animation: 150,
-      onEnd: () => {
+      onEnd: async () => {
         const chips = Array.from(memberListContainer.querySelectorAll(".member-chip"));
-        chips.forEach((el, index) => {
-          const item = membersData.find(m => m.id === el.dataset.id);
-          if (item) item.order = index;
-        });
-        saveLocalData(STORAGE_KEY_MEMBERS, membersData);
+        if (isFirebaseReady && db) {
+          const batch = writeBatch(db);
+          chips.forEach((el, index) => {
+            batch.update(doc(db, "members", el.dataset.id), { order: index });
+          });
+          await batch.commit();
+        } else {
+          rawMembersData.forEach(m => {
+            const idx = chips.findIndex(c => c.dataset.name === m.name);
+            if (idx !== -1) m.order = idx;
+          });
+          rawMembersData.sort((a,b) => a.order - b.order);
+          localStorage.setItem("bad_members", JSON.stringify(rawMembersData));
+        }
       }
     });
 
-    // Navigation
     document.getElementById("goToReportBtn").addEventListener("click", () => {
       document.getElementById("mainPage").style.display = "none";
       document.getElementById("reportPage").style.display = "block";
@@ -480,16 +477,14 @@
       document.getElementById("reserveCalcDate").value = `${py}年${pm}月${pd}日 (${pw})`;
     }
 
-    // Render Members
-    function renderMembers() {
+    function renderMembersUI(members) {
       memberListContainer.innerHTML = "";
-
-      membersData.sort((a, b) => a.order - b.order).forEach((data) => {
+      members.forEach((data) => {
         const chip = document.createElement("div");
         const currentFee = selectedMemberFees.get(data.name);
         
         chip.className = `member-chip ${currentFee === 700 ? 'selected-700' : currentFee === 500 ? 'selected-500' : ''}`;
-        chip.dataset.id = data.id;
+        chip.dataset.id = data.id || data.name;
         chip.dataset.name = data.name;
 
         let feeLabel = '';
@@ -511,18 +506,21 @@
           } else {
             selectedMemberFees.delete(data.name);
           }
-          renderMembers();
+          renderMemberSelection();
           updateSummary();
         });
 
-        chip.querySelector(".delete-btn").addEventListener("click", (e) => {
+        chip.querySelector(".delete-btn").addEventListener("click", async (e) => {
           e.stopPropagation();
           if (confirm(`${data.name} さんを削除しますか？`)) {
             selectedMemberFees.delete(data.name);
-            membersData = membersData.filter(m => m.id !== data.id);
-            saveLocalData(STORAGE_KEY_MEMBERS, membersData);
-            renderMembers();
-            updateSummary();
+            if (isFirebaseReady && db && data.id) {
+              await deleteDoc(doc(db, "members", data.id));
+            } else {
+              rawMembersData = rawMembersData.filter(m => m.name !== data.name);
+              localStorage.setItem("bad_members", JSON.stringify(rawMembersData));
+              renderMembersUI(rawMembersData);
+            }
           }
         });
 
@@ -531,19 +529,48 @@
       updateSummary();
     }
 
-    document.getElementById("addMemberForm").addEventListener("submit", (e) => {
+    if (isFirebaseReady && db) {
+      onSnapshot(query(collection(db, "members"), orderBy("order", "asc")), (snapshot) => {
+        rawMembersData = [];
+        snapshot.forEach((docSnap) => rawMembersData.push({ id: docSnap.id, ...docSnap.data() }));
+        localStorage.setItem("bad_members", JSON.stringify(rawMembersData));
+        renderMembersUI(rawMembersData);
+      });
+    } else {
+      renderMembersUI(rawMembersData);
+    }
+
+    function renderMemberSelection() {
+      const chips = memberListContainer.querySelectorAll(".member-chip");
+      chips.forEach(chip => {
+        const name = chip.dataset.name;
+        const currentFee = selectedMemberFees.get(name);
+        
+        chip.className = `member-chip ${currentFee === 700 ? 'selected-700' : currentFee === 500 ? 'selected-500' : ''}`;
+        
+        let feeLabel = '';
+        if (currentFee === 700) feeLabel = '✓ 700円';
+        else if (currentFee === 500) feeLabel = '★ 500円';
+
+        chip.querySelector("span").textContent = `${feeLabel ? feeLabel + ' ' : ''}${name}`;
+      });
+    }
+
+    document.getElementById("addMemberForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const input = document.getElementById("memberInput");
       const name = input.value.trim();
       if (!name) return;
       
-      const newMember = { id: Date.now().toString(), name, order: membersData.length };
-      membersData.push(newMember);
-      saveLocalData(STORAGE_KEY_MEMBERS, membersData);
       selectedMemberFees.set(name, 700);
+      if (isFirebaseReady && db) {
+        await addDoc(collection(db, "members"), { name, order: rawMembersData.length, createdAt: serverTimestamp() });
+      } else {
+        rawMembersData.push({ id: 'loc_' + Date.now(), name, order: rawMembersData.length });
+        localStorage.setItem("bad_members", JSON.stringify(rawMembersData));
+        renderMembersUI(rawMembersData);
+      }
       input.value = "";
-      renderMembers();
-      updateSummary();
     });
 
     if (courtFeeInput) courtFeeInput.addEventListener("input", updateSummary);
@@ -552,7 +579,6 @@
       updateSummary();
     });
 
-    // 日付選択時のコート代自動同期処理
     function checkAutoCourtFee() {
       const selDate = eventDateInput ? eventDateInput.value : "";
       if (reservedCourtsMap[selDate] !== undefined) {
@@ -562,7 +588,6 @@
       }
     }
 
-    // ★ 純損益＆累計損益のリアルタイム計算・即時描画ロジック
     function updateSummary() {
       let count700 = 0;
       let count500 = 0;
@@ -575,13 +600,10 @@
       const totalCount = count700 + count500;
       const courtFee = parseInt(courtFeeInput ? courtFeeInput.value : 0, 10) || 0;
       const totalIncome = (count700 * 700) + (count500 * 500);
-      
       const todayNetProfit = totalIncome - courtFee;
 
       const maxBreakEvenBalls = todayNetProfit > 0 ? Math.floor(todayNetProfit / latestShuttleBallUnitPrice) : 0;
-      if (usedShuttleBallsDisplay) {
-        usedShuttleBallsDisplay.value = `${maxBreakEvenBalls} 球`;
-      }
+      if (usedShuttleBallsDisplay) usedShuttleBallsDisplay.value = `${maxBreakEvenBalls} 球`;
 
       if (todayNetProfitDisplay) {
         todayNetProfitDisplay.textContent = `${todayNetProfit >= 0 ? '+' : ''}${todayNetProfit.toLocaleString()} 円`;
@@ -590,18 +612,15 @@
 
       const targetElem = document.getElementById("todayBreakEven");
       if (targetElem) {
-        targetElem.innerHTML = 
-          `参加 <strong>${totalCount}名</strong> (700円:${count700}名 / 500円:${count500}名) ｜ 会費合計 <strong>${totalIncome.toLocaleString()}円</strong>`;
+        targetElem.innerHTML = `参加 <strong>${totalCount}名</strong> (700円:${count700}名 / 500円:${count500}名) ｜ 会費合計 <strong>${totalIncome.toLocaleString()}円</strong>`;
       }
 
-      // 二重加算防止＆精密累計算出
       const currentSelectedDate = eventDateInput ? eventDateInput.value : "";
-      const existingEvent = eventsData.find(e => e.type === "practice" && e.date === currentSelectedDate);
+      const existingEvent = rawEventsData.find(e => e.type === "practice" && e.date === currentSelectedDate);
 
       let displayAccumulated = 0;
-
       if (existingEvent && !editingDocId) {
-        eventsData.forEach(d => {
+        rawEventsData.forEach(d => {
           if (d.type === "practice" && d.date >= "2026-08-07") {
             if (d.id === existingEvent.id) {
               displayAccumulated += todayNetProfit;
@@ -626,17 +645,34 @@
       }
     }
 
-    // ★ コート予約点検表リスト（✏️ 編集 ボタン ＆ 🗑️ 削除 ボタンを必ず生成）
-    function refreshReserves() {
+    function renderReservesUI(reserves) {
       reservedCourtsMap = {};
-      reservesData.forEach(d => {
+      reservedDocIdsMap = {};
+      reserves.forEach(d => {
         const dateKey = d.targetDate || d.date;
         const feeVal = d.courtFee !== undefined ? d.courtFee : (d.fee || 1600);
         if (dateKey) {
           reservedCourtsMap[dateKey] = feeVal;
+          reservedDocIdsMap[dateKey] = d.id;
         }
       });
+      renderReserveCheckList();
+      checkAutoCourtFee();
+      updateSummary();
+    }
 
+    if (isFirebaseReady && db) {
+      onSnapshot(query(collection(db, "reserves"), orderBy("targetDate", "asc")), (snapshot) => {
+        rawReservesData = [];
+        snapshot.forEach((docSnap) => rawReservesData.push({ id: docSnap.id, ...docSnap.data() }));
+        localStorage.setItem("bad_reserves", JSON.stringify(rawReservesData));
+        renderReservesUI(rawReservesData);
+      });
+    } else {
+      renderReservesUI(rawReservesData);
+    }
+
+    function renderReserveCheckList() {
       const reserveCheckList = document.getElementById("reserveCheckList");
       if (!reserveCheckList) return;
       reserveCheckList.innerHTML = "";
@@ -655,6 +691,7 @@
 
           const isReserved = reservedCourtsMap[dateStr] !== undefined;
           const fee = isReserved ? reservedCourtsMap[dateStr] : 0;
+          const docId = isReserved ? reservedDocIdsMap[dateStr] : null;
 
           const row = document.createElement("div");
           row.className = `reserve-check-row ${isReserved ? 'reserved' : 'unreserved'}`;
@@ -666,8 +703,8 @@
                 <span class="status-badge-ok" style="margin-left:8px;">✅ 予約済み (${fee.toLocaleString()}円)</span>
               </div>
               <div style="display:flex; gap:4px;">
-                <button type="button" class="btn-edit" onclick="editReserve('${dateStr}')">✏️ 編集</button>
-                <button type="button" class="btn-del" onclick="deleteReserve('${dateStr}')">🗑️ 削除</button>
+                <button type="button" class="btn-edit" onclick="editReserve('${dateStr}', '${docId}')">✏️ 編集</button>
+                <button type="button" class="btn-del" onclick="deleteReserve('${docId}')">🗑️ 削除</button>
               </div>
             `;
           } else {
@@ -679,106 +716,89 @@
               <button type="button" class="btn-primary" style="padding:4px 10px; font-size:0.75rem;" onclick="setQuickReserve('${dateStr}')">予約登録</button>
             `;
           }
-
           reserveCheckList.appendChild(row);
         }
         curr.setDate(curr.getDate() + 1);
       }
-
-      checkAutoCourtFee();
     }
 
-    // ★ コート予約の「✏️ 編集」機能
-    window.editReserve = function(dateStr) {
-      const target = reservesData.find(r => (r.targetDate || r.date) === dateStr);
+    window.editReserve = function(dateStr, docId) {
+      const target = rawReservesData.find(r => r.id === docId);
       if (!target) return;
 
-      editingReserveDate = dateStr;
+      editingReserveDocId = docId;
       if (reserveTargetDate) reserveTargetDate.value = dateStr;
       calcExactReserveDate();
-      if (reserveCourtFeeInput) reserveCourtFeeInput.value = target.courtFee !== undefined ? target.courtFee : (target.fee || 1600);
+      if (reserveCourtFeeInput) reserveCourtFeeInput.value = target.courtFee !== undefined ? target.courtFee : 1600;
 
       const saveBtn = document.getElementById("saveReserveBtn");
       if (saveBtn) saveBtn.textContent = "✏️ 予約内容を上書き保存する";
-
-      const formElem = document.getElementById("reserveAccordionContainer");
-      if (formElem) formElem.scrollIntoView({ behavior: 'smooth' });
+      document.getElementById("reserveAccordionContainer").scrollIntoView({ behavior: 'smooth' });
     };
 
-    window.setQuickReserve = function(dateStr) {
+    window.setQuickReserve = async function(dateStr) {
       const feeVal = parseInt(document.getElementById("reserveCourtFee").value, 10) || 1600;
-      
-      const existingIndex = reservesData.findIndex(r => (r.targetDate || r.date) === dateStr);
-      if (existingIndex >= 0) {
-        reservesData[existingIndex].courtFee = feeVal;
-        reservesData[existingIndex].targetDate = dateStr;
+      if (isFirebaseReady && db) {
+        await addDoc(collection(db, "reserves"), { targetDate: dateStr, courtFee: feeVal, createdAt: serverTimestamp() });
       } else {
-        reservesData.push({ id: Date.now().toString(), targetDate: dateStr, courtFee: feeVal });
+        rawReservesData.push({ id: 'res_' + Date.now(), targetDate: dateStr, courtFee: feeVal });
+        localStorage.setItem("bad_reserves", JSON.stringify(rawReservesData));
+        renderReservesUI(rawReservesData);
       }
-
-      saveLocalData(STORAGE_KEY_RESERVES, reservesData);
-      refreshReserves();
-      updateSummary();
     };
 
-    window.deleteReserve = function(dateStr) {
-      if (confirm(`${dateStr} の予約データを削除しますか？`)) {
-        reservesData = reservesData.filter(r => (r.targetDate || r.date) !== dateStr);
-        if (editingReserveDate === dateStr) {
-          editingReserveDate = null;
-          const saveBtn = document.getElementById("saveReserveBtn");
-          if (saveBtn) saveBtn.textContent = "💾 コート予約代を保存";
+    window.deleteReserve = async function(docId) {
+      if (confirm("この予約データを削除しますか？")) {
+        if (editingReserveDocId === docId) {
+          editingReserveDocId = null;
+          document.getElementById("saveReserveBtn").textContent = "💾 コート予約代を保存";
         }
-        saveLocalData(STORAGE_KEY_RESERVES, reservesData);
-        refreshReserves();
-        updateSummary();
+        if (isFirebaseReady && db) {
+          await deleteDoc(doc(db, "reserves", docId));
+        } else {
+          rawReservesData = rawReservesData.filter(r => r.id !== docId);
+          localStorage.setItem("bad_reserves", JSON.stringify(rawReservesData));
+          renderReservesUI(rawReservesData);
+        }
       }
     };
 
-    document.getElementById("saveReserveBtn").onclick = function() {
+    document.getElementById("saveReserveBtn").onclick = async function() {
       const targetDateVal = reserveTargetDate ? reserveTargetDate.value : "";
       if (!targetDateVal) return alert("コート使用予定日を選択してください");
 
       const feeVal = parseInt(reserveCourtFeeInput ? reserveCourtFeeInput.value : 1600, 10) || 0;
 
-      if (editingReserveDate) {
-        reservesData = reservesData.map(r => {
-          if ((r.targetDate || r.date) === editingReserveDate) {
-            return { ...r, targetDate: targetDateVal, courtFee: feeVal };
-          }
-          return r;
-        });
-        alert("コート予約内容を更新しました！");
-        editingReserveDate = null;
-        this.textContent = "💾 コート予約代を保存";
-      } else {
-        const existingIndex = reservesData.findIndex(r => (r.targetDate || r.date) === targetDateVal);
-        if (existingIndex >= 0) {
-          reservesData[existingIndex].courtFee = feeVal;
-          reservesData[existingIndex].targetDate = targetDateVal;
-          alert("該当日のコート予約代を上書き保存しました！");
+      if (isFirebaseReady && db) {
+        if (editingReserveDocId) {
+          await updateDoc(doc(db, "reserves", editingReserveDocId), { targetDate: targetDateVal, courtFee: feeVal });
+          editingReserveDocId = null;
         } else {
-          reservesData.push({ id: Date.now().toString(), targetDate: targetDateVal, courtFee: feeVal });
-          alert("コート予約代を保存しました！");
+          await addDoc(collection(db, "reserves"), { targetDate: targetDateVal, courtFee: feeVal, createdAt: serverTimestamp() });
         }
+      } else {
+        if (editingReserveDocId) {
+          const idx = rawReservesData.findIndex(r => r.id === editingReserveDocId);
+          if (idx !== -1) rawReservesData[idx] = { ...rawReservesData[idx], targetDate: targetDateVal, courtFee: feeVal };
+          editingReserveDocId = null;
+        } else {
+          rawReservesData.push({ id: 'res_' + Date.now(), targetDate: targetDateVal, courtFee: feeVal });
+        }
+        localStorage.setItem("bad_reserves", JSON.stringify(rawReservesData));
+        renderReservesUI(rawReservesData);
       }
-
-      saveLocalData(STORAGE_KEY_RESERVES, reservesData);
-      refreshReserves();
-      updateSummary();
+      this.textContent = "💾 コート予約代を保存";
+      alert("コート予約代を保存しました！");
     };
 
-    document.getElementById("saveEventBtn").onclick = function() {
-      executeSaveEvent(false);
-    };
-
+    document.getElementById("saveEventBtn").onclick = function() { executeSaveEvent(false); };
     document.getElementById("saveCancelEventBtn").onclick = function() {
       selectedMemberFees.clear();
-      renderMembers();
+      renderMemberSelection();
       executeSaveEvent(true);
     };
 
-    function executeSaveEvent(isCancelled) {
+    async function executeSaveEvent(isCancelled) {
       const members700 = [];
       const members500 = [];
 
@@ -795,7 +815,6 @@
       const netProfit = calculatedIncome - courtFeeVal;
 
       const payload = {
-        id: editingDocId || Date.now().toString(),
         type: "practice",
         date: eventDateInput.value,
         time: document.getElementById("eventTime").value,
@@ -806,47 +825,66 @@
         totalIncome: calculatedIncome,
         courtFee: courtFeeVal,
         netProfit: netProfit,
-        isCancelled: isCancelled || totalMembers.length === 0
+        isCancelled: isCancelled || totalMembers.length === 0,
+        updatedAt: new Date().toISOString()
       };
 
-      if (editingDocId) {
-        eventsData = eventsData.map(e => e.id === editingDocId ? payload : e);
-        editingDocId = null;
-        document.getElementById("saveEventBtn").textContent = "💾 本日の練習記録を保存";
+      if (isFirebaseReady && db) {
+        if (editingDocId) {
+          await updateDoc(doc(db, "events", editingDocId), payload);
+          editingDocId = null;
+          document.getElementById("saveEventBtn").textContent = "💾 本日の練習記録を保存";
+        } else {
+          payload.createdAt = serverTimestamp();
+          await addDoc(collection(db, "events"), payload);
+        }
       } else {
-        eventsData.push(payload);
+        if (editingDocId) {
+          const idx = rawEventsData.findIndex(e => e.id === editingDocId);
+          if (idx !== -1) rawEventsData[idx] = { ...rawEventsData[idx], ...payload };
+          editingDocId = null;
+          document.getElementById("saveEventBtn").textContent = "💾 本日の練習記録を保存";
+        } else {
+          payload.id = 'ev_' + Date.now();
+          rawEventsData.unshift(payload);
+        }
+        localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
+        renderEventsUI(rawEventsData);
       }
 
-      saveLocalData(STORAGE_KEY_EVENTS, eventsData);
-      alert(isCancelled || totalMembers.length === 0 ? `中止/コート代（${courtFeeVal.toLocaleString()}円）を支出として記録しました！` : "練習記録を保存しました！");
+      alert("練習記録を保存しました！");
       selectedMemberFees.clear();
-      renderMembers();
-      refreshAll();
+      renderMemberSelection();
+      updateSummary();
     }
 
-    // シャトル購入保存
-    document.getElementById("saveShuttleBtn").onclick = function() {
+    document.getElementById("saveShuttleBtn").onclick = async function() {
       const totalFee = parseInt(document.getElementById("shuttleTotalFee").value, 10) || 0;
       const totalCount = parseInt(document.getElementById("shuttleTotalCount").value, 10) || 0;
       const ballUnitPrice = Math.round(totalFee / (totalCount * 12));
       
-      eventsData.push({
-        id: Date.now().toString(),
+      const payload = {
         type: "shuttle_buy",
         date: document.getElementById("shuttleBuyDate").value,
         name: document.getElementById("shuttleName").value,
         totalFee: totalFee,
         totalCount: totalCount,
         ballUnitPrice: ballUnitPrice
-      });
+      };
 
-      saveLocalData(STORAGE_KEY_EVENTS, eventsData);
+      if (isFirebaseReady && db) {
+        payload.createdAt = serverTimestamp();
+        await addDoc(collection(db, "events"), payload);
+      } else {
+        payload.id = 'sh_' + Date.now();
+        rawEventsData.unshift(payload);
+        localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
+        renderEventsUI(rawEventsData);
+      }
       alert("シャトル仕入れを保存しました！");
-      refreshAll();
     };
 
-    // 残高調整保存
-    document.getElementById("saveAdjustBtn").onclick = function() {
+    document.getElementById("saveAdjustBtn").onclick = async function() {
       const targetBalStr = document.getElementById("adjustTargetBalance").value;
       if (targetBalStr === "") return alert("調整後のピッタリ残高を入力してください");
 
@@ -854,76 +892,32 @@
       const reason = document.getElementById("adjustReason").value.trim() || "残高直接調整";
       const diffAmount = targetBal - currentCalculatedNetBalance;
 
-      eventsData.push({
-        id: Date.now().toString(),
+      const payload = {
         type: "balance_adjust",
         date: adjustDateInput.value,
         targetBalance: targetBal,
         diffAmount: diffAmount,
         reason: reason
-      });
+      };
 
-      saveLocalData(STORAGE_KEY_EVENTS, eventsData);
-      alert(`残高を ${targetBal.toLocaleString()} 円へ調整・固定しました！`);
+      if (isFirebaseReady && db) {
+        payload.createdAt = serverTimestamp();
+        await addDoc(collection(db, "events"), payload);
+      } else {
+        payload.id = 'adj_' + Date.now();
+        rawEventsData.unshift(payload);
+        localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
+        renderEventsUI(rawEventsData);
+      }
+      alert(`残高を ${targetBal.toLocaleString()} 円へ調整しました！`);
       document.getElementById("adjustTargetBalance").value = "";
-      refreshAll();
     };
 
-    // バックアップ機能
-    document.getElementById("exportJsonBtn").onclick = function() {
-      const backupData = {
-        version: "1.0",
-        exportDate: new Date().toISOString(),
-        members: membersData,
-        events: eventsData,
-        reserves: reservesData
-      };
-
-      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `badminton_backup_${new Date().toISOString().substring(0,10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    };
-
-    // 復元機能
-    document.getElementById("importJsonBtn").onclick = function() {
-      document.getElementById("importFileInput").click();
-    };
-
-    document.getElementById("importFileInput").onchange = function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        try {
-          const imported = JSON.parse(evt.target.result);
-          if (confirm("現在のデータがバックアップファイルの内容で一括更新されます。復元しても宜しいですか？")) {
-            if (imported.members) { membersData = imported.members; saveLocalData(STORAGE_KEY_MEMBERS, membersData); }
-            if (imported.events) { eventsData = imported.events; saveLocalData(STORAGE_KEY_EVENTS, eventsData); }
-            if (imported.reserves) { reservesData = imported.reserves; saveLocalData(STORAGE_KEY_RESERVES, reservesData); }
-            alert("データをバックアップから完全復元しました！");
-            selectedMemberFees.clear();
-            renderMembers();
-            refreshAll();
-          }
-        } catch (err) {
-          alert("ファイルの読み込みに失敗しました: " + err.message);
-        }
-      };
-      reader.readAsText(file);
-    };
-
-    // CSV出力
     document.getElementById("downloadCsvBtn").addEventListener("click", () => {
-      if (eventsData.length === 0) return alert("出力できる履歴データがありません");
+      if (rawEventsData.length === 0) return alert("出力できる履歴データがありません");
 
       let csvContent = "\uFEFF日付,種別,時間帯,参加人数,700円メンバー,500円メンバー,会費収入,コート代,純損益,支出額,備考\n";
-
-      eventsData.forEach(item => {
+      rawEventsData.forEach(item => {
         if (item.type === "practice") {
           const m700Str = item.members700 ? `"${item.members700.join(';')}"` : '""';
           const m500Str = item.members500 ? `"${item.members500.join(';')}"` : '""';
@@ -940,14 +934,13 @@
       const url = URL.createObjectURL(blob);
       const aElem = document.createElement("a");
       aElem.href = url;
-      aElem.download = `バドミントンサークル会計履歴_${new Date().toISOString().substring(0,10)}.csv`;
+      aElem.download = `バドミントン会計履歴_${new Date().toISOString().substring(0,10)}.csv`;
       aElem.click();
       URL.revokeObjectURL(url);
     });
 
-    // 編集機能 (editEvent)
     window.editEvent = function(id) {
-      const target = eventsData.find(item => item.id === id);
+      const target = rawEventsData.find(item => item.id === id);
       if (!target) return;
 
       editingDocId = id;
@@ -957,7 +950,6 @@
       courtFeeInput.value = target.courtFee || 0;
 
       selectedMemberFees.clear();
-      
       if (target.members700 || target.members500) {
         (target.members700 || []).forEach(name => selectedMemberFees.set(name, 700));
         (target.members500 || []).forEach(name => selectedMemberFees.set(name, 500));
@@ -965,16 +957,29 @@
         target.members.forEach(name => selectedMemberFees.set(name, 700));
       }
 
-      renderMembers();
+      renderMemberSelection();
       updateSummary();
       
-      const saveBtn = document.getElementById("saveEventBtn");
-      saveBtn.textContent = "✏️ 編集内容を上書き保存する";
+      document.getElementById("saveEventBtn").textContent = "✏️ 編集内容を上書き保存する";
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // 履歴・財務・全統計の再計算
-    function refreshAll() {
+    window.deleteEvent = async function(id) {
+      if (confirm("この履歴を削除しますか？")) {
+        if (isFirebaseReady && db) {
+          await deleteDoc(doc(db, "events", id));
+        } else {
+          rawEventsData = rawEventsData.filter(e => e.id !== id);
+          localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
+          renderEventsUI(rawEventsData);
+        }
+      }
+    };
+
+    let financeChart = null;
+    let breakEvenChart = null;
+
+    function renderEventsUI(events) {
       const historyList = document.getElementById("historyList");
       historyList.innerHTML = "";
 
@@ -987,12 +992,12 @@
       const monthlyData = {};
       const memberStats = {};
       let totalPracticeCount = 0;
-
       const nowYear = new Date().getFullYear().toString();
       const nowMonth = `${nowYear}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
       const practiceBreakEvenData = [];
 
-      eventsData.sort((a, b) => b.date.localeCompare(a.date)).forEach(d => {
+      events.forEach((d) => {
+        const id = d.id;
         const card = document.createElement("div");
         card.className = "history-card";
 
@@ -1005,10 +1010,7 @@
           totalIncome += practiceIncome;
           totalCourt += practiceCourt;
 
-          if (d.date && d.date >= "2026-08-07") {
-            accumulatedProfitSinceAug7Base += calculatedNetProfit;
-          }
-
+          if (d.date && d.date >= "2026-08-07") accumulatedProfitSinceAug7Base += calculatedNetProfit;
           practiceBreakEvenData.push({ date: d.date.substring(5), profit: calculatedNetProfit });
 
           if (d.members && d.members.length > 0) {
@@ -1021,7 +1023,6 @@
           }
 
           const isCancel = d.isCancelled || !d.members || d.members.length === 0;
-
           card.innerHTML = `
             <div class="history-header">
               <span>🏸 ${isCancel ? '中止/コート代のみ' : '練習'}: ${d.date} (${d.time||'3h'})</span>
@@ -1030,8 +1031,8 @@
             <div>👥 参加 (${d.memberCount||0}名): ${isCancel ? '<span style="color:var(--warning-color); font-weight:600;">なし(中止)</span>' : (d.members||[]).join(", ")}</div>
             <div style="margin-top:2px;">🏟️ コート代: ${practiceCourt.toLocaleString()}円 ｜ 💰 純損益: <strong style="color:${calculatedNetProfit >= 0 ? 'var(--primary-color)' : 'var(--danger-color)'};">${calculatedNetProfit >= 0 ? '+' : ''}${calculatedNetProfit.toLocaleString()}円</strong></div>
             <div class="action-btns">
-              <button type="button" class="btn-edit" onclick="editEvent('${d.id}')">✏️ 編集</button>
-              <button type="button" class="btn-del" onclick="deleteEvent('${d.id}')">🗑️ 削除</button>
+              <button type="button" class="btn-edit" onclick="editEvent('${id}')">✏️ 編集</button>
+              <button type="button" class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
             </div>
           `;
         } else if (d.type === "shuttle_buy") {
@@ -1046,24 +1047,21 @@
             </div>
             <div>銘柄: ${d.name || 'シャトル'} (${d.totalCount||0}箱 / 単価 ${d.ballUnitPrice||0}円/球)</div>
             <div class="action-btns">
-              <button type="button" class="btn-del" onclick="deleteEvent('${d.id}')">🗑️ 削除</button>
+              <button type="button" class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
             </div>
           `;
         } else if (d.type === "balance_adjust") {
-          if (d.diffAmount >= 0) {
-            totalIncome += d.diffAmount;
-          } else {
-            totalCourt += Math.abs(d.diffAmount);
-          }
+          if (d.diffAmount >= 0) totalIncome += d.diffAmount;
+          else totalCourt += Math.abs(d.diffAmount);
 
           card.innerHTML = `
             <div class="history-header" style="color:var(--warning-color);">
               <span>🔧 残高直接調整: ${d.date}</span>
-              <span>設定残高: ${(d.targetBalance||0).toLocaleString()}円 (${d.diffAmount >= 0 ? '+' : ''}${(d.diffAmount||0).toLocaleString()}円)</span>
+              <span>設定残高: ${(d.targetBalance||0).toLocaleString()}円</span>
             </div>
             <div>メモ/理由: ${d.reason || 'なし'}</div>
             <div class="action-btns">
-              <button type="button" class="btn-del" onclick="deleteEvent('${d.id}')">🗑️ 削除</button>
+              <button type="button" class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
             </div>
           `;
         }
@@ -1102,12 +1100,21 @@
 
       updateMemberStatsTable(memberStats, totalPracticeCount);
       updateSummary();
-      refreshReserves();
       updateChart(monthlyData);
       updateBreakEvenChart(practiceBreakEvenData.reverse());
     }
 
-    // メンバー参加率テーブル描画
+    if (isFirebaseReady && db) {
+      onSnapshot(query(collection(db, "events"), orderBy("date", "desc")), (snapshot) => {
+        rawEventsData = [];
+        snapshot.forEach((docSnap) => rawEventsData.push({ id: docSnap.id, ...docSnap.data() }));
+        localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
+        renderEventsUI(rawEventsData);
+      });
+    } else {
+      renderEventsUI(rawEventsData);
+    }
+
     function updateMemberStatsTable(stats, totalPractice) {
       const tbody = document.getElementById("memberStatsBody");
       if (!tbody) return;
@@ -1121,7 +1128,6 @@
       Object.keys(stats).forEach(m => {
         const data = stats[m];
         const rate = totalPractice > 0 ? Math.round((data.total / totalPractice) * 100) : 0;
-
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td style="font-weight:600; text-align:left; padding-left:12px;">${m}</td>
@@ -1134,15 +1140,6 @@
       });
     }
 
-    window.deleteEvent = function(id) {
-      if (confirm("この履歴を削除しますか？")) {
-        eventsData = eventsData.filter(e => e.id !== id);
-        saveLocalData(STORAGE_KEY_EVENTS, eventsData);
-        refreshAll();
-      }
-    };
-
-    let financeChart = null;
     function updateChart(monthlyData) {
       const labels = Object.keys(monthlyData).sort();
       const incData = labels.map(k => monthlyData[k].inc);
@@ -1157,14 +1154,13 @@
           labels: labels,
           datasets: [
             { label: '収入(会費)', data: incData, backgroundColor: '#34c759' },
-            { label: '支出(コート+シャトル仕入れ)', data: expData, backgroundColor: '#ff3b30' }
+            { label: '支出(コート+仕入れ)', data: expData, backgroundColor: '#ff3b30' }
           ]
         },
         options: { responsive: true, scales: { y: { beginAtZero: true } } }
       });
     }
 
-    let breakEvenChart = null;
     function updateBreakEvenChart(listData) {
       const ctx = document.getElementById('breakEvenChart').getContext('2d');
       if (breakEvenChart) breakEvenChart.destroy();
@@ -1174,7 +1170,7 @@
         data: {
           labels: listData.map(item => item.date),
           datasets: [{
-            label: '回ごとの純損益(円)',
+            label: '純損益(円)',
             data: listData.map(item => item.profit),
             backgroundColor: listData.map(item => item.profit >= 0 ? '#34c759' : '#ff3b30')
           }]
@@ -1182,10 +1178,6 @@
         options: { responsive: true, scales: { y: { beginAtZero: true } } }
       });
     }
-
-    // 初期化実行
-    renderMembers();
-    refreshAll();
   </script>
 </body>
 </html>
