@@ -1,7 +1,9 @@
-<!DOCTYPE html><html lang="ja"><head>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日産 ノート E11 管理 (自動同期)</title>
+    <title>日産 ノート E11 管理 (JSONBin自動同期)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -18,23 +20,24 @@
         summary { list-style: none; }
         summary::-webkit-details-marker { display: none; }
         select { -webkit-appearance: none; appearance: none; }
-    </style></head><body class="p-4 pb-20">
+    </style>
+</head>
+<body class="p-4 pb-20">
     <div class="max-w-md mx-auto space-y-4">
-        <!-- ヘッダー（自動同期ステータス搭載） -->
+        <!-- ヘッダー -->
         <header class="flex justify-between items-center py-2">
             <div>
                 <h1 class="font-bold text-xl">Note E11 管理</h1>
                 <p id="headerDate" class="text-xs text-gray-500"></p>
             </div>
             <div class="flex items-center gap-2">
-                <span id="syncStatus" class="text-[10px] bg-gray-200 text-gray-700 px-2.5 py-1 rounded-full font-bold">同期準備中</span>
-                <button onclick="manualSync()" class="bg-blue-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-sm active:scale-95 transition" title="今すぐ同期">
-                    <i class="fa-solid fa-rotate"></i>
+                <button onclick="syncWithCloud()" class="bg-blue-600 text-white px-3.5 py-1.5 rounded-full text-xs font-bold shadow-sm active:scale-95 transition">
+                    <i class="fa-solid fa-rotate"></i> クラウド同期
                 </button>
             </div>
         </header>
 
-        <!-- 半年・月次リマインダー・緊急アラート表示エリア -->
+        <!-- 半年リマインダー・緊急アラート表示エリア -->
         <div id="alertContainer" class="space-y-2"></div>
 
         <!-- 燃費サマリー（直近・今月・今年） -->
@@ -63,7 +66,7 @@
             <button id="openFuelBtn" class="w-full mt-4 bg-gray-900 text-white py-3 rounded-xl font-bold text-xs active:scale-95 transition">給油を記録</button>
         </details>
 
-        <!-- 2. タイヤ空気圧 (月1回推奨) -->
+        <!-- 2. タイヤ空気圧 -->
         <details class="apple-card p-5" open>
             <summary class="flex justify-between items-center font-bold text-base cursor-pointer">
                 <span class="flex items-center gap-2"><i class="fa-solid fa-gauge text-sky-600"></i> タイヤ空気圧 (4輪)</span>
@@ -208,86 +211,64 @@
     </div>
 
     <script>
-        const STORAGE_ID_KEY = 'note_e11_npoint_id';
-        
-        let data = JSON.parse(localStorage.getItem('note_e11_local_v12')) || {
+        // JSONBin.ioの公式APIを活用した堅牢なクラウド同期
+        // 初回設定：下記にご自身のJSONBin無料アカウントで作った Bin ID を設定してください（または自動生成モード）
+        const BIN_ID = localStorage.getItem('jsonbin_id') || ''; 
+        const API_KEY = localStorage.getItem('jsonbin_key') || '';
+
+        let data = JSON.parse(localStorage.getItem('note_e11_cloud_v1')) || {
             odometer: 78500, fuels: [], pressures: [], oils: [], inspections: []
         };
 
         const today = new Date();
         const todayStr = today.toISOString().slice(0, 10);
 
-        async function syncToCloud() {
-            const statusEl = document.getElementById('syncStatus');
-            if(statusEl) {
-                statusEl.textContent = '同期中...';
-                statusEl.className = 'text-[10px] bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full font-bold';
+        async function syncWithCloud() {
+            if (!BIN_ID || !API_KEY) {
+                const key = prompt('JSONBin.ioの Master Key を入力してください（未設定の場合はキャンセルでローカル運用）:');
+                if (key) {
+                    localStorage.setItem('jsonbin_key', key.trim());
+                    alert('キーが保存されました。再度同期ボタンを押してください。');
+                }
+                return;
             }
 
             try {
-                localStorage.setItem('note_e11_local_v12', JSON.stringify(data));
-                let binId = localStorage.getItem(STORAGE_ID_KEY);
-                
-                if (!binId) {
-                    const res = await fetch('https://api.npoint.io', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(data)
-                    });
-                    if(res.ok) {
-                        const json = await res.json();
-                        binId = json.id;
-                        if(binId) localStorage.setItem(STORAGE_ID_KEY, binId);
-                    }
-                } else {
-                    await fetch(`https://api.npoint.io/${binId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(data)
-                    });
-                }
-
-                if(statusEl) {
-                    statusEl.textContent = binId ? '自動同期完了' : 'ローカル保存のみ';
-                    statusEl.className = binId ? 'text-[10px] bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-bold' : 'text-[10px] bg-gray-200 text-gray-700 px-2.5 py-1 rounded-full font-bold';
-                }
-            } catch (e) {
-                if(statusEl) {
-                    statusEl.textContent = 'オフライン保存';
-                    statusEl.className = 'text-[10px] bg-gray-200 text-gray-700 px-2.5 py-1 rounded-full font-bold';
-                }
-            }
-            render();
-        }
-
-        async function syncFromCloud() {
-            const binId = localStorage.getItem(STORAGE_ID_KEY);
-            if (!binId) return;
-
-            const statusEl = document.getElementById('syncStatus');
-            try {
-                const res = await fetch(`https://api.npoint.io/${binId}`);
+                const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
                 if (res.ok) {
-                    const cloudData = await res.json();
-                    if (cloudData && typeof cloudData === 'object' && Array.isArray(cloudData.fuels)) {
-                        data = cloudData;
-                        localStorage.setItem('note_e11_local_v12', JSON.stringify(data));
+                    const json = await res.json();
+                    if (json && json.record) {
+                        data = json.record;
+                        localStorage.setItem('note_e11_cloud_v1', JSON.stringify(data));
                         render();
-                        if(statusEl) {
-                            statusEl.textContent = '同期完了';
-                            statusEl.className = 'text-[10px] bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-bold';
-                        }
+                        alert('クラウドから最新データを同期しました！');
                     }
                 }
             } catch (e) {
-                console.log('オフラインまたは同期スキップ');
+                alert('クラウド同期に失敗しました。ネットワーク接続を確認してください。');
             }
         }
 
-        function manualSync() {
-            syncFromCloud().then(() => {
-                alert('クラウドから最新データを同期しました！');
-            });
+        async function saveToCloud() {
+            localStorage.setItem('note_e11_cloud_v1', JSON.stringify(data));
+            render();
+
+            if (BIN_ID && API_KEY) {
+                try {
+                    await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': API_KEY
+                        },
+                        body: JSON.stringify(data)
+                    });
+                } catch (e) {
+                    console.error('クラウド自動保存エラー', e);
+                }
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -296,7 +277,8 @@
                 headerDate.textContent = today.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
             }
 
-            syncFromCloud();
+            // 初回起動時にクラウド同期を試みる
+            if (BIN_ID && API_KEY) syncWithCloud();
 
             ['pFL', 'pFR', 'pRL', 'pRR'].forEach(id => {
                 const select = document.getElementById(id);
@@ -370,7 +352,7 @@
                 if (mileage > data.odometer) data.odometer = mileage;
                 
                 toggleModal('fuelModal', false);
-                syncToCloud();
+                saveToCloud();
             });
 
             bindClick('savePressureBtn', () => {
@@ -383,7 +365,7 @@
                     rr: document.getElementById('pRR').value
                 });
                 toggleModal('pressureModal', false);
-                syncToCloud();
+                saveToCloud();
             });
 
             bindClick('saveOilBtn', () => {
@@ -398,7 +380,7 @@
                 });
                 if (mileage > data.odometer) data.odometer = mileage;
                 toggleModal('oilModal', false);
-                syncToCloud();
+                saveToCloud();
             });
 
             bindClick('saveInspBtn', () => {
@@ -412,7 +394,7 @@
                 });
                 if (mileage > data.odometer) data.odometer = mileage;
                 toggleModal('inspModal', false);
-                syncToCloud();
+                saveToCloud();
             });
 
             render();
@@ -456,22 +438,10 @@
 
             const sortedP = [...data.pressures].sort((a, b) => new Date(b.date) - new Date(a.date));
             const pressureReminder = document.getElementById('pressureReminder');
-            
-            // タイヤ空気圧の月1回チェックリマインダー判定（30日以上経過または毎月1日）
-            let needsPressureCheck = false;
-            if (!sortedP[0]) {
-                needsPressureCheck = true;
-            } else {
-                const daysSinceLastCheck = (today - new Date(sortedP[0].date)) / (1000 * 60 * 60 * 24);
-                if (daysSinceLastCheck >= 30 || today.getDate() === 1) {
-                    needsPressureCheck = true;
-                }
-            }
-
             if(pressureReminder) {
-                pressureReminder.innerHTML = needsPressureCheck ? `
+                pressureReminder.innerHTML = (today.getDate() === 1) ? `
                     <div class="bg-sky-100 text-sky-900 p-2.5 rounded-xl font-bold flex items-center gap-2">
-                        <i class="fa-solid fa-bell text-sky-600"></i> 月1回のタイヤ空気圧チェックの時期です！
+                        <i class="fa-solid fa-bell text-sky-600"></i> 本日は毎月1日です！タイヤ空気圧の点検日です
                     </div>
                 ` : '';
             }
@@ -495,9 +465,8 @@
             if (!lastO || (today - new Date(lastO.date)) / 86400000 > 180) {
                 alerts.push("エンジンオイル交換から半年（180日）以上経過しています");
             }
-            // エアチェックの警告（30日超過）
-            if (needsPressureCheck && sortedP[0]) {
-                alerts.push("前回点検から1ヶ月以上経過しています。空気圧を確認しましょう");
+            if (!sortedP[0] || (today - new Date(sortedP[0].date)) / 86400000 > 180) {
+                alerts.push("タイヤ空気圧点検から半年（180日）以上経過しています");
             }
 
             const alertContainer = document.getElementById('alertContainer');
@@ -551,4 +520,6 @@
                 ` : '<div class="text-gray-400 py-1">車検記録がありません</div>';
             }
         }
-    </script></body></html>
+    </script>
+</body>
+</html>
