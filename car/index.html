@@ -3,44 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日産 ノート E11 管理</title>
+    <title>日産 ノート E11 管理 Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; 
-            background-color: #f5f5f7; 
-            color: #1d1d1f; 
-            letter-spacing: -0.01em;
-        }
-        .apple-card { 
-            background: white; 
-            border-radius: 20px; 
-            border: 1px solid #e5e5ea; 
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); 
-        }
-        summary { list-style: none; }
-        summary::-webkit-details-marker { display: none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; background-color: #f5f5f7; color: #1d1d1f; letter-spacing: -0.01em; }
+        .apple-card { background: white; border-radius: 20px; border: 1px solid #e5e5ea; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); }
+        summary { list-style: none; } summary::-webkit-details-marker { display: none; }
         select { -webkit-appearance: none; appearance: none; }
     </style>
 </head>
-<body class="p-4 pb-28">
+<body class="p-4 pb-24">
     <div class="max-w-md mx-auto space-y-4">
         <!-- ヘッダー -->
         <header class="flex justify-between items-center py-2">
             <div>
-                <h1 class="font-bold text-xl tracking-tight">Note E11 管理</h1>
+                <h1 class="font-bold text-xl tracking-tight">Note E11 管理 Pro</h1>
                 <p id="headerDate" class="text-xs text-gray-500 mt-0.5"></p>
             </div>
-            <button id="exportGeminiBtn" class="bg-blue-600 text-white px-3.5 py-1.5 rounded-full text-xs font-bold shadow-sm active:scale-95 transition">
-                <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Gemini出力
-            </button>
+            <div id="syncStatus" class="flex items-center gap-1.5 text-[10px] bg-gray-200 text-gray-700 px-3 py-1 rounded-full font-bold">
+                <i class="fa-solid fa-hard-drive"></i> ローカル保存
+            </div>
         </header>
 
-        <!-- 半年リマインダー・緊急アラート表示エリア -->
+        <!-- アラート・警告表示エリア -->
         <div id="alertContainer" class="space-y-2"></div>
 
-        <!-- 燃費サマリー（直近・今月・今年） -->
+        <!-- 燃費サマリー -->
         <div class="grid grid-cols-3 gap-2">
             <div class="apple-card p-3 text-center">
                 <div class="text-[10px] text-gray-500 font-medium">直近燃費</div>
@@ -56,54 +50,70 @@
             </div>
         </div>
 
-        <!-- 1. ガソリン・給油記録 -->
+        <!-- グラフ推移セクション -->
+        <section class="apple-card p-5">
+            <h2 class="font-bold text-base mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-chart-line text-indigo-600"></i> 燃費 & 走行距離推移
+            </h2>
+            <div class="relative w-full h-52">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </section>
+
+        <!-- 1. 給油記録 -->
         <details class="apple-card p-5" open>
             <summary class="flex justify-between items-center font-bold text-base cursor-pointer select-none">
                 <span class="flex items-center gap-2"><i class="fa-solid fa-gas-pump text-emerald-600"></i> 給油記録</span>
                 <i class="fa-solid fa-chevron-down text-xs text-gray-400"></i>
             </summary>
-            <div id="fuelList" class="mt-3 space-y-2 text-xs">
-                <div class="text-gray-400 py-1">給油記録がありません</div>
-            </div>
+            <div id="fuelList" class="mt-3 space-y-2 text-xs"></div>
             <button id="openFuelBtn" class="w-full mt-4 bg-gray-900 text-white py-3 rounded-xl font-bold text-xs active:scale-95 transition shadow-sm">給油を記録</button>
         </details>
 
-        <!-- 2. タイヤ空気圧 (4輪) -->
+        <!-- 2. タイヤ空気圧 -->
         <details class="apple-card p-5" open>
             <summary class="flex justify-between items-center font-bold text-base cursor-pointer select-none">
                 <span class="flex items-center gap-2"><i class="fa-solid fa-gauge text-sky-600"></i> タイヤ空気圧 (4輪)</span>
                 <i class="fa-solid fa-chevron-down text-xs text-gray-400"></i>
             </summary>
             <div id="pressureReminder" class="mt-3"></div>
-            <div id="pressureList" class="mt-3 space-y-2 text-xs">
-                <div class="text-gray-400 py-1">空気圧の点検記録がありません</div>
-            </div>
+            <div id="pressureList" class="mt-3 space-y-2 text-xs"></div>
             <button id="openPressureBtn" class="w-full mt-4 bg-gray-900 text-white py-3 rounded-xl font-bold text-xs active:scale-95 transition shadow-sm">点検を記録</button>
         </details>
 
         <!-- 3. エンジンオイル交換記録 -->
         <section class="apple-card p-5">
-            <h2 class="font-bold text-base mb-3 flex items-center gap-2">
-                <i class="fa-solid fa-oil-can text-amber-600"></i> エンジンオイル
-            </h2>
-            <div id="oilList" class="space-y-2 text-xs mb-3">
-                <div class="text-gray-400 py-1">オイル交換の記録がありません</div>
-            </div>
+            <h2 class="font-bold text-base mb-3 flex items-center gap-2"><i class="fa-solid fa-oil-can text-amber-600"></i> エンジンオイル</h2>
+            <div id="oilList" class="space-y-2 text-xs mb-3"></div>
             <button id="openOilBtn" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold text-xs active:scale-95 transition shadow-sm">オイル交換を記録</button>
         </section>
 
-        <!-- 4. 車検記録 & リマインダー -->
+        <!-- 4. パーツ交換・カスタム記録 -->
         <section class="apple-card p-5">
-            <h2 class="font-bold text-base mb-3 flex items-center gap-2">
-                <i class="fa-solid fa-shield-halved text-purple-600"></i> 車検
-            </h2>
-            <div id="inspReminder" class="mb-3">
-                <div class="bg-purple-50 text-purple-900 p-2.5 rounded-xl font-medium text-xs">車検記録が未登録です</div>
-            </div>
-            <div id="inspList" class="space-y-2 text-xs mb-3">
-                <div class="text-gray-400 py-1">車検記録がありません</div>
-            </div>
+            <h2 class="font-bold text-base mb-3 flex items-center gap-2"><i class="fa-solid fa-wrench text-rose-600"></i> パーツ交換 & カスタム</h2>
+            <div id="customList" class="space-y-2 text-xs mb-3"></div>
+            <button id="openCustomBtn" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold text-xs active:scale-95 transition shadow-sm">パーツ・カスタムを記録</button>
+        </section>
+
+        <!-- 5. 車検記録 -->
+        <section class="apple-card p-5">
+            <h2 class="font-bold text-base mb-3 flex items-center gap-2"><i class="fa-solid fa-shield-halved text-purple-600"></i> 車検</h2>
+            <div id="inspReminder" class="mb-3"></div>
+            <div id="inspList" class="space-y-2 text-xs mb-3"></div>
             <button id="openInspBtn" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold text-xs active:scale-95 transition shadow-sm">車検を記録</button>
+        </section>
+
+        <!-- 6. データ出力 & 分析連携 -->
+        <section class="apple-card p-5 space-y-3">
+            <h2 class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-file-export text-blue-600"></i> データ出力 & 分析連携</h2>
+            <div class="grid grid-cols-2 gap-2">
+                <button id="exportGeminiBtn" class="bg-blue-600 text-white py-3 rounded-xl font-bold text-xs active:scale-95 transition shadow-sm flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Gemini用出力
+                </button>
+                <button id="exportCsvBtn" class="bg-emerald-600 text-white py-3 rounded-xl font-bold text-xs active:scale-95 transition shadow-sm flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-file-csv"></i> CSV保存
+                </button>
+            </div>
         </section>
     </div>
 
@@ -111,23 +121,11 @@
     <div id="fuelModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-3 text-xs shadow-xl">
             <h3 class="font-bold text-sm text-gray-900">給油記録の追加</h3>
-            <div>
-                <label class="text-[10px] text-gray-500 mb-1 block font-medium">実施日</label>
-                <input type="date" id="fDate" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none">
-            </div>
-            <div>
-                <label class="text-[10px] text-gray-500 mb-1 block font-medium">総走行距離 (km)</label>
-                <input type="number" id="fMileage" placeholder="78500" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none">
-            </div>
+            <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">実施日</label><input type="date" id="fDate" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
+            <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">総走行距離 (km)</label><input type="number" id="fMileage" placeholder="78500" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
             <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="text-[10px] text-gray-500 mb-1 block font-medium">給油量 (L)</label>
-                    <input type="number" step="0.01" id="fAmount" placeholder="35.0" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none">
-                </div>
-                <div>
-                    <label class="text-[10px] text-gray-500 mb-1 block font-medium">単価 (円/L)</label>
-                    <input type="number" id="fPrice" placeholder="168" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none">
-                </div>
+                <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">給油量 (L)</label><input type="number" step="0.01" id="fAmount" placeholder="35.0" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
+                <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">単価 (円/L)</label><input type="number" id="fPrice" placeholder="168" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
             </div>
             <div class="flex gap-2 pt-2">
                 <button type="button" id="closeFuelBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold text-gray-700">キャンセル</button>
@@ -140,27 +138,12 @@
     <div id="pressureModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4 text-xs shadow-xl">
             <h3 class="font-bold text-sm text-gray-900">タイヤ空気圧 (4輪) 記録</h3>
-            <div>
-                <label class="text-[10px] text-gray-500 mb-1 block font-medium">点検日</label>
-                <input type="date" id="pDate" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none">
-            </div>
+            <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">点検日</label><input type="date" id="pDate" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
             <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="text-[10px] text-gray-500 mb-1 block font-medium">前左 (FL)</label>
-                    <select id="pFL" class="w-full bg-gray-100 p-3 rounded-xl font-bold text-center outline-none"></select>
-                </div>
-                <div>
-                    <label class="text-[10px] text-gray-500 mb-1 block font-medium">前右 (FR)</label>
-                    <select id="pFR" class="w-full bg-gray-100 p-3 rounded-xl font-bold text-center outline-none"></select>
-                </div>
-                <div>
-                    <label class="text-[10px] text-gray-500 mb-1 block font-medium">後左 (RL)</label>
-                    <select id="pRL" class="w-full bg-gray-100 p-3 rounded-xl font-bold text-center outline-none"></select>
-                </div>
-                <div>
-                    <label class="text-[10px] text-gray-500 mb-1 block font-medium">後右 (RR)</label>
-                    <select id="pRR" class="w-full bg-gray-100 p-3 rounded-xl font-bold text-center outline-none"></select>
-                </div>
+                <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">前左 (FL)</label><select id="pFL" class="w-full bg-gray-100 p-3 rounded-xl font-bold text-center"></select></div>
+                <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">前右 (FR)</label><select id="pFR" class="w-full bg-gray-100 p-3 rounded-xl font-bold text-center"></select></div>
+                <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">後左 (RL)</label><select id="pRL" class="w-full bg-gray-100 p-3 rounded-xl font-bold text-center"></select></div>
+                <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">後右 (RR)</label><select id="pRR" class="w-full bg-gray-100 p-3 rounded-xl font-bold text-center"></select></div>
             </div>
             <div class="flex gap-2 pt-2">
                 <button type="button" id="closePressureBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold text-gray-700">キャンセル</button>
@@ -173,29 +156,35 @@
     <div id="oilModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-3 text-xs shadow-xl">
             <h3 class="font-bold text-sm text-gray-900">オイル交換の記録</h3>
-            <div>
-                <label class="text-[10px] text-gray-500 mb-1 block font-medium">実施日</label>
-                <input type="date" id="oDate" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none">
-            </div>
-            <div>
-                <label class="text-[10px] text-gray-500 mb-1 block font-medium">交換時走行距離 (km)</label>
-                <input type="number" id="oMileage" placeholder="78500" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none">
-            </div>
-            <div>
-                <label class="text-[10px] text-gray-500 mb-1 block font-medium">費用 (円)</label>
-                <input type="number" id="oCost" placeholder="6500" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none">
-            </div>
+            <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">実施日</label><input type="date" id="oDate" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
+            <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">交換時走行距離 (km)</label><input type="number" id="oMileage" placeholder="78500" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
+            <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">費用 (円)</label><input type="number" id="oCost" placeholder="6500" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
             <label class="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer border border-gray-100">
                 <input type="checkbox" id="oElement" class="w-4 h-4 text-amber-600 rounded">
                 <span class="font-medium text-gray-800">オイルエレメントも交換した</span>
             </label>
-            <div>
-                <label class="text-[10px] text-gray-500 mb-1 block font-medium">メモ</label>
-                <input type="text" id="oMemo" placeholder="例: 粘度5W-30" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none">
-            </div>
+            <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">メモ</label><input type="text" id="oMemo" placeholder="例: 粘度5W-30" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
             <div class="flex gap-2 pt-2">
                 <button type="button" id="closeOilBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold text-gray-700">キャンセル</button>
                 <button type="button" id="saveOilBtn" class="flex-1 bg-amber-600 text-white py-3 rounded-xl font-bold">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- モーダル: パーツ・カスタム -->
+    <div id="customModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-3 text-xs shadow-xl">
+            <h3 class="font-bold text-sm text-gray-900">パーツ交換・カスタムの記録</h3>
+            <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">実施日</label><input type="date" id="cDate" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
+            <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">品目・パーツ名</label><input type="text" id="cName" placeholder="例: バッテリー交換" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
+            <div class="grid grid-cols-2 gap-2">
+                <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">実施時距離 (km)</label><input type="number" id="cMileage" placeholder="78500" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
+                <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">費用 (円)</label><input type="number" id="cCost" placeholder="12000" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
+            </div>
+            <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">内訳・メモ</label><input type="text" id="cMemo" placeholder="例: カオスバッテリー" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
+            <div class="flex gap-2 pt-2">
+                <button type="button" id="closeCustomBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold text-gray-700">キャンセル</button>
+                <button type="button" id="saveCustomBtn" class="flex-1 bg-rose-600 text-white py-3 rounded-xl font-bold">保存</button>
             </div>
         </div>
     </div>
@@ -204,22 +193,10 @@
     <div id="inspModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-3 text-xs shadow-xl">
             <h3 class="font-bold text-sm text-gray-900">車検実施の記録</h3>
-            <div>
-                <label class="text-[10px] text-gray-500 mb-1 block font-medium">車検実施日</label>
-                <input type="date" id="iDate" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none">
-            </div>
-            <div>
-                <label class="text-[10px] text-gray-500 mb-1 block font-medium">実施時走行距離 (km)</label>
-                <input type="number" id="iMileage" placeholder="78500" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none">
-            </div>
-            <div>
-                <label class="text-[10px] text-gray-500 mb-1 block font-medium">車検費用合計 (円)</label>
-                <input type="number" id="iCost" placeholder="85000" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none">
-            </div>
-            <div>
-                <label class="text-[10px] text-gray-500 mb-1 block font-medium">メモ</label>
-                <input type="text" id="iMemo" placeholder="例: 早期割引適用" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none">
-            </div>
+            <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">車検実施日</label><input type="date" id="iDate" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
+            <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">実施時走行距離 (km)</label><input type="number" id="iMileage" placeholder="78500" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
+            <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">車検費用合計 (円)</label><input type="number" id="iCost" placeholder="85000" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
+            <div><label class="text-[10px] text-gray-500 mb-1 block font-medium">メモ</label><input type="text" id="iMemo" placeholder="例: 早期割引" class="w-full bg-gray-100 p-3 rounded-xl font-medium outline-none"></div>
             <div class="flex gap-2 pt-2">
                 <button type="button" id="closeInspBtn" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold text-gray-700">キャンセル</button>
                 <button type="button" id="saveInspBtn" class="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold">保存</button>
@@ -228,38 +205,113 @@
     </div>
 
     <script>
-        const STORAGE_KEY = 'note_e11_solid_v1';
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        let db = null;
+        let isFirebaseActive = false;
+        let trendChartInstance = null;
+
+        try {
+            if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                isFirebaseActive = true;
+            }
+        } catch (e) {
+            console.warn("Firebaseスキップ: ローカル保存モード");
+        }
+
+        const DOC_ID = "main_record";
+        const LOCAL_STORAGE_KEY = 'note_e11_pro_v5';
+        
         let data;
         try {
-            const saved = localStorage.getItem(STORAGE_KEY);
+            const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
             data = saved ? JSON.parse(saved) : null;
         } catch (e) {
             data = null;
         }
 
         if (!data || typeof data !== 'object') {
-            data = {
-                odometer: 78500,
-                fuels: [],
-                pressures: [],
-                oils: [],
-                inspections: []
-            };
+            data = { odometer: 78500, fuels: [], pressures: [], oils: [], customs: [], inspections: [] };
         }
 
         if (!Array.isArray(data.fuels)) data.fuels = [];
         if (!Array.isArray(data.pressures)) data.pressures = [];
         if (!Array.isArray(data.oils)) data.oils = [];
+        if (!Array.isArray(data.customs)) data.customs = [];
         if (!Array.isArray(data.inspections)) data.inspections = [];
 
         const today = new Date();
         const todayStr = today.toISOString().slice(0, 10);
 
-        function saveAndRender() {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-            } catch (e) {}
+        function updateSyncBadge(status) {
+            const el = document.getElementById('syncStatus');
+            if (!el) return;
+            if (status === 'online') {
+                el.className = 'flex items-center gap-1.5 text-[10px] bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-bold';
+                el.innerHTML = '<i class="fa-solid fa-cloud"></i> 自動同期中';
+            } else if (status === 'saving') {
+                el.className = 'flex items-center gap-1.5 text-[10px] bg-amber-100 text-amber-800 px-3 py-1 rounded-full font-bold';
+                el.innerHTML = '<i class="fa-solid fa-rotate fa-spin"></i> 保存中...';
+            } else {
+                el.className = 'flex items-center gap-1.5 text-[10px] bg-gray-200 text-gray-700 px-3 py-1 rounded-full font-bold';
+                el.innerHTML = '<i class="fa-solid fa-hard-drive"></i> ローカル保存';
+            }
+        }
+
+        function initRealtimeSync() {
+            if (!isFirebaseActive || !db) {
+                updateSyncBadge('local');
+                render();
+                return;
+            }
+
+            db.collection("cars").doc(DOC_ID).onSnapshot((doc) => {
+                if (doc.exists) {
+                    const cloudData = doc.data();
+                    if (cloudData && typeof cloudData === 'object') {
+                        data = cloudData;
+                        if (!Array.isArray(data.fuels)) data.fuels = [];
+                        if (!Array.isArray(data.pressures)) data.pressures = [];
+                        if (!Array.isArray(data.oils)) data.oils = [];
+                        if (!Array.isArray(data.customs)) data.customs = [];
+                        if (!Array.isArray(data.inspections)) data.inspections = [];
+                        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+                        render();
+                    }
+                } else {
+                    saveToFirebase();
+                }
+                updateSyncBadge('online');
+            }, (error) => {
+                updateSyncBadge('local');
+                render();
+            });
+        }
+
+        async function saveToFirebase() {
+            updateSyncBadge('saving');
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
             render();
+
+            if (isFirebaseActive && db) {
+                try {
+                    await db.collection("cars").doc(DOC_ID).set(data);
+                    updateSyncBadge('online');
+                } catch (e) {
+                    updateSyncBadge('local');
+                }
+            } else {
+                updateSyncBadge('local');
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -268,7 +320,6 @@
                 headerDate.textContent = today.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
             }
 
-            // 空気圧セレクトの生成
             ['pFL', 'pFR', 'pRL', 'pRR'].forEach(id => {
                 const select = document.getElementById(id);
                 if (select && select.children.length === 0) {
@@ -296,6 +347,9 @@
                         } else if (modalId === 'oilModal') {
                             document.getElementById('oDate').value = todayStr;
                             document.getElementById('oMileage').value = data.odometer;
+                        } else if (modalId === 'customModal') {
+                            document.getElementById('cDate').value = todayStr;
+                            document.getElementById('cMileage').value = data.odometer;
                         } else if (modalId === 'inspModal') {
                             document.getElementById('iDate').value = todayStr;
                             document.getElementById('iMileage').value = data.odometer;
@@ -306,12 +360,7 @@
 
             const bindClick = (btnId, fn) => {
                 const btn = document.getElementById(btnId);
-                if (btn) {
-                    btn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        fn();
-                    });
-                }
+                if (btn) btn.addEventListener('click', (e) => { e.preventDefault(); fn(); });
             };
 
             bindClick('openFuelBtn', () => toggleModal('fuelModal', true));
@@ -320,16 +369,14 @@
             bindClick('closePressureBtn', () => toggleModal('pressureModal', false));
             bindClick('openOilBtn', () => toggleModal('oilModal', true));
             bindClick('closeOilBtn', () => toggleModal('oilModal', false));
+            bindClick('openCustomBtn', () => toggleModal('customModal', true));
+            bindClick('closeCustomBtn', () => toggleModal('customModal', false));
             bindClick('openInspBtn', () => toggleModal('inspModal', true));
             bindClick('closeInspBtn', () => toggleModal('inspModal', false));
 
-            ['fuelModal', 'pressureModal', 'oilModal', 'inspModal'].forEach(id => {
+            ['fuelModal', 'pressureModal', 'oilModal', 'customModal', 'inspModal'].forEach(id => {
                 const modal = document.getElementById(id);
-                if (modal) {
-                    modal.addEventListener('click', (e) => {
-                        if (e.target === modal) toggleModal(id, false);
-                    });
-                }
+                if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) toggleModal(id, false); });
             });
 
             // 給油保存
@@ -341,37 +388,32 @@
 
                 const sortedFuels = [...data.fuels].sort((a, b) => Number(b.mileage) - Number(a.mileage));
                 const lastFuel = sortedFuels[0];
-                const efficiency = (lastFuel && amount > 0) 
-                    ? Number(((mileage - Number(lastFuel.mileage)) / amount).toFixed(1)) 
-                    : null;
+                const efficiency = (lastFuel && amount > 0) ? Number(((mileage - Number(lastFuel.mileage)) / amount).toFixed(1)) : null;
 
-                data.fuels.push({
-                    id: Date.now(),
-                    date: fDate,
-                    mileage,
-                    amount,
-                    price,
-                    cost: Math.floor(amount * price),
-                    efficiency
-                });
-
+                data.fuels.push({ id: Date.now(), date: fDate, mileage, amount, price, cost: Math.floor(amount * price), efficiency });
                 if (mileage > Number(data.odometer)) data.odometer = mileage;
+                
                 toggleModal('fuelModal', false);
-                saveAndRender();
+                saveToFirebase();
             });
 
-            // 空気圧保存
+            // 空気圧保存（2.2未満判定ロジック組み込み）
             bindClick('savePressureBtn', () => {
+                const fl = document.getElementById('pFL').value;
+                const fr = document.getElementById('pFR').value;
+                const rl = document.getElementById('pRL').value;
+                const rr = document.getElementById('pRR').value;
+                
+                const isLow = [fl, fr, rl, rr].some(v => Number(v) < 2.2);
+
                 data.pressures.push({
                     id: Date.now(),
                     date: document.getElementById('pDate').value || todayStr,
-                    fl: document.getElementById('pFL').value,
-                    fr: document.getElementById('pFR').value,
-                    rl: document.getElementById('pRL').value,
-                    rr: document.getElementById('pRR').value
+                    fl, fr, rl, rr,
+                    isLow
                 });
                 toggleModal('pressureModal', false);
-                saveAndRender();
+                saveToFirebase();
             });
 
             // オイル交換保存
@@ -387,7 +429,23 @@
                 });
                 if (mileage > Number(data.odometer)) data.odometer = mileage;
                 toggleModal('oilModal', false);
-                saveAndRender();
+                saveToFirebase();
+            });
+
+            // パーツ・カスタム保存
+            bindClick('saveCustomBtn', () => {
+                const mileage = Number(document.getElementById('cMileage').value) || Number(data.odometer);
+                data.customs.push({
+                    id: Date.now(),
+                    date: document.getElementById('cDate').value || todayStr,
+                    name: String(document.getElementById('cName').value || '').trim() || 'パーツ交換',
+                    mileage,
+                    cost: Number(document.getElementById('cCost').value) || 0,
+                    memo: String(document.getElementById('cMemo').value || '').trim()
+                });
+                if (mileage > Number(data.odometer)) data.odometer = mileage;
+                toggleModal('customModal', false);
+                saveToFirebase();
             });
 
             // 車検保存
@@ -402,79 +460,114 @@
                 });
                 if (mileage > Number(data.odometer)) data.odometer = mileage;
                 toggleModal('inspModal', false);
-                saveAndRender();
+                saveToFirebase();
             });
 
-            // Gemini用データ出力
+            // 出力 & CSV
             bindClick('exportGeminiBtn', () => {
                 const sortedFuels = [...data.fuels].sort((a, b) => new Date(a.date) - new Date(b.date));
                 const totalFuelCost = data.fuels.reduce((sum, f) => sum + Number(f.cost || 0), 0);
                 const totalOilCost = data.oils.reduce((sum, o) => sum + Number(o.cost || 0), 0);
+                const totalCustomCost = data.customs.reduce((sum, c) => sum + Number(c.cost || 0), 0);
                 const totalInspCost = data.inspections.reduce((sum, i) => sum + Number(i.cost || 0), 0);
+                const grandTotal = totalFuelCost + totalOilCost + totalCustomCost + totalInspCost;
 
-                const text = `# 日産 ノート E11 管理データ
-■ 現在総走行距離: ${Number(data.odometer || 0).toLocaleString()} km
-■ 累計維持費: ${(totalFuelCost + totalOilCost + totalInspCost).toLocaleString()} 円
+                const text = `# 日産 ノート E11 管理・総合メンテナンスデータ
+■ 基本情報
+- 現在総走行距離: ${Number(data.odometer || 0).toLocaleString()} km
+- 累計維持管理費合計: ${grandTotal.toLocaleString()} 円
 
 ■ 給油記録 (${data.fuels.length}件)
-${sortedFuels.map(f => `- ${f.date} | ${Number(f.mileage || 0).toLocaleString()}km | ${f.amount}L (${f.price}円/L) | 費用:${Number(f.cost || 0).toLocaleString()}円 | 燃費:${f.efficiency !== null ? f.efficiency + ' km/L' : '初給油'}`).join('\n')}
+${sortedFuels.map(f => `- ${f.date} | ${Number(f.mileage || 0).toLocaleString()}km | ${f.amount}L (${f.price}円/L) | 燃費:${f.efficiency !== null ? f.efficiency + 'km/L' : '-'}`).join('\n')}
 
-■ タイヤ空気圧記録 (${data.pressures.length}件)
-${data.pressures.map(p => `- ${p.date} | FL:${p.fl} / FR:${p.fr} / RL:${p.rl} / RR:${p.rr}`).join('\n')}
+■ 空気圧記録 (${data.pressures.length}件)
+${data.pressures.map(p => `- ${p.date} | FL:${p.fl} / FR:${p.fr} / RL:${p.rl} / RR:${p.rr} ${p.isLow ? '【空気圧低下警告】' : ''}`).join('\n')}
 
-■ エンジンオイル交換記録 (${data.oils.length}件)
-${data.oils.map(o => `- ${o.date} | ${Number(o.mileage || 0).toLocaleString()}km | 費用:${Number(o.cost || 0).toLocaleString()}円 | エレメント:${o.element ? '交換有' : '無'} | ${o.memo || ''}`).join('\n')}
+■ オイル・カスタム・車検
+- オイル交換件数: ${data.oils.length}件
+- パーツ交換件数: ${data.customs.length}件
+- 車検件数: ${data.inspections.length}件`.trim();
 
-■ 車検記録 (${data.inspections.length}件)
-${data.inspections.map(i => `- ${i.date} | ${Number(i.mileage || 0).toLocaleString()}km | 費用:${Number(i.cost || 0).toLocaleString()}円 | ${i.memo || ''}`).join('\n')}
-`.trim();
-
-                navigator.clipboard.writeText(text).then(() => {
-                    alert('Gemini用データをコピーしました！');
-                }).catch(() => {
-                    alert('コピーに失敗しました。');
-                });
+                navigator.clipboard.writeText(text).then(() => alert('Gemini分析用テキストをコピーしました！'));
             });
 
-            render();
+            bindClick('exportCsvBtn', () => {
+                let csvContent = "\uFEFFカテゴリ,日付,品目,走行距離,詳細,費用\n";
+                data.fuels.forEach(f => { csvContent += `給油,"${f.date}","給油",${Number(f.mileage || 0)},"${f.amount}L",${Number(f.cost || 0)}\n`; });
+                data.pressures.forEach(p => { csvContent += `空気圧,"${p.date}","点検",,"FL:${p.fl} FR:${p.fr} RL:${p.rl} RR:${p.rr}",\n`; });
+                data.oils.forEach(o => { csvContent += `オイル,"${o.date}","オイル交換",${Number(o.mileage || 0)},"${o.memo || ''}",${Number(o.cost || 0)}\n`; });
+                data.customs.forEach(c => { csvContent += `カスタム,"${c.date}","${c.name}",${Number(c.mileage || 0)},"${c.memo || ''}",${Number(c.cost || 0)}\n`; });
+                data.inspections.forEach(i => { csvContent += `車検,"${i.date}","車検",${Number(i.mileage || 0)},"${i.memo || ''}",${Number(i.cost || 0)}\n`; });
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `note_e11_${todayStr}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+
+            initRealtimeSync();
         });
 
-        // 画面描画
+        // グラフ描画（安全保護）
+        function renderChart() {
+            const ctx = document.getElementById('trendChart');
+            if (!ctx) return;
+            try {
+                if (trendChartInstance) trendChartInstance.destroy();
+                const sortedFuels = [...data.fuels].sort((a, b) => new Date(a.date) - new Date(b.date));
+                const labels = sortedFuels.length > 0 ? sortedFuels.map(f => String(f.date).slice(5)) : ['データ未登録'];
+                const eff = sortedFuels.length > 0 ? sortedFuels.map(f => Number(f.efficiency || 0)) : [0];
+                const mil = sortedFuels.length > 0 ? sortedFuels.map(f => Number(f.mileage || 0)) : [Number(data.odometer || 0)];
+
+                trendChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: '燃費 (km/L)', data: eff, borderColor: '#2563eb', yAxisID: 'yEfficiency', fill: true, backgroundColor: 'rgba(37,99,235,0.08)', tension: 0.3 },
+                            { label: '走行距離 (km)', data: mil, borderColor: '#10b981', borderDash: [4,4], yAxisID: 'yMileage', tension: 0.2 }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        scales: {
+                            yEfficiency: { type: 'linear', position: 'left', grid: { color: '#f0f0f2' } },
+                            yMileage: { type: 'linear', position: 'right', grid: { display: false } }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.warn("グラフ描画スキップ:", err);
+            }
+        }
+
+        // 画面全体を描画
         function render() {
             const curYear = today.getFullYear();
             const curMonth = today.getMonth() + 1;
 
             const sortedF = [...data.fuels].sort((a, b) => Number(b.mileage) - Number(a.mileage));
             const sLast = document.getElementById('sLast');
-            if (sLast) {
-                sLast.textContent = (sortedF[0] && sortedF[0].efficiency !== null && sortedF[0].efficiency !== undefined) 
-                    ? Number(sortedF[0].efficiency).toFixed(1) + ' km/L' 
-                    : '0.0';
-            }
+            if (sLast) sLast.textContent = (sortedF[0] && sortedF[0].efficiency != null) ? Number(sortedF[0].efficiency).toFixed(1) + ' km/L' : '0.0';
 
             const mFuels = data.fuels.filter(f => {
                 const d = new Date(f.date);
-                return d.getFullYear() === curYear && (d.getMonth() + 1) === curMonth && f.efficiency !== null && f.efficiency !== undefined;
+                return d.getFullYear() === curYear && (d.getMonth() + 1) === curMonth && f.efficiency != null;
             });
             const sMonth = document.getElementById('sMonth');
-            if (sMonth) {
-                sMonth.textContent = mFuels.length 
-                    ? (mFuels.reduce((s, f) => s + Number(f.efficiency || 0), 0) / mFuels.length).toFixed(1) 
-                    : '0.0';
-            }
+            if (sMonth) sMonth.textContent = mFuels.length ? (mFuels.reduce((s, f) => s + Number(f.efficiency || 0), 0) / mFuels.length).toFixed(1) : '0.0';
 
             const yFuels = data.fuels.filter(f => {
                 const d = new Date(f.date);
-                return d.getFullYear() === curYear && f.efficiency !== null && f.efficiency !== undefined;
+                return d.getFullYear() === curYear && f.efficiency != null;
             });
             const sYear = document.getElementById('sYear');
-            if (sYear) {
-                sYear.textContent = yFuels.length 
-                    ? (yFuels.reduce((s, f) => s + Number(f.efficiency || 0), 0) / yFuels.length).toFixed(1) 
-                    : '0.0';
-            }
+            if (sYear) sYear.textContent = yFuels.length ? (yFuels.reduce((s, f) => s + Number(f.efficiency || 0), 0) / yFuels.length).toFixed(1) : '0.0';
 
-            // 1. 給油表示
+            // 給油
             const fuelList = document.getElementById('fuelList');
             if (fuelList) {
                 fuelList.innerHTML = sortedF[0] ? `
@@ -482,14 +575,14 @@ ${data.inspections.map(i => `- ${i.date} | ${Number(i.mileage || 0).toLocaleStri
                         <div>
                             <div class="font-bold text-gray-900">${sortedF[0].date}</div>
                             <div class="text-gray-500 mt-0.5">${sortedF[0].amount}L (${sortedF[0].price}円/L) | ${Number(sortedF[0].mileage || 0).toLocaleString()}km</div>
-                            <div class="text-blue-600 font-bold mt-1">${sortedF[0].efficiency !== null ? Number(sortedF[0].efficiency).toFixed(1) + ' km/L' : '初給油のため計算不可'}</div>
+                            <div class="text-blue-600 font-bold mt-1">${sortedF[0].efficiency !== null ? Number(sortedF[0].efficiency).toFixed(1) + ' km/L' : '初給油'}</div>
                         </div>
                         <b class="text-sm text-gray-900 font-bold">${Number(sortedF[0].cost || 0).toLocaleString()}円</b>
                     </div>
-                ` : '<div class="text-gray-400 py-1">給油記録がありません</div>';
+                ` : '<div class="text-gray-400 py-2 text-center">給油記録がありません</div>';
             }
 
-            // 2. 空気圧表示
+            // 空気圧とアラート判定
             const sortedP = [...data.pressures].sort((a, b) => new Date(b.date) - new Date(a.date));
             const pressureReminder = document.getElementById('pressureReminder');
             if (pressureReminder) {
@@ -503,70 +596,82 @@ ${data.inspections.map(i => `- ${i.date} | ${Number(i.mileage || 0).toLocaleStri
             const pressureList = document.getElementById('pressureList');
             if (pressureList) {
                 pressureList.innerHTML = sortedP[0] ? `
-                    <div class="bg-gray-50 p-3.5 rounded-2xl border border-gray-100">
-                        <div class="font-bold text-gray-900 mb-1">${sortedP[0].date} 点検</div>
+                    <div class="bg-gray-50 p-3.5 rounded-2xl border border-gray-100 ${sortedP[0].isLow ? 'border-rose-300 bg-rose-50/50' : ''}">
+                        <div class="font-bold text-gray-900 mb-1 flex justify-between items-center">
+                            <span>${sortedP[0].date} 点検</span>
+                            ${sortedP[0].isLow ? '<span class="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold">空気圧不足警報</span>' : ''}
+                        </div>
                         <div class="text-gray-600 space-x-1 font-medium">
                             <span>前左: <b>${sortedP[0].fl}</b></span> / <span>前右: <b>${sortedP[0].fr}</b></span> / 
                             <span>後左: <b>${sortedP[0].rl}</b></span> / <span>後右: <b>${sortedP[0].rr}</b></span>
                         </div>
                     </div>
-                ` : '<div class="text-gray-400 py-1">空気圧の点検記録がありません</div>';
+                ` : '<div class="text-gray-400 py-2 text-center">空気圧の点検記録がありません</div>';
             }
 
-            // 3. アラート
+            // 総合アラート生成
             let alerts = [];
             const sortedO = [...data.oils].sort((a, b) => new Date(b.date) - new Date(a.date));
             const lastO = sortedO[0];
             if (!lastO || (today - new Date(lastO.date)) / 86400000 > 180) {
                 alerts.push("エンジンオイル交換から半年（180日）以上経過しています");
             }
-            if (!sortedP[0] || (today - new Date(sortedP[0].date)) / 86400000 > 180) {
-                alerts.push("タイヤ空気圧点検から半年（180日）以上経過しています");
+            if (sortedP[0] && sortedP[0].isLow) {
+                alerts.push("【警告】直近の空気圧点検で規定値（2.2未満）を下回るタイヤがあります！補充してください");
             }
 
             const alertContainer = document.getElementById('alertContainer');
             if (alertContainer) {
                 alertContainer.innerHTML = alerts.map(a => `
-                    <div class="bg-amber-50 border border-amber-200 p-3 rounded-2xl text-amber-900 text-xs font-bold flex items-center gap-2">
-                        <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> ${a}
+                    <div class="bg-rose-50 border border-rose-200 p-3 rounded-2xl text-rose-900 text-xs font-bold flex items-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-triangle-exclamation text-rose-600 text-base"></i> ${a}
                     </div>
                 `).join('');
             }
 
-            // 4. オイル交換表示
+            // オイル
             const oilList = document.getElementById('oilList');
             if (oilList) {
                 oilList.innerHTML = lastO ? `
                     <div class="bg-gray-50 p-3.5 rounded-2xl flex justify-between items-center border border-gray-100">
                         <div>
-                            <div class="font-bold text-gray-900 flex items-center gap-2">
-                                ${lastO.date}
-                                ${lastO.element ? '<span class="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-bold">エレメント交換あり</span>' : ''}
-                            </div>
+                            <div class="font-bold text-gray-900">${lastO.date} ${lastO.element ? '<span class="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-bold">エレメント有</span>' : ''}</div>
                             <div class="text-gray-500 mt-1">${Number(lastO.mileage || 0).toLocaleString()} km ${lastO.memo ? '| ' + lastO.memo : ''}</div>
                         </div>
                         <b class="text-sm text-gray-900 font-bold">${Number(lastO.cost || 0).toLocaleString()}円</b>
                     </div>
-                ` : '<div class="text-gray-400 py-1">オイル交換の記録がありません</div>';
+                ` : '<div class="text-gray-400 py-2 text-center">オイル交換の記録がありません</div>';
             }
 
-            // 5. 車検表示
+            // カスタム
+            const sortedC = [...data.customs].sort((a, b) => new Date(b.date) - new Date(a.date));
+            const lastC = sortedC[0];
+            const customList = document.getElementById('customList');
+            if (customList) {
+                customList.innerHTML = lastC ? `
+                    <div class="bg-gray-50 p-3.5 rounded-2xl flex justify-between items-center border border-gray-100">
+                        <div>
+                            <div class="font-bold text-gray-900">${lastC.name}</div>
+                            <div class="text-gray-500 mt-0.5">${lastC.date} | ${Number(lastC.mileage || 0).toLocaleString()} km ${lastC.memo ? '| ' + lastC.memo : ''}</div>
+                        </div>
+                        <b class="text-sm text-gray-900 font-bold">${Number(lastC.cost || 0).toLocaleString()}円</b>
+                    </div>
+                ` : '<div class="text-gray-400 py-2 text-center">カスタム記録がありません</div>';
+            }
+
+            // 車検
             const sortedI = [...data.inspections].sort((a, b) => new Date(b.date) - new Date(a.date));
             const lastI = sortedI[0];
-            const inspReminder = document.getElementById('inspReminder');
-            if (inspReminder) {
-                let inspMsg = "車検記録が未登録です";
-                if (lastI) {
-                    const nextD = new Date(lastI.date);
-                    nextD.setFullYear(nextD.getFullYear() + 2);
-                    const days = Math.ceil((nextD - today) / (1000 * 60 * 60 * 24));
-                    inspMsg = (days <= 90 && days > 0) ? 
-                        `【早期割引チャンス】車検満了まであと ${days} 日！3ヶ月前予約の割引が適用できます。` : 
-                        `次回車検予定: ${nextD.toISOString().slice(0, 10)} (あと ${days} 日)`;
-                }
-                inspReminder.innerHTML = `<div class="bg-purple-50 border border-purple-100 text-purple-900 p-3 rounded-2xl font-medium text-xs">${inspMsg}</div>`;
+            let inspMsg = "車検記録が未登録です";
+            if (lastI) {
+                const nextD = new Date(lastI.date);
+                nextD.setFullYear(nextD.getFullYear() + 2);
+                const days = Math.ceil((nextD - today) / (1000 * 60 * 60 * 24));
+                inspMsg = (days <= 90 && days > 0) ? `【早期割引】車検満了まであと ${days} 日！` : `次回車検予定: ${nextD.toISOString().slice(0, 10)} (あと ${days} 日)`;
             }
-            
+            const inspReminder = document.getElementById('inspReminder');
+            if (inspReminder) inspReminder.innerHTML = `<div class="bg-purple-50 border border-purple-100 text-purple-900 p-3 rounded-2xl font-medium text-xs">${inspMsg}</div>`;
+
             const inspList = document.getElementById('inspList');
             if (inspList) {
                 inspList.innerHTML = lastI ? `
@@ -577,8 +682,10 @@ ${data.inspections.map(i => `- ${i.date} | ${Number(i.mileage || 0).toLocaleStri
                         </div>
                         <b class="text-sm text-gray-900 font-bold">${Number(lastI.cost || 0).toLocaleString()}円</b>
                     </div>
-                ` : '<div class="text-gray-400 py-1">車検記録がありません</div>';
+                ` : '<div class="text-gray-400 py-2 text-center">車検記録がありません</div>';
             }
+
+            setTimeout(renderChart, 0);
         }
     </script>
 </body>
