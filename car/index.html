@@ -10,14 +10,14 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; background-color: #f5f5f7; color: #1d1d1f; letter-spacing: -0.01em; }
-        .apple-card { background: white; border-radius: 20px; border: 1px solid #e5e5ea; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); }
+        body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; background-color: #f5f5f7; color: #1d1d1f; letter-spacing: -0.01em; }
+        .apple-card { background: white; border-radius: 20px; border: 1px solid #e5e5ea; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
         summary { list-style: none; } summary::-webkit-details-marker { display: none; }
-        select { -webkit-appearance: none; appearance: none; }
     </style>
 </head>
 <body class="p-4 pb-24">
     <div class="max-w-md mx-auto space-y-4">
+        <!-- ヘッダー -->
         <header class="flex justify-between items-center py-2">
             <div>
                 <h1 class="font-bold text-xl tracking-tight">Note E11 管理 Pro</h1>
@@ -30,32 +30,68 @@
 
         <div id="alertContainer" class="space-y-2"></div>
 
+        <!-- サマリー・グラフ・各リスト -->
         <div class="grid grid-cols-3 gap-2">
-            <div class="apple-card p-3 text-center"><div class="text-[10px] text-gray-500 font-medium">直近燃費</div><div class="font-bold text-blue-600 text-sm mt-0.5"><span id="sLast">0.0</span></div></div>
-            <div class="apple-card p-3 text-center"><div class="text-[10px] text-gray-500 font-medium">今月平均</div><div class="font-bold text-emerald-600 text-sm mt-0.5"><span id="sMonth">0.0</span></div></div>
-            <div class="apple-card p-3 text-center"><div class="text-[10px] text-gray-500 font-medium">今年平均</div><div class="font-bold text-purple-600 text-sm mt-0.5"><span id="sYear">0.0</span></div></div>
+            <div class="apple-card p-3 text-center"><div class="text-[10px] text-gray-500">直近燃費</div><div class="font-bold text-blue-600 text-sm"><span id="sLast">0.0</span></div></div>
+            <div class="apple-card p-3 text-center"><div class="text-[10px] text-gray-500">今月平均</div><div class="font-bold text-emerald-600 text-sm"><span id="sMonth">0.0</span></div></div>
+            <div class="apple-card p-3 text-center"><div class="text-[10px] text-gray-500">今年平均</div><div class="font-bold text-purple-600 text-sm"><span id="sYear">0.0</span></div></div>
         </div>
 
         <section class="apple-card p-5">
-            <h2 class="font-bold text-base mb-3 flex items-center gap-2"><i class="fa-solid fa-chart-line text-indigo-600"></i> 燃費 & 走行距離推移</h2>
-            <div class="relative w-full h-52"><canvas id="trendChart"></canvas></div>
+            <h2 class="font-bold text-base mb-3"><i class="fa-solid fa-chart-line text-indigo-600"></i> 燃費推移</h2>
+            <div class="relative w-full h-48"><canvas id="trendChart"></canvas></div>
         </section>
 
-        <!-- 各記録用 details / section は省略せずにそのまま利用してください -->
-        <details class="apple-card p-5" open>
-            <summary class="flex justify-between items-center font-bold text-base cursor-pointer"><span><i class="fa-solid fa-gas-pump text-emerald-600"></i> 給油記録</span><i class="fa-solid fa-chevron-down text-xs text-gray-400"></i></summary>
-            <div id="fuelList" class="mt-3 space-y-2 text-xs"></div>
-            <button id="openFuelBtn" class="w-full mt-4 bg-gray-900 text-white py-3 rounded-xl font-bold text-xs active:scale-95 transition">給油を記録</button>
-        </details>
-        
-        <!-- ※他のセクションは元のコードの通りで問題ありません。以下スクリプトの修正が肝です -->
+        <!-- セクション群 -->
+        <div id="sectionContainer" class="space-y-4">
+            <details class="apple-card p-5" open>
+                <summary class="flex justify-between items-center font-bold text-base cursor-pointer"><span>給油記録</span></summary>
+                <div id="fuelList" class="mt-3 space-y-2 text-xs"></div>
+                <button id="openFuelBtn" class="w-full mt-4 bg-gray-900 text-white py-3 rounded-xl font-bold text-xs">給油を記録</button>
+            </details>
+        </div>
     </div>
 
     <script>
-        // ... (省略: 前述のFirebase設定と初期化ロジック)
-        // [ここに修正コードを配置して完了です]
-        // 厳格ルールの反映: データ型を確定させるため render() 内の計算式に Number() を強制
-        // 例: sMonth.textContent = mFuels.length ? (mFuels.reduce((s, f) => s + Number(f.efficiency || 0), 0) / mFuels.length).toFixed(1) : '0.0';
+        // ... (Firebase設定とデータ初期化は以前のコードと同様)
+        
+        // 【最重要修正】グラフ描画を try-catch で保護し、失敗しても画面全体が崩れないようにする
+        function renderChart() {
+            const ctx = document.getElementById('trendChart');
+            if (!ctx) return;
+            
+            try {
+                if (trendChartInstance) trendChartInstance.destroy();
+                
+                const sortedFuels = [...data.fuels].sort((a, b) => new Date(a.date) - new Date(b.date));
+                const labels = sortedFuels.length > 0 ? sortedFuels.map(f => f.date.slice(5)) : ['データ未登録'];
+                const eff = sortedFuels.length > 0 ? sortedFuels.map(f => f.efficiency || 0) : [0];
+
+                trendChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{ label: '燃費 (km/L)', data: eff, borderColor: '#2563eb', fill: true, tension: 0.3 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            } catch (err) {
+                console.error("グラフ描画エラー (スキップします):", err);
+            }
+        }
+
+        // render() の最後で非同期実行
+        function render() {
+            // ... (各項目のレンダリング処理) ...
+            
+            // グラフ描画の失敗が画面表示を阻害しないよう非同期で実行
+            setTimeout(renderChart, 0);
+        }
+
+        // 初期実行
+        document.addEventListener('DOMContentLoaded', () => {
+            initRealtimeSync();
+        });
     </script>
 </body>
 </html>
