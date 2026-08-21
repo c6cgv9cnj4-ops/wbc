@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 import feedparser
 from google import genai
@@ -9,22 +10,18 @@ DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 
 def get_cnbc_transcripts():
     """CNBC公式YouTubeから直近動画の文字起こしを取得"""
-    # CNBC Television の最新動画RSSフィード
     cnbc_feed_url = "https://www.youtube.com/feeds/videos.xml?user=CNBCtelevision"
     feed = feedparser.parse(cnbc_feed_url)
     
     transcripts_summary = []
-    # 直近5〜6本の主要マーケット動画を解析
-    for entry in feed.entries[:6]:
+    for entry in feed.entries[:5]:
         video_id = entry.yt_videoid
         title = entry.title
         try:
             transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['en'])
             full_text = " ".join([t['text'] for t in transcript_list])
-            # 長すぎる場合は先頭3000文字程度にトリミング
-            transcripts_summary.append(f"【動画タイトル: {title}】\n文字起こし: {full_text[:3000]}\n")
+            transcripts_summary.append(f"【動画タイトル: {title}】\n文字起こし: {full_text[:2500]}\n")
         except Exception:
-            # 字幕が取得できない動画はタイトルのみ記録
             transcripts_summary.append(f"【動画タイトル: {title}】(字幕自動取得対象外)\n")
             
     return "\n".join(transcripts_summary)
@@ -37,15 +34,10 @@ def get_news_feeds():
         "https://news.google.com/rss/headlines/section/topic/WORLD?hl=ja&gl=JP&ceid=JP:ja",
         "https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=ja&gl=JP&ceid=JP:ja",
         "https://news.google.com/rss/headlines/section/topic/SPORTS?hl=ja&gl=JP&ceid=JP:ja",
-        # 埼玉新聞・地域
         "https://news.google.com/rss/search?q=%E5%9F%BC%E7%8E%89%E6%96%B0%E8%81%9E+OR+%E5%9F%BC%E7%8E%89%E7%9C%8C&hl=ja&gl=JP&ceid=JP:ja",
-        # 写真展・カメラ機材
         "https://news.google.com/rss/search?q=%E5%86%99%E7%9C%9F%E5%B1%95+OR+%E3%82%AD%E3%83%A4%E3%83%8E%E3%83%B3+OR+%E3%82%B7%E3%82%B0%E3%83%9E&hl=ja&gl=JP&ceid=JP:ja",
-        # バドミントン（松友美佐紀優先）＆浦和レッズ
         "https://news.google.com/rss/search?q=%E6%9D%BE%E5%8F%8B%E7%BE%8E%E4%BD%90%E7%B4%80+OR+%E3%83%90%E3%83%89%E3%83%9F%E3%83%B3%E3%83%88%E3%83%B3+OR+%E6%B5%A6%E5%92%8C%E3%83%AC%E3%83%83%E3%82%BA&hl=ja&gl=JP&ceid=JP:ja",
-        # サカナクション
         "https://news.google.com/rss/search?q=%E3%82%B5%E3%82%AB%E3%83%8A%E3%82%AF%E3%82%B7%E3%83%A7%E3%83%B3&hl=ja&gl=JP&ceid=JP:ja",
-        # U2海外公式・英語メディア
         "https://news.google.com/rss/search?q=U2+band+OR+Bono+OR+The+Edge&hl=en-US&gl=US&ceid=US:en",
     ]
     
@@ -62,7 +54,7 @@ def get_news_feeds():
     return "\n".join(collected_articles)
 
 def generate_morning_briefing(news_text, cnbc_text):
-    """Gemini 3.6 Flashを使ってCNBC詳細分析含む全セクションを生成"""
+    """サーバー混雑時にも自動で代替モデルやリトライを行う"""
     client = genai.Client(api_key=GEMINI_API_KEY)
     
     prompt = f"""
@@ -111,11 +103,23 @@ CNBC文字起こしデータを精査し、以下の項目に分けて日本語�
 【収集ニュース一覧データ】
 {news_text}
 """
-    response = client.models.generate_content(
-        model='gemini-3.6-flash',
-        contents=prompt,
-    )
-    return response.text
+    # 混雑時に備えてモデル候補を複数用意
+    models_to_try = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']
+    
+    for model_name in models_to_try:
+        for attempt in range(2):
+            try:
+                print(f"モデル {model_name} で生成を試行中 (試行 {attempt + 1})...")
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                )
+                return response.text
+            except Exception as e:
+                print(f"{model_name} でエラー発生: {e}")
+                time.sleep(5)
+                
+    raise RuntimeError("すべてのモデル生成試行が失敗しました。")
 
 def send_discord_split(message):
     """Discordの2000文字制限を回避するため分割送信"""
@@ -144,7 +148,7 @@ def main():
     print("ニュース・元データを収集中...")
     news_text = get_news_feeds()
     
-    print("Gemini 3.6 FlashでCNBC分析含む詳細サマリーを生成中...")
+    print("Geminiで詳細サマリーを生成中...")
     briefing = generate_morning_briefing(news_text, cnbc_text)
     
     print("Discordへ分割送信中...")
