@@ -18,7 +18,6 @@ def get_anzn_info():
         res.encoding = res.apparent_encoding
         soup = BeautifulSoup(res.text, "html.parser")
         
-        # 不要なタグを除去
         for tag in soup(["script", "style", "nav", "footer"]):
             tag.decompose()
             
@@ -52,16 +51,26 @@ def get_cnbc_transcripts():
     return "\n".join(transcripts_summary)
 
 def get_news_feeds():
-    """国内・地域・カルチャー・海外ニュースを網羅的に収集"""
+    """国内・地域・火災・市況・カルチャーの最新ニュースを網羅的に収集"""
     feed_urls = [
+        # 火災・事故・消防速報
+        "https://news.google.com/rss/search?q=%E7%81%AB%E7%81%BD+OR+%E7%81%AB%E4%BA%8B+OR+%E5%BB%B6%E7%84%BC+OR+%E6%B6%88%E9%98%B2%E5%87%BA%E5%8B%95&hl=ja&gl=JP&ceid=JP:ja",
+        "https://news.google.com/rss/search?q=%E5%9F%BC%E7%8E%89+%E7%81%AB%E4%BA%8B+OR+%E5%8C%97%E6%9C%AC+%E7%81%AB%E4%BA%8B&hl=ja&gl=JP&ceid=JP:ja",
+        # 経済指標・マクロ速報
+        "https://news.google.com/rss/search?q=%E5%B0%8F%E5%A3%B2%E5%A3%B2%E4%B8%8A%E9%AB%98+OR+CPI+OR+GDP+OR+%E7%B5%8C%E6%B8%88%E6%8C%87%E6%A8%99+%E9%80%9F%E5%A0%B1&hl=ja&gl=JP&ceid=JP:ja",
+        # 各種主要ニュース
         "https://news.google.com/rss?hl=ja&gl=JP&ceid=JP:ja",
         "https://news.google.com/rss/headlines/section/topic/NATION?hl=ja&gl=JP&ceid=JP:ja",
         "https://news.google.com/rss/headlines/section/topic/WORLD?hl=ja&gl=JP&ceid=JP:ja",
         "https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=ja&gl=JP&ceid=JP:ja",
         "https://news.google.com/rss/headlines/section/topic/SPORTS?hl=ja&gl=JP&ceid=JP:ja",
+        # 埼玉新聞・地域
         "https://news.google.com/rss/search?q=%E5%9F%BC%E7%8E%89%E6%96%B0%E8%81%9E+OR+%E5%9F%BC%E7%8E%89%E7%9C%8C&hl=ja&gl=JP&ceid=JP:ja",
+        # 写真展・カメラ機材
         "https://news.google.com/rss/search?q=%E5%86%99%E7%9C%9F%E5%B1%95+OR+%E3%82%AD%E3%83%A4%E3%83%8E%E3%83%B3+OR+%E3%82%B7%E3%82%B0%E3%83%9E&hl=ja&gl=JP&ceid=JP:ja",
+        # バドミントン（松友美佐紀優先）＆浦和レッズ
         "https://news.google.com/rss/search?q=%E6%9D%BE%E5%8F%8B%E7%BE%8E%E4%BD%90%E7%B4%80+OR+%E3%83%90%E3%83%89%E3%83%9F%E3%83%B3%E3%83%88%E3%83%B3+OR+%E6%B5%A6%E5%92%8C%E3%83%AC%E3%83%83%E3%82%BA&hl=ja&gl=JP&ceid=JP:ja",
+        # サカナクション ＆ U2
         "https://news.google.com/rss/search?q=%E3%82%B5%E3%82%AB%E3%83%8A%E3%82%AF%E3%82%B7%E3%83%A7%E3%83%B3&hl=ja&gl=JP&ceid=JP:ja",
         "https://news.google.com/rss/search?q=U2+band+OR+Bono+OR+The+Edge&hl=en-US&gl=US&ceid=US:en",
     ]
@@ -79,50 +88,56 @@ def get_news_feeds():
     return "\n".join(collected_articles)
 
 def generate_morning_briefing(news_text, cnbc_text, anzn_text):
-    """Gemini 3.6 Flashを使って全セクションを生成"""
+    """速報強調・経済指標テーブル・火災情報を含むサマリー生成"""
     client = genai.Client(api_key=GEMINI_API_KEY)
     
     prompt = f"""
-あなたはトップクラスの金融・時事モーニングアナリストです。
-提供された各データをもとに、詳細で極めて読み応えのある朝のデイリーサマリーを作成してください。
+あなたはトップクラスの金融・時事・防災速報アナリストです。
+提供されたデータをもとに、Discord上で視認性が高く、極めて読み応えのある最新速報サマリーを作成してください。
 
-以下の各セクションを明確に分け、省略せずに十分な情報量で記述してください。
+【出力フォーマット・演出の指示】
+・速報性の高い重大事項には `🚨【超速報】` や `⚠️【緊急】` を付けて目立たせること。
+・直近発表された重要経済指標（英小売売上高、米CPI、雇用統計、政策金利など）がある場合は、以下のような見やすいMarkdownテーブル形式で記述すること：
+
+【速報】経済指標発表結果
+指標名：★★★ (重要度)
+| 項目 | 予想 | 結果 |
+| :--- | :--- | :--- |
+| 前月比 | ○% | ○% |
+| 前年比 | ○% | ○% |
+・変動幅/市場の初期反応: ○○pips / ○○円動意
 
 ==================================================
-【1. 熊谷の気象・コンディション】
-・当日の天気、最高/最低気温、時間帯別の降水確率、風速、体感温度、外出時のアドバイス
+【1. 北本市 生活・地域情報（anzn.netより）】※必ず最上部に配置
+・本日のゴミ収集・分別、市からのお知らせ、地域注意事項
 
-【2. 北本市 生活・地域情報（anzn.netより）】
-・提供されたanzn.netのテキストデータをもとに、北本市の当日の収集・分別情報、地域からのお知らせや注意事項をわかりやすく要約
+【2. 🚨 火災・防災・事故速報】
+・埼玉および関東・全国の直近の建物火災、延焼状況、消防出動情報、交通影響
 
-【3. 前日CNBC徹底分析（番組文字起こしより要約）】
-CNBC文字起こしデータを精査し、以下の項目に分けて日本語でプロの視点から詳しく解説してください：
-・米国マクロ経済・FRB利下げ／利上げ観測・金利・為替動向
-・ハイテク・半導体・主要銘柄の議論動向（アナリストの強気／弱気見通し）
-・市場関係者・著名コメンテーターの注目発言・重要示唆
+【3. 熊谷の気象・コンディション】
+・天気、気温、降水確率、風速、体感温度、外出時のアドバイス
 
-【4. グローバル・株式マーケット指数分析】
-・主要指数：SOX指数、台湾加権指数、韓国KOSPI、NYダウ、ナスダック、日経平均先物、ドル円
-・騰落背景、モメンタム、本日発表予定の指標・注目イベント
+【4. 📊 重要経済指標・速報テーブル ＆ 前日CNBC徹底分析】
+・直近発表の経済指標結果テーブル
+・CNBC文字起こしからの米国マクロ、FRB動向、ハイテク・半導体個別銘柄議論、著名コメンテーター発言要約
 
-【5. 写真・アート＆カメラ機材情報】
-・首都圏（東京・埼玉）の注目写真展・ギャラリー企画展情報
-・キヤノン（EOS/RF/EF）、シグマ等の新製品発表、ファームウェア更新、業界の動向
+【5. グローバル・株式マーケット指数分析】
+・SOX、台湾加権、韓国KOSPI、ダウ、ナスダック、日経先物、ドル円のモメンタムと材料
 
-【6. スポーツ速報（バドミントン・サッカー・野球）】
-・バドミントン：松友美佐紀選手の動向・最新結果を最優先。世界選手権・ツアーの日本勢（山口茜、奥原希望、奈良岡功大など）
-・サッカー：浦和レッズの試合結果・最新動向・次節カード
-・野球：NPB主要試合結果、MLB日本人選手（大谷翔平、岡本和真、村上宗隆、今井達也、佐々木朗希など）の成績
+【6. 写真・アート＆カメラ機材情報】
+・首都圏注目写真展、キヤノン・シグマ新製品動向
 
-【7. 音楽・カルチャー（サカナクション ＆ U2海外動向）】
-・サカナクション：ツアー・新曲・山口一郎氏の動向
-・U2：海外の最新ニュース・リリース・ライブ動向を【日本語に翻訳して要約】
+【7. スポーツ速報（バドミントン・サッカー・野球）】
+・松友美佐紀選手情報最優先、日本代表勢、浦和レッズ、MLB日本人選手スタッツ
 
-【8. 埼玉ローカルニュース（埼玉新聞より厳選5項目）】
-・県内の事件・行政・話題を必ず5項目抽出し、見出し・1行要約・元記事URLを記載
+【8. 音楽・カルチャー（サカナクション ＆ U2海外動向）】
+・サカナクション動向、U2海外最新動向（日本語訳）
 
-【9. 本日の主要・時事ニュース厳選（7〜8本）】
-・国内外の最重要ニュース7〜8本（見出し＋1〜2行要約＋元記事URL）
+【9. 埼玉ローカルニュース（埼玉新聞より厳選5項目）】
+・見出し・1行要約・元記事URL
+
+【10. 本日の主要・時事ニュース厳選（7〜8本）】
+・国内外の最重要ニュース（見出し＋1〜2行要約＋元記事URL）
 ==================================================
 
 【北本市 anzn.net 取得データ】
@@ -139,7 +154,7 @@ CNBC文字起こしデータを精査し、以下の項目に分けて日本語�
     for model_name in models:
         for attempt in range(1, 4):
             try:
-                print(f"[{model_name}] 生成実行中 (試行 {attempt}/3)...")
+                print(f"[{model_name}] 生成中 (試行 {attempt}/3)...")
                 response = client.models.generate_content(
                     model=model_name,
                     contents=prompt,
@@ -147,13 +162,13 @@ CNBC文字起こしデータを精査し、以下の項目に分けて日本語�
                 if response and response.text:
                     return response.text
             except Exception as e:
-                print(f"エラー発生: {e}")
+                print(f"エラー: {e}")
                 time.sleep(10)
                 
-    raise RuntimeError("AIの生成リトライ上限に達しました。")
+    raise RuntimeError("AI生成が完了しませんでした。")
 
 def send_discord_split(message):
-    """2000文字制限を回避して確実に分割送信"""
+    """Discordの2000文字制限を回避して分割送信"""
     max_len = 1800
     paragraphs = message.split("\n\n")
     current_chunk = ""
@@ -171,21 +186,17 @@ def send_discord_split(message):
         requests.post(DISCORD_WEBHOOK_URL, json={"content": current_chunk.strip()})
 
 def main():
-    print("1/5: 北本市生活情報取得...")
+    print("データ収集中（anzn.net / CNBC / 火災・指標・時事ニュース）...")
     anzn_text = get_anzn_info()
-
-    print("2/5: CNBC文字起こし収集...")
     cnbc_text = get_cnbc_transcripts()
-    
-    print("3/5: Google/地域ニュース収集...")
     news_text = get_news_feeds()
     
-    print("4/5: Geminiによるサマリー生成...")
+    print("サマリー生成中...")
     briefing = generate_morning_briefing(news_text, cnbc_text, anzn_text)
     
-    print("5/5: Discordへ分割送信...")
+    print("Discord送信中...")
     send_discord_split(briefing)
-    print("完了しました。")
+    print("送信完了しました。")
 
 if __name__ == "__main__":
     main()
