@@ -1,0 +1,32 @@
+name: Daily News Notification
+
+on:
+  schedule:
+    # 毎日 日本時間 朝7:00 (UTC 22:00) に自動実行
+    - cron: '0 22 * * *'
+  # 手動でテスト実行できるようにする設定
+  workflow_dispatch:
+
+jobs:
+  run-news-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: リポジトリのコードを取得
+        uses: actions/checkout@v4
+
+      - name: Pythonのセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 必要なライブラリをインストール
+        run: |
+          pip install requests feedparser google-genai
+
+      - name: ニュース取得・要約・Discord送信を実行
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          python main.py
