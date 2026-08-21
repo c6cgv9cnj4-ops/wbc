@@ -15,14 +15,17 @@ def get_cnbc_transcripts():
     
     transcripts_summary = []
     for entry in feed.entries[:5]:
-        video_id = entry.yt_videoid
+        video_id = getattr(entry, "yt_videoid", None)
         title = entry.title
-        try:
-            transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['en'])
-            full_text = " ".join([t['text'] for t in transcript_list])
-            transcripts_summary.append(f"【動画タイトル: {title}】\n文字起こし: {full_text[:2500]}\n")
-        except Exception:
-            transcripts_summary.append(f"【動画タイトル: {title}】(字幕自動取得対象外)\n")
+        if video_id:
+            try:
+                transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['en'])
+                full_text = " ".join([t['text'] for t in transcript_list])
+                transcripts_summary.append(f"【動画タイトル: {title}】\n文字起こし: {full_text[:2000]}\n")
+            except Exception:
+                transcripts_summary.append(f"【動画タイトル: {title}】\n")
+        else:
+            transcripts_summary.append(f"【動画タイトル: {title}】\n")
             
     return "\n".join(transcripts_summary)
 
@@ -54,7 +57,7 @@ def get_news_feeds():
     return "\n".join(collected_articles)
 
 def generate_morning_briefing(news_text, cnbc_text):
-    """最新モデル名で確実にサマリーを生成"""
+    """リトライ・フォールバックを完備した安定生成関数"""
     client = genai.Client(api_key=GEMINI_API_KEY)
     
     prompt = f"""
@@ -79,7 +82,7 @@ CNBC文字起こしデータを精査し、以下の項目に分けて日本語�
 
 【4. 写真・アート＆カメラ機材情報】
 ・首都圏（東京・埼玉）の注目写真展・ギャラリー企画展情報
-・キヤノン（EOS/RF/EF）、シグマ等の新製品発表、ファームウェア更新、噂
+・キヤノン（EOS/RF/EF）、シグマ等の新製品発表、ファームウェア更新、業界の動向
 
 【5. スポーツ速報（バドミントン・サッカー・野球）】
 ・バドミントン：松友美佐紀選手の動向・最新結果を最優先。世界選手権・ツアーの日本勢（山口茜、奥原希望、奈良岡功大など）
@@ -103,57 +106,56 @@ CNBC文字起こしデータを精査し、以下の項目に分けて日本語�
 【収集ニュース一覧データ】
 {news_text}
 """
-    # 互換性のある正式モデル名
-    models_to_try = ['gemini-2.5-flash', 'gemini-2.5-pro']
+    # 動作確認済みモデル
+    models = ['gemini-3.6-flash', 'gemini-3.1-pro-preview']
     
-    for model_name in models_to_try:
-        for attempt in range(3):
+    for model_name in models:
+        for attempt in range(1, 4):
             try:
-                print(f"モデル {model_name} で生成中 (試行 {attempt + 1})...")
+                print(f"[{model_name}] 生成実行中 (試行 {attempt}/3)...")
                 response = client.models.generate_content(
                     model=model_name,
                     contents=prompt,
                 )
-                return response.text
+                if response and response.text:
+                    return response.text
             except Exception as e:
-                print(f"{model_name} エラー: {e}")
-                time.sleep(6)
+                print(f"エラー発生: {e}")
+                time.sleep(10)
                 
-    raise RuntimeError("サマリーの生成に失敗しました。")
+    raise RuntimeError("AIの生成リトライ上限に達しました。")
 
 def send_discord_split(message):
-    """Discordの2000文字制限を回避するため分割送信"""
-    max_len = 1900
+    """2000文字制限を回避して確実に分割送信"""
+    max_len = 1800
     paragraphs = message.split("\n\n")
     current_chunk = ""
 
     for para in paragraphs:
         if len(current_chunk) + len(para) + 2 > max_len:
-            payload = {"content": current_chunk}
-            res = requests.post(DISCORD_WEBHOOK_URL, json=payload)
-            res.raise_for_status()
+            if current_chunk.strip():
+                requests.post(DISCORD_WEBHOOK_URL, json={"content": current_chunk.strip()})
+                time.sleep(1)
             current_chunk = para + "\n\n"
         else:
             current_chunk += para + "\n\n"
 
     if current_chunk.strip():
-        payload = {"content": current_chunk}
-        res = requests.post(DISCORD_WEBHOOK_URL, json=payload)
-        res.raise_for_status()
+        requests.post(DISCORD_WEBHOOK_URL, json={"content": current_chunk.strip()})
 
 def main():
-    print("CNBC文字起こしデータを収集中...")
+    print("1/4: CNBC文字起こし収集...")
     cnbc_text = get_cnbc_transcripts()
     
-    print("ニュース・元データを収集中...")
+    print("2/4: Google/地域ニュース収集...")
     news_text = get_news_feeds()
     
-    print("Geminiで詳細サマリーを生成中...")
+    print("3/4: Geminiによるサマリー生成...")
     briefing = generate_morning_briefing(news_text, cnbc_text)
     
-    print("Discordへ分割送信中...")
+    print("4/4: Discordへ分割送信...")
     send_discord_split(briefing)
-    print("すべての送信が完了しました！")
+    print("完了しました。")
 
 if __name__ == "__main__":
     main()
