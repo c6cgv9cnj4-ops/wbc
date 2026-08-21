@@ -2,11 +2,33 @@ import os
 import time
 import requests
 import feedparser
+from bs4 import BeautifulSoup
 from google import genai
 from youtube_transcript_api import YouTubeTranscriptApi
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
+
+def get_anzn_info():
+    """anzn.net 北本市ページから生活・地域情報を取得"""
+    url = "https://anzn.net/sp/?11217F"
+    try:
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        res = requests.get(url, headers=headers, timeout=10)
+        res.encoding = res.apparent_encoding
+        soup = BeautifulSoup(res.text, "html.parser")
+        
+        # 不要なタグを除去
+        for tag in soup(["script", "style", "nav", "footer"]):
+            tag.decompose()
+            
+        text = soup.get_text(separator="\n")
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        clean_text = "\n".join(lines[:60])
+        return clean_text
+    except Exception as e:
+        print(f"anzn.net 取得エラー: {e}")
+        return "情報の取得に失敗しました。"
 
 def get_cnbc_transcripts():
     """CNBC公式YouTubeから直近動画の文字起こしを取得"""
@@ -56,13 +78,13 @@ def get_news_feeds():
     
     return "\n".join(collected_articles)
 
-def generate_morning_briefing(news_text, cnbc_text):
-    """リトライ・フォールバックを完備した安定生成関数"""
+def generate_morning_briefing(news_text, cnbc_text, anzn_text):
+    """Gemini 3.6 Flashを使って全セクションを生成"""
     client = genai.Client(api_key=GEMINI_API_KEY)
     
     prompt = f"""
 あなたはトップクラスの金融・時事モーニングアナリストです。
-提供された最新ニュースデータおよび前日のCNBC放送文字起こしデータをもとに、詳細で極めて読み応えのある朝のデイリーサマリーを作成してください。
+提供された各データをもとに、詳細で極めて読み応えのある朝のデイリーサマリーを作成してください。
 
 以下の各セクションを明確に分け、省略せずに十分な情報量で記述してください。
 
@@ -70,35 +92,41 @@ def generate_morning_briefing(news_text, cnbc_text):
 【1. 熊谷の気象・コンディション】
 ・当日の天気、最高/最低気温、時間帯別の降水確率、風速、体感温度、外出時のアドバイス
 
-【2. 前日CNBC徹底分析（番組文字起こしより要約）】
+【2. 北本市 生活・地域情報（anzn.netより）】
+・提供されたanzn.netのテキストデータをもとに、北本市の当日の収集・分別情報、地域からのお知らせや注意事項をわかりやすく要約
+
+【3. 前日CNBC徹底分析（番組文字起こしより要約）】
 CNBC文字起こしデータを精査し、以下の項目に分けて日本語でプロの視点から詳しく解説してください：
 ・米国マクロ経済・FRB利下げ／利上げ観測・金利・為替動向
 ・ハイテク・半導体・主要銘柄の議論動向（アナリストの強気／弱気見通し）
 ・市場関係者・著名コメンテーターの注目発言・重要示唆
 
-【3. グローバル・株式マーケット指数分析】
+【4. グローバル・株式マーケット指数分析】
 ・主要指数：SOX指数、台湾加権指数、韓国KOSPI、NYダウ、ナスダック、日経平均先物、ドル円
 ・騰落背景、モメンタム、本日発表予定の指標・注目イベント
 
-【4. 写真・アート＆カメラ機材情報】
+【5. 写真・アート＆カメラ機材情報】
 ・首都圏（東京・埼玉）の注目写真展・ギャラリー企画展情報
 ・キヤノン（EOS/RF/EF）、シグマ等の新製品発表、ファームウェア更新、業界の動向
 
-【5. スポーツ速報（バドミントン・サッカー・野球）】
+【6. スポーツ速報（バドミントン・サッカー・野球）】
 ・バドミントン：松友美佐紀選手の動向・最新結果を最優先。世界選手権・ツアーの日本勢（山口茜、奥原希望、奈良岡功大など）
 ・サッカー：浦和レッズの試合結果・最新動向・次節カード
 ・野球：NPB主要試合結果、MLB日本人選手（大谷翔平、岡本和真、村上宗隆、今井達也、佐々木朗希など）の成績
 
-【6. 音楽・カルチャー（サカナクション ＆ U2海外動向）】
+【7. 音楽・カルチャー（サカナクション ＆ U2海外動向）】
 ・サカナクション：ツアー・新曲・山口一郎氏の動向
 ・U2：海外の最新ニュース・リリース・ライブ動向を【日本語に翻訳して要約】
 
-【7. 埼玉ローカルニュース（埼玉新聞より厳選5項目）】
+【8. 埼玉ローカルニュース（埼玉新聞より厳選5項目）】
 ・県内の事件・行政・話題を必ず5項目抽出し、見出し・1行要約・元記事URLを記載
 
-【8. 本日の主要・時事ニュース厳選（7〜8本）】
+【9. 本日の主要・時事ニュース厳選（7〜8本）】
 ・国内外の最重要ニュース7〜8本（見出し＋1〜2行要約＋元記事URL）
 ==================================================
+
+【北本市 anzn.net 取得データ】
+{anzn_text}
 
 【前日CNBC動画文字起こしデータ】
 {cnbc_text}
@@ -106,7 +134,6 @@ CNBC文字起こしデータを精査し、以下の項目に分けて日本語�
 【収集ニュース一覧データ】
 {news_text}
 """
-    # 動作確認済みモデル
     models = ['gemini-3.6-flash', 'gemini-3.1-pro-preview']
     
     for model_name in models:
@@ -144,16 +171,19 @@ def send_discord_split(message):
         requests.post(DISCORD_WEBHOOK_URL, json={"content": current_chunk.strip()})
 
 def main():
-    print("1/4: CNBC文字起こし収集...")
+    print("1/5: 北本市生活情報取得...")
+    anzn_text = get_anzn_info()
+
+    print("2/5: CNBC文字起こし収集...")
     cnbc_text = get_cnbc_transcripts()
     
-    print("2/4: Google/地域ニュース収集...")
+    print("3/5: Google/地域ニュース収集...")
     news_text = get_news_feeds()
     
-    print("3/4: Geminiによるサマリー生成...")
-    briefing = generate_morning_briefing(news_text, cnbc_text)
+    print("4/5: Geminiによるサマリー生成...")
+    briefing = generate_morning_briefing(news_text, cnbc_text, anzn_text)
     
-    print("4/4: Discordへ分割送信...")
+    print("5/5: Discordへ分割送信...")
     send_discord_split(briefing)
     print("完了しました。")
 
