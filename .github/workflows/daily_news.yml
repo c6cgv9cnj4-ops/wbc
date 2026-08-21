@@ -2,9 +2,9 @@ name: Daily News Notification
 
 on:
   schedule:
-    # 毎朝7:00 JST (日本時間) に自動実行 (UTC 22:00)
+    # 毎朝7:00 JST (UTC 22:00)
     - cron: '0 22 * * *'
-  workflow_dispatch: # 手動実行用ボタン
+  workflow_dispatch: # 手動実行ボタン
 
 jobs:
   run-news-bot:
@@ -19,13 +19,16 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: 必要なライブラリを直接インストール
+      - name: 必要なライブラリをインストール
         run: |
           pip install feedparser requests google-genai youtube-transcript-api beautifulsoup4
 
-      - name: ニュース取得・要約・Discord送信を実行
+      - name: チャンネル別ニュース配信を実行
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          WEBHOOK_MARKET: ${{ secrets.WEBHOOK_MARKET }}
+          WEBHOOK_LOCAL: ${{ secrets.WEBHOOK_LOCAL }}
+          WEBHOOK_SPORTS_CULTURE: ${{ secrets.WEBHOOK_SPORTS_CULTURE }}
+          WEBHOOK_NEWS: ${{ secrets.WEBHOOK_NEWS }}
         run: |
           python main.py
