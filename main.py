@@ -54,7 +54,7 @@ def get_news_feeds():
     return "\n".join(collected_articles)
 
 def generate_morning_briefing(news_text, cnbc_text):
-    """サーバー混雑時にも自動で代替モデルやリトライを行う"""
+    """最新モデル名で確実にサマリーを生成"""
     client = genai.Client(api_key=GEMINI_API_KEY)
     
     prompt = f"""
@@ -103,23 +103,23 @@ CNBC文字起こしデータを精査し、以下の項目に分けて日本語�
 【収集ニュース一覧データ】
 {news_text}
 """
-    # 混雑時に備えてモデル候補を複数用意
-    models_to_try = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']
+    # 互換性のある正式モデル名
+    models_to_try = ['gemini-2.5-flash', 'gemini-2.5-pro']
     
     for model_name in models_to_try:
-        for attempt in range(2):
+        for attempt in range(3):
             try:
-                print(f"モデル {model_name} で生成を試行中 (試行 {attempt + 1})...")
+                print(f"モデル {model_name} で生成中 (試行 {attempt + 1})...")
                 response = client.models.generate_content(
                     model=model_name,
                     contents=prompt,
                 )
                 return response.text
             except Exception as e:
-                print(f"{model_name} でエラー発生: {e}")
-                time.sleep(5)
+                print(f"{model_name} エラー: {e}")
+                time.sleep(6)
                 
-    raise RuntimeError("すべてのモデル生成試行が失敗しました。")
+    raise RuntimeError("サマリーの生成に失敗しました。")
 
 def send_discord_split(message):
     """Discordの2000文字制限を回避するため分割送信"""
