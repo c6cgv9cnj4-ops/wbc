@@ -55,16 +55,13 @@ def get_cnbc_transcripts():
 def get_news_feeds():
     """短く確実に開く直リンク付きRSSフィードから最新ニュースを収集"""
     feed_urls = [
-        # Yahoo!ニュース（主要・経済・国内・国際・スポーツ・地域）※短く確実なURL
         "https://news.yahoo.co.jp/rss/topics/top-picks.xml",
         "https://news.yahoo.co.jp/rss/topics/business.xml",
         "https://news.yahoo.co.jp/rss/topics/domestic.xml",
         "https://news.yahoo.co.jp/rss/topics/world.xml",
         "https://news.yahoo.co.jp/rss/topics/sports.xml",
         "https://news.yahoo.co.jp/rss/categories/local.xml",
-        # 埼玉ローカル・火災・事故
         "https://news.yahoo.co.jp/rss/media/saitama/all.xml",
-        # カルチャー・音楽
         "https://news.yahoo.co.jp/rss/topics/entertainment.xml",
     ]
     
@@ -77,63 +74,35 @@ def get_news_feeds():
             if entry.title not in seen_titles:
                 seen_titles.add(entry.title)
                 pub = getattr(entry, 'published', '日時不明')
-                # Yahoo等の直リンク（40〜50文字程度で確実に開く）
                 clean_link = entry.link.split('?')[0]
                 collected_articles.append(f"- 【{pub}】{entry.title} / URL: {clean_link}")
     
     return "\n".join(collected_articles)
 
 def generate_morning_briefing(news_text, cnbc_text, anzn_text):
-    """短縮直リンク・全セクション出力プロンプト"""
+    """タップ可能リンク形式のプロンプト"""
     client = genai.Client(api_key=GEMINI_API_KEY)
     
     prompt = f"""
 あなたはトップクラスの金融・時事・防災速報アナリストです。
 提供されたデータをもとに、Discord上で極めて視認性が高く、実用的な最新速報サマリーを作成してください。
-【最重要】文章を途切れさせず、最後の【10. 本日の主要・時事ニュース厳選】まで必ずすべて出力し切ってください。
 
-【URLとリンクの絶対ルール】
-1. すべての記事URLは、提供された短いURLをそのまま `<URL>` の形式で記載すること。
-2. GoogleマップURLは `<https://www.google.com/maps/search/?api=1&query=場所名>` の形式で記載すること。
-3. すべての項目に「配信日時・更新日時」を明記すること。
+【リンク表記の絶対ルール（超重要）】
+Discord上でワンタップで開けるようにするため、URLはすべて以下のMarkdownリンク形式で出力してください：
+・記事リンク: `[記事を読む](URL)`
+・Googleマップ: `[Googleマップで確認](https://www.google.com/maps/search/?api=1&query=場所名)`
 
-==================================================
+【各セクション構成】
 【1. 北本市 生活・地域情報（anzn.netより）】※最上部
-・本日のゴミ収集・分別、市からのお知らせ、注意事項
-
 【2. 🚨 火災・防災・事故速報】
-・埼玉および関東近郊の火災、事故、消防出動情報（発生・発表日時明記）
-
 【3. 熊谷の気象・コンディション】
-・発表日時、天気、気温、降水確率、風速、体感温度、外出アドバイス
-
 【4. 📊 重要経済指標・速報テーブル ＆ 前日CNBC徹底分析】
-・発表日時入り経済指標テーブル（予想・結果・変動幅）
-・CNBC文字起こしからの米国マクロ、FRB動向、個別銘柄議論要約（放送日時明記）
-
-【5. 📈 グローバル・株式マーケット指数詳細分析】
-※必ず【基準時間】と【前日比（値幅・％）】を明記：
-・NYダウ、ナスダック、SOX指数、日経先物(CME)、ドル円、台湾加権、韓国KOSPI
-
-【6. 📷 写真・アート＆カメラ機材情報（国内・首都圏限定）】
-・注目写真展（会期日時、会場名、住所、Googleマップ `<URL>`、北本駅からのアクセス所要時間）
-・キヤノン・シグマ新製品動向
-
-【7. 🏸⚽⚾ スポーツ速報・全試合結果】
-・バドミントン：松友美佐紀選手最優先、日本代表勢（BWF大会グレード明記）
-・サッカー：Jリーグ全試合結果、浦和レッズの直近試合結果と次節日程
-・野球：NPB全試合結果、MLB日本人選手（所属球団名と正確なスタッツ）
-
+【5. 📈 グローバル・株式マーケット指数詳細分析】（基準時間と前日比を明記）
+【6. 📷 写真・アート＆カメラ機材情報（国内限定）】（会期、会場、住所、[Googleマップで確認](URL)、北本駅からの所要時間）
+【7. 🏸⚽⚾ スポーツ速報・全試合結果】（松友選手最優先・BWFグレード明記、Jリーグ全試合、NPB全試合、MLB成績）
 【8. 🎵 音楽・カルチャー（サカナクション ＆ U2動向）】
-・サカナクション最新動向（発表日時）
-・U2最新動向（発表日時・日本語訳要約）
-
-【9. 埼玉ローカルニュース（埼玉新聞より厳選5項目）】
-・配信日時、見出し、1行要約、元記事 `<URL>`
-
-【10. 本日の主要・時事ニュース厳選（7〜8本）】
-・必ず1番から7〜8番まで漏れなく出力（配信日時、見出し、1〜2行要約、元記事 `<URL>`）
-==================================================
+【9. 埼玉ローカルニュース（埼玉新聞より厳選5項目）】（日時、見出し、要約、[記事を読む](URL)）
+【10. 本日の主要・時事ニュース厳選（7〜8本）】（日時、見出し、要約、[記事を読む](URL)）
 
 【北本市 anzn.net 取得データ】
 {anzn_text}
@@ -187,7 +156,7 @@ def send_discord_split(message):
         requests.post(DISCORD_WEBHOOK_URL, json={"content": current_chunk.strip()})
 
 def main():
-    print("データ収集中（直リンクRSS / CNBC / anzn.net）...")
+    print("データ収集中...")
     anzn_text = get_anzn_info()
     cnbc_text = get_cnbc_transcripts()
     news_text = get_news_feeds()
