@@ -2,10 +2,9 @@ name: Daily News Notification
 
 on:
   schedule:
-    # 毎日 日本時間 朝7:00 (UTC 22:00) に自動実行
+    # 毎朝7:00 JST (日本時間) に自動実行 (UTC 22:00)
     - cron: '0 22 * * *'
-  # 手動でテスト実行できるようにする設定
-  workflow_dispatch:
+  workflow_dispatch: # 手動実行用ボタン
 
 jobs:
   run-news-bot:
@@ -20,9 +19,9 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: 必要なライブラリをインストール
+      - name: 必要なライブラリを直接インストール
         run: |
-          pip install requests feedparser google-genai
+          pip install feedparser requests google-genai youtube-transcript-api
 
       - name: ニュース取得・要約・Discord送信を実行
         env:
