@@ -8,17 +8,24 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 
 def get_news_feeds():
-    """複数のRSSから大量の元データを収集"""
+    """国内・地域・カルチャー・海外ニュースを網羅的に収集"""
     feed_urls = [
-        # 主要トピックス・国内・経済・国際
-        "https://news.yahoo.co.jp/rss/topics/top-picks.xml",
-        "https://news.yahoo.co.jp/rss/topics/domestic.xml",
-        "https://news.yahoo.co.jp/rss/topics/business.xml",
-        "https://news.yahoo.co.jp/rss/topics/world.xml",
-        # スポーツ（サッカー・野球・バドミントン関連）
-        "https://news.yahoo.co.jp/rss/topics/sports.xml",
-        # 写真・カメラ・アート関連検索フィード
-        "https://news.google.com/rss/search?q=%E5%86%99%E7%9C%9F%E5%B1%95+OR+%E3%82%AD%E3%83%A4%E3%83%8E%E3%83%B3+OR+%E3%82%B7%E3%82%B0%E3%83%9E+%E3%82%AB%E3%83%A1%E3%83%A9&hl=ja&gl=JP&ceid=JP:ja",
+        # Googleニュース 各主要ジャンル
+        "https://news.google.com/rss?hl=ja&gl=JP&ceid=JP:ja", # トップ
+        "https://news.google.com/rss/headlines/section/topic/NATION?hl=ja&gl=JP&ceid=JP:ja", # 国内
+        "https://news.google.com/rss/headlines/section/topic/WORLD?hl=ja&gl=JP&ceid=JP:ja", # 国際
+        "https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=ja&gl=JP&ceid=JP:ja", # ビジネス
+        "https://news.google.com/rss/headlines/section/topic/SPORTS?hl=ja&gl=JP&ceid=JP:ja", # スポーツ
+        # 埼玉新聞・地域
+        "https://news.google.com/rss/search?q=%E5%9F%BC%E7%8E%89%E6%96%B0%E8%81%9E+OR+%E5%9F%BC%E7%8E%89%E7%9C%8C&hl=ja&gl=JP&ceid=JP:ja",
+        # 写真展・カメラ機材
+        "https://news.google.com/rss/search?q=%E5%86%99%E7%9C%9F%E5%B1%95+OR+%E3%82%AD%E3%83%A4%E3%83%8E%E3%83%B3+OR+%E3%82%B7%E3%82%B0%E3%83%9E&hl=ja&gl=JP&ceid=JP:ja",
+        # バドミントン（松友美佐紀・日本代表）＆サッカー
+        "https://news.google.com/rss/search?q=%E6%9D%BE%E5%8F%8B%E7%BE%8E%E4%BD%90%E7%B4%80+OR+%E3%83%90%E3%83%89%E3%83%9F%E3%83%B3%E3%83%88%E3%83%B3+OR+%E6%B5%A6%E5%92%8C%E3%83%AC%E3%83%83%E3%82%BA&hl=ja&gl=JP&ceid=JP:ja",
+        # サカナクション＆U2（国内情報）
+        "https://news.google.com/rss/search?q=%E3%82%サ%E3%82%AB%E3%83%8A%E3%82%AF%E3%82%B7%E3%83%A7%E3%83%B3+OR+U2&hl=ja&gl=JP&ceid=JP:ja",
+        # U2海外公式・英語音楽メディアニュース
+        "https://news.google.com/rss/search?q=U2+band+OR+Bono+OR+The+Edge&hl=en-US&gl=US&ceid=US:en",
     ]
     
     collected_articles = []
@@ -26,26 +33,26 @@ def get_news_feeds():
 
     for url in feed_urls:
         feed = feedparser.parse(url)
-        for entry in feed.entries[:8]:
+        for entry in feed.entries[:10]:
             if entry.title not in seen_titles:
                 seen_titles.add(entry.title)
-                collected_articles.append(f"- タイトル: {entry.title} / URL: {entry.link}")
+                collected_articles.append(f"- {entry.title} / {entry.link}")
     
     return "\n".join(collected_articles)
 
 def generate_morning_briefing(news_text):
-    """Gemini 3.6 Flashを使って充実したサマリーを作成"""
+    """Gemini 3.6 Flashを使ってすべての要求セクションを詳細生成"""
     client = genai.Client(api_key=GEMINI_API_KEY)
     
     prompt = f"""
 あなたは優秀なモーニングアナリストです。
 提供された最新ニュースデータや現在知りうる市場・気象・イベントデータをもとに、詳細で読み応えのある朝のデイリーサマリーを作成してください。
 
-以下の各セクションを明確に分け、省略せずに十分な情報量で記述してください。
+以下の【1】〜【7】の各セクションを明確に分け、省略せずに十分な情報量で記述してください。
 
 ==================================================
 【1. 熊谷の気象・コンディション】
-・当日の天気、最高/最低気温、時間帯別の降水確率、風速、体感温度、外出・コンディションの補足
+・当日の天気、最高/最低気温、時間帯別の降水確率、風速、体感温度、外出・屋外活動のアドバイス
 
 【2. グローバル・株式マーケット詳細分析】
 ・主要指数：SOX指数（フィラデルフィア半導体株指数）、台湾加権指数（TAIEX）、韓国総合株価指数（KOSPI）、NYダウ、ナスダック、日経平均先物、ドル円為替
@@ -53,16 +60,23 @@ def generate_morning_briefing(news_text):
 ・本日発表予定の重要経済指標、注目の市場材料
 
 【3. 写真・アート＆カメラ機材情報】
-・首都圏（東京・埼玉）で開催中または近日スタートする注目写真展・企画展
+・首都圏（東京・埼玉）で開催中または近日スタートする注目写真展・ギャラリー企画展
 ・キヤノン（EOS/RF/EF）、シグマなどの新製品発表、ファームウェア更新、業界動向
 
-【4. スポーツハイライト（サッカー・野球・バドミントン）】
-・サッカー：浦和レッズの最新動向・試合結果・次節カード、Jリーグ主要トピックス
-・野球：NPB主要試合結果、MLB日本人選手の詳細スタッツ
-・バドミントン：BWFワールドツアー等の日本人選手速報、試合日程
+【4. スポーツ速報（バドミントン・サッカー・野球）】
+・バドミントン：松友美佐紀選手の最新動向・試合結果を最優先に記載。世界選手権やBWFツアー等の日本勢（山口茜、奥原希望、奈良岡功大など）の速報
+・サッカー：浦和レッズの試合結果・最新動向・次節カード、Jリーグ主要トピックス
+・野球：NPB主要試合結果、MLB日本人選手（大谷翔平、岡本和真、村上宗隆、今井達也、佐々木朗希など）の成績・詳細スタッツ
 
-【5. 本日の厳選・主要時事ニュース（7〜8本）】
-以下の提供ニュース一覧から重要度の高いニュースを7〜8本厳選し、見出し・1〜2行の要約・元記事URLを必ず明記してください。
+【5. 音楽・カルチャー（サカナクション ＆ U2海外最新動向）】
+・サカナクション：ツアー・ライブ・新曲・山口一郎氏の最新情報
+・U2：海外の最新ニュース・リリース・ライブ動向を【日本語に翻訳して要約】。ボノやジ・エッジのコメントや近況も含めて詳しく記述すること
+
+【6. 埼玉ローカルニュース（埼玉新聞より厳選5項目）】
+・提供データおよび埼玉の地域ニュースから、県内の事件・事故・行政・話題を必ず5項目抽出し、見出し・1行要約・元記事URLを記載すること。
+
+【7. 本日の主要・時事ニュース厳選（7〜8本）】
+・日本国内・政治・社会・国際の最重要ニュースを7〜8本厳選し、見出し・1〜2行の要約・元記事URLを必ず明記すること。
 ==================================================
 
 【収集ニュース一覧データ】
