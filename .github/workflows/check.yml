@@ -1,0 +1,40 @@
+name: Automated Quality & Link Check
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  validate-all:
+    runs-on: ubuntu-latest
+    steps:
+      - name: コードを取得
+        uses: actions/checkout@v4
+
+      - name: Python環境のセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: チェックツールのインストール
+        run: |
+          pip install flake8 yamllint html5validator
+
+      - name: 1. YAML構文チェック
+        run: |
+          yamllint -d "{extends: default, rules: {line-length: disable}}" .github/workflows/
+
+      - name: 2. Python構文・エラーチェック
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: 3. HTML文法チェック
+        run: |
+          # フォルダ内のすべてのHTMLファイルの文法を検証
+          html5validator --root . --match "*.html"
+
+      - name: 4. リンク切れ（404 Not Found）自動検閲
+        uses: lycheeverse/lychee-action@v1
+        with:
+          args: --verbose --no-progress './**/*.html'
