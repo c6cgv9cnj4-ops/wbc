@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>バドミントン管理 (リアルタイム同期版)</title>
+
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="バド管理">
+
+  <!-- SortableJS / Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <style>
+    :root {
+      --primary-color: #0071e3;
+      --primary-hover: #0077ed;
+      --success-color: #34c759;
+      --warning-color: #ff9500;
+      --danger-color: #ff3b30;
+      --purple-color: #af52de;
+      --bg-color: #f5f5f7;
+      --card-bg: #ffffff;
+      --text-main: #1d1d1f;
+      --text-sub: #86868b;
+      --border-color: #e5e5ea;
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+      --radius-sm: 12px;
+      --radius-md: 16px;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      margin: 0;
+      padding: 16px 12px 40px 12px;
+      color: var(--text-main);
+      overflow-x: hidden;
+      line-height: 1.47;
+      letter-spacing: -0.022em;
+    }
+
+    .app-header { max-width: 640px; margin: 0 auto 16px auto; text-align: center; padding: 12px 0; }
+    .app-header h1 { font-size: 1.4rem; font-weight: 700; margin: 0; color: var(--text-main); }
+
+    .container {
+      max-width: 640px; width: 100%; margin: 0 auto 16px auto; background: var(--card-bg);
+      padding: 20px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    .today-guide-card {
+      background: linear-gradient(135deg, #e3f2fd 0%, #f0f7ff 100%);
+      border: 1px solid #bae0ff; padding: 16px; border-radius: var(--radius-sm);
+      margin-bottom: 16px; text-align: center;
+    }
+
+    .today-guide-title { font-size: 0.8rem; color: #0050b3; font-weight: 600; margin-bottom: 6px; }
+    .today-guide-value { font-size: 1.05rem; font-weight: 600; color: #002c8c; word-break: break-all; }
+    .today-guide-value strong { font-size: 1.25rem; color: var(--primary-color); }
+
+    .section-title {
+      font-weight: 600; font-size: 0.95rem; margin-bottom: 12px; padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between;
+      align-items: center; color: var(--text-main); flex-wrap: wrap; gap: 6px;
+    }
+
+    .input-group { display: flex; gap: 8px; margin-bottom: 12px; width: 100%; }
+
+    input[type="text"], input[type="date"], select, input[type="number"] {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm); font-size: 0.9rem; color: var(--text-main);
+      background-color: #fafafa; appearance: none; -webkit-appearance: none;
+      font-family: inherit;
+    }
+
+    input:focus, select:focus {
+      outline: none; border-color: var(--primary-color); background-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+    }
+
+    button {
+      font-family: inherit; border: none; border-radius: var(--radius-sm); font-weight: 600;
+      cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    }
+    button:active { transform: scale(0.98); }
+    button.btn-primary { background-color: var(--primary-color); color: white; padding: 10px 16px; white-space: nowrap; font-size: 0.85rem; }
+    button.btn-save { width: 100%; padding: 14px; background-color: var(--success-color); color: white; font-size: 1rem; margin-top: 8px; }
+    button.btn-cancel-save { width: 100%; padding: 12px; background-color: var(--danger-color); color: white; font-size: 0.9rem; margin-top: 8px; }
+    button.btn-adjust { width: 100%; padding: 14px; background-color: var(--warning-color); color: white; font-size: 0.95rem; margin-top: 8px; }
+    button.btn-csv { background-color: #efeff4; color: var(--text-main); padding: 6px 12px; font-size: 0.75rem; border: 1px solid var(--border-color); }
+    button.btn-report-toggle { width: 100%; padding: 12px; background-color: var(--purple-color); color: white; font-size: 0.9rem; margin-top: 12px; }
+    button.btn-back { background-color: #e5e5ea; color: var(--text-main); padding: 6px 14px; font-size: 0.85rem; }
+    .btn-edit { background-color: #e5e5ea; color: var(--text-main); padding: 4px 10px; font-size: 0.75rem; margin-right: 4px; }
+    .btn-del { background-color: #ffe5e5; color: var(--danger-color); padding: 4px 10px; font-size: 0.75rem; }
+
+    .member-list {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; min-height: 52px;
+      padding: 10px; background: #fafafa; border-radius: var(--radius-sm); border: 1px dashed var(--border-color);
+    }
+
+    .member-chip {
+      background-color: #e5e5ea; color: #3a3a3c; padding: 8px 14px; border-radius: 20px;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer; user-select: none;
+      display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid transparent;
+    }
+
+    .member-chip.selected-700 { background-color: var(--primary-color); color: #ffffff; }
+    .member-chip.selected-500 { background-color: var(--success-color); color: #ffffff; }
+    .delete-btn { color: #8e8e93; font-weight: 700; cursor: pointer; font-size: 0.9rem; margin-left: 2px; }
+
+    .form-row { margin-bottom: 12px; width: 100%; }
+    .form-row label { display: block; font-size: 0.75rem; color: var(--text-sub); margin-bottom: 4px; font-weight: 500; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+    .profit-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .profit-card { background: #f0f7ff; border: 1px solid #bae0ff; padding: 12px; border-radius: var(--radius-sm); text-align: center; }
+    .profit-card-label { font-size: 0.75rem; color: #0050b3; font-weight: 600; margin-bottom: 4px; }
+    .profit-card-value { font-size: 1.15rem; font-weight: 700; color: var(--primary-color); }
+
+    .dashboard-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .dash-card-mini { background: #fafafa; border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-sm); font-size: 0.8rem; }
+    .history-card { background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px; font-size: 0.825rem; }
+    .history-header { font-weight: 600; color: var(--primary-color); display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.875rem; }
+    .action-btns { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border-color); display: flex; justify-content: flex-end; }
+    .reserve-check-row { padding: 10px 12px; border-radius: var(--radius-sm); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; border: 1px solid var(--border-color); }
+    .reserve-check-row.reserved { background-color: #eefbf1; border-color: #b7ebc6; }
+    .reserve-check-row.unreserved { background-color: #fff2f2; border-color: #ffccc7; }
+    .status-badge-ok { color: var(--success-color); font-weight: 600; }
+    .status-badge-ng { color: var(--danger-color); font-weight: 600; }
+    .stats-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.8rem; margin-top: 10px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border-color); }
+    .stats-table th, .stats-table td { padding: 10px 8px; text-align: center; border-bottom: 1px solid var(--border-color); }
+    .stats-table th { background: #fafafa; color: var(--text-sub); font-weight: 600; }
+
+    details { background: var(--card-bg); border-radius: var(--radius-md); margin-bottom: 16px; border: 1px solid rgba(0, 0, 0, 0.04); box-shadow: var(--shadow-sm); width: 100%; overflow: hidden; }
+    details summary { padding: 16px 20px; font-weight: 600; font-size: 0.95rem; cursor: pointer; outline: none; }
+    details[open] summary { border-bottom: 1px solid var(--border-color); }
+    .accordion-content { padding: 16px 20px 20px 20px; }
+  </style>
+</head>
+<body>
+
+  <div class="app-header">
+    <h1>🏸 バドミントン現場記録</h1>
+  </div>
+
+  <div id="mainPage">
+    <!-- 1. 現場入力 -->
+    <div class="container" style="border-top: 4px solid var(--primary-color);">
+      <div class="today-guide-card">
+        <div class="today-guide-title">⚖️ 本日の推奨黒字ライン</div>
+        <div id="todayBreakEven" class="today-guide-value">
+          参加 0名 ｜ 利益 0円 ➔ 消耗 <strong>0球</strong> まで黒字
+        </div>
+      </div>
+
+      <div class="section-title">
+        <span>👥 参加メンバー選択</span>
+        <span style="font-size:0.75rem; color:var(--text-sub);">(タップ: 700円青 ➔ 500円緑 ➔ 未選択)</span>
+      </div>
+      <div id="memberList" class="member-list"></div>
+
+      <form id="addMemberForm" action="#" class="input-group">
+        <input type="text" id="memberInput" placeholder="新しいメンバー名を追加...">
+        <button type="submit" id="addMemberBtn" class="btn-primary">追加</button>
+      </form>
+
+      <form id="practiceForm" action="#">
+        <div class="grid-2 form-row">
+          <div>
+            <label>開催年月日</label>
+            <input type="date" id="eventDate">
+          </div>
+          <div>
+            <label>時間帯</label>
+            <select id="eventTime">
+              <option value="19:00〜22:00 (3h)" selected>19:00〜22:00 (3h)</option>
+              <option value="18:00〜22:00 (4h)">18:00〜22:00 (4h)</option>
+              <option value="20:00〜22:00 (2h)">20:00〜22:00 (2h)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2 form-row">
+          <div>
+            <label>会費単価 (固定)</label>
+            <input type="text" value="700円 / 500円" readonly style="background:#f0f0f5; color:var(--text-sub); font-weight:600;">
+          </div>
+          <div>
+            <label>事前予約コート代</label>
+            <input type="number" id="courtFee" value="0" placeholder="コート代を入力">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>シャトル損益個数 (黒字限界球数)</label>
+          <input type="text" id="usedShuttleBallsDisplay" value="0 球" readonly style="background:#eef5ff; color:var(--primary-color); font-weight:700; font-size:1.05rem;">
+        </div>
+
+        <div class="profit-summary-grid">
+          <div class="profit-card">
+            <div class="profit-card-label">💰 本日の純損益</div>
+            <div id="todayNetProfitDisplay" class="profit-card-value">0 円</div>
+          </div>
+          <div class="profit-card" style="background:#f6ffed; border-color:#b7ebc6;">
+            <div class="profit-card-label" style="color:#274fee;">📈 8/7からの累計損益</div>
+            <div id="sinceAug7ProfitDisplay" class="profit-card-value" style="color:var(--success-color);">0 円</div>
+          </div>
+        </div>
+
+        <button type="button" id="saveEventBtn" class="btn-save">💾 本日の練習記録を保存</button>
+        <button type="button" id="saveCancelEventBtn" class="btn-cancel-save">🚫 中止/コート代のみ（0名）を記録</button>
+      </form>
+    </div>
+
+    <!-- 2. コート予約 -->
+    <details class="container" id="reserveAccordionContainer" open style="border-left: 4px solid var(--success-color);">
+      <summary>📅 3ヶ月先までのコート予約・支払い</summary>
+      <div class="accordion-content">
+        <form id="reserveForm" action="#">
+          <div class="form-row">
+            <label>コート使用予定日 (練習日)</label>
+            <input type="date" id="reserveTargetDate">
+            <div id="targetDateWithDay" style="font-size:0.8rem; color:var(--primary-color); font-weight:600; margin-top:4px;"></div>
+          </div>
+          <div class="form-row">
+            <label>予約手続き日 (正確な3ヶ月前)</label>
+            <input type="text" id="reserveCalcDate" readonly style="background:#eef5ff; color:var(--primary-color); font-weight:600;">
+          </div>
+          <div class="form-row">
+            <label>支払いコート代 (円)</label>
+            <input type="number" id="reserveCourtFee" value="1600">
+          </div>
+          <button type="button" id="saveReserveBtn" class="btn-save">💾 コート予約代を保存</button>
+        </form>
+
+        <div style="margin-top:20px; border-top:1px dashed var(--border-color); padding-top:14px;">
+          <div style="font-weight:600; font-size:0.85rem; color:var(--primary-color); margin-bottom:10px;">
+            <span>📋 直近3ヶ月先の全金曜日 予約点検表</span>
+          </div>
+          <div id="reserveCheckList">3ヶ月先までの金曜日を計算中...</div>
+        </div>
+      </div>
+    </details>
+
+    <!-- 3. シャトル購入 -->
+    <details class="container">
+      <summary>📦 シャトルまとめ買い記録</summary>
+      <div class="accordion-content">
+        <form id="shuttleForm" action="#">
+          <div class="form-row">
+            <label>購入日</label>
+            <input type="date" id="shuttleBuyDate">
+          </div>
+          <div class="form-row">
+            <label>シャトル銘柄名</label>
+            <input type="text" id="shuttleName" value="シャトルクラブN">
+          </div>
+          <div class="grid-2 form-row">
+            <div>
+              <label>総購入額 (円)</label>
+              <input type="number" id="shuttleTotalFee" value="40000">
+            </div>
+            <div>
+              <label>購入数 (箱/12球入り)</label>
+              <input type="number" id="shuttleTotalCount" value="10">
+            </div>
+          </div>
+          <button type="button" id="saveShuttleBtn" class="btn-save">💾 シャトル仕入れを保存</button>
+        </form>
+      </div>
+    </details>
+
+    <!-- 4. 財務サマリー -->
+    <div class="container">
+      <div class="section-title">💰 サークル財務サマリー（総金庫）</div>
+      <div class="dashboard-mini">
+        <div class="dash-card-mini">
+          <div style="color:var(--text-sub);">現在のサークルプール金</div>
+          <div id="dashBalance" style="font-size:1.15rem; font-weight:700; margin-top:2px;">0 円</div>
+        </div>
+        <div class="dash-card-mini">
+          <div style="color:var(--text-sub);">シャトル仕入れ累計</div>
+          <div id="dashStock" style="font-size:1.15rem; font-weight:700; margin-top:2px;">0 球</div>
+        </div>
+      </div>
+      <div id="dashGuide" style="font-size:0.75rem; color:var(--text-sub); margin-top:8px;">データ計算中...</div>
+      <button type="button" id="goToReportBtn" class="btn-report-toggle">📈 損益分岐グラフ & 参加率レポートを見る ➔</button>
+    </div>
+
+    <!-- 5. 履歴ログ -->
+    <div class="container">
+      <div class="section-title">
+        <span>📜 会計・予約・仕入れ履歴 (ログ)</span>
+        <button type="button" id="downloadCsvBtn" class="btn-csv">📥 CSV出力</button>
+      </div>
+      <div id="historyList">データを読み込み中...</div>
+    </div>
+
+    <!-- 6. 残高直接調整 -->
+    <div class="container" style="border-top: 4px solid var(--warning-color);">
+      <div class="section-title" style="color: var(--warning-color);">
+        <span>🔧 残高の直接調整</span>
+      </div>
+      <form id="adjustForm" action="#" style="margin-top: 10px;">
+        <div class="form-row">
+          <label>調整日付</label>
+          <input type="date" id="adjustDate">
+        </div>
+        <div class="form-row">
+          <label>調整後のピッタリ残高 (円)</label>
+          <input type="number" id="adjustTargetBalance" placeholder="例: 155130">
+        </div>
+        <div class="form-row">
+          <label>調整理由・メモ</label>
+          <input type="text" id="adjustReason" value="初期繰越金">
+        </div>
+        <button type="button" id="saveAdjustBtn" class="btn-adjust">💾 残高をこの金額に調整する</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- レポート画面 -->
+  <div id="reportPage" style="display:none;">
+    <div class="container">
+      <div class="section-title">
+        <button type="button" id="goToMainBtn" class="btn-back">← 戻る</button>
+        <span>📊 詳細分析レポート</span>
+      </div>
+      <div style="margin-top:16px;">
+        <div style="font-weight:600; font-size:0.85rem; margin-bottom:6px;">📊 月別 収支推移</div>
+        <canvas id="financeChart" width="400" height="180"></canvas>
+      </div>
+      <div style="margin-top:24px;">
+        <div style="font-weight:600; font-size:0.85rem; margin-bottom:4px;">⚖️ 各回の損益</div>
+        <canvas id="breakEvenChart" width="400" height="200"></canvas>
+      </div>
+      <div style="margin-top:24px;">
+        <div style="font-weight:600; font-size:0.85rem; margin-bottom:8px;">👥 メンバー別 参加回数・参加率</div>
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>メンバー</th>
+              <th>通算</th>
+              <th>今年</th>
+              <th>今月</th>
+              <th>参加率</th>
+            </tr>
+          </thead>
+          <tbody id="memberStatsBody">
+            <tr><td colspan="5">データ計算中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { 
+      getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, writeBatch, serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // 💡 ご自身のFirebaseプロジェクト情報に置き換えてください
+    const firebaseConfig = {
+      apiKey: "AIzaSyCldmf_WfKx2BubIg91vc79cLzlGrAzpH4",
+      authDomain: "newwbc-a6e29.firebaseapp.com",
+      projectId: "newwbc-a6e29",
+      storageBucket: "newwbc-a6e29.firebasestorage.app",
+      messagingSenderId: "1022221182643",
+      appId: "1:1022221182643:web:b73a31c9aa447bdb7bf2c6"
+    };
+
+    let db = null;
+    let isFirebaseReady = false;
+
+    try {
+      if (firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("dummy") && !firebaseConfig.apiKey.includes("YOUR_ACTUAL")) {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        isFirebaseReady = true;
+      }
+    } catch (err) {
+      console.warn("Firebase Init fallback:", err);
+    }
+
+    const weekDays = ["日", "月", "火", "水", "木", "金", "土"];
+    const eventDateInput = document.getElementById("eventDate");
+    const reserveTargetDate = document.getElementById("reserveTargetDate");
+    const shuttleBuyDate = document.getElementById("shuttleBuyDate");
+    const adjustDateInput = document.getElementById("adjustDate");
+    const reserveCourtFeeInput = document.getElementById("reserveCourtFee");
+    const courtFeeInput = document.getElementById("courtFee");
+    const todayNetProfitDisplay = document.getElementById("todayNetProfitDisplay");
+    const usedShuttleBallsDisplay = document.getElementById("usedShuttleBallsDisplay");
+
+    const today = new Date();
+    if (eventDateInput) eventDateInput.valueAsDate = today;
+    if (reserveTargetDate) reserveTargetDate.valueAsDate = today;
+    if (shuttleBuyDate) shuttleBuyDate.valueAsDate = today;
+    if (adjustDateInput) adjustDateInput.valueAsDate = today;
+
+    let editingDocId = null;
+    let editingReserveDocId = null;
+    let selectedMemberFees = new Map();
+    let currentCalculatedNetBalance = 0;
+    let accumulatedProfitSinceAug7Base = 0;
+    let latestShuttleBallUnitPrice = 333;
+
+    let rawMembersData = JSON.parse(localStorage.getItem("bad_members") || "[]");
+    let rawEventsData = JSON.parse(localStorage.getItem("bad_events") || "[]");
+    let rawReservesData = JSON.parse(localStorage.getItem("bad_reserves") || "[]");
+    let reservedCourtsMap = {};
+    let reservedDocIdsMap = {};
+
+    const memberListContainer = document.getElementById("memberList");
+    new Sortable(memberListContainer, {
+      animation: 150,
+      onEnd: async () => {
+        const chips = Array.from(memberListContainer.querySelectorAll(".member-chip"));
+        if (isFirebaseReady && db) {
+          const batch = writeBatch(db);
+          chips.forEach((el, index) => {
+            batch.update(doc(db, "members", el.dataset.id), { order: index });
+          });
+          await batch.commit();
+        } else {
+          rawMembersData.forEach(m => {
+            const idx = chips.findIndex(c => c.dataset.name === m.name);
+            if (idx !== -1) m.order = idx;
+          });
+          rawMembersData.sort((a,b) => a.order - b.order);
+          localStorage.setItem("bad_members", JSON.stringify(rawMembersData));
+        }
+      }
+    });
+
+    document.getElementById("goToReportBtn").addEventListener("click", () => {
+      document.getElementById("mainPage").style.display = "none";
+      document.getElementById("reportPage").style.display = "block";
+      window.scrollTo(0, 0);
+    });
+
+    document.getElementById("goToMainBtn").addEventListener("click", () => {
+      document.getElementById("reportPage").style.display = "none";
+      document.getElementById("mainPage").style.display = "block";
+      window.scrollTo(0, 0);
+    });
+
+    if (reserveTargetDate) reserveTargetDate.addEventListener("change", calcExactReserveDate);
+    calcExactReserveDate();
+
+    function calcExactReserveDate() {
+      if (!reserveTargetDate || !reserveTargetDate.value) return;
+      const parts = reserveTargetDate.value.split('-');
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+
+      const targetObj = new Date(y, m, d);
+      const targetW = weekDays[targetObj.getDay()];
+      document.getElementById("targetDateWithDay").textContent = `使用予定日: ${y}年${m+1}月${d}日 (${targetW})`;
+
+      const prevDate = new Date(y, m - 3, d);
+      const py = prevDate.getFullYear();
+      const pm = String(prevDate.getMonth() + 1).padStart(2, '0');
+      const pd = String(prevDate.getDate()).padStart(2, '0');
+      const pw = weekDays[prevDate.getDay()];
+
+      document.getElementById("reserveCalcDate").value = `${py}年${pm}月${pd}日 (${pw})`;
+    }
+
+    function renderMembersUI(members) {
+      memberListContainer.innerHTML = "";
+      members.forEach((data) => {
+        const chip = document.createElement("div");
+        const currentFee = selectedMemberFees.get(data.name);
+        
+        chip.className = `member-chip ${currentFee === 700 ? 'selected-700' : currentFee === 500 ? 'selected-500' : ''}`;
+        chip.dataset.id = data.id || data.name;
+        chip.dataset.name = data.name;
+
+        let feeLabel = '';
+        if (currentFee === 700) feeLabel = '✓ 700円';
+        else if (currentFee === 500) feeLabel = '★ 500円';
+
+        chip.innerHTML = `
+          <span>${feeLabel ? feeLabel + ' ' : ''}${data.name}</span>
+          <span class="delete-btn">×</span>
+        `;
+
+        chip.addEventListener("click", (e) => {
+          if (e.target.classList.contains("delete-btn")) return;
+          const status = selectedMemberFees.get(data.name);
+          if (!status) {
+            selectedMemberFees.set(data.name, 700);
+          } else if (status === 700) {
+            selectedMemberFees.set(data.name, 500);
+          } else {
+            selectedMemberFees.delete(data.name);
+          }
+          renderMemberSelection();
+          updateSummary();
+        });
+
+        chip.querySelector(".delete-btn").addEventListener("click", async (e) => {
+          e.stopPropagation();
+          if (confirm(`${data.name} さんを削除しますか？`)) {
+            selectedMemberFees.delete(data.name);
+            if (isFirebaseReady && db && data.id) {
+              await deleteDoc(doc(db, "members", data.id));
+            } else {
+              rawMembersData = rawMembersData.filter(m => m.name !== data.name);
+              localStorage.setItem("bad_members", JSON.stringify(rawMembersData));
+              renderMembersUI(rawMembersData);
+            }
+          }
+        });
+
+        memberListContainer.appendChild(chip);
+      });
+      updateSummary();
+    }
+
+    if (isFirebaseReady && db) {
+      onSnapshot(query(collection(db, "members"), orderBy("order", "asc")), (snapshot) => {
+        rawMembersData = [];
+        snapshot.forEach((docSnap) => rawMembersData.push({ id: docSnap.id, ...docSnap.data() }));
+        localStorage.setItem("bad_members", JSON.stringify(rawMembersData));
+        renderMembersUI(rawMembersData);
+      });
+    } else {
+      renderMembersUI(rawMembersData);
+    }
+
+    function renderMemberSelection() {
+      const chips = memberListContainer.querySelectorAll(".member-chip");
+      chips.forEach(chip => {
+        const name = chip.dataset.name;
+        const currentFee = selectedMemberFees.get(name);
+        
+        chip.className = `member-chip ${currentFee === 700 ? 'selected-700' : currentFee === 500 ? 'selected-500' : ''}`;
+        
+        let feeLabel = '';
+        if (currentFee === 700) feeLabel = '✓ 700円';
+        else if (currentFee === 500) feeLabel = '★ 500円';
+
+        chip.querySelector("span").textContent = `${feeLabel ? feeLabel + ' ' : ''}${name}`;
+      });
+    }
+
+    document.getElementById("addMemberForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = document.getElementById("memberInput");
+      const name = input.value.trim();
+      if (!name) return;
+      
+      selectedMemberFees.set(name, 700);
+      if (isFirebaseReady && db) {
+        await addDoc(collection(db, "members"), { name, order: rawMembersData.length, createdAt: serverTimestamp() });
+      } else {
+        rawMembersData.push({ id: 'loc_' + Date.now(), name, order: rawMembersData.length });
+        localStorage.setItem("bad_members", JSON.stringify(rawMembersData));
+        renderMembersUI(rawMembersData);
+      }
+      input.value = "";
+    });
+
+    if (courtFeeInput) courtFeeInput.addEventListener("input", updateSummary);
+    if (eventDateInput) eventDateInput.addEventListener("change", () => {
+      checkAutoCourtFee();
+      updateSummary();
+    });
+
+    function checkAutoCourtFee() {
+      const selDate = eventDateInput ? eventDateInput.value : "";
+      if (reservedCourtsMap[selDate] !== undefined) {
+        if (courtFeeInput) courtFeeInput.value = reservedCourtsMap[selDate];
+      } else {
+        if (courtFeeInput) courtFeeInput.value = 0;
+      }
+    }
+
+    function updateSummary() {
+      let count700 = 0;
+      let count500 = 0;
+
+      selectedMemberFees.forEach((fee) => {
+        if (fee === 700) count700++;
+        else if (fee === 500) count500++;
+      });
+
+      const totalCount = count700 + count500;
+      const courtFee = parseInt(courtFeeInput ? courtFeeInput.value : 0, 10) || 0;
+      const totalIncome = (count700 * 700) + (count500 * 500);
+      const todayNetProfit = totalIncome - courtFee;
+
+      const maxBreakEvenBalls = todayNetProfit > 0 ? Math.floor(todayNetProfit / latestShuttleBallUnitPrice) : 0;
+      if (usedShuttleBallsDisplay) usedShuttleBallsDisplay.value = `${maxBreakEvenBalls} 球`;
+
+      if (todayNetProfitDisplay) {
+        todayNetProfitDisplay.textContent = `${todayNetProfit >= 0 ? '+' : ''}${todayNetProfit.toLocaleString()} 円`;
+        todayNetProfitDisplay.style.color = todayNetProfit >= 0 ? 'var(--primary-color)' : 'var(--danger-color)';
+      }
+
+      const targetElem = document.getElementById("todayBreakEven");
+      if (targetElem) {
+        targetElem.innerHTML = `参加 <strong>${totalCount}名</strong> (700円:${count700}名 / 500円:${count500}名) ｜ 会費合計 <strong>${totalIncome.toLocaleString()}円</strong>`;
+      }
+
+      const currentSelectedDate = eventDateInput ? eventDateInput.value : "";
+      const existingEvent = rawEventsData.find(e => e.type === "practice" && e.date === currentSelectedDate);
+
+      let displayAccumulated = 0;
+      if (existingEvent && !editingDocId) {
+        rawEventsData.forEach(d => {
+          if (d.type === "practice" && d.date >= "2026-08-07") {
+            if (d.id === existingEvent.id) {
+              displayAccumulated += todayNetProfit;
+            } else {
+              const income = d.totalIncome !== undefined ? d.totalIncome : 0;
+              const court = d.courtFee !== undefined ? d.courtFee : 0;
+              displayAccumulated += (d.netProfit !== undefined ? d.netProfit : (income - court));
+            }
+          }
+        });
+      } else {
+        displayAccumulated = accumulatedProfitSinceAug7Base;
+        if (!editingDocId && currentSelectedDate >= "2026-08-07") {
+          displayAccumulated += todayNetProfit;
+        }
+      }
+
+      const sinceAug7Display = document.getElementById("sinceAug7ProfitDisplay");
+      if (sinceAug7Display) {
+        sinceAug7Display.textContent = `${displayAccumulated >= 0 ? '+' : ''}${displayAccumulated.toLocaleString()} 円`;
+        sinceAug7Display.style.color = displayAccumulated >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+      }
+    }
+
+    function renderReservesUI(reserves) {
+      reservedCourtsMap = {};
+      reservedDocIdsMap = {};
+      reserves.forEach(d => {
+        const dateKey = d.targetDate || d.date;
+        const feeVal = d.courtFee !== undefined ? d.courtFee : (d.fee || 1600);
+        if (dateKey) {
+          reservedCourtsMap[dateKey] = feeVal;
+          reservedDocIdsMap[dateKey] = d.id;
+        }
+      });
+      renderReserveCheckList();
+      checkAutoCourtFee();
+      updateSummary();
+    }
+
+    if (isFirebaseReady && db) {
+      onSnapshot(query(collection(db, "reserves"), orderBy("targetDate", "asc")), (snapshot) => {
+        rawReservesData = [];
+        snapshot.forEach((docSnap) => rawReservesData.push({ id: docSnap.id, ...docSnap.data() }));
+        localStorage.setItem("bad_reserves", JSON.stringify(rawReservesData));
+        renderReservesUI(rawReservesData);
+      });
+    } else {
+      renderReservesUI(rawReservesData);
+    }
+
+    function renderReserveCheckList() {
+      const reserveCheckList = document.getElementById("reserveCheckList");
+      if (!reserveCheckList) return;
+      reserveCheckList.innerHTML = "";
+
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(startDate.getDate() + 90);
+
+      const curr = new Date(startDate);
+      while (curr <= endDate) {
+        if (curr.getDay() === 5) {
+          const y = curr.getFullYear();
+          const m = curr.getMonth() + 1;
+          const d = curr.getDate();
+          const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+          const isReserved = reservedCourtsMap[dateStr] !== undefined;
+          const fee = isReserved ? reservedCourtsMap[dateStr] : 0;
+          const docId = isReserved ? reservedDocIdsMap[dateStr] : null;
+
+          const row = document.createElement("div");
+          row.className = `reserve-check-row ${isReserved ? 'reserved' : 'unreserved'}`;
+
+          if (isReserved) {
+            row.innerHTML = `
+              <div>
+                <strong>📅 ${m}/${d} (金)</strong>
+                <span class="status-badge-ok" style="margin-left:8px;">✅ 予約済み (${fee.toLocaleString()}円)</span>
+              </div>
+              <div style="display:flex; gap:4px;">
+                <button type="button" class="btn-edit" onclick="editReserve('${dateStr}', '${docId}')">✏️ 編集</button>
+                <button type="button" class="btn-del" onclick="deleteReserve('${docId}')">🗑️ 削除</button>
+              </div>
+            `;
+          } else {
+            row.innerHTML = `
+              <div>
+                <strong>📅 ${m}/${d} (金)</strong>
+                <span class="status-badge-ng" style="margin-left:6px;">⚠️ 未予約</span>
+              </div>
+              <button type="button" class="btn-primary" style="padding:4px 10px; font-size:0.75rem;" onclick="setQuickReserve('${dateStr}')">予約登録</button>
+            `;
+          }
+          reserveCheckList.appendChild(row);
+        }
+        curr.setDate(curr.getDate() + 1);
+      }
+    }
+
+    window.editReserve = function(dateStr, docId) {
+      const target = rawReservesData.find(r => r.id === docId);
+      if (!target) return;
+
+      editingReserveDocId = docId;
+      if (reserveTargetDate) reserveTargetDate.value = dateStr;
+      calcExactReserveDate();
+      if (reserveCourtFeeInput) reserveCourtFeeInput.value = target.courtFee !== undefined ? target.courtFee : 1600;
+
+      const saveBtn = document.getElementById("saveReserveBtn");
+      if (saveBtn) saveBtn.textContent = "✏️ 予約内容を上書き保存する";
+      document.getElementById("reserveAccordionContainer").scrollIntoView({ behavior: 'smooth' });
+    };
+
+    window.setQuickReserve = async function(dateStr) {
+      const feeVal = parseInt(document.getElementById("reserveCourtFee").value, 10) || 1600;
+      if (isFirebaseReady && db) {
+        await addDoc(collection(db, "reserves"), { targetDate: dateStr, courtFee: feeVal, createdAt: serverTimestamp() });
+      } else {
+        rawReservesData.push({ id: 'res_' + Date.now(), targetDate: dateStr, courtFee: feeVal });
+        localStorage.setItem("bad_reserves", JSON.stringify(rawReservesData));
+        renderReservesUI(rawReservesData);
+      }
+    };
+
+    window.deleteReserve = async function(docId) {
+      if (confirm("この予約データを削除しますか？")) {
+        if (editingReserveDocId === docId) {
+          editingReserveDocId = null;
+          document.getElementById("saveReserveBtn").textContent = "💾 コート予約代を保存";
+        }
+        if (isFirebaseReady && db) {
+          await deleteDoc(doc(db, "reserves", docId));
+        } else {
+          rawReservesData = rawReservesData.filter(r => r.id !== docId);
+          localStorage.setItem("bad_reserves", JSON.stringify(rawReservesData));
+          renderReservesUI(rawReservesData);
+        }
+      }
+    };
+
+    document.getElementById("saveReserveBtn").onclick = async function() {
+      const targetDateVal = reserveTargetDate ? reserveTargetDate.value : "";
+      if (!targetDateVal) return alert("コート使用予定日を選択してください");
+
+      const feeVal = parseInt(reserveCourtFeeInput ? reserveCourtFeeInput.value : 1600, 10) || 0;
+
+      if (isFirebaseReady && db) {
+        if (editingReserveDocId) {
+          await updateDoc(doc(db, "reserves", editingReserveDocId), { targetDate: targetDateVal, courtFee: feeVal });
+          editingReserveDocId = null;
+        } else {
+          await addDoc(collection(db, "reserves"), { targetDate: targetDateVal, courtFee: feeVal, createdAt: serverTimestamp() });
+        }
+      } else {
+        if (editingReserveDocId) {
+          const idx = rawReservesData.findIndex(r => r.id === editingReserveDocId);
+          if (idx !== -1) rawReservesData[idx] = { ...rawReservesData[idx], targetDate: targetDateVal, courtFee: feeVal };
+          editingReserveDocId = null;
+        } else {
+          rawReservesData.push({ id: 'res_' + Date.now(), targetDate: targetDateVal, courtFee: feeVal });
+        }
+        localStorage.setItem("bad_reserves", JSON.stringify(rawReservesData));
+        renderReservesUI(rawReservesData);
+      }
+      this.textContent = "💾 コート予約代を保存";
+      alert("コート予約代を保存しました！");
+    };
+
+    document.getElementById("saveEventBtn").onclick = function() { executeSaveEvent(false); };
+    document.getElementById("saveCancelEventBtn").onclick = function() {
+      selectedMemberFees.clear();
+      renderMemberSelection();
+      executeSaveEvent(true);
+    };
+
+    async function executeSaveEvent(isCancelled) {
+      const members700 = [];
+      const members500 = [];
+
+      if (!isCancelled) {
+        selectedMemberFees.forEach((fee, name) => {
+          if (fee === 700) members700.push(name);
+          else if (fee === 500) members500.push(name);
+        });
+      }
+
+      const totalMembers = [...members700, ...members500];
+      const courtFeeVal = parseInt(courtFeeInput.value, 10) || 0;
+      const calculatedIncome = (members700.length * 700) + (members500.length * 500);
+      const netProfit = calculatedIncome - courtFeeVal;
+
+      const payload = {
+        type: "practice",
+        date: eventDateInput.value,
+        time: document.getElementById("eventTime").value,
+        memberCount: totalMembers.length,
+        members: totalMembers,
+        members700: members700,
+        members500: members500,
+        totalIncome: calculatedIncome,
+        courtFee: courtFeeVal,
+        netProfit: netProfit,
+        isCancelled: isCancelled || totalMembers.length === 0,
+        updatedAt: new Date().toISOString()
+      };
+
+      if (isFirebaseReady && db) {
+        if (editingDocId) {
+          await updateDoc(doc(db, "events", editingDocId), payload);
+          editingDocId = null;
+          document.getElementById("saveEventBtn").textContent = "💾 本日の練習記録を保存";
+        } else {
+          payload.createdAt = serverTimestamp();
+          await addDoc(collection(db, "events"), payload);
+        }
+      } else {
+        if (editingDocId) {
+          const idx = rawEventsData.findIndex(e => e.id === editingDocId);
+          if (idx !== -1) rawEventsData[idx] = { ...rawEventsData[idx], ...payload };
+          editingDocId = null;
+          document.getElementById("saveEventBtn").textContent = "💾 本日の練習記録を保存";
+        } else {
+          payload.id = 'ev_' + Date.now();
+          rawEventsData.unshift(payload);
+        }
+        localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
+        renderEventsUI(rawEventsData);
+      }
+
+      alert("練習記録を保存しました！");
+      selectedMemberFees.clear();
+      renderMemberSelection();
+      updateSummary();
+    }
+
+    document.getElementById("saveShuttleBtn").onclick = async function() {
+      const totalFee = parseInt(document.getElementById("shuttleTotalFee").value, 10) || 0;
+      const totalCount = parseInt(document.getElementById("shuttleTotalCount").value, 10) || 0;
+      const ballUnitPrice = Math.round(totalFee / (totalCount * 12));
+      
+      const payload = {
+        type: "shuttle_buy",
+        date: document.getElementById("shuttleBuyDate").value,
+        name: document.getElementById("shuttleName").value,
+        totalFee: totalFee,
+        totalCount: totalCount,
+        ballUnitPrice: ballUnitPrice
+      };
+
+      if (isFirebaseReady && db) {
+        payload.createdAt = serverTimestamp();
+        await addDoc(collection(db, "events"), payload);
+      } else {
+        payload.id = 'sh_' + Date.now();
+        rawEventsData.unshift(payload);
+        localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
+        renderEventsUI(rawEventsData);
+      }
+      alert("シャトル仕入れを保存しました！");
+    };
+
+    document.getElementById("saveAdjustBtn").onclick = async function() {
+      const targetBalStr = document.getElementById("adjustTargetBalance").value;
+      if (targetBalStr === "") return alert("調整後のピッタリ残高を入力してください");
+
+      const targetBal = parseInt(targetBalStr, 10);
+      const reason = document.getElementById("adjustReason").value.trim() || "残高直接調整";
+      const diffAmount = targetBal - currentCalculatedNetBalance;
+
+      const payload = {
+        type: "balance_adjust",
+        date: adjustDateInput.value,
+        targetBalance: targetBal,
+        diffAmount: diffAmount,
+        reason: reason
+      };
+
+      if (isFirebaseReady && db) {
+        payload.createdAt = serverTimestamp();
+        await addDoc(collection(db, "events"), payload);
+      } else {
+        payload.id = 'adj_' + Date.now();
+        rawEventsData.unshift(payload);
+        localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
+        renderEventsUI(rawEventsData);
+      }
+      alert(`残高を ${targetBal.toLocaleString()} 円へ調整しました！`);
+      document.getElementById("adjustTargetBalance").value = "";
+    };
+
+    document.getElementById("downloadCsvBtn").addEventListener("click", () => {
+      if (rawEventsData.length === 0) return alert("出力できる履歴データがありません");
+
+      let csvContent = "\uFEFF日付,種別,時間帯,参加人数,700円メンバー,500円メンバー,会費収入,コート代,純損益,支出額,備考\n";
+      rawEventsData.forEach(item => {
+        if (item.type === "practice") {
+          const m700Str = item.members700 ? `"${item.members700.join(';')}"` : '""';
+          const m500Str = item.members500 ? `"${item.members500.join(';')}"` : '""';
+          const netProfit = (item.totalIncome||0) - (item.courtFee||0);
+          csvContent += `${item.date},練習,${item.time||''},${item.memberCount||0},${m700Str},${m500Str},${item.totalIncome||0},${item.courtFee||0},${netProfit},0,""\n`;
+        } else if (item.type === "shuttle_buy") {
+          csvContent += `${item.date},シャトル仕入れ,"",0,"","",0,0,0,${item.totalFee||0},"${item.name||''} (${item.totalCount||0}箱)"\n`;
+        } else if (item.type === "balance_adjust") {
+          csvContent += `${item.date},残高調整,"",0,"","",${item.diffAmount||0},0,0,0,"${item.reason||''} (設定残高:${item.targetBalance||0}円)"\n`;
+        }
+      });
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const aElem = document.createElement("a");
+      aElem.href = url;
+      aElem.download = `バドミントン会計履歴_${new Date().toISOString().substring(0,10)}.csv`;
+      aElem.click();
+      URL.revokeObjectURL(url);
+    });
+
+    window.editEvent = function(id) {
+      const target = rawEventsData.find(item => item.id === id);
+      if (!target) return;
+
+      editingDocId = id;
+      eventDateInput.value = target.date;
+      const timeElem = document.getElementById("eventTime");
+      if (timeElem) timeElem.value = target.time || "19:00〜22:00 (3h)";
+      courtFeeInput.value = target.courtFee || 0;
+
+      selectedMemberFees.clear();
+      if (target.members700 || target.members500) {
+        (target.members700 || []).forEach(name => selectedMemberFees.set(name, 700));
+        (target.members500 || []).forEach(name => selectedMemberFees.set(name, 500));
+      } else if (target.members) {
+        target.members.forEach(name => selectedMemberFees.set(name, 700));
+      }
+
+      renderMemberSelection();
+      updateSummary();
+      
+      document.getElementById("saveEventBtn").textContent = "✏️ 編集内容を上書き保存する";
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.deleteEvent = async function(id) {
+      if (confirm("この履歴を削除しますか？")) {
+        if (isFirebaseReady && db) {
+          await deleteDoc(doc(db, "events", id));
+        } else {
+          rawEventsData = rawEventsData.filter(e => e.id !== id);
+          localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
+          renderEventsUI(rawEventsData);
+        }
+      }
+    };
+
+    let financeChart = null;
+    let breakEvenChart = null;
+
+    function renderEventsUI(events) {
+      const historyList = document.getElementById("historyList");
+      historyList.innerHTML = "";
+
+      let totalIncome = 0;
+      let totalCourt = 0;
+      let totalShuttleBuy = 0;
+      let totalShuttleBoughtBalls = 0;
+      accumulatedProfitSinceAug7Base = 0;
+
+      const monthlyData = {};
+      const memberStats = {};
+      let totalPracticeCount = 0;
+      const nowYear = new Date().getFullYear().toString();
+      const nowMonth = `${nowYear}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+      const practiceBreakEvenData = [];
+
+      events.forEach((d) => {
+        const id = d.id;
+        const card = document.createElement("div");
+        card.className = "history-card";
+
+        if (d.type === "practice") {
+          totalPracticeCount++;
+          const practiceIncome = d.totalIncome !== undefined ? d.totalIncome : 0;
+          const practiceCourt = d.courtFee !== undefined ? d.courtFee : 0;
+          const calculatedNetProfit = d.netProfit !== undefined ? d.netProfit : (practiceIncome - practiceCourt);
+
+          totalIncome += practiceIncome;
+          totalCourt += practiceCourt;
+
+          if (d.date && d.date >= "2026-08-07") accumulatedProfitSinceAug7Base += calculatedNetProfit;
+          practiceBreakEvenData.push({ date: d.date.substring(5), profit: calculatedNetProfit });
+
+          if (d.members && d.members.length > 0) {
+            d.members.forEach(m => {
+              if (!memberStats[m]) memberStats[m] = { total: 0, year: 0, month: 0 };
+              memberStats[m].total++;
+              if (d.date && d.date.startsWith(nowYear)) memberStats[m].year++;
+              if (d.date && d.date.startsWith(nowMonth)) memberStats[m].month++;
+            });
+          }
+
+          const isCancel = d.isCancelled || !d.members || d.members.length === 0;
+          card.innerHTML = `
+            <div class="history-header">
+              <span>🏸 ${isCancel ? '中止/コート代のみ' : '練習'}: ${d.date} (${d.time||'3h'})</span>
+              <span>収入: ${practiceIncome.toLocaleString()}円</span>
+            </div>
+            <div>👥 参加 (${d.memberCount||0}名): ${isCancel ? '<span style="color:var(--warning-color); font-weight:600;">なし(中止)</span>' : (d.members||[]).join(", ")}</div>
+            <div style="margin-top:2px;">🏟️ コート代: ${practiceCourt.toLocaleString()}円 ｜ 💰 純損益: <strong style="color:${calculatedNetProfit >= 0 ? 'var(--primary-color)' : 'var(--danger-color)'};">${calculatedNetProfit >= 0 ? '+' : ''}${calculatedNetProfit.toLocaleString()}円</strong></div>
+            <div class="action-btns">
+              <button type="button" class="btn-edit" onclick="editEvent('${id}')">✏️ 編集</button>
+              <button type="button" class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
+            </div>
+          `;
+        } else if (d.type === "shuttle_buy") {
+          totalShuttleBuy += (d.totalFee || 0);
+          totalShuttleBoughtBalls += ((d.totalCount || 0) * 12);
+          if (d.ballUnitPrice) latestShuttleBallUnitPrice = d.ballUnitPrice;
+
+          card.innerHTML = `
+            <div class="history-header" style="color:var(--warning-color);">
+              <span>📦 シャトル購入: ${d.date}</span>
+              <span>支出: ${(d.totalFee||0).toLocaleString()}円</span>
+            </div>
+            <div>銘柄: ${d.name || 'シャトル'} (${d.totalCount||0}箱 / 単価 ${d.ballUnitPrice||0}円/球)</div>
+            <div class="action-btns">
+              <button type="button" class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
+            </div>
+          `;
+        } else if (d.type === "balance_adjust") {
+          if (d.diffAmount >= 0) totalIncome += d.diffAmount;
+          else totalCourt += Math.abs(d.diffAmount);
+
+          card.innerHTML = `
+            <div class="history-header" style="color:var(--warning-color);">
+              <span>🔧 残高直接調整: ${d.date}</span>
+              <span>設定残高: ${(d.targetBalance||0).toLocaleString()}円</span>
+            </div>
+            <div>メモ/理由: ${d.reason || 'なし'}</div>
+            <div class="action-btns">
+              <button type="button" class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
+            </div>
+          `;
+        }
+
+        historyList.appendChild(card);
+
+        if (d.date) {
+          const mKey = d.date.substring(0, 7);
+          if (!monthlyData[mKey]) monthlyData[mKey] = { inc: 0, exp: 0 };
+          if (d.type === "practice") {
+            monthlyData[mKey].inc += (d.totalIncome || 0);
+            monthlyData[mKey].exp += (d.courtFee || 0);
+          } else if (d.type === "shuttle_buy") {
+            monthlyData[mKey].exp += (d.totalFee || 0);
+          } else if (d.type === "balance_adjust") {
+            if (d.diffAmount >= 0) monthlyData[mKey].inc += d.diffAmount;
+            else monthlyData[mKey].exp += Math.abs(d.diffAmount);
+          }
+        }
+      });
+
+      currentCalculatedNetBalance = totalIncome - (totalCourt + totalShuttleBuy);
+      document.getElementById("dashBalance").textContent = `${currentCalculatedNetBalance >= 0 ? '+' : ''}${currentCalculatedNetBalance.toLocaleString()} 円`;
+      document.getElementById("dashStock").textContent = `${totalShuttleBoughtBalls} 球`;
+
+      const targetBuy = 40000;
+      const dashGuide = document.getElementById("dashGuide");
+      if (dashGuide) {
+        if (currentCalculatedNetBalance >= targetBuy) {
+          dashGuide.innerHTML = `プール金十分！<strong>10箱(4万円)まとめ買いOK！</strong>`;
+        } else {
+          const short = targetBuy - currentCalculatedNetBalance;
+          dashGuide.innerHTML = `10箱(4万円)まとめ買いまで <strong>あと ${short.toLocaleString()} 円</strong>`;
+        }
+      }
+
+      updateMemberStatsTable(memberStats, totalPracticeCount);
+      updateSummary();
+      updateChart(monthlyData);
+      updateBreakEvenChart(practiceBreakEvenData.reverse());
+    }
+
+    if (isFirebaseReady && db) {
+      onSnapshot(query(collection(db, "events"), orderBy("date", "desc")), (snapshot) => {
+        rawEventsData = [];
+        snapshot.forEach((docSnap) => rawEventsData.push({ id: docSnap.id, ...docSnap.data() }));
+        localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
+        renderEventsUI(rawEventsData);
+      });
+    } else {
+      renderEventsUI(rawEventsData);
+    }
+
+    function updateMemberStatsTable(stats, totalPractice) {
+      const tbody = document.getElementById("memberStatsBody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      if (Object.keys(stats).length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">データがありません</td></tr>';
+        return;
+      }
+
+      Object.keys(stats).forEach(m => {
+        const data = stats[m];
+        const rate = totalPractice > 0 ? Math.round((data.total / totalPractice) * 100) : 0;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td style="font-weight:600; text-align:left; padding-left:12px;">${m}</td>
+          <td>${data.total} 回</td>
+          <td>${data.year} 回</td>
+          <td>${data.month} 回</td>
+          <td style="color:var(--primary-color); font-weight:700;">${rate}%</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateChart(monthlyData) {
+      const labels = Object.keys(monthlyData).sort();
+      const incData = labels.map(k => monthlyData[k].inc);
+      const expData = labels.map(k => monthlyData[k].exp);
+
+      const ctx = document.getElementById('financeChart').getContext('2d');
+      if (financeChart) financeChart.destroy();
+
+      financeChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: '収入(会費)', data: incData, backgroundColor: '#34c759' },
+            { label: '支出(コート+仕入れ)', data: expData, backgroundColor: '#ff3b30' }
+          ]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      });
+    }
+
+    function updateBreakEvenChart(listData) {
+      const ctx = document.getElementById('breakEvenChart').getContext('2d');
+      if (breakEvenChart) breakEvenChart.destroy();
+
+      breakEvenChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: listData.map(item => item.date),
+          datasets: [{
+            label: '純損益(円)',
+            data: listData.map(item => item.profit),
+            backgroundColor: listData.map(item => item.profit >= 0 ? '#34c759' : '#ff3b30')
+          }]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      });
+    }
+  </script>
+</body>
+</html>

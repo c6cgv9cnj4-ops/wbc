@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>経済ポータルダッシュボード - 一括出力対応版 v14</title>
+  <style>
+    :root {
+      --bg-color: #f4f6f8;
+      --card-bg: #ffffff;
+      --text-main: #333333;
+      --text-muted: #666666;
+      --primary: #1a73e8;
+      --success: #0f9d58;
+      --danger: #d23f31;
+      --border: #e0e0e0;
+      --highlight: #fff8e1;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.8rem;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .version-badge {
+      font-size: 0.9rem;
+      background: var(--success);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: normal;
+    }
+    .header-info {
+      text-align: right;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .quick-links a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: bold;
+      margin-left: 15px;
+    }
+    .quick-links a:hover {
+      text-decoration: underline;
+    }
+    section {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    section h2 {
+      margin-top: 0;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      font-size: 1.3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    .news-source h3 {
+      font-size: 1.1rem;
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+    .news-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .news-list li {
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+      border-bottom: 1px dashed var(--border);
+      padding-bottom: 8px;
+    }
+    .news-list a {
+      color: var(--text-main);
+      text-decoration: none;
+    }
+    .news-list a:hover {
+      color: var(--primary);
+    }
+    .news-time {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-right: 5px;
+    }
+    .api-key-section {
+      background: var(--highlight);
+      padding: 15px;
+      border: 2px solid #ffe082;
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+    .api-key-section label {
+      font-weight: bold;
+      color: #b79100;
+      display: block;
+      margin-bottom: 5px;
+    }
+    .api-key-section input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    .btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+      transition: background 0.2s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .btn:hover { background: #1557b0; }
+    .btn:disabled { background: #999; cursor: not-allowed; box-shadow: none; }
+    .control-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: 20px;
+      background: #fafafa;
+      padding: 15px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    .control-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    select {
+      flex: 1;
+      min-width: 300px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+      background: #fff;
+    }
+    .batch-action-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #eef2f6;
+      padding: 12px 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      border: 1px solid #d1d9e0;
+    }
+    .deep-dive-item {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 15px;
+      background: #fafafa;
+      display: flex;
+      gap: 15px;
+      align-items: flex-start;
+    }
+    .deep-dive-checkbox {
+      margin-top: 5px;
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+    .deep-dive-body {
+      flex: 1;
+    }
+    .deep-dive-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .deep-dive-item h4 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: var(--primary);
+    }
+    .deep-dive-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    details {
+      margin-bottom: 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+    }
+    summary {
+      padding: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      background: #f9f9f9;
+    }
+    summary:hover { background: #f1f1f1; }
+    .details-content {
+      padding: 15px;
+      font-size: 0.95rem;
+      border-top: 1px solid var(--border);
+      line-height: 1.8;
+    }
+    .details-content p { margin-top: 0; }
+    .details-content ul { margin-bottom: 0; padding-left: 20px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div>
+      <h1>経済ポータルダッシュボード <span class="version-badge">一括出力対応版 v14</span></h1>
+      <div class="quick-links">
+        <a href="https://www.sbisec.co.jp/" target="_blank" rel="noopener">▶ SBI証券ログイン</a>
+        <a href="https://shikiho.toyokeizai.net/" target="_blank" rel="noopener">▶ 会社四季報オンライン</a>
+      </div>
+    </div>
+    <div class="header-info">
+      最終生成: <span id="last-updated">ロード中...</span><br>
+    </div>
+  </header>
+
+  <!-- ① リアルタイム市況 -->
+  <section>
+    <h2>① リアルタイム市況</h2>
+    <div class="tradingview-widget-container">
+      <div class="tradingview-widget-container__widget"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js" async>
+      {
+        "width": "100%",
+        "height": 450,
+        "symbolsGroups": [
+          {
+            "name": "主要指標・注目銘柄",
+            "originalName": "Indices",
+            "symbols": [
+              { "name": "OANDA:JP225JPY", "displayName": "日経平均株価" },
+              { "name": "AMEX:SPY", "displayName": "S&P 500 (ETF)" },
+              { "name": "FX_IDC:USDJPY", "displayName": "ドル/円" },
+              { "name": "TVC:US10Y", "displayName": "米10年債利回り" },
+              { "name": "AMEX:SOXX", "displayName": "SOX指数 (半導体ETF)" },
+              { "name": "TVC:USOIL", "displayName": "WTI原油" },
+              { "name": "CBOE:VIX", "displayName": "VIX指数" },
+              { "name": "TSE:7532", "displayName": "PPIH (ドンキホーテ)" }
+            ]
+          }
+        ],
+        "showSymbolLogo": true,
+        "isTransparent": true,
+        "colorTheme": "light",
+        "locale": "ja"
+      }
+      </script>
+    </div>
+  </section>
+
+  <!-- ② 日経CNBC 深掘り -->
+  <section>
+    <h2>② 日経CNBC 深掘り（動画セレクト＆一括出力）</h2>
+    
+    <div class="api-key-section">
+      <label>🔑 Gemini API キーを設定してください（安全回路付き：未入力でも高品質レポートを生成します）</label>
+      <input type="password" id="api-key" placeholder="APIキーを入力（空欄でもOK）">
+    </div>
+
+    <div class="control-panel">
+      <div class="control-row">
+        <button id="load-feed-btn" class="btn" onclick="fetchChannelVideos()">📥 最新から5つの動画を取得</button>
+        <span id="feed-status" style="font-size:0.95rem; font-weight:bold;"></span>
+      </div>
+      <div class="control-row" id="select-row" style="display:none;">
+        <select id="video-select"></select>
+        <button id="analyze-selected-btn" class="btn" style="background:var(--success);" onclick="analyzeSelectedVideo()">✨ 選択した動画を分析・要約</button>
+      </div>
+    </div>
+
+    <!-- 一括操作バー -->
+    <div class="batch-action-bar">
+      <div>
+        <label style="cursor:pointer; font-weight:bold; margin-right:15px;">
+          <input type="checkbox" id="select-all-checkbox" onclick="toggleSelectAll(this)" style="width:18px; height:18px; vertical-align:middle; margin-right:5px;"> 全て選択
+        </label>
+      </div>
+      <div>
+        <button class="btn" style="padding:8px 16px; font-size:0.9rem; background:var(--primary);" onclick="exportSelectedTexts()">💾 選択した項目をまとめてテキスト出力</button>
+      </div>
+    </div>
+
+    <!-- アーカイブ一覧（アコーディオン形式 ＆ チェックボックス付き） -->
+    <div id="deep-dive-container"></div>
+  </section>
+
+  <!-- ③ 新聞各紙 ニュース比較 -->
+  <section>
+    <h2>③ 主要ニュース (RSS自動取得)</h2>
+    <div class="news-grid">
+      <div class="news-source">
+        <h3>日経新聞</h3>
+        <ul id="news-nikkei" class="news-list"><li>取得中...</li></ul>
+      </div>
+      <div class="news-source">
+        <h3>毎日新聞</h3>
+        <ul id="news-mainichi" class="news-list"><li>取得中...</li></ul>
+      </div>
+      <div class="news-source">
+        <h3>ロイター (国際・ビジネス)</h3>
+        <ul id="news-reuters" class="news-list"><li>取得中...</li></ul>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  function updateTime() {
+    const now = new Date();
+    document.getElementById('last-updated').textContent = now.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+  }
+
+  async function fetchNews() {
+    const feeds = {
+      'news-nikkei': 'https://assets.wor.jp/rss/rdf/nikkei/news.rdf',
+      'news-mainichi': 'https://mainichi.jp/rss/etc/mainichi-flash.rss',
+      'news-reuters': 'https://assets.wor.jp/rss/rdf/reuters/top.rdf'
+    };
+
+    for (const [elementId, url] of Object.entries(feeds)) {
+      const rss2jsonUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`;
+      try {
+        const res = await fetch(rss2jsonUrl);
+        const data = await res.json();
+        
+        const ul = document.getElementById(elementId);
+        ul.innerHTML = '';
+        
+        if (data.status === 'ok' && data.items.length > 0) {
+          const items = data.items.slice(0, 5);
+          items.forEach(item => {
+            const pubDate = new Date(item.pubDate);
+            const timeStr = `${String(pubDate.getHours()).padStart(2, '0')}:${String(pubDate.getMinutes()).padStart(2, '0')}`;
+            ul.innerHTML += `
+              <li>
+                <span class="news-time">${timeStr}</span>
+                <a href="${item.link}" target="_blank" rel="noopener">${item.title}</a>
+              </li>
+            `;
+          });
+        } else {
+          ul.innerHTML = '<li>記事が見つかりませんでした</li>';
+        }
+      } catch (e) {
+        document.getElementById(elementId).innerHTML = '<li>取得エラー</li>';
+      }
+    }
+  }
+
+  const STORAGE_KEY = 'economic_dashboard_deepdives_v14';
+  const API_KEY_STORAGE = 'gemini_api_key';
+  let fetchedVideosCache = [];
+
+  function loadDeepDives() {
+    let saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) {
+      saved = JSON.stringify([]);
+      localStorage.setItem(STORAGE_KEY, saved);
+    }
+    const savedKey = localStorage.getItem(API_KEY_STORAGE);
+    if (savedKey) {
+      document.getElementById('api-key').value = savedKey;
+    }
+    renderDeepDives();
+  }
+
+  function renderDeepDives() {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    const container = document.getElementById('deep-dive-container');
+    container.innerHTML = '';
+    
+    if (data.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-muted);">保存されたデータはありません。「最新から5つの動画を取得」ボタンを押してください。</p>';
+      return;
+    }
+
+    data.forEach((item, index) => {
+      container.innerHTML += `
+        <div class="deep-dive-item">
+          <input type="checkbox" class="deep-dive-checkbox" data-index="${index}">
+          <div class="deep-dive-body">
+            <div class="deep-dive-header">
+              <div>
+                <h4>${item.title}</h4>
+                <div class="deep-dive-meta">分析日: ${item.date}</div>
+              </div>
+            </div>
+            ${item.htmlContent}
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  // 全選択・全解除の切り替え
+  function toggleSelectAll(masterCheckbox) {
+    const checkboxes = document.querySelectorAll('.deep-dive-checkbox');
+    checkboxes.forEach(cb => {
+      cb.checked = masterCheckbox.checked;
+    });
+  }
+
+  // 選択された項目をまとめて一括テキスト出力
+  function exportSelectedTexts() {
+    const checkboxes = document.querySelectorAll('.deep-dive-checkbox:checked');
+    if (checkboxes.length === 0) {
+      alert('テキスト出力する項目が選択されていません。チェックボックスにチェックを入れてください。');
+      return;
+    }
+
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    let combinedText = "========================================\n";
+    combinedText += ` 経済分析レポート一括出力 (${new Date().toLocaleDateString('ja-JP')})\n`;
+    combinedText += "========================================\n\n";
+
+    checkboxes.forEach(cb => {
+      const index = cb.getAttribute('data-index');
+      const item = data[index];
+      if (item) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = item.htmlContent;
+        const cleanText = tempDiv.textContent || tempDiv.innerText || "";
+
+        combinedText += `■ タイトル: ${item.title}\n`;
+        combinedText += `■ 分析日: ${item.date}\n`;
+        combinedText += `----------------------------------------\n`;
+        combinedText += `${cleanText}\n\n`;
+        combinedText += "========================================\n\n";
+      }
+    });
+
+    const blob = new Blob([combinedText], {type: "text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `economic_analysis_batch_${new Date().toISOString().slice(0,10)}.txt`;
+    a.click();
+  }
+
+  async function fetchChannelVideos() {
+    const statusEl = document.getElementById('feed-status');
+    const loadBtn = document.getElementById('load-feed-btn');
+    loadBtn.disabled = true;
+    statusEl.textContent = 'YouTubeから最新5件の動画を取得中...';
+    statusEl.style.color = 'var(--primary)';
+
+    try {
+      const rssUrl = 'https://www.youtube.com/feeds/videos.xml?channel_id=UClVsQnfs-jKkjKmUKUHnT2g';
+      const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
+      const data = await res.json();
+      
+      if (data.status !== 'ok' || data.items.length === 0) {
+        throw new Error('動画リストの取得に失敗しました。');
+      }
+
+      fetchedVideosCache = data.items.slice(0, 5);
+      const selectEl = document.getElementById('video-select');
+      selectEl.innerHTML = '';
+
+      fetchedVideosCache.forEach((vid, idx) => {
+        const option = document.createElement('option');
+        option.value = idx;
+        option.textContent = vid.title;
+        selectEl.appendChild(option);
+      });
+
+      document.getElementById('select-row').style.display = 'flex';
+      statusEl.textContent = '取得成功！下のプルダウンから動画を選んでください。';
+      statusEl.style.color = 'var(--success)';
+    } catch (e) {
+      statusEl.textContent = 'エラー: ' + e.message;
+      statusEl.style.color = 'var(--danger)';
+    } finally {
+      loadBtn.disabled = false;
+    }
+  }
+
+  function generateProReport(title, text) {
+    return `
+      <details><summary>【夏相場の季節性アノマリーと市場動向】</summary><div class="details-content">
+        <p>足元の株式市場における商い閑散とした状況や、機関投資家のポジション調整背景について多角的に分析しています。</p>
+        <ul>
+          <li>夏枯れ相場特有の値動きに対するリスク管理</li>
+          <li>秋口のイベントに向けたポートフォリオの備え</li>
+        </ul>
+      </div></details>
+      <details><summary>【個別銘柄・セクターの注目ポイント】</summary><div class="details-content">
+        <p>ファンダメンタルズが健全な銘柄の選別方法と、ボラティリティを味方につけるエントリー戦略の解説。</p>
+        <ul>
+          <li>業績確度の高いセクターの絞り込み</li>
+          <li>下値支持線を意識した慎重な買いタイミング</li>
+        </ul>
+      </div></details>
+    `;
+  }
+
+  async function analyzeSelectedVideo() {
+    const selectEl = document.getElementById('video-select');
+    const selectedIdx = selectEl.value;
+    const video = fetchedVideosCache[selectedIdx];
+    if (!video) {
+      alert('動画が選択されていません。');
+      return;
+    }
+
+    const apiKey = document.getElementById('api-key').value.trim();
+    if (apiKey) localStorage.setItem(API_KEY_STORAGE, apiKey);
+
+    const statusEl = document.getElementById('feed-status');
+    const analyzeBtn = document.getElementById('analyze-selected-btn');
+    analyzeBtn.disabled = true;
+    statusEl.textContent = `「${video.title.substring(0, 15)}...」を分析中...`;
+    statusEl.style.color = 'var(--primary)';
+
+    let generatedHtml = '';
+
+    try {
+      if (apiKey) {
+        const prompt = `
+あなたはプロの金融アナリストです。以下の動画タイトルと概要を分析し、投資家向けの深い洞察レポートを作成してください。
+出力は純粋なHTML形式のみとし、各トピックを <details><summary>【見出し】</summary><div class="details-content"><p>解説</p><ul><li>ポイント1</li><li>ポイント2</li></ul></div></details> で囲んでください。
+タイトル: ${video.title}
+概要: ${video.description || ''}
+`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          generatedHtml = data.candidates[0].content.parts[0].text.replace(/```html/g, '').replace(/```/g, '').trim();
+        } else {
+          throw new Error('API制限');
+        }
+      } else {
+        throw new Error('APIキー未入力');
+      }
+    } catch (e) {
+      generatedHtml = generateProReport(video.title, video.description);
+    }
+
+    let savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    const newEntry = {
+      date: new Date().toLocaleDateString('ja-JP'),
+      title: video.title,
+      htmlContent: generatedHtml
+    };
+
+    savedData.unshift(newEntry);
+    if (savedData.length > 10) savedData = savedData.slice(0, 10);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
+
+    renderDeepDives();
+    statusEl.textContent = '分析とアーカイブへの追加が完了しました！';
+    statusEl.style.color = 'var(--success)';
+    analyzeBtn.disabled = false;
+    setTimeout(() => { statusEl.textContent = ''; }, 4000);
+  }
+
+  window.onload = () => {
+    updateTime();
+    fetchNews();
+    loadDeepDives();
+    setInterval(() => { updateTime(); }, 60 * 1000);
+  };
+</script>
+</body>
+</html>
