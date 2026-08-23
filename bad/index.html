@@ -154,13 +154,6 @@
   <div id="mainPage">
     <!-- 1. 現場入力 -->
     <div class="container" style="border-top: 4px solid var(--primary-color);">
-      <div class="today-guide-card">
-        <div class="today-guide-title">⚖️ 本日の推奨黒字ライン</div>
-        <div id="todayBreakEven" class="today-guide-value">
-          参加 0名 ｜ 利益 0円 ➔ 消耗 <strong>0球</strong> まで黒字
-        </div>
-      </div>
-
       <div class="section-title">
         <span>👥 参加メンバー選択</span>
         <span style="font-size:0.75rem; color:var(--text-sub);">(タップ: 700円青 ➔ 500円緑 ➔ 未選択)</span>
@@ -210,7 +203,7 @@
             <div id="todayNetProfitDisplay" class="profit-card-value">0 円</div>
           </div>
           <div class="profit-card" style="background:#f6ffed; border-color:#b7ebc6;">
-            <div class="profit-card-label" style="color:#274fee;">📈 8/7からの累計損益</div>
+            <div class="profit-card-label" style="color:#274fee;">📈 8/24からの累計損益</div>
             <div id="sinceAug7ProfitDisplay" class="profit-card-value" style="color:var(--success-color);">0 円</div>
           </div>
         </div>
@@ -363,33 +356,20 @@
   </div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { 
-      getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, writeBatch, serverTimestamp 
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-    // 💡 ご自身のFirebaseプロジェクト情報に置き換えてください
+    // ✅ newwbc プロジェクトの実際の設定値
     const firebaseConfig = {
-      apiKey: "AIzaSyYOUR_ACTUAL_API_KEY_HERE",
+      apiKey: "AIzaSyCldmf_WfKx2BubIg91vc79cLzlGrAzpH4",
       authDomain: "newwbc-a6e29.firebaseapp.com",
       projectId: "newwbc-a6e29",
-      storageBucket: "newwbc-a6e29.appspot.com",
-      messagingSenderId: "1234567890",
-      appId: "1:1234567890:web:actual_app_id"
+      storageBucket: "newwbc-a6e29.firebasestorage.app",
+      messagingSenderId: "1022221182643",
+      appId: "1:1022221182643:web:b73a31c9aa447bdb7bf2c6"
     };
 
+    // Firebase関連はすべて「動的」に読み込む（失敗しても他の機能を止めないため）
     let db = null;
     let isFirebaseReady = false;
-
-    try {
-      if (firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("dummy") && !firebaseConfig.apiKey.includes("YOUR_ACTUAL")) {
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        isFirebaseReady = true;
-      }
-    } catch (err) {
-      console.warn("Firebase Init fallback:", err);
-    }
+    let fbCollection, fbAddDoc, fbUpdateDoc, fbDeleteDoc, fbDoc, fbOnSnapshot, fbQuery, fbOrderBy, fbWriteBatch, fbServerTimestamp;
 
     const weekDays = ["日", "月", "火", "水", "木", "金", "土"];
     const eventDateInput = document.getElementById("eventDate");
@@ -402,10 +382,29 @@
     const usedShuttleBallsDisplay = document.getElementById("usedShuttleBallsDisplay");
 
     const today = new Date();
-    if (eventDateInput) eventDateInput.valueAsDate = today;
-    if (reserveTargetDate) reserveTargetDate.valueAsDate = today;
-    if (shuttleBuyDate) shuttleBuyDate.valueAsDate = today;
-    if (adjustDateInput) adjustDateInput.valueAsDate = today;
+
+    // 日付を "YYYY-MM-DD" のローカル文字列に変換（valueAsDateはUTC扱いになりズレるため使わない）
+    function toLocalISODateString(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    // 今日から見て一番近い金曜日を求める（今日が金曜ならそのまま今日）
+    function getNearestFriday(baseDate) {
+      const d = new Date(baseDate);
+      const day = d.getDay(); // 0:日 ... 5:金 6:土
+      const diffToFriday = (5 - day + 7) % 7;
+      d.setDate(d.getDate() + diffToFriday);
+      return d;
+    }
+    const nearestFriday = getNearestFriday(today);
+
+    if (eventDateInput) eventDateInput.value = toLocalISODateString(nearestFriday);
+    if (reserveTargetDate) reserveTargetDate.value = toLocalISODateString(today);
+    if (shuttleBuyDate) shuttleBuyDate.value = toLocalISODateString(today);
+    if (adjustDateInput) adjustDateInput.value = toLocalISODateString(today);
 
     let editingDocId = null;
     let editingReserveDocId = null;
@@ -426,9 +425,9 @@
       onEnd: async () => {
         const chips = Array.from(memberListContainer.querySelectorAll(".member-chip"));
         if (isFirebaseReady && db) {
-          const batch = writeBatch(db);
+          const batch = fbWriteBatch(db);
           chips.forEach((el, index) => {
-            batch.update(doc(db, "members", el.dataset.id), { order: index });
+            batch.update(fbDoc(db, "members", el.dataset.id), { order: index });
           });
           await batch.commit();
         } else {
@@ -455,7 +454,6 @@
     });
 
     if (reserveTargetDate) reserveTargetDate.addEventListener("change", calcExactReserveDate);
-    calcExactReserveDate();
 
     function calcExactReserveDate() {
       if (!reserveTargetDate || !reserveTargetDate.value) return;
@@ -515,7 +513,7 @@
           if (confirm(`${data.name} さんを削除しますか？`)) {
             selectedMemberFees.delete(data.name);
             if (isFirebaseReady && db && data.id) {
-              await deleteDoc(doc(db, "members", data.id));
+              await fbDeleteDoc(fbDoc(db, "members", data.id));
             } else {
               rawMembersData = rawMembersData.filter(m => m.name !== data.name);
               localStorage.setItem("bad_members", JSON.stringify(rawMembersData));
@@ -527,17 +525,6 @@
         memberListContainer.appendChild(chip);
       });
       updateSummary();
-    }
-
-    if (isFirebaseReady && db) {
-      onSnapshot(query(collection(db, "members"), orderBy("order", "asc")), (snapshot) => {
-        rawMembersData = [];
-        snapshot.forEach((docSnap) => rawMembersData.push({ id: docSnap.id, ...docSnap.data() }));
-        localStorage.setItem("bad_members", JSON.stringify(rawMembersData));
-        renderMembersUI(rawMembersData);
-      });
-    } else {
-      renderMembersUI(rawMembersData);
     }
 
     function renderMemberSelection() {
@@ -561,16 +548,28 @@
       const input = document.getElementById("memberInput");
       const name = input.value.trim();
       if (!name) return;
-      
+
       selectedMemberFees.set(name, 700);
-      if (isFirebaseReady && db) {
-        await addDoc(collection(db, "members"), { name, order: rawMembersData.length, createdAt: serverTimestamp() });
-      } else {
-        rawMembersData.push({ id: 'loc_' + Date.now(), name, order: rawMembersData.length });
-        localStorage.setItem("bad_members", JSON.stringify(rawMembersData));
-        renderMembersUI(rawMembersData);
+      try {
+        if (isFirebaseReady && db) {
+          await fbAddDoc(fbCollection(db, "members"), { name, order: rawMembersData.length, createdAt: fbServerTimestamp() });
+        } else {
+          rawMembersData.push({ id: 'loc_' + Date.now(), name, order: rawMembersData.length });
+          localStorage.setItem("bad_members", JSON.stringify(rawMembersData));
+          renderMembersUI(rawMembersData);
+        }
+        input.value = "";
+      } catch (err) {
+        alert("メンバーの追加に失敗しました:\n" + err.message + "\n\n※Firestoreの「ルール」で書き込みが許可されているか確認してください。");
       }
-      input.value = "";
+    });
+
+    // Enterキーでも確実に追加できるようにする
+    document.getElementById("memberInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        document.getElementById("addMemberForm").requestSubmit();
+      }
     });
 
     if (courtFeeInput) courtFeeInput.addEventListener("input", updateSummary);
@@ -621,7 +620,7 @@
       let displayAccumulated = 0;
       if (existingEvent && !editingDocId) {
         rawEventsData.forEach(d => {
-          if (d.type === "practice" && d.date >= "2026-08-07") {
+          if (d.type === "practice" && d.date >= "2026-08-24") {
             if (d.id === existingEvent.id) {
               displayAccumulated += todayNetProfit;
             } else {
@@ -633,7 +632,7 @@
         });
       } else {
         displayAccumulated = accumulatedProfitSinceAug7Base;
-        if (!editingDocId && currentSelectedDate >= "2026-08-07") {
+        if (!editingDocId && currentSelectedDate >= "2026-08-24") {
           displayAccumulated += todayNetProfit;
         }
       }
@@ -661,17 +660,6 @@
       updateSummary();
     }
 
-    if (isFirebaseReady && db) {
-      onSnapshot(query(collection(db, "reserves"), orderBy("targetDate", "asc")), (snapshot) => {
-        rawReservesData = [];
-        snapshot.forEach((docSnap) => rawReservesData.push({ id: docSnap.id, ...docSnap.data() }));
-        localStorage.setItem("bad_reserves", JSON.stringify(rawReservesData));
-        renderReservesUI(rawReservesData);
-      });
-    } else {
-      renderReservesUI(rawReservesData);
-    }
-
     function renderReserveCheckList() {
       const reserveCheckList = document.getElementById("reserveCheckList");
       if (!reserveCheckList) return;
@@ -682,8 +670,10 @@
       endDate.setDate(startDate.getDate() + 90);
 
       const curr = new Date(startDate);
+      let fridayCount = 0;
       while (curr <= endDate) {
         if (curr.getDay() === 5) {
+          fridayCount++;
           const y = curr.getFullYear();
           const m = curr.getMonth() + 1;
           const d = curr.getDate();
@@ -720,6 +710,10 @@
         }
         curr.setDate(curr.getDate() + 1);
       }
+
+      if (fridayCount === 0) {
+        reserveCheckList.innerHTML = '<div style="color:#888; font-size:0.8rem;">対象期間に金曜日がありません</div>';
+      }
     }
 
     window.editReserve = function(dateStr, docId) {
@@ -739,7 +733,7 @@
     window.setQuickReserve = async function(dateStr) {
       const feeVal = parseInt(document.getElementById("reserveCourtFee").value, 10) || 1600;
       if (isFirebaseReady && db) {
-        await addDoc(collection(db, "reserves"), { targetDate: dateStr, courtFee: feeVal, createdAt: serverTimestamp() });
+        await fbAddDoc(fbCollection(db, "reserves"), { targetDate: dateStr, courtFee: feeVal, createdAt: fbServerTimestamp() });
       } else {
         rawReservesData.push({ id: 'res_' + Date.now(), targetDate: dateStr, courtFee: feeVal });
         localStorage.setItem("bad_reserves", JSON.stringify(rawReservesData));
@@ -754,7 +748,7 @@
           document.getElementById("saveReserveBtn").textContent = "💾 コート予約代を保存";
         }
         if (isFirebaseReady && db) {
-          await deleteDoc(doc(db, "reserves", docId));
+          await fbDeleteDoc(fbDoc(db, "reserves", docId));
         } else {
           rawReservesData = rawReservesData.filter(r => r.id !== docId);
           localStorage.setItem("bad_reserves", JSON.stringify(rawReservesData));
@@ -771,10 +765,10 @@
 
       if (isFirebaseReady && db) {
         if (editingReserveDocId) {
-          await updateDoc(doc(db, "reserves", editingReserveDocId), { targetDate: targetDateVal, courtFee: feeVal });
+          await fbUpdateDoc(fbDoc(db, "reserves", editingReserveDocId), { targetDate: targetDateVal, courtFee: feeVal });
           editingReserveDocId = null;
         } else {
-          await addDoc(collection(db, "reserves"), { targetDate: targetDateVal, courtFee: feeVal, createdAt: serverTimestamp() });
+          await fbAddDoc(fbCollection(db, "reserves"), { targetDate: targetDateVal, courtFee: feeVal, createdAt: fbServerTimestamp() });
         }
       } else {
         if (editingReserveDocId) {
@@ -831,12 +825,12 @@
 
       if (isFirebaseReady && db) {
         if (editingDocId) {
-          await updateDoc(doc(db, "events", editingDocId), payload);
+          await fbUpdateDoc(fbDoc(db, "events", editingDocId), payload);
           editingDocId = null;
           document.getElementById("saveEventBtn").textContent = "💾 本日の練習記録を保存";
         } else {
-          payload.createdAt = serverTimestamp();
-          await addDoc(collection(db, "events"), payload);
+          payload.createdAt = fbServerTimestamp();
+          await fbAddDoc(fbCollection(db, "events"), payload);
         }
       } else {
         if (editingDocId) {
@@ -873,8 +867,8 @@
       };
 
       if (isFirebaseReady && db) {
-        payload.createdAt = serverTimestamp();
-        await addDoc(collection(db, "events"), payload);
+        payload.createdAt = fbServerTimestamp();
+        await fbAddDoc(fbCollection(db, "events"), payload);
       } else {
         payload.id = 'sh_' + Date.now();
         rawEventsData.unshift(payload);
@@ -901,8 +895,8 @@
       };
 
       if (isFirebaseReady && db) {
-        payload.createdAt = serverTimestamp();
-        await addDoc(collection(db, "events"), payload);
+        payload.createdAt = fbServerTimestamp();
+        await fbAddDoc(fbCollection(db, "events"), payload);
       } else {
         payload.id = 'adj_' + Date.now();
         rawEventsData.unshift(payload);
@@ -967,7 +961,7 @@
     window.deleteEvent = async function(id) {
       if (confirm("この履歴を削除しますか？")) {
         if (isFirebaseReady && db) {
-          await deleteDoc(doc(db, "events", id));
+          await fbDeleteDoc(fbDoc(db, "events", id));
         } else {
           rawEventsData = rawEventsData.filter(e => e.id !== id);
           localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
@@ -1010,7 +1004,7 @@
           totalIncome += practiceIncome;
           totalCourt += practiceCourt;
 
-          if (d.date && d.date >= "2026-08-07") accumulatedProfitSinceAug7Base += calculatedNetProfit;
+          if (d.date && d.date >= "2026-08-24") accumulatedProfitSinceAug7Base += calculatedNetProfit;
           practiceBreakEvenData.push({ date: d.date.substring(5), profit: calculatedNetProfit });
 
           if (d.members && d.members.length > 0) {
@@ -1104,17 +1098,6 @@
       updateBreakEvenChart(practiceBreakEvenData.reverse());
     }
 
-    if (isFirebaseReady && db) {
-      onSnapshot(query(collection(db, "events"), orderBy("date", "desc")), (snapshot) => {
-        rawEventsData = [];
-        snapshot.forEach((docSnap) => rawEventsData.push({ id: docSnap.id, ...docSnap.data() }));
-        localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
-        renderEventsUI(rawEventsData);
-      });
-    } else {
-      renderEventsUI(rawEventsData);
-    }
-
     function updateMemberStatsTable(stats, totalPractice) {
       const tbody = document.getElementById("memberStatsBody");
       if (!tbody) return;
@@ -1178,6 +1161,60 @@
         options: { responsive: true, scales: { y: { beginAtZero: true } } }
       });
     }
+
+    // ---- ここまでは全部「端末内保存」だけで完結する処理。Firebaseの読み込みを待たずに、まず必ずこれで画面を組み立てる ----
+    calcExactReserveDate();
+    renderMembersUI(rawMembersData);
+    renderReservesUI(rawReservesData);
+    renderEventsUI(rawEventsData);
+
+    // ---- Firebaseは裏側で非同期に読み込みを試みる。失敗しても上の端末内保存表示はそのまま動き続ける ----
+    (async () => {
+      try {
+        if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes("dummy") || firebaseConfig.apiKey.includes("YOUR_ACTUAL")) {
+          return;
+        }
+        const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+        const fs = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+        fbCollection = fs.collection;
+        fbAddDoc = fs.addDoc;
+        fbUpdateDoc = fs.updateDoc;
+        fbDeleteDoc = fs.deleteDoc;
+        fbDoc = fs.doc;
+        fbOnSnapshot = fs.onSnapshot;
+        fbQuery = fs.query;
+        fbOrderBy = fs.orderBy;
+        fbWriteBatch = fs.writeBatch;
+        fbServerTimestamp = fs.serverTimestamp;
+
+        const app = initializeApp(firebaseConfig);
+        db = fs.getFirestore(app);
+        isFirebaseReady = true;
+
+        fbOnSnapshot(fbQuery(fbCollection(db, "members"), fbOrderBy("order", "asc")), (snapshot) => {
+          rawMembersData = [];
+          snapshot.forEach((docSnap) => rawMembersData.push({ id: docSnap.id, ...docSnap.data() }));
+          localStorage.setItem("bad_members", JSON.stringify(rawMembersData));
+          renderMembersUI(rawMembersData);
+        });
+
+        fbOnSnapshot(fbQuery(fbCollection(db, "reserves"), fbOrderBy("targetDate", "asc")), (snapshot) => {
+          rawReservesData = [];
+          snapshot.forEach((docSnap) => rawReservesData.push({ id: docSnap.id, ...docSnap.data() }));
+          localStorage.setItem("bad_reserves", JSON.stringify(rawReservesData));
+          renderReservesUI(rawReservesData);
+        });
+
+        fbOnSnapshot(fbQuery(fbCollection(db, "events"), fbOrderBy("date", "desc")), (snapshot) => {
+          rawEventsData = [];
+          snapshot.forEach((docSnap) => rawEventsData.push({ id: docSnap.id, ...docSnap.data() }));
+          localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
+          renderEventsUI(rawEventsData);
+        });
+      } catch (err) {
+        console.warn("Firebaseの読み込みに失敗したため、この端末内保存のみで動作します:", err);
+      }
+    })();
   </script>
 </body>
 </html>
