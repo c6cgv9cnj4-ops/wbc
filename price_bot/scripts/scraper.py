@@ -49,7 +49,7 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 )
 REQUEST_INTERVAL_SEC = 2.0
-GEMINI_MODEL_NAME = "gemini-2.0-flash"
+GEMINI_MODEL_NAME = "gemini-3.6-flash"
 GEMINI_MAX_RETRIES = 3
 TILE_RE = re.compile(r"/spangle/[^/]+/(?P<flyer_id>\d+)/P(?P<page>\d+)-L(?P<layer>\d+)-R(?P<row>\d+)-C(?P<col>\d+)\.jpg")
 
@@ -262,7 +262,14 @@ def call_gemini(client, image_path, prompt):
             )
             return extract_json_array(response.text)
         except Exception as err:  # noqa: BLE001
+            # モデル名の廃止(404 NOT_FOUND)や認証エラー(401/403)は再試行しても
+            # 結果が変わらないため、即座に諦めて全画像分のリトライを無駄にしない
+            err_text = str(err)
+            is_permanent = any(code in err_text for code in ("404", "NOT_FOUND", "401", "403", "PERMISSION_DENIED"))
             print(f"[WARN][gemini] 呼び出し失敗(試行{attempt}/{GEMINI_MAX_RETRIES}): {err}")
+            if is_permanent:
+                print("[WARN][gemini] 恒久的なエラーと判断し、この画像のリトライを打ち切ります。")
+                break
             time.sleep(3 * attempt)
     return []
 
