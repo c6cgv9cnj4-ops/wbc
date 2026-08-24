@@ -872,47 +872,66 @@
                 });
 
                 tokyoWalkSpots.forEach(spot => {
-                    let markerOpts = {};
-                    if (spot.cat === '主要駅') {
-                        markerOpts = { icon: stationIcon };
-                    } else if (spot.cat === '立ち食いそば') {
-                        markerOpts = { icon: sobaIcon };
-                    } else if (spot.cat === '珈琲専門店') {
-                        markerOpts = { icon: coffeeIcon };
+                    try {
+                        if (!spot || typeof spot.lat !== 'number' || typeof spot.lng !== 'number') {
+                            console.warn('tokyoWalkSpots: skipping spot with invalid coordinates', spot);
+                            return;
+                        }
+                        const safeName = spot.name || '名称不明スポット';
+                        const safeCat = spot.cat || '';
+                        const safeInfo = spot.info || '';
+                        const safeHours = spot.hours || '';
+                        const safeHoliday = spot.holiday || '';
+
+                        let markerOpts = {};
+                        if (safeCat === '主要駅') {
+                            markerOpts = { icon: stationIcon };
+                        } else if (safeCat === '立ち食いそば') {
+                            markerOpts = { icon: sobaIcon };
+                        } else if (safeCat === '珈琲専門店') {
+                            markerOpts = { icon: coffeeIcon };
+                        }
+
+                        const marker = L.marker([spot.lat, spot.lng], markerOpts).addTo(map);
+
+                        if (safeHours && safeHoliday) {
+                            const tooltipContent = '<div style="font-weight:bold; color:#f8fafc;">' + safeName + '</div>' +
+                                                   '<div style="color:#34d399;">🕒 営業時間: ' + safeHours + '</div>' +
+                                                   '<div style="color:#f43f5e;">📅 定休日: ' + safeHoliday + '</div>';
+                            marker.bindTooltip(tooltipContent, {
+                                className: 'custom-hover-tooltip',
+                                direction: 'top',
+                                offset: [0, -10]
+                            });
+                        }
+
+                        const infoBadge = safeInfo ? '<div class="text-amber-300 font-bold mt-1 text-[11px]">' + safeInfo + '</div>' : '';
+                        const hoursPopup = (safeHours && safeHoliday) ? '<div class="text-emerald-400 font-semibold text-[11px] mt-1">🕒 営業時間: ' + safeHours + '<br>📅 定休日: ' + safeHoliday + '</div>' : '';
+
+                        marker.bindPopup(
+                            '<div class="text-slate-900 text-xs font-sans">' +
+                            '<strong class="text-sm font-bold block mb-1">' + safeName + '</strong>' +
+                            '<span class="inline-block bg-slate-200 px-1.5 py-0.5 rounded text-[10px] mb-1">' + safeCat + '</span>' +
+                            infoBadge +
+                            hoursPopup +
+                            '<button onclick="addWaypoint(\'' + safeName.replace(/'/g, "\\'") + '\', ' + spot.lat + ', ' + spot.lng + ')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded text-xs w-full mt-2">' +
+                            '＋ 散歩ルートに追加' +
+                            '</button>' +
+                            '</div>'
+                        );
+                    } catch (err) {
+                        console.warn('tokyoWalkSpots marker build error:', err, spot);
                     }
-
-                    const marker = L.marker([spot.lat, spot.lng], markerOpts).addTo(map);
-
-                    if (spot.hours && spot.holiday) {
-                        const tooltipContent = '<div style="font-weight:bold; color:#f8fafc;">' + spot.name + '</div>' +
-                                               '<div style="color:#34d399;">🕒 営業時間: ' + spot.hours + '</div>' +
-                                               '<div style="color:#f43f5e;">📅 定休日: ' + spot.holiday + '</div>';
-                        marker.bindTooltip(tooltipContent, {
-                            className: 'custom-hover-tooltip',
-                            direction: 'top',
-                            offset: [0, -10]
-                        });
-                    }
-
-                    const infoBadge = spot.info ? '<div class="text-amber-300 font-bold mt-1 text-[11px]">' + spot.info + '</div>' : '';
-                    const hoursPopup = spot.hours ? '<div class="text-emerald-400 font-semibold text-[11px] mt-1">🕒 営業時間: ' + spot.hours + '<br>📅 定休日: ' + spot.holiday + '</div>' : '';
-
-                    marker.bindPopup(
-                        '<div class="text-slate-900 text-xs font-sans">' +
-                        '<strong class="text-sm font-bold block mb-1">' + spot.name + '</strong>' +
-                        '<span class="inline-block bg-slate-200 px-1.5 py-0.5 rounded text-[10px] mb-1">' + spot.cat + '</span>' +
-                        infoBadge +
-                        hoursPopup +
-                        '<button onclick="addWaypoint(\'' + spot.name.replace(/'/g, "\\'") + '\', ' + spot.lat + ', ' + spot.lng + ')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded text-xs w-full mt-2">' +
-                        '＋ 散歩ルートに追加' +
-                        '</button>' +
-                        '</div>'
-                    );
                 });
 
                 map.on('click', function(e) {
-                    const name = '任意スポット (' + e.latlng.lat.toFixed(3) + ', ' + e.latlng.lng.toFixed(3) + ')';
-                    addWaypoint(name, e.latlng.lat, e.latlng.lng);
+                    try {
+                        if (!e || !e.latlng) return;
+                        const name = '任意スポット (' + e.latlng.lat.toFixed(3) + ', ' + e.latlng.lng.toFixed(3) + ')';
+                        addWaypoint(name, e.latlng.lat, e.latlng.lng);
+                    } catch (err) {
+                        console.warn('map click handler error:', err);
+                    }
                 });
 
                 initChart();
@@ -964,8 +983,18 @@
         }
 
         function addWaypoint(name, lat, lng) {
-            routeWaypoints.push({ name: name, lat: lat, lng: lng });
-            updateRoute();
+            try {
+                lat = Number(lat);
+                lng = Number(lng);
+                if (isNaN(lat) || isNaN(lng)) {
+                    console.warn('addWaypoint: invalid coordinates', name, lat, lng);
+                    return;
+                }
+                routeWaypoints.push({ name: name || '名称不明スポット', lat: lat, lng: lng });
+                updateRoute();
+            } catch (err) {
+                console.error('addWaypoint error:', err);
+            }
         }
 
         function addCustomSpot() {
@@ -1040,17 +1069,25 @@
         }
 
         function handleDrop(e) {
-            e.stopPropagation();
-            e.preventDefault();
-            this.classList.remove('drag-over');
+            try {
+                e.stopPropagation();
+                e.preventDefault();
+                this.classList.remove('drag-over');
 
-            if (dragSrcEl !== this) {
-                const srcIndex = parseInt(dragSrcEl.dataset.index);
-                const targetIndex = parseInt(this.dataset.index);
+                if (dragSrcEl && dragSrcEl !== this && dragSrcEl.dataset && this.dataset) {
+                    const srcIndex = parseInt(dragSrcEl.dataset.index);
+                    const targetIndex = parseInt(this.dataset.index);
 
-                const item = routeWaypoints.splice(srcIndex, 1)[0];
-                routeWaypoints.splice(targetIndex, 0, item);
-                updateRoute();
+                    if (!isNaN(srcIndex) && !isNaN(targetIndex) && srcIndex >= 0 && srcIndex < routeWaypoints.length) {
+                        const item = routeWaypoints.splice(srcIndex, 1)[0];
+                        if (item) {
+                            routeWaypoints.splice(targetIndex, 0, item);
+                            updateRoute();
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('handleDrop error:', err);
             }
             return false;
         }
@@ -1104,31 +1141,50 @@
                     // スマホのタッチ操作シミュレーション
                     let touchStartY = 0;
                     item.addEventListener('touchstart', (e) => {
-                        touchStartY = e.touches[0].clientY;
-                        dragSrcEl = item;
-                        dragSrcEl.dataset.index = i;
-                        item.classList.add('dragging');
+                        try {
+                            if (!e.touches || !e.touches[0]) return;
+                            touchStartY = e.touches[0].clientY;
+                            dragSrcEl = item;
+                            dragSrcEl.dataset.index = i;
+                            item.classList.add('dragging');
+                        } catch (err) {
+                            console.warn('touchstart handler error:', err);
+                        }
                     }, {passive: true});
 
                     item.addEventListener('touchmove', (e) => {
-                        const touchY = e.touches[0].clientY;
-                        const diff = touchY - touchStartY;
-                        if (Math.abs(diff) > 25) {
-                            const target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
-                            const targetItem = target ? target.closest('.sorting-item') : null;
-                            if (targetItem && targetItem !== dragSrcEl) {
-                                const srcIndex = parseInt(dragSrcEl.dataset.index);
-                                const targetIndex = parseInt(targetItem.dataset.index);
-                                const itemData = routeWaypoints.splice(srcIndex, 1)[0];
-                                routeWaypoints.splice(targetIndex, 0, itemData);
-                                updateRoute();
+                        try {
+                            if (!dragSrcEl || !e.touches || !e.touches[0]) return;
+                            const touchY = e.touches[0].clientY;
+                            const diff = touchY - touchStartY;
+                            if (Math.abs(diff) > 25) {
+                                const target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+                                const targetItem = target ? target.closest('.sorting-item') : null;
+                                if (targetItem && targetItem !== dragSrcEl && targetItem.dataset && dragSrcEl.dataset) {
+                                    const srcIndex = parseInt(dragSrcEl.dataset.index);
+                                    const targetIndex = parseInt(targetItem.dataset.index);
+                                    if (!isNaN(srcIndex) && !isNaN(targetIndex) && srcIndex >= 0 && srcIndex < routeWaypoints.length) {
+                                        const itemData = routeWaypoints.splice(srcIndex, 1)[0];
+                                        if (itemData) {
+                                            routeWaypoints.splice(targetIndex, 0, itemData);
+                                            updateRoute();
+                                        }
+                                    }
+                                }
+                                touchStartY = touchY;
                             }
+                        } catch (err) {
+                            console.warn('touchmove handler error:', err);
                         }
                     }, {passive: true});
 
                     item.addEventListener('touchend', () => {
-                        item.classList.remove('dragging');
-                        dragSrcEl = null;
+                        try {
+                            item.classList.remove('dragging');
+                            dragSrcEl = null;
+                        } catch (err) {
+                            console.warn('touchend handler error:', err);
+                        }
                     });
 
                     listEl.appendChild(item);
@@ -1146,8 +1202,15 @@
                 const locString = routeWaypoints.map(wp => `${wp.lng},${wp.lat}`).join(';');
                 const osrmUrl = `https://router.project-osrm.org/route/v1/foot/${locString}?overview=full&geometries=geojson`;
 
-                const res = await fetch(osrmUrl);
-                const data = await res.json();
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+                let res, data;
+                try {
+                    res = await fetch(osrmUrl, { signal: controller.signal });
+                    data = await res.json();
+                } finally {
+                    clearTimeout(timeoutId);
+                }
 
                 if (data.code === 'Ok' && data.routes.length > 0) {
                     const route = data.routes[0];
