@@ -13,18 +13,22 @@
  *      → ダッシュボード・価格履歴（ログ）へ書き込み、🟢判定は即座にGoogle ToDoへ自動登録する。
  *      GCPのサービスアカウント・JSON鍵は一切不要。
  *
- * 事前準備:
+ * 事前準備(関数を選んで実行する手順は不要。貼り付け→1箇所書き換え→デプロイのみ):
  *   1. 拡張機能 > Apps Script を開き、このファイルの内容を貼り付ける。
- *   2. 左側「サービス」の＋ボタンから「Tasks API」を追加する。
- *   3. プロジェクトの設定(歯車アイコン) > スクリプト プロパティ で
- *      キー "SHARED_SECRET" 、値に自分で決めたランダムな文字列を登録する
+ *   2. すぐ下の SHARED_SECRET の値 'CHANGE_ME_TO_A_RANDOM_STRING' を、
+ *      自分で決めたランダムな文字列に書き換えて保存する
  *      (この値をGitHub Secretsの GAS_SHARED_SECRET にも同じ値で登録する)。
+ *   3. 左側「サービス」の＋ボタンから「Tasks API」を追加する。
  *   4. 右上「デプロイ」>「新しいデプロイ」>種類「ウェブアプリ」
  *      - 実行するユーザー: 自分
  *      - アクセスできるユーザー: 全員
  *      デプロイ後に表示されるURLをGitHub Secretsの GAS_WEB_APP_URL に登録する。
- *   5. 保存後、一度 onOpen または sendToShoppingList を手動実行して権限を承認する。
  */
+
+// GitHub Actionsからのリクエストを認証するための合言葉。必ず書き換えること。
+// (以前はスクリプトプロパティ+関数実行で設定していたが、貼り付け後にこの1行を
+//  書き換えるだけで済むようにして手順を簡略化した)
+var SHARED_SECRET = 'CHANGE_ME_TO_A_RANDOM_STRING';
 
 var SHEET_DASHBOARD = 'ダッシュボード';
 var SHEET_LOG = '価格履歴（ログ）';
@@ -193,7 +197,7 @@ function formatNumber_(n) {
 /**
  * secret・itemsの中身(itemsは配列)は共通で以下の形式:
  * {
- *   "secret": "スクリプトプロパティSHARED_SECRETと同じ値",
+ *   "secret": "上部の定数 SHARED_SECRET と同じ値",
  *   "items": [
  *     {
  *       "product_name": "キッコーマン 濃いだし本つゆ (1L基準)",
@@ -246,11 +250,10 @@ function handleIncomingRequest_(payload) {
     if (!payload) {
       throw new Error('リクエスト内容を解釈できませんでした');
     }
-    var expected = PropertiesService.getScriptProperties().getProperty('SHARED_SECRET');
-    if (!expected) {
-      throw new Error('SHARED_SECRETがスクリプトプロパティに設定されていません');
+    if (SHARED_SECRET === 'CHANGE_ME_TO_A_RANDOM_STRING') {
+      throw new Error('SHARED_SECRETがまだ初期値のままです。ファイル冒頭の値を書き換えてください。');
     }
-    if (payload.secret !== expected) {
+    if (payload.secret !== SHARED_SECRET) {
       return jsonResponse_({ ok: false, error: 'unauthorized' });
     }
 
@@ -349,20 +352,3 @@ function findFirstBlankDashboardRow_(sheet) {
   return null;
 }
 
-// =====================================================================
-// 初期セットアップ補助
-// =====================================================================
-
-/**
- * SHARED_SECRETをスクリプトプロパティに設定するための補助関数。
- * コード中の 'ここに自分で決めたランダムな文字列を入れる' を実際の値に書き換えてから
- * 1回だけ手動実行し、実行後はこの関数を削除するか値を戻しておくことを推奨する。
- */
-function setupSharedSecret_ONCE() {
-  var secret = 'ここに自分で決めたランダムな文字列を入れる';
-  if (secret === 'ここに自分で決めたランダムな文字列を入れる') {
-    throw new Error('先にsecretの値を書き換えてから実行してください。');
-  }
-  PropertiesService.getScriptProperties().setProperty('SHARED_SECRET', secret);
-  SpreadsheetApp.getUi().alert('SHARED_SECRETを設定しました。GitHub Secretsの GAS_SHARED_SECRET にも同じ値を登録してください。');
-}
