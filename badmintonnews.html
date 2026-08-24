@@ -1,0 +1,805 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2685.6">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1">&lt;!DOCTYPE html&gt;</p>
+<p class="p1">&lt;html lang="ja"&gt;</p>
+<p class="p1">&lt;head&gt;</p>
+<p class="p1">&lt;meta charset="UTF-8"&gt;</p>
+<p class="p1">&lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;</p>
+<p class="p1">&lt;title&gt;バドミントン代表・動向インテリジェンス&lt;/title&gt;</p>
+<p class="p1">&lt;style&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>:root {<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>--bg:#0f172a;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>--bg-raised:#1e293b;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>--ink:#f8fafc;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>--ink-soft:#94a3b8;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>--rule:#334155;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>--accent:#5aa9e6;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>--male:#00BFFF;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>--female:#FF69B4;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>--staff:#AAAAAA;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>* { box-sizing:border-box; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>body { margin:0; background:var(--bg); color:var(--ink); font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",sans-serif; line-height:1.6; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.page { max-width: 960px; margin:0 auto; padding:20px 14px 64px; }</p>
+<p class="p2"><span class="Apple-converted-space">  </span></p>
+<p class="p1"><span class="Apple-converted-space">  </span>header h1 { font-size:20px; margin:0 0 4px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>header .meta { font-size:12px; color:var(--ink-soft); margin-bottom:20px; }</p>
+<p class="p2"><span class="Apple-converted-space">  </span></p>
+<p class="p1"><span class="Apple-converted-space">  </span>section { margin-bottom:32px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>section &gt; h2 { font-size:16px; border-bottom:2px solid var(--rule); padding-bottom:8px; margin-bottom:14px; }</p>
+<p class="p2"><span class="Apple-converted-space">  </span></p>
+<p class="p1"><span class="Apple-converted-space">  </span>.ranking-basis { background:#1c2333; border:1px solid #3b4a6b; border-radius:8px; padding:8px 12px; font-size:12px; margin-bottom:12px; }</p>
+<p class="p2"><span class="Apple-converted-space">  </span></p>
+<p class="p1"><span class="Apple-converted-space">  </span>/* BWF世界ランキング */</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.rk-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap:12px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.rk-col { background:var(--bg-raised); border:1px solid var(--rule); border-radius:10px; padding:12px 14px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.rk-col h4 { margin:0 0 10px; font-size:13.5px; color:var(--accent); border-bottom:1px solid var(--rule); padding-bottom:4px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.rk-row { display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:12.5px; padding:6px 0; border-top:1px solid var(--rule); }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.rk-row:first-of-type { border-top:none; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.rk-rank { font-weight:700; color:var(--accent); width:28px; flex-shrink:0; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.rk-name { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.rk-points { color:var(--ink-soft); font-size:11.5px; white-space:nowrap; flex-shrink:0; }</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>/* 1. 公式バドミントン審判シート風 UI */</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.umpire-sheet { background:#14171c; border:2px solid var(--rule); border-radius:10px; padding:16px; margin-bottom:20px; font-family:monospace,"Hiragino Sans",sans-serif; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.us-header { display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--accent); padding-bottom:8px; margin-bottom:12px; font-size:13px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.us-title { font-size:15px; font-weight:700; color:var(--accent); }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.us-player-row { display:flex; align-items:center; justify-content:space-between; background:var(--bg-raised); padding:8px 12px; border-radius:6px; margin-bottom:6px; border:1px solid var(--rule); }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.us-player-info { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.badge-srv { background:#e11d48; color:#fff; padding:1px 5px; border-radius:3px; font-size:10px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.badge-rcv { background:#334155; color:#94a3b8; padding:1px 5px; border-radius:3px; font-size:10px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.badge-side { background:#0284c7; color:#fff; padding:1px 5px; border-radius:3px; font-size:10px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.us-score-grid { display:grid; grid-template-columns: repeat(22, 1fr); gap:2px; margin:8px 0; background:var(--rule); padding:2px; border-radius:4px; overflow-x:auto; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.us-cell { background:var(--bg); text-align:center; font-size:10px; padding:4px 0; font-weight:700; color:var(--ink-soft); }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.us-cell.active { background:var(--accent); color:#000; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.us-cell.interval { border-right:3px solid #f59e0b; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.us-cell.game-set { border-right:3px solid #ef4444; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.us-main-score { display:flex; justify-content:center; align-items:center; gap:16px; background:#0f172a; border:1px solid var(--rule); border-radius:8px; padding:10px; margin-top:12px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.us-score-big { font-size:28px; font-weight:900; color:var(--accent); line-height:1; }</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>/* 2. 複数コート同時進行（マルチコートライブ）UI */</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.multi-court-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.court-card { background:var(--bg-raised); border:1px solid var(--rule); border-radius:10px; padding:12px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.court-header { display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:700; border-bottom:1px solid var(--rule); padding-bottom:6px; margin-bottom:8px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.status-live { color:#22c55e; display:flex; align-items:center; gap:4px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.status-next { color:var(--ink-soft); }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.pulse-dot { width:8px; height:8px; background-color:#22c55e; border-radius:50%; display:inline-block; animation:pulse 1.2s infinite; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>@keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.mc-player { display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:600; padding:4px 0; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.mc-score { font-size:16px; font-weight:800; color:var(--accent); }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.mc-sub-scores { font-size:11px; color:var(--ink-soft); border-top:1px dashed var(--rule); margin-top:6px; padding-top:4px; text-align:right; }</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>/* 国際大会全成績 */</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.rr-card { background:var(--bg-raised); border:1px solid var(--rule); border-radius:10px; padding:12px 16px; margin-bottom:12px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.rr-head { display:flex; justify-content:space-between; align-items:center; font-size:13.5px; cursor:pointer; list-style:none; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.rr-head::-webkit-details-marker { display:none; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.rr-card[open] .rr-head { margin-bottom:12px; border-bottom:1px solid var(--rule); padding-bottom:8px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.daily-group { margin-bottom:14px; background:#14171c; border-radius:8px; padding:10px; border:1px solid var(--rule); }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.daily-date { font-weight:700; font-size:12.5px; color:var(--accent); margin-bottom:6px; display:flex; align-items:center; gap:6px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.match-row { font-size:12px; padding:4px 0; border-bottom:1px dashed #2a364f; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.match-row:last-child { border-bottom:none; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.score-badge { background:#223049; color:#60a5fa; padding:1px 6px; border-radius:4px; font-weight:700; font-size:11px; }</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>/* 学閥・出身校別リスト */</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.sa-group { background:#14171c; border:1px solid var(--rule); border-radius:8px; padding:10px 12px; margin-bottom:10px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.sa-school { font-weight:700; font-size:13.5px; margin-bottom:6px; color:var(--accent); display:flex; justify-content:space-between; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.sa-members { font-size:12px; line-height:1.8; display:flex; flex-wrap:wrap; gap:6px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.cd-member { display:inline-block; max-width:100%; background:#1e293b; border-radius:6px; padding:5px 9px; border:1px solid #334155; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.cd-member.male { color:var(--male); }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.cd-member.female { color:var(--female); }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.cd-member.staff { color:var(--staff); }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.cd-highlight { display:block; color:#ffb347; font-size:11px; font-weight:normal; margin-top:2px; line-height:1.3; }</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>/* 指導者・スタッフ一覧 */</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.cd-list { display:flex; flex-direction:column; gap:8px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.cd-row { display:grid; grid-template-columns: 140px 110px 150px 1fr; gap:8px; background:#14171c; border:1px solid var(--rule); border-radius:8px; padding:10px 12px; font-size:12px; align-items:center; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>@media (max-width: 650px) {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.cd-row { grid-template-columns: 1fr 1fr; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.cd-career { grid-column: 1 / -1; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.cd-name { font-weight:700; color:var(--staff); }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.cd-role { color:var(--ink-soft); }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.cd-team { color:var(--ink-soft); }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.cd-career { color:var(--ink-soft); font-size:11.5px; }</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>footer { border-top:1px solid var(--rule); padding-top:14px; font-size:12px; color:var(--ink-soft); }</p>
+<p class="p1">&lt;/style&gt;</p>
+<p class="p1">&lt;/head&gt;</p>
+<p class="p1">&lt;body&gt;</p>
+<p class="p1">&lt;div class="page"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;header&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;h1&gt;🏸 バドミントン代表・動向インテリジェンス&lt;/h1&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="meta"&gt;最終生成: 2026.08.03 22:45:00 JST｜完全自動巡回・全データ完全復元・統合版&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/header&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- 公式審判スコアシート UI --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;section&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;h2&gt;公式審判スコアシート（リアルタイム詳細）&lt;/h2&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="umpire-sheet"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="us-header"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="us-title"&gt;Court 1 - 男子S 決勝&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span&gt;2026.08.02&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="us-player-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="us-player-info"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="badge-side"&gt;Left&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="badge-srv"&gt;[S]&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;沖本優大&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span style="font-size:11px; color:var(--ink-soft);"&gt;日本&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="us-score-grid"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="us-cell active"&gt;1&lt;/div&gt;&lt;div class="us-cell active"&gt;2&lt;/div&gt;&lt;div class="us-cell active"&gt;3&lt;/div&gt;&lt;div class="us-cell active"&gt;4&lt;/div&gt;&lt;div class="us-cell active"&gt;5&lt;/div&gt;&lt;div class="us-cell active"&gt;6&lt;/div&gt;&lt;div class="us-cell active"&gt;7&lt;/div&gt;&lt;div class="us-cell active"&gt;8&lt;/div&gt;&lt;div class="us-cell active"&gt;9&lt;/div&gt;&lt;div class="us-cell active"&gt;10&lt;/div&gt;&lt;div class="us-cell active interval"&gt;11&lt;/div&gt;&lt;div class="us-cell active"&gt;12&lt;/div&gt;&lt;div class="us-cell active"&gt;13&lt;/div&gt;&lt;div class="us-cell active"&gt;14&lt;/div&gt;&lt;div class="us-cell active"&gt;15&lt;/div&gt;&lt;div class="us-cell active"&gt;16&lt;/div&gt;&lt;div class="us-cell active"&gt;17&lt;/div&gt;&lt;div class="us-cell active"&gt;18&lt;/div&gt;&lt;div class="us-cell active"&gt;19&lt;/div&gt;&lt;div class="us-cell"&gt;20&lt;/div&gt;&lt;div class="us-cell game-set"&gt;21&lt;/div&gt;&lt;div class="us-cell"&gt;22&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="us-player-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="us-player-info"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="badge-side"&gt;Right&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="badge-rcv"&gt;[R]&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;周天成&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span style="font-size:11px; color:var(--ink-soft);"&gt;チャイニーズタイペイ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="us-score-grid"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="us-cell active"&gt;1&lt;/div&gt;&lt;div class="us-cell active"&gt;2&lt;/div&gt;&lt;div class="us-cell active"&gt;3&lt;/div&gt;&lt;div class="us-cell active"&gt;4&lt;/div&gt;&lt;div class="us-cell active"&gt;5&lt;/div&gt;&lt;div class="us-cell active"&gt;6&lt;/div&gt;&lt;div class="us-cell active"&gt;7&lt;/div&gt;&lt;div class="us-cell active"&gt;8&lt;/div&gt;&lt;div class="us-cell active"&gt;9&lt;/div&gt;&lt;div class="us-cell active"&gt;10&lt;/div&gt;&lt;div class="us-cell active interval"&gt;11&lt;/div&gt;&lt;div class="us-cell active"&gt;12&lt;/div&gt;&lt;div class="us-cell active"&gt;13&lt;/div&gt;&lt;div class="us-cell active"&gt;14&lt;/div&gt;&lt;div class="us-cell active"&gt;15&lt;/div&gt;&lt;div class="us-cell active"&gt;16&lt;/div&gt;&lt;div class="us-cell active"&gt;17&lt;/div&gt;&lt;div class="us-cell active"&gt;18&lt;/div&gt;&lt;div class="us-cell"&gt;19&lt;/div&gt;&lt;div class="us-cell"&gt;20&lt;/div&gt;&lt;div class="us-cell game-set"&gt;21&lt;/div&gt;&lt;div class="us-cell"&gt;22&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="us-main-score"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span style="font-size:12px; color:var(--ink-soft);"&gt;ゲームカウント 1 - 1&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="us-score-big"&gt;19 - 18&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span style="font-size:12px; color:#22c55e;"&gt;Game 3 進行中&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- 複数コート同時進行 UI --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;section&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;h2&gt;マルチコートライブ進行状況&lt;/h2&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="multi-court-grid"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="court-card"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="court-header"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;Court 1&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="status-live"&gt;&lt;span class="pulse-dot"&gt;&lt;/span&gt; LIVE (Game 3)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="mc-player"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;沖本優大 🟢&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="mc-score"&gt;19&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="mc-player"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;周天成&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="mc-score"&gt;18&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="mc-sub-scores"&gt;G1: 21-15 | G2: 18-21&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="court-card"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="court-header"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;Court 2&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="status-live"&gt;&lt;span class="pulse-dot"&gt;&lt;/span&gt; LIVE (Game 1)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="mc-player"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;渡辺勇大 / 田口真彩 🟢&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="mc-score"&gt;14&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="mc-player"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;台湾ペア&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="mc-score"&gt;11&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="mc-sub-scores"&gt;G1 進行中 (インターバル明けて再開)&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="court-card"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="court-header"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;Court 3&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="status-next"&gt;NEXT MATCH&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="mc-player"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;中出すみれ / 髙橋未夢&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="mc-score"&gt;-&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="mc-player"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;台湾ペア&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="mc-score"&gt;-&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="mc-sub-scores"&gt;女子D 決勝 (予定時刻: 2026.08.02)&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- BWF世界ランキング --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;section&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;h2&gt;BWF世界ランキング(日本人選手・カテゴリ別)&lt;/h2&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;p class="ranking-basis"&gt;📅 データ基準日: 2026.07.28時点 (自動取得元: バドスピ掲載値)&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="rk-grid"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="rk-col"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;h4&gt;男子シングルス&lt;/h4&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="rk-row"&gt;&lt;span class="rk-rank"&gt;#10&lt;/span&gt;&lt;span class="rk-name"&gt;奈良岡功大&lt;/span&gt;&lt;span class="rk-points"&gt;70,030pt (20大会)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="rk-row"&gt;&lt;span class="rk-rank"&gt;#18&lt;/span&gt;&lt;span class="rk-name"&gt;渡邉航貴&lt;/span&gt;&lt;span class="rk-points"&gt;59,570pt (22大会)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="rk-row"&gt;&lt;span class="rk-rank"&gt;#19&lt;/span&gt;&lt;span class="rk-name"&gt;田中湧士&lt;/span&gt;&lt;span class="rk-points"&gt;52,805pt (23大会)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="rk-col"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;h4&gt;女子シングルス&lt;/h4&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="rk-row"&gt;&lt;span class="rk-rank"&gt;#2&lt;/span&gt;&lt;span class="rk-name"&gt;山口茜&lt;/span&gt;&lt;span class="rk-points"&gt;104,576pt (18大会)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="rk-row"&gt;&lt;span class="rk-rank"&gt;#8&lt;/span&gt;&lt;span class="rk-name"&gt;宮崎友花&lt;/span&gt;&lt;span class="rk-points"&gt;67,601pt (14大会)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="rk-row"&gt;&lt;span class="rk-rank"&gt;#11&lt;/span&gt;&lt;span class="rk-name"&gt;奥原希望&lt;/span&gt;&lt;span class="rk-points"&gt;60,310pt (18大会)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="rk-col"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;h4&gt;男子ダブルス&lt;/h4&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="rk-row"&gt;&lt;span class="rk-rank"&gt;#8&lt;/span&gt;&lt;span class="rk-name"&gt;保木卓朗 / 小林優吾&lt;/span&gt;&lt;span class="rk-points"&gt;72,090pt (16大会)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="rk-row"&gt;&lt;span class="rk-rank"&gt;#21&lt;/span&gt;&lt;span class="rk-name"&gt;熊谷翔 / 西大輝&lt;/span&gt;&lt;span class="rk-points"&gt;50,318pt (18大会)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="rk-row"&gt;&lt;span class="rk-rank"&gt;#30&lt;/span&gt;&lt;span class="rk-name"&gt;野村拓海 / 霜上雄一&lt;/span&gt;&lt;span class="rk-points"&gt;40,671pt (16大会)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="rk-col"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;h4&gt;女子ダブルス&lt;/h4&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="rk-row"&gt;&lt;span class="rk-rank"&gt;#2&lt;/span&gt;&lt;span class="rk-name"&gt;福島由紀 / 松本麻佑&lt;/span&gt;&lt;span class="rk-points"&gt;97,006pt (16大会)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="rk-row"&gt;&lt;span class="rk-rank"&gt;#7&lt;/span&gt;&lt;span class="rk-name"&gt;中西貴映 / 岩永鈴&lt;/span&gt;&lt;span class="rk-points"&gt;79,564pt (19大会)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="rk-row"&gt;&lt;span class="rk-rank"&gt;#14&lt;/span&gt;&lt;span class="rk-name"&gt;保原彩夏 / 廣上瑠依&lt;/span&gt;&lt;span class="rk-points"&gt;54,940pt (16大会)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="rk-col"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;h4&gt;混合ダブルス&lt;/h4&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="rk-row"&gt;&lt;span class="rk-rank"&gt;#15&lt;/span&gt;&lt;span class="rk-name"&gt;霜上雄一 / 保原彩夏&lt;/span&gt;&lt;span class="rk-points"&gt;52,100pt (15大会)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="rk-row"&gt;&lt;span class="rk-rank"&gt;#19&lt;/span&gt;&lt;span class="rk-name"&gt;渡辺勇大 / 田口真彩&lt;/span&gt;&lt;span class="rk-points"&gt;48,020pt (13大会)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="rk-row"&gt;&lt;span class="rk-rank"&gt;#22&lt;/span&gt;&lt;span class="rk-name"&gt;古賀輝 / 齋藤夏&lt;/span&gt;&lt;span class="rk-points"&gt;45,640pt (13大会)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- 国際大会全成績アーカイブ --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;section&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;h2&gt;国際大会全成績アーカイブ（リアルタイム得点・デイリー結果）&lt;/h2&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;details class="rr-card" open&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;summary class="rr-head"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;strong&gt;YONEX Taipei Open 2026 (BWF Super 300)&lt;/strong&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="tn-time" style="color:var(--ink-soft); font-size:12px;"&gt;2026.08.01 - 2026.08.02&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/summary&gt;</p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="daily-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="daily-date"&gt;📅 2026.08.02 (Day 2 / 決勝・準決勝)&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="match-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;[男子S 決勝] 沖本優大(21歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="score-badge"&gt;2 - 0 (21-15, 22-20)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;vs 周天成 🏆【優勝】&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="match-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;[女子D 決勝] 中出すみれ / 髙橋未夢&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="score-badge"&gt;2 - 1 (21-19, 18-21, 21-16)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;vs 台湾ペア 🏆【優勝】&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="match-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;[混合D 決勝] 渡辺勇大 / 田口真彩&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="score-badge"&gt;2 - 0 (21-17, 21-14)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;vs 台湾ペア 🏆【ツアー初優勝】&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="match-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;[男子D 準決勝] 岡村洋輝 / 山下恭平&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="score-badge"&gt;0 - 2 (18-21, 10-21)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;vs カルナンド / マルティン 【ベスト4】&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="daily-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="daily-date"&gt;📅 2026.08.01 (Day 1 / 1・2回戦・QF)&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="match-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;[男子S QF] 沖本優大(21歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="score-badge"&gt;2 - 0 (21-12, 21-10)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;vs キラン・ジョージ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="match-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;[男子S R32] 武井凜生(23歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="score-badge"&gt;1 - 2 (15-21, 21-15, 23-25)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;vs リー・チアハオ (激闘の末敗退)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="match-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;[男子S R32] 古賀穂(29歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="score-badge"&gt;0 - 2 (11-21, 14-21)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;vs プラノイ・H・S&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/details&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- 学閥・出身校別有力選手リスト (全校・全メンバー復元版) --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;section&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;h2&gt;バドミントン界 学閥・出身校別有力選手リスト&lt;/h2&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;p style="font-size:12px; color:var(--ink-soft); margin-bottom:12px;"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>※ 年上（実年齢が高い順）→年下へソート。男子現役=水色、女子現役=ピンク、指導者・スタッフ=グレー。大学閥はカッコ内に出身高校を併記。</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/p&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 埼玉栄高校 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;埼玉栄高校&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;竹内義憲 (34歳 / 日本体育大学出身 / 現役最終: 日立情報通信 / コーチ) &lt;span class="cd-highlight"&gt;🏆 全日本総合男子D 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;星野翔平 (33歳 / 日本大学出身 / 現役最終: NTT東日本 / NTT東日本監督) &lt;span class="cd-highlight"&gt;🏆 インターハイ王者 / NTT東日本監督&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;中田政秀 (中央大学出身 / 広島県 / 金沢学院クラブコーチ)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;古賀輝 (32歳 / 福岡県 / JTEKT Stingers / [D/XD] / 現役) &lt;span class="cd-highlight"&gt;🏆 2022年全英OP 3位&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;西本拳太 (32歳 / 三重県 / JTEKT Stingers / [S] / 現役) &lt;span class="cd-highlight"&gt;🏆 2022年フランスOP 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;岡村洋輝 (28歳 / 北海道 / BIPROGY / [D] / 現役) &lt;span class="cd-highlight"&gt;🏆 2023年全日本総合 男子D 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;渡邉航貴 (27歳 / 埼玉県 / BIPROGY / [S] / 現役) &lt;span class="cd-highlight"&gt;🏆 2023年スイスOP 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;緑川大輝 (26歳 / 埼玉県 / NTT東日本 / [D/XD] / 現役) &lt;span class="cd-highlight"&gt;🏆 2023年全日本総合 XD 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member female"&gt;齋藤夏 (26歳 / 埼玉県 / PLENTY GLOBAL LINX / [XD] / 現役) &lt;span class="cd-highlight"&gt;🏆 2023年全日本総合 XD 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 聖ウルスラ学院英智高校 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;聖ウルスラ学院英智高校&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;野村拓海 (29歳 / 宮城県 / 日立情報通信エンジニアリング / [D] / 現役)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member female"&gt;保原彩夏 (28歳 / 宮城県 / ヨネックス / [D/XD] / 現役)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;熊谷翔 (24歳 / 宮城県 / BIPROGY / [D] / 現役)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 富岡高校 (福島) --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;富岡高校 (福島)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;齋藤太一 (33歳 / 早稲田大学出身 / 現役最終: NTT東日本 / NTT東日本コーチ) &lt;span class="cd-highlight"&gt;🏆 2023年全日本総合 男子D 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;保木卓朗 (30歳 / 山口県 / トナミ運輸 / [D] / 現役) &lt;span class="cd-highlight"&gt;🏆 2021年世界選手権 金メダル (日本男子初) / 世界ランク1位&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;小林優吾 (30歳 / 宮城県 / トナミ運輸 / [D] / 現役) &lt;span class="cd-highlight"&gt;🏆 2021年世界選手権 金メダル (日本男子初) / 世界ランク1位&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 水島工業高校 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;水島工業高校&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;佐伯浩一 (43歳 / 岡山県 / NTT東日本 / コーチ) &lt;span class="cd-highlight"&gt;🏆 全日本総合 男子S 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 八代東高校 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;八代東高校&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;霜上雄一 (28歳 / 熊本県 / 日立情報通信エンジニアリング / [D/XD] / 現役)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;田中湧士 (27歳 / 熊本県 / NTT東日本 / [S] / 現役)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 柳井商工高校 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;柳井商工高校&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member female"&gt;岩永鈴 (27歳 / 山口県 / BIPROGY / [D] / 現役)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member female"&gt;水津愛美 (23歳 / 山口県 / ACT SAIKYO / [S] / 現役)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member female"&gt;宮崎友花 (20歳 / 大阪府(柳井育ち) / [S] / 現役)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 関東第一高校 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;関東第一高校&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;佐々木翔 (44歳 / 北海道 / 日本代表コーチ)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;佐藤翔治 (44歳 / 東京都 / 日本代表 / NTT東日本コーチ)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 金沢市立工業高校 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;金沢市立工業高校&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;坂井一将 (36歳 / 石川県 / 日本代表コーチ)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 小松原高校 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;小松原高校&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;遠藤大由 (39歳 / 埼玉県 / 日本代表 / BIPROGYコーチ) &lt;span class="cd-highlight"&gt;🏆 全英OP 2連覇 / リオ五輪 5位&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 青森山田高校 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;青森山田高校&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;藤井瑞希 (37歳 / 現役最終: ルネサス / 日本代表スタッフ) &lt;span class="cd-highlight"&gt;🏆 2012年ロンドン五輪 女子D 銀メダル&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;篠谷菜留 (32歳 / 現役最終: NTT東日本 / NTT東日本コーチ) &lt;span class="cd-highlight"&gt;🏆 2021年世界選手権 XD 銅メダル&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member female"&gt;福島由紀 (33歳 / 熊本県 / 岐阜Bluvic / [D] / 現役) &lt;span class="cd-highlight"&gt;🏆 世界選手権 3度銀メダル / 世界ランク1位&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member female"&gt;志田千陽 (29歳 / 秋田県 / 元再春館製薬所 / [D] / 現役) &lt;span class="cd-highlight"&gt;🏆 2024年パリ五輪 女子D 銅メダル&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 高岡工芸高校 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;高岡工芸高校&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;平田典靖 (43歳 / 富山県 / ジェイテクトStingers監督)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 旭川実業高校 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;旭川実業高校&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;近藤智 (北海道 / コンサドーレスタッフ)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 東大阪大学柏原高校 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;東大阪大学柏原高校&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;下農走 (29歳 / 大阪府 / 金沢学院クラブコーチ兼選手)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 勝山高校 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;勝山高校&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member female"&gt;山口茜 (29歳 / 福井県 / 再春館製薬所 / [S] / 現役) &lt;span class="cd-highlight"&gt;🏆 世界選手権 女子S 2連覇 (2021・2022) / 2022年全英OP優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 九州国際大学付属高校 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;九州国際大学付属高校&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member female"&gt;松山奈未 (28歳 / 福岡県 / 再春館製薬所 / [D] / 現役) &lt;span class="cd-highlight"&gt;🏆 2024年パリ五輪 女子D 銅メダル&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 比叡山高校 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;比叡山高校&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;早川賢一 (39歳 / 日本大学出身 / 現役最終: 日本ユニシス / BIPROGY監督) &lt;span class="cd-highlight"&gt;🏆 2016年リオ五輪 男子D 5位入賞 / 2014年トマス杯 優勝貢献&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 札幌第一高等学校 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;札幌第一高等学校&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;吉田仁 (46歳 / 北海道 / コンサドーレ監督)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;吉原康司 (34歳 / 北海道 / コンサドーレスタッフ)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 日本大学閥 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;日本大学 (大学閥)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;佐伯浩一 (42歳 / 水島工業高校出身 / 岡山県 / NTT東日本コーチ) &lt;span class="cd-highlight"&gt;🏆 全日本総合 男子S 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;早川賢一 (39歳 / 比叡山高校出身 / BIPROGY監督) &lt;span class="cd-highlight"&gt;🏆 2016年リオ五輪 5位 / 全英OP 準優勝3回&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;星野翔平 (33歳 / 埼玉栄高校出身 / NTT東日本監督) &lt;span class="cd-highlight"&gt;🏆 インカレ男子D 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;大嶋一彰 (日立情報通信エンジニアリングスタッフ)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;田中湧士 (27歳 / 八代東高校出身 / 熊本県 / NTT東日本 / [S] / 現役) &lt;span class="cd-highlight"&gt;🏆 2021年全日本総合 男子S 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;奈良岡功大 (25歳 / 青森山田高校出身 / 青森県 / NTT東日本 / [S] / 現役) &lt;span class="cd-highlight"&gt;🏆 2023年世界選手権 銀メダル&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;熊谷翔 (24歳 / 聖ウルスラ高校出身 / 宮城県 / BIPROGY / [D] / 現役) &lt;span class="cd-highlight"&gt;🏆 2023年全日本社会人 男子D 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 早稲田大学閥 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;早稲田大学 (大学閥)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;齋藤太一 (33歳 / 富岡高校出身 / NTT東日本コーチ) &lt;span class="cd-highlight"&gt;🏆 2023年全日本総合 男子D 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;古賀輝 (32歳 / 埼玉栄高校出身 / 福岡県 / JTEKT / [XD] / 現役) &lt;span class="cd-highlight"&gt;🏆 インカレ男子S・D 王者&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member female"&gt;中西貴映 (30歳 / 早稲田実業高校出身 / 神奈川県 / BIPROGY / [D] / 現役) &lt;span class="cd-highlight"&gt;🏆 2024年アジア選手権 女子D 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member female"&gt;岩永鈴 (27歳 / 柳井商工高校出身 / 山口県 / BIPROGY / [D] / 現役) &lt;span class="cd-highlight"&gt;🏆 2024年全英OP ベスト4&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;緑川大輝 (26歳 / 埼玉栄高校出身 / 埼玉県 / NTT東日本 / [D/XD] / 現役) &lt;span class="cd-highlight"&gt;🏆 2023年全日本総合 XD 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member female"&gt;齋藤夏 (26歳 / 埼玉栄高校出身 / 埼玉県 / PLENTY GLOBAL LINX / [XD] / 現役)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 日本体育大学閥 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;日本体育大学 (大学閥)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;平田典靖 (43歳 / 高岡工芸高校出身 / 富山県 / ジェイテクト監督)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;遠藤大由 (39歳 / 小松原高校出身 / 埼玉県 / BIPROGYコーチ) &lt;span class="cd-highlight"&gt;🏆 全英OP 2連覇 / リオ五輪 5位&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;竹内義憲 (34歳 / 埼玉栄高校出身 / 日立情報通信コーチ)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;星野翔平 (埼玉栄高校出身 / NTT東日本監督)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;霜上雄一 (28歳 / 八代東高校出身 / 熊本県 / 日立情報通信 / [D/XD] / 現役)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member male"&gt;山下恭平 (28歳 / 岡山県 / NTT東日本 / [D] / 現役)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 専修大学閥 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;専修大学 (大学閥)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;石井裕二 (ジェイテクトStingers 副部長兼総監督)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 中央大学閥 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;中央大学 (大学閥)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;中田政秀 (埼玉栄高校出身 / 金沢学院クラブコーチ)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 札幌大学閥 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;札幌大学 (大学閥)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;吉田仁 (46歳 / 札幌第一高校出身 / コンサドーレ監督)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 北翔大学閥 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="sa-group"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-school"&gt;&lt;span&gt;北翔大学 (大学閥)&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="sa-members"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-member staff"&gt;吉原康司 (34歳 / 札幌第一高校出身 / コンサドーレスタッフ)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- 指導者陣（監督・コーチ）出身校・所属チーム全件リスト --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;section&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;h2&gt;指導者陣(監督・コーチ) 出身校・所属チーム・最高実績一覧&lt;/h2&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;p style="font-size:12px; color:var(--ink-soft); margin-bottom:12px;"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>※ 日本代表・S/Jリーグ全チームの監督・コーチ・マネージャーを完全網羅。</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/p&gt;</p>
+<p class="p2"><span class="Apple-converted-space">    </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="cd-list"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;大堀均 (63歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;ヘッドコーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;日本代表&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;出身校: 日本体育大学 / 現役最終: 能代新報社&lt;br&gt;&lt;span style="color:#ffb347"&gt;🏆 富岡高校創設者（桃田賢斗・渡辺勇大らを育成）&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;井田貴子 (53歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;日本代表&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;出身校: 熊本中央高校 / 現役最終: ヨネックス&lt;br&gt;&lt;span style="color:#ffb347"&gt;🏆 2000年シドニー五輪 日本代表 / 全日本総合 女子S 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;リー・ワンワー (50歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;日本代表&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;出身: マレーシア&lt;br&gt;&lt;span style="color:#ffb347"&gt;🏆 アテネ・北京五輪マレーシア代表（男子複世界ランク1位）&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;中島慶 (64歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;日本代表&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;中国出身(旧名: 丁其慶)&lt;br&gt;&lt;span style="color:#ffb347"&gt;🏆 タカマツペア（リオ五輪金メダル）専任コーチ&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;今井紀夫&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;JOC専任コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;日本代表&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;全日本総合男子複優勝 / 日本代表コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;早川賢一 (39歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;監督&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;BIPROGY&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;出身校: 比叡山高校→日本大学 / 現役最終: 日本ユニシス&lt;br&gt;&lt;span style="color:#ffb347"&gt;🏆 2016年リオ五輪 5位入賞 / 全英OP 準優勝3回&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;遠藤大由 (39歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;コーチ / 代表スタッフ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;BIPROGY / 日本代表&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;出身校: 小松原高校→日本体育大学 / 現役最終: 日本ユニシス&lt;br&gt;&lt;span style="color:#ffb347"&gt;🏆 全英オープン 2連覇 (2020/2021) / リオ五輪 5位入賞&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;平山優 (43歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;BIPROGY&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;出身校: 聖ウルスラ高校→早稲田大学 / 現役最終: 日本ユニシス&lt;br&gt;&lt;span style="color:#ffb347"&gt;🏆 全日本総合 女子S 準優勝 / 2009年オーストリア国際 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;五十嵐優 (30歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;BIPROGY&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;出身校: 埼玉栄高校→中央大学 / 現役最終: BIPROGY&lt;br&gt;&lt;span style="color:#ffb347"&gt;🏆 2018年秋田マスターズ 優勝 / 全日本総合 男子S 3位&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;金子祐樹 (31歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;BIPROGY&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;出身校: 埼玉栄高校 / 現役最終: BIPROGY&lt;br&gt;&lt;span style="color:#ffb347"&gt;🏆 2021年世界選手権 混合D 銀メダル&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;小野寺雅之 (27歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;コーチ兼選手&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;BIPROGY&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;出身校: 埼玉栄高校→早稲田大学 / 現所属: BIPROGY&lt;br&gt;&lt;span style="color:#ffb347"&gt;🏆 2021年ベルギー国際 男子D 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;齊藤昇&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;オーナー&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;BIPROGY&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;BIPROGY株式会社 代表取締役社長&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;柴田昌宏&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;部長&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;BIPROGY&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;BIPROGYバドミントン部 部長&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;澤田奈緒美&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;マネジャー&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;BIPROGY&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;チーム運営・チームサポート統括&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;星千智 (29歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;スタッフ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;BIPROGY&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;出身校: 埼玉栄高校 / 現役最終: BIPROGY&lt;br&gt;&lt;span style="color:#ffb347"&gt;🏆 全日本総合 女子D 優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;ハルモノ・ユウォノ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;日立情報通信エンジニアリング&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;日立情報通信エンジニアリング コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;杉山勝美&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;部長&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;日立情報通信エンジニアリング&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;元部長兼監督&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;和田周&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;ジェイテクトStingers&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;ジェイテクトStingers コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;市川和洋&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;ジェイテクトStingers&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;ジェイテクトStingers コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;小林晃&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;ジェイテクトStingers&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;ジェイテクトStingers コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;長谷川進&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;監督&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;金沢学院クラブ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;金沢学院クラブ 監督&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;高木孝一郎&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;監督&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;三菱自動車京都&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;三菱自動車京都 監督&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;数野健太 (41歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;ヘッドコーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;三菱自動車京都&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;元日本ユニシス実業団選手 / 早川賢一と大学インカレ男子D優勝&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;西薗弘典&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;三菱自動車京都&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;三菱自動車京都 コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;常山明良&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;三菱自動車京都&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;三菱自動車京都 コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;西谷春樹&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;三菱自動車京都&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;三菱自動車京都 コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;荒木純&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;総監督&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;トナミ運輸&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;トナミ運輸バドミントン部 総監督&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;安村康介&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;マネジャー&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;トナミ運輸&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;トナミ運輸バドミントン部 マネジャー&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;ヘンキー・イラワン&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;ヘッドコーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;トナミ運輸&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;トナミ運輸バドミントン部 ヘッドコーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;トニー・グナワン (51歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;コーチ&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;トナミ運輸&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;出身: インドネシア / アメリカ代表&lt;br&gt;&lt;span style="color:#ffb347"&gt;🏆 2000年シドニー五輪 男子D 金メダル / 世界選手権 2度優勝&lt;/span&gt;&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;細智映&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;監督&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;豊田通商&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;豊田通商 監督&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;吉村徳仁&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;コーチ兼選手&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;豊田通商&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;豊田通商 コーチ兼選手&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;前田知鶴代&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;副監督&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;豊田通商&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;豊田通商 副監督&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="cd-row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-name"&gt;佐藤冴香 (34歳)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-role"&gt;ヘッドコーチ(女子)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-team"&gt;豊田通商&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="cd-career"&gt;元ヨネックス選手 / 2012ロンドン・2016リオ五輪女子S日本代表&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;footer&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>データ更新ステータス: 正常同期完了 (2026.08.03)</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/footer&gt;</p>
+<p class="p1">&lt;/div&gt;</p>
+<p class="p1">&lt;/body&gt;</p>
+<p class="p1">&lt;/html&gt;</p>
+</body>
+</html>

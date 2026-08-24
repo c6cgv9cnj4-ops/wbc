@@ -1,0 +1,4 @@
+feedparser
+requests
+google-genai
+youtube-transcript-api
