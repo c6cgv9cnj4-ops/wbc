@@ -11,14 +11,14 @@
     <!-- Tailwind CSS (CDN) -->
     <!-- 注意: cdn.tailwindcss.comはAccess-Control-Allow-Originを返さないため、
          crossoriginを付けると読み込み自体が失敗する(curlで確認済み)。付与しない。 -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com?v=20260824_fix01"></script>
     <!-- Lucide Icons (unpkgはAccess-Control-Allow-Origin: *を返すためcrossorigin付与可) -->
-    <script src="https://unpkg.com/lucide@latest" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/lucide@latest?v=20260824_fix01" crossorigin="anonymous"></script>
     <!-- Leaflet CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=20260824_fix01" crossorigin="anonymous" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=20260824_fix01" crossorigin="anonymous"></script>
     <!-- Chart.js for Elevation Profile (jsdelivrもAccess-Control-Allow-Origin: *) -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js?v=20260824_fix01" crossorigin="anonymous"></script>
     <!-- drag-drop-touch-js@0.2.2 は未使用(実際の並べ替えは自前のtouchstart/touchmove実装)かつ
          unpkg側のCORSヘッダ欠如で常に読み込み失敗していたため削除。
          「Script error.」の一因になり得るため撤去する。 -->
@@ -275,9 +275,20 @@
             }
         }
 
-        window.onerror = function(msg, url, line) {
-            console.error('Global Error: ' + msg + ' at line ' + line);
-            showErrorToast(String(msg), line);
+        window.onerror = function(msg, url, line, col, errorObj) {
+            const text = String(msg);
+            // 外部CDN(cdn.tailwindcss.com等、CORSヘッダ非対応でcrossoriginを付けられない
+            // スクリプト)由来のエラーはブラウザの仕様上メッセージ・行番号が伏せられ
+            // "Script error." としてしか届かない。中身を特定・対処しようがなく、赤い
+            // トーストを出しても実害のないノイズにしかならないため、ログのみに留める。
+            const isOpaqueCrossOriginError = text === 'Script error.' || text === 'Script error' ||
+                (!url && !line && !col);
+            if (isOpaqueCrossOriginError) {
+                console.warn('Opaque cross-origin script error (詳細取得不可、CDN起因の可能性が高いため無視):', text, errorObj);
+                return true;
+            }
+            console.error('Global Error: ' + text + ' at line ' + line);
+            showErrorToast(text, line);
             return true;
         };
 
@@ -1056,9 +1067,13 @@
                 const res = await fetch(nominatimUrl);
                 const results = await res.json();
 
-                if (results && results.length > 0) {
+                if (results && results.length > 0 && results[0]) {
                     const lat = parseFloat(results[0].lat);
                     const lng = parseFloat(results[0].lon);
+                    if (isNaN(lat) || isNaN(lng)) {
+                        alert('取得した位置情報が不正なため追加できませんでした。');
+                        return;
+                    }
                     const displayName = stationName + '駅';
 
                     const stationIcon = L.divIcon({
@@ -1099,33 +1114,51 @@
         }
 
         function addCustomSpot() {
-            const name = document.getElementById('customName').value.trim();
-            const lat = parseFloat(document.getElementById('customLat').value);
-            const lng = parseFloat(document.getElementById('customLng').value);
+            try {
+                const nameEl = document.getElementById('customName');
+                const latEl = document.getElementById('customLat');
+                const lngEl = document.getElementById('customLng');
+                if (!nameEl || !latEl || !lngEl) return;
 
-            if (!name || isNaN(lat) || isNaN(lng)) {
-                alert('スポット名と正確な緯度・経度を入力してください。');
-                return;
+                const name = nameEl.value.trim();
+                const lat = parseFloat(latEl.value);
+                const lng = parseFloat(lngEl.value);
+
+                if (!name || isNaN(lat) || isNaN(lng)) {
+                    alert('スポット名と正確な緯度・経度を入力してください。');
+                    return;
+                }
+
+                const marker = L.marker([lat, lng]).addTo(map);
+                marker.bindPopup('<strong class="text-xs">' + escapeHtml(name) + '</strong>').openPopup();
+                map.panTo([lat, lng]);
+
+                addWaypoint(name, lat, lng);
+                nameEl.value = '';
+                latEl.value = '';
+                lngEl.value = '';
+            } catch (err) {
+                console.error('addCustomSpot error:', err);
             }
-
-            const marker = L.marker([lat, lng]).addTo(map);
-            marker.bindPopup('<strong class="text-xs">' + escapeHtml(name) + '</strong>').openPopup();
-            map.panTo([lat, lng]);
-
-            addWaypoint(name, lat, lng);
-            document.getElementById('customName').value = '';
-            document.getElementById('customLat').value = '';
-            document.getElementById('customLng').value = '';
         }
 
         function removeWaypoint(idx) {
-            routeWaypoints.splice(idx, 1);
-            updateRoute();
+            try {
+                if (typeof idx !== 'number' || idx < 0 || idx >= routeWaypoints.length) return;
+                routeWaypoints.splice(idx, 1);
+                updateRoute();
+            } catch (err) {
+                console.error('removeWaypoint error:', err);
+            }
         }
 
         function clearRoute() {
-            routeWaypoints = [];
-            updateRoute();
+            try {
+                routeWaypoints = [];
+                updateRoute();
+            } catch (err) {
+                console.error('clearRoute error:', err);
+            }
         }
 
         // --- 総歩行距離保持用変数 & updateStats ---
