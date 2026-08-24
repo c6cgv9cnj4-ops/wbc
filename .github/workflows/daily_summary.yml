@@ -1,0 +1,48 @@
+name: 日刊レポート自動生成
+
+on:
+  schedule:
+    # 毎日 24:00 JST(=翌日0:00 JST) = UTC 15:00
+    - cron: "0 15 * * *"
+  workflow_dispatch: {}  # 手動実行用ボタン
+
+permissions:
+  contents: write  # logs/daily, logs/health, reports/daily への書き込み(コミット)用
+  issues: write    # export_discord_logs.py のTODO/BUY起票用
+
+jobs:
+  export-and-summarize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      - name: Discordログ取得 & Issues自動起票
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID_INPUT: ${{ secrets.DISCORD_CHANNEL_ID_INPUT }}
+          DISCORD_CHANNEL_ID_HEALTH: ${{ secrets.DISCORD_CHANNEL_ID_HEALTH }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/export_discord_logs.py
+
+      - name: 日刊サマリー生成(Claude API)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
+          DISCORD_WEBHOOK_DAILY: ${{ secrets.DISCORD_WEBHOOK_DAILY }}
+        run: python scripts/generate_daily_report.py
+
+      - name: 生成物をコミット
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add logs/daily logs/health reports/daily
+          git diff --cached --quiet || git commit -m "日刊ログ・レポートを自動生成 ($(date -u +%Y-%m-%d))"
+          git push

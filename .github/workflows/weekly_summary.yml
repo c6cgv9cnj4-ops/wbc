@@ -1,0 +1,39 @@
+name: 週刊レポート自動生成
+
+on:
+  schedule:
+    # 毎週日曜 23:00 JST = UTC 14:00
+    - cron: "0 14 * * 0"
+  workflow_dispatch: {}  # 手動実行用ボタン
+
+permissions:
+  contents: write  # reports/weekly への書き込み(コミット)用
+
+jobs:
+  summarize-week:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      - name: 週刊レポート生成(Claude API)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
+          DISCORD_WEBHOOK_WEEKLY: ${{ secrets.DISCORD_WEBHOOK_WEEKLY }}
+        run: python scripts/generate_weekly_report.py
+
+      - name: 生成物をコミット
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/weekly
+          git diff --cached --quiet || git commit -m "週刊レポートを自動生成 ($(date -u +%Y-%m-%d))"
+          git push
