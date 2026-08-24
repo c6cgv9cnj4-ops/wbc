@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-ニュース自動配信bot(先行実装: 北本市安全安心情報・地域/主要ニュース・株価/経済ニュース)
+ニュース自動配信bot(北本市安全安心情報・地域/主要ニュース・株価/経済ニュース)
+
+30分ごとに実行される想定の「準リアルタイム」配信。前回までに送信済みの記事URL/IDは
+state/news_seen.json に記録し、そのURL/IDと重複するものはスキップして
+「新しく見つかった記事のみ」を都度Discordへ送信する(株価は都度変動するため
+重複排除の対象外で、実行するたびに最新値を送る)。
 
 配信内容:
   DISCORD_WEBHOOK_NEWS   : 北本市安全安心情報(新着) + 埼玉地域ニュース + 主要ニュース
@@ -19,6 +24,7 @@
   DISCORD_WEBHOOK_MARKET (必須)
 """
 import datetime
+import json
 import os
 import re
 import sys
@@ -44,8 +50,58 @@ YAHOO_BUSINESS_RSS = "https://news.yahoo.co.jp/rss/categories/business.xml"
 YAHOO_FINANCE_NIKKEI225_URL = "https://finance.yahoo.co.jp/quote/998407.O"
 EXCHANGE_RATE_API_URL = "https://open.er-api.com/v6/latest/USD"
 
-ANZN_ITEM_LIMIT = 5
-RSS_ITEM_LIMIT = 5
+# 重複排除に使う「見た記事」の記録先。取得件数を少し多めに見ておき、
+# 30分間隔のポーリングで新着を取りこぼしにくくする。
+ANZN_ITEM_LIMIT = 10
+RSS_ITEM_LIMIT = 10
+
+STATE_PATH = "state/news_seen.json"
+STATE_RETENTION_DAYS = 14  # 古い記録は掃除して肥大化を防ぐ
+
+
+# ============================================================
+# 既送信記事の状態管理(state/news_seen.json)
+# ============================================================
+
+def load_seen_state():
+    if not os.path.exists(STATE_PATH):
+        return {}
+    try:
+        with open(STATE_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError) as err:
+        print(f"[WARN] {STATE_PATH} の読み込みに失敗したため、空の状態から開始します: {err}")
+        return {}
+
+
+def save_seen_state(state):
+    os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
+    with open(STATE_PATH, "w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False, indent=2, sort_keys=True)
+
+
+def prune_old_entries(state, now):
+    cutoff = (now - datetime.timedelta(days=STATE_RETENTION_DAYS)).isoformat()
+    return {key: seen_at for key, seen_at in state.items() if seen_at >= cutoff}
+
+
+def dedupe_new_items(items, key_field, state, now):
+    """
+    itemsのうちstateに無いもの(=未送信)だけを残して返す。
+    stateには副作用として今回分のキーを書き込む(呼び出し側でsave_seen_stateすること)。
+    """
+    new_items = []
+    for item in items:
+        key = item.get(key_field)
+        if not key:
+            # URL等が取れない項目は重複判定できないため、常に「新着」として扱う
+            new_items.append(item)
+            continue
+        if key in state:
+            continue
+        state[key] = now.isoformat()
+        new_items.append(item)
+    return new_items
 
 
 # ============================================================
@@ -111,7 +167,7 @@ def fetch_rss_items(url, limit=RSS_ITEM_LIMIT):
 
 
 # ============================================================
-# 株価(日経平均・ドル円)
+# 株価(日経平均・ドル円) — 重複排除の対象外(常に最新値を送る)
 # ============================================================
 
 def fetch_nikkei225():
@@ -158,45 +214,54 @@ def fetch_usdjpy():
 # メッセージ組み立て・Discord送信
 # ============================================================
 
-def build_news_message():
-    lines = []
-    today = datetime.date.today().strftime("%Y-%m-%d")
-    lines.append(f"# 📰 ニュースまとめ ({today})")
+def build_news_message(state, now):
+    """新着が1件も無ければNoneを返す(Discordへ空更新を送らないため)。"""
+    sections = []
+    has_any_new = False
 
-    lines.append("\n## 🚨 北本市安全安心情報(新着)")
-    anzn_items = fetch_anzn_new_arrivals()
-    if anzn_items:
-        for item in anzn_items:
+    anzn_all = fetch_anzn_new_arrivals()
+    anzn_new = dedupe_new_items(anzn_all, "url", state, now)
+    if anzn_new:
+        has_any_new = True
+        lines = ["## 🚨 北本市安全安心情報(新着)"]
+        for item in anzn_new:
             line = f"- **{item['datetime']}** [{item['city']}] {item['summary']}"
             if item["url"]:
                 line += f" — <{item['url']}>"
             lines.append(line)
-    else:
-        lines.append("- 取得できませんでした")
+        sections.append("\n".join(lines))
 
-    lines.append("\n## 🗾 埼玉地域ニュース")
-    saitama_items = fetch_rss_items(GOOGLE_NEWS_SAITAMA_RSS)
-    if saitama_items:
-        for item in saitama_items:
+    saitama_all = fetch_rss_items(GOOGLE_NEWS_SAITAMA_RSS)
+    saitama_new = dedupe_new_items(saitama_all, "url", state, now)
+    if saitama_new:
+        has_any_new = True
+        lines = ["## 🗾 埼玉地域ニュース"]
+        for item in saitama_new:
             lines.append(f"- [{item['title']}]({item['url']})")
-    else:
-        lines.append("- 取得できませんでした")
+        sections.append("\n".join(lines))
 
-    lines.append("\n## 🌐 主要ニュース")
-    top_items = fetch_rss_items(YAHOO_TOP_PICKS_RSS)
-    if top_items:
-        for item in top_items:
+    top_all = fetch_rss_items(YAHOO_TOP_PICKS_RSS)
+    top_new = dedupe_new_items(top_all, "url", state, now)
+    if top_new:
+        has_any_new = True
+        lines = ["## 🌐 主要ニュース"]
+        for item in top_new:
             lines.append(f"- [{item['title']}]({item['url']})")
-    else:
-        lines.append("- 取得できませんでした")
+        sections.append("\n".join(lines))
 
-    return "\n".join(lines)
+    if not has_any_new:
+        return None
+
+    now_jst = now.strftime("%Y-%m-%d %H:%M")
+    header = f"# 📰 新着ニュース ({now_jst} JST時点)"
+    return "\n\n".join([header] + sections)
 
 
-def build_market_message():
+def build_market_message(state, now):
+    """株価は常に送る。経済ニュースは新着があるときだけ追記する。"""
     lines = []
-    today = datetime.date.today().strftime("%Y-%m-%d")
-    lines.append(f"# 💹 マーケット・経済ニュース ({today})")
+    now_jst = now.strftime("%Y-%m-%d %H:%M")
+    lines.append(f"# 💹 マーケット情報 ({now_jst} JST時点)")
 
     lines.append("\n## 📈 株価")
     nikkei = fetch_nikkei225()
@@ -212,13 +277,12 @@ def build_market_message():
     else:
         lines.append("- ドル円: 取得できませんでした")
 
-    lines.append("\n## 💰 経済ニュース")
-    biz_items = fetch_rss_items(YAHOO_BUSINESS_RSS)
-    if biz_items:
-        for item in biz_items:
+    biz_all = fetch_rss_items(YAHOO_BUSINESS_RSS)
+    biz_new = dedupe_new_items(biz_all, "url", state, now)
+    if biz_new:
+        lines.append("\n## 💰 経済ニュース(新着)")
+        for item in biz_new:
             lines.append(f"- [{item['title']}]({item['url']})")
-    else:
-        lines.append("- 取得できませんでした")
 
     return "\n".join(lines)
 
@@ -267,25 +331,34 @@ def main():
         print("[ERROR] DISCORD_WEBHOOK_NEWS / DISCORD_WEBHOOK_MARKET のどちらも設定されていません。")
         sys.exit(1)
 
+    now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
+    state = load_seen_state()
+    state = prune_old_entries(state, now)
+
     had_error = False
 
     if news_webhook:
-        news_message = build_news_message()
-        print("=== ニュースメッセージ ===")
-        print(news_message)
-        if not send_to_discord(news_webhook, news_message):
-            had_error = True
+        news_message = build_news_message(state, now)
+        if news_message:
+            print("=== ニュースメッセージ(新着あり) ===")
+            print(news_message)
+            if not send_to_discord(news_webhook, news_message):
+                had_error = True
+        else:
+            print("[INFO] 新着ニュースはありませんでした。送信をスキップします。")
     else:
         print("[WARN] DISCORD_WEBHOOK_NEWS が未設定のため、ニュース配信をスキップします。")
 
     if market_webhook:
-        market_message = build_market_message()
+        market_message = build_market_message(state, now)
         print("=== マーケットメッセージ ===")
         print(market_message)
         if not send_to_discord(market_webhook, market_message):
             had_error = True
     else:
         print("[WARN] DISCORD_WEBHOOK_MARKET が未設定のため、マーケット配信をスキップします。")
+
+    save_seen_state(state)
 
     if had_error:
         sys.exit(1)

@@ -2,15 +2,20 @@ name: ニュース自動配信
 
 on:
   schedule:
-    # 毎日 7:00 / 18:00 JST = 前日22:00 UTC / 当日09:00 UTC
-    - cron: "0 22 * * *"
-    - cron: "0 9 * * *"
+    # 30分ごと(準リアルタイム配信。新着が無い実行はDiscord送信自体をスキップする)
+    - cron: "*/30 * * * *"
   workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+
+permissions:
+  contents: write  # state/news_seen.json(既送信記録)のコミット用
 
 jobs:
   fetch-news:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    concurrency:
+      group: fetch-news
+      cancel-in-progress: false  # 30分間隔の実行が重ならないようにする
     steps:
       - uses: actions/checkout@v4
 
@@ -26,3 +31,13 @@ jobs:
           DISCORD_WEBHOOK_NEWS: ${{ secrets.DISCORD_WEBHOOK_NEWS }}
           DISCORD_WEBHOOK_MARKET: ${{ secrets.DISCORD_WEBHOOK_MARKET }}
         run: python scripts/fetch_news.py
+
+      - name: 既送信記録をコミット
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state/news_seen.json
+          git diff --cached --quiet || git commit -m "ニュース既送信記録を更新"
+          git pull --rebase origin main
+          git push
