@@ -1310,26 +1310,46 @@
             window.open(url, '_blank');
         }
 
-        function saveCurrentRoute() {
-            if (routeWaypoints.length < 2) {
-                alert('保存するルートを作成してください。');
-                return;
+        // 破損したlocalStorageデータでもクラッシュしないよう、安全にパースするヘルパー
+        function safeLoadSavedRoutes() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem('savedWalkRoutes') || '[]');
+                if (!Array.isArray(parsed)) return [];
+                // 各要素がwaypoints配列を持つ有効なオブジェクトであることを保証する
+                return parsed.filter(r => r && typeof r === 'object' && Array.isArray(r.waypoints) && r.waypoints.length > 0);
+            } catch (e) {
+                console.warn('savedWalkRoutesの読み込みに失敗したため、空リストとして扱います:', e);
+                return [];
             }
+        }
 
-            const title = prompt('保存する散歩ルートのタイトルを入力してください:', routeWaypoints[0].name + '〜' + routeWaypoints[routeWaypoints.length - 1].name + 'コース');
-            if (!title) return;
+        function saveCurrentRoute() {
+            try {
+                if (!routeWaypoints || routeWaypoints.length < 2) {
+                    alert('保存するルートを作成してください。');
+                    return;
+                }
 
-            const saved = JSON.parse(localStorage.getItem('savedWalkRoutes') || '[]');
-            
-            saved.push({ 
-                title: title, 
-                waypoints: routeWaypoints, 
-                totalDist: currentRouteTotalDist.toFixed(1),
-                date: new Date().toLocaleDateString() 
-            });
-            
-            localStorage.setItem('savedWalkRoutes', JSON.stringify(saved));
-            loadSavedRoutes();
+                const firstName = routeWaypoints[0] && routeWaypoints[0].name ? routeWaypoints[0].name : '出発地';
+                const lastName = routeWaypoints[routeWaypoints.length - 1] && routeWaypoints[routeWaypoints.length - 1].name ? routeWaypoints[routeWaypoints.length - 1].name : '到着地';
+                const title = prompt('保存する散歩ルートのタイトルを入力してください:', firstName + '〜' + lastName + 'コース');
+                if (!title) return;
+
+                const saved = safeLoadSavedRoutes();
+
+                saved.push({
+                    title: title,
+                    waypoints: routeWaypoints,
+                    totalDist: (currentRouteTotalDist || 0).toFixed(1),
+                    date: new Date().toLocaleDateString()
+                });
+
+                localStorage.setItem('savedWalkRoutes', JSON.stringify(saved));
+                loadSavedRoutes();
+            } catch (e) {
+                console.error('saveCurrentRoute error:', e);
+                alert('ルートの保存中にエラーが発生しました。');
+            }
         }
 
         function calculateSavedRouteDistance(waypoints) {
@@ -1343,52 +1363,73 @@
 
         // --- デバッガー指示書準拠: loadSavedRoutes (総歩行距離の明示表示) ---
         function loadSavedRoutes() {
-            const listEl = document.getElementById('savedRoutesList');
-            const saved = JSON.parse(localStorage.getItem('savedWalkRoutes') || '[]');
+            try {
+                const listEl = document.getElementById('savedRoutesList');
+                if (!listEl) return;
+                const saved = safeLoadSavedRoutes();
 
-            if (saved.length === 0) {
-                listEl.innerHTML = '<div class="text-slate-500 text-center py-2">保存されたルートはありません</div>';
-                return;
-            }
+                if (saved.length === 0) {
+                    listEl.innerHTML = '<div class="text-slate-500 text-center py-2">保存されたルートはありません</div>';
+                    return;
+                }
 
-            let savedHtml = '';
-            for (let i = 0; i < saved.length; i++) {
-                const r = saved[i];
-                
-                // ★ 総距離が存在する場合に表示するHTMLスニペットを作成
-                const distVal = r.totalDist ? r.totalDist : calculateSavedRouteDistance(r.waypoints);
-                const distText = distVal ? ' | 総歩行距離: <strong class="text-emerald-300">' + distVal + ' km</strong>' : '';
-                
-                savedHtml += 
-                    '<div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded border border-slate-700">' +
-                    '<div>' +
-                    '<strong class="text-slate-200 text-xs block mb-0.5">' + r.title + '</strong>' +
-                    // ★ 日付・経由地数に加えて総距離を表示するよう修正
-                    '<span class="text-[10px] text-slate-400">' + r.date + ' | 経由地: ' + r.waypoints.length + '箇所' + distText + '</span>' +
-                    '</div>' +
-                    '<div class="flex gap-1">' +
-                    '<button onclick="applySavedRoute(' + i + ')" class="bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded font-bold">呼出</button>' +
-                    '<button onclick="deleteSavedRoute(' + i + ')" class="text-slate-500 hover:text-rose-400 p-0.5"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>' +
-                    '</div>' +
-                    '</div>';
+                let savedHtml = '';
+                for (let i = 0; i < saved.length; i++) {
+                    const r = saved[i];
+                    const title = r.title || '無題のルート';
+                    const date = r.date || '';
+                    const waypointCount = Array.isArray(r.waypoints) ? r.waypoints.length : 0;
+
+                    // ★ 総距離が存在する場合に表示するHTMLスニペットを作成
+                    const distVal = r.totalDist ? r.totalDist : calculateSavedRouteDistance(r.waypoints);
+                    const distText = distVal ? ' | 総歩行距離: <strong class="text-emerald-300">' + distVal + ' km</strong>' : '';
+
+                    savedHtml +=
+                        '<div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded border border-slate-700">' +
+                        '<div>' +
+                        '<strong class="text-slate-200 text-xs block mb-0.5">' + title + '</strong>' +
+                        // ★ 日付・経由地数に加えて総距離を表示するよう修正
+                        '<span class="text-[10px] text-slate-400">' + date + ' | 経由地: ' + waypointCount + '箇所' + distText + '</span>' +
+                        '</div>' +
+                        '<div class="flex gap-1">' +
+                        '<button onclick="applySavedRoute(' + i + ')" class="bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded font-bold">呼出</button>' +
+                        '<button onclick="deleteSavedRoute(' + i + ')" class="text-slate-500 hover:text-rose-400 p-0.5"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>' +
+                        '</div>' +
+                        '</div>';
+                }
+                listEl.innerHTML = savedHtml;
+                safeCreateIcons();
+            } catch (e) {
+                console.error('loadSavedRoutes error:', e);
             }
-            listEl.innerHTML = savedHtml;
-            safeCreateIcons();
         }
 
         function applySavedRoute(idx) {
-            const saved = JSON.parse(localStorage.getItem('savedWalkRoutes') || '[]');
-            if (saved[idx]) {
-                routeWaypoints = [...saved[idx].waypoints];
-                updateRoute();
+            try {
+                const saved = safeLoadSavedRoutes();
+                if (saved[idx] && Array.isArray(saved[idx].waypoints) && saved[idx].waypoints.length > 0) {
+                    routeWaypoints = saved[idx].waypoints
+                        .filter(wp => wp && typeof wp.lat === 'number' && typeof wp.lng === 'number')
+                        .map(wp => ({ name: wp.name || '無題のスポット', lat: wp.lat, lng: wp.lng }));
+                    updateRoute();
+                } else {
+                    alert('このルートのデータが壊れているため呼び出せません。削除してください。');
+                }
+            } catch (e) {
+                console.error('applySavedRoute error:', e);
+                alert('ルートの呼び出し中にエラーが発生しました。');
             }
         }
 
         function deleteSavedRoute(idx) {
-            const saved = JSON.parse(localStorage.getItem('savedWalkRoutes') || '[]');
-            saved.splice(idx, 1);
-            localStorage.setItem('savedWalkRoutes', JSON.stringify(saved));
-            loadSavedRoutes();
+            try {
+                const saved = safeLoadSavedRoutes();
+                saved.splice(idx, 1);
+                localStorage.setItem('savedWalkRoutes', JSON.stringify(saved));
+                loadSavedRoutes();
+            } catch (e) {
+                console.error('deleteSavedRoute error:', e);
+            }
         }
 
         // イベントリスナー設定
