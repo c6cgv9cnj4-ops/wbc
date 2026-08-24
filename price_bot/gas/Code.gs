@@ -187,11 +187,11 @@ function formatNumber_(n) {
 }
 
 // =====================================================================
-// Webアプリ経由の自動連携(doPost) — GitHub Actions からのPOSTを受ける
+// Webアプリ経由の自動連携 — GitHub Actions からのリクエストを受ける
 // =====================================================================
 
 /**
- * POSTで受け取るJSON形式:
+ * secret・itemsの中身(itemsは配列)は共通で以下の形式:
  * {
  *   "secret": "スクリプトプロパティSHARED_SECRETと同じ値",
  *   "items": [
@@ -208,15 +208,44 @@ function formatNumber_(n) {
  *     ...
  *   ]
  * }
+ *
+ * 【doGet優先の理由】
+ * このウェブアプリのデプロイで、POSTリクエストのみが常にHTTP 405で拒否される
+ * (GETは正常/実行数ログには「完了」と記録されるのにHTTP応答だけ405になる)
+ * というGoogle側の既知の不具合に遭遇したため、データ送信は doGet の
+ * クエリパラメータ経由に統一している。doPostは互換のため残してあるが、
+ * 現状の運用では push_to_sheets.py は doGet 経由のみを使う。
  */
 function doPost(e) {
+  return handleIncomingRequest_(e && e.postData && e.postData.contents
+    ? safeJsonParse_(e.postData.contents)
+    : (e && e.parameter) || {});
+}
+
+/**
+ * 疎通確認(パラメータ無しでアクセスした場合)と、実際のデータ送信
+ * (secret・itemsをクエリパラメータで受け取る場合)の両方をここで処理する。
+ * items は JSON文字列をURLエンコードしたものを想定。
+ */
+function doGet(e) {
+  var params = (e && e.parameter) || {};
+  if (!params.items) {
+    return jsonResponse_({ ok: true, message: 'このエンドポイントは稼働中です。secret/itemsパラメータ付きでアクセスするとデータを登録します。' });
+  }
+
+  var payload = {
+    secret: params.secret,
+    items: safeJsonParse_(params.items) || []
+  };
+  return handleIncomingRequest_(payload);
+}
+
+function handleIncomingRequest_(payload) {
   var response;
   try {
-    if (!e || !e.postData || !e.postData.contents) {
-      throw new Error('リクエストボディがありません');
+    if (!payload) {
+      throw new Error('リクエスト内容を解釈できませんでした');
     }
-    var payload = JSON.parse(e.postData.contents);
-
     var expected = PropertiesService.getScriptProperties().getProperty('SHARED_SECRET');
     if (!expected) {
       throw new Error('SHARED_SECRETがスクリプトプロパティに設定されていません');
@@ -234,11 +263,12 @@ function doPost(e) {
   return jsonResponse_(response);
 }
 
-/**
- * doGetは疎通確認用(ブラウザでURLを開いたときに簡単な応答を返す)。
- */
-function doGet(e) {
-  return jsonResponse_({ ok: true, message: 'このエンドポイントはPOST専用です。' });
+function safeJsonParse_(text) {
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    return null;
+  }
 }
 
 function jsonResponse_(obj) {
