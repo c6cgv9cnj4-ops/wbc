@@ -1,0 +1,38 @@
+name: Discordログ収集・Issues自動起票
+
+on:
+  workflow_dispatch: {}  # 現時点では手動実行のみ。定期実行のタイミングが決まったらcronを追加する。
+
+permissions:
+  contents: write   # logs/daily, logs/health への書き込み(コミット)用
+  issues: write      # TODO/BUY投稿のIssue自動起票用
+
+jobs:
+  export-and-file:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      - name: Discordログ取得 & Issues自動起票
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID_INPUT: ${{ secrets.DISCORD_CHANNEL_ID_INPUT }}
+          DISCORD_CHANNEL_ID_HEALTH: ${{ secrets.DISCORD_CHANNEL_ID_HEALTH }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/export_discord_logs.py
+
+      - name: ログファイルをコミット
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add logs/daily logs/health
+          git diff --cached --quiet || git commit -m "Discordログを自動保存 ($(date -u +%Y-%m-%d))"
+          git push
