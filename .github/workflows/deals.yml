@@ -1,0 +1,39 @@
+name: 底値トラッカー自動収集
+
+on:
+  schedule:
+    # 毎日 8:00 / 16:00 JST = 前日23:00 UTC / 当日07:00 UTC
+    - cron: "0 23 * * *"
+    - cron: "0 7 * * *"
+  workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+
+jobs:
+  fetch-deals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール(price_bot/requirements.txtを共用)
+        run: |
+          pip install -r price_bot/requirements.txt
+          playwright install --with-deps chromium
+
+      - name: 厳選4ジャンルのチラシ取得〜Gemini解析〜スプレッドシート更新
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DEALS_GAS_WEB_APP_URL: ${{ secrets.DEALS_GAS_WEB_APP_URL }}
+          DEALS_GAS_SHARED_SECRET: ${{ secrets.DEALS_GAS_SHARED_SECRET }}
+        run: python scripts/fetch_deals.py
+
+      - name: 実行ログ(deals_downloads/)をArtifactとして保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deals-downloads-${{ github.run_id }}
+          path: deals_downloads/
+          retention-days: 14
