@@ -2,27 +2,28 @@ name: ニュース自動配信
 
 on:
   schedule:
-    # 毎日 7:00 / 18:00 JST = 前日22:00 UTC / 当日09:00 UTC
-    - cron: "0 22 * * *"
-    - cron: "0 9 * * *"
-  workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+    - cron: '0 0,6,12 * * *' # 日本時間 9:00, 15:00, 21:00
+  workflow_dispatch:
 
 jobs:
   fetch-news:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - name: Run actions/checkout@v4
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Run actions/setup-python@v5
+        uses: setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.10'
 
       - name: 依存パッケージをインストール
-        run: pip install -r requirements.txt
+        run: |
+          pip install feedparser requests
 
       - name: ニュース・マーケット情報を取得してDiscordへ配信
         env:
           DISCORD_WEBHOOK_NEWS: ${{ secrets.DISCORD_WEBHOOK_NEWS }}
           DISCORD_WEBHOOK_MARKET: ${{ secrets.DISCORD_WEBHOOK_MARKET }}
-        run: python scripts/fetch_news.py
+        run: |
+          python scripts/fetch_news.py
