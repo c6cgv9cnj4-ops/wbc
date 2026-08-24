@@ -3,7 +3,9 @@ name: ニュース自動配信
 on:
   schedule:
     # 30分ごと(準リアルタイム配信。新着が無い実行はDiscord送信自体をスキップする)
-    - cron: "*/30 * * * *"
+    # 毎時0分・30分ちょうどは世界中のワークフローが集中し遅延・スキップされやすいため、
+    # GitHub公式の推奨に従い3分・33分にオフセットしている。
+    - cron: "3,33 * * * *"
   workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
 
 permissions:
@@ -28,8 +30,10 @@ jobs:
 
       - name: ニュース・マーケット情報を取得してDiscordへ配信
         env:
-          DISCORD_WEBHOOK_NEWS: ${{ secrets.DISCORD_WEBHOOK_NEWS }}
-          DISCORD_WEBHOOK_MARKET: ${{ secrets.DISCORD_WEBHOOK_MARKET }}
+          # GitHub Secrets側の実際の登録名は WEBHOOK_NEWS / WEBHOOK_MARKET (DISCORD_プレフィックス無し)。
+          # fetch_news.py が読む環境変数名(DISCORD_WEBHOOK_NEWS等)とは別物なので、ここで変換する。
+          DISCORD_WEBHOOK_NEWS: ${{ secrets.WEBHOOK_NEWS }}
+          DISCORD_WEBHOOK_MARKET: ${{ secrets.WEBHOOK_MARKET }}
         run: python scripts/fetch_news.py
 
       - name: 既送信記録をコミット
