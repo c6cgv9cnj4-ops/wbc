@@ -1,0 +1,44 @@
+name: 特売価格チェック
+
+on:
+  schedule:
+    # 毎週水・土曜 8:00 JST = 前日23:00 UTC
+    - cron: "0 23 * * 2,5"
+  workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+
+jobs:
+  scrape-and-notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: |
+          pip install -r price_bot/requirements.txt
+          playwright install --with-deps chromium
+
+      - name: チラシ取得〜Gemini APIで価格解析
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        working-directory: price_bot
+        run: python scripts/scraper.py
+
+      - name: GASウェブアプリへ結果を送信(スプレッドシート更新・ToDo通知)
+        env:
+          GAS_WEB_APP_URL: ${{ secrets.GAS_WEB_APP_URL }}
+          GAS_SHARED_SECRET: ${{ secrets.GAS_SHARED_SECRET }}
+        working-directory: price_bot
+        run: python scripts/push_to_sheets.py
+
+      - name: 実行ログ(price_bot/downloads/)をArtifactとして保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: price-check-downloads-${{ github.run_id }}
+          path: price_bot/downloads/
+          retention-days: 14

@@ -1,2 +1,5 @@
 node_modules/
 .env
+price_bot/downloads/
+price_bot/__pycache__/
+*.pyc
