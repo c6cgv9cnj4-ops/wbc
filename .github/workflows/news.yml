@@ -23,7 +23,7 @@ jobs:
 
       - name: ニュース・マーケット情報を取得してDiscordへ配信
         env:
-          DISCORD_WEBHOOK_NEWS: ${{ secrets.DISCORD_WEBHOOK_NEWS }}
-          DISCORD_WEBHOOK_MARKET: ${{ secrets.DISCORD_WEBHOOK_MARKET }}
+          DISCORD_WEBHOOK_NEWS: ${{ secrets.WEBHOOK_NEWS }}
+          DISCORD_WEBHOOK_MARKET: ${{ secrets.WEBHOOK_MARKET }}
         run: |
           python scripts/fetch_news.py
