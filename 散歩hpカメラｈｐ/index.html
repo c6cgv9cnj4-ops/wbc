@@ -629,7 +629,9 @@
                 mainSubject: s[6],
                 structure: s[7],
                 floraGantt: s[8],
-                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/' + P_SLUG[s[1]] + '/' + s[9],
+                // 固定のスポットID直リンクは対応するページが存在せず404になることが多いため、
+                // 確実にヒットするGANREF内キーワード検索URLに統一する
+                ganrefUrl: 'https://ganref.jp/search/photo?keyword=' + encodeURIComponent(s[2]),
                 statusUrl: s[10],
                 officialUrl: s[10],
                 distanceLinear: distLin,

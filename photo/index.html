@@ -244,14 +244,52 @@
 
     <!-- App Main Script Logic -->
     <script>
+        // スマホ実機ではコンソールが見えないため、エラー発生時に画面上部へ赤いトースト通知を出す。
+        // (以前はdocument.body全体を書き換えて画面を潰していたが、1箇所の不具合でアプリ全体が
+        //  操作不能になるのを避けるため、非破壊のトースト通知に変更)
+        function showErrorToast(message, line) {
+            try {
+                let toast = document.getElementById('__errorToast');
+                if (!toast) {
+                    toast = document.createElement('div');
+                    toast.id = '__errorToast';
+                    toast.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;' +
+                        'background:#dc2626;color:#fff;padding:10px 14px;font-size:12px;' +
+                        'font-family:-apple-system,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.3);' +
+                        'white-space:pre-wrap;word-break:break-word;';
+                    document.body.appendChild(toast);
+                }
+                toast.textContent = '⚠️ ' + message + (line ? ' (行: ' + line + ')' : '');
+                toast.style.display = 'block';
+                clearTimeout(toast._hideTimer);
+                toast._hideTimer = setTimeout(() => { toast.style.display = 'none'; }, 5000);
+            } catch (e) {
+                // トースト表示自体の失敗で連鎖エラーにならないよう握りつぶす
+            }
+        }
+
         window.onerror = function(msg, url, line) {
             console.error('Global Error: ' + msg + ' at line ' + line);
-            document.body.innerHTML = '<div style="background:#1e293b; color:#f87171; padding:30px; font-family:sans-serif; min-height:100vh;">' +
-                '<h2 style="font-size:24px; font-weight:bold; margin-bottom:10px;">⚠️ スクリプト実行エラーが発生しました</h2>' +
-                '<p style="font-size:16px; margin-bottom:5px;"><strong>エラー内容:</strong> ' + msg + '</p>' +
-                '<p style="font-size:14px; color:#94a3b8; margin-bottom:15px;"><strong>発生行:</strong> ' + line + '</p>' +
-                '</div>';
+            showErrorToast(String(msg), line);
+            return true;
         };
+
+        window.addEventListener('unhandledrejection', function(event) {
+            const reason = event && event.reason;
+            const message = (reason && reason.message) ? reason.message : String(reason);
+            console.error('Unhandled Promise Rejection:', reason);
+            showErrorToast('Promise rejection: ' + message);
+        });
+
+        // ポップアップ等にユーザー由来/外部データ文字列をHTMLとして差し込む際の簡易エスケープ
+        function escapeHtml(str) {
+            return String(str == null ? '' : str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
 
         function safeCreateIcons() {
             try {
@@ -629,7 +667,9 @@
                 mainSubject: s[6],
                 structure: s[7],
                 floraGantt: s[8],
-                ganrefUrl: 'https://ganref.jp/spot/photo/jpn/' + P_SLUG[s[1]] + '/' + s[9],
+                // 固定のスポットID直リンクは対応するページが存在せず404になることが多いため、
+                // 確実にヒットするGANREF内キーワード検索URLに統一する
+                ganrefUrl: 'https://ganref.jp/search/photo?keyword=' + encodeURIComponent(s[2]),
                 statusUrl: s[10],
                 officialUrl: s[10],
                 distanceLinear: distLin,
@@ -873,11 +913,20 @@
 
                 tokyoWalkSpots.forEach(spot => {
                     try {
-                        if (!spot || typeof spot.lat !== 'number' || typeof spot.lng !== 'number') {
+                        if (!spot) {
+                            console.warn('tokyoWalkSpots: skipping empty spot entry');
+                            return;
+                        }
+                        // 文字列で渡ってきた座標にも対応できるよう parseFloat を通し、
+                        // 数値化できない場合はこのスポットの生成自体を中断する
+                        const lat = parseFloat(spot.lat);
+                        const lng = parseFloat(spot.lng);
+                        if (isNaN(lat) || isNaN(lng)) {
                             console.warn('tokyoWalkSpots: skipping spot with invalid coordinates', spot);
                             return;
                         }
                         const safeName = spot.name || '名称不明スポット';
+                        const safeAddress = spot.address || '';
                         const safeCat = spot.cat || '';
                         const safeInfo = spot.info || '';
                         const safeHours = spot.hours || '';
@@ -892,12 +941,19 @@
                             markerOpts = { icon: coffeeIcon };
                         }
 
-                        const marker = L.marker([spot.lat, spot.lng], markerOpts).addTo(map);
+                        const marker = L.marker([lat, lng], markerOpts).addTo(map);
+                        // ポップアップ・地図タップの競合防止(念のための明示的保護。Leafletは既定でも
+                        // マーカー自体のクリックが地図のclickへバブリングしないようにしている)
+                        marker.on('click', function(evt) {
+                            if (evt && evt.originalEvent) {
+                                L.DomEvent.stopPropagation(evt.originalEvent);
+                            }
+                        });
 
                         if (safeHours && safeHoliday) {
-                            const tooltipContent = '<div style="font-weight:bold; color:#f8fafc;">' + safeName + '</div>' +
-                                                   '<div style="color:#34d399;">🕒 営業時間: ' + safeHours + '</div>' +
-                                                   '<div style="color:#f43f5e;">📅 定休日: ' + safeHoliday + '</div>';
+                            const tooltipContent = '<div style="font-weight:bold; color:#f8fafc;">' + escapeHtml(safeName) + '</div>' +
+                                                   '<div style="color:#34d399;">🕒 営業時間: ' + escapeHtml(safeHours) + '</div>' +
+                                                   '<div style="color:#f43f5e;">📅 定休日: ' + escapeHtml(safeHoliday) + '</div>';
                             marker.bindTooltip(tooltipContent, {
                                 className: 'custom-hover-tooltip',
                                 direction: 'top',
@@ -905,20 +961,52 @@
                             });
                         }
 
-                        const infoBadge = safeInfo ? '<div class="text-amber-300 font-bold mt-1 text-[11px]">' + safeInfo + '</div>' : '';
-                        const hoursPopup = (safeHours && safeHoliday) ? '<div class="text-emerald-400 font-semibold text-[11px] mt-1">🕒 営業時間: ' + safeHours + '<br>📅 定休日: ' + safeHoliday + '</div>' : '';
+                        const infoBadge = safeInfo ? '<div class="text-amber-300 font-bold mt-1 text-[11px]">' + escapeHtml(safeInfo) + '</div>' : '';
+                        const addressLine = safeAddress ? '<div class="text-slate-500 text-[10px] mt-0.5">' + escapeHtml(safeAddress) + '</div>' : '';
+                        const hoursPopup = (safeHours && safeHoliday) ? '<div class="text-emerald-400 font-semibold text-[11px] mt-1">🕒 営業時間: ' + escapeHtml(safeHours) + '<br>📅 定休日: ' + escapeHtml(safeHoliday) + '</div>' : '';
 
+                        // 店名などをそのままonclick属性へ文字列展開すると、引用符・特殊文字を含む
+                        // 名称でSyntaxErrorになり得るため、inline onclickは使わずボタンだけ用意し、
+                        // popupopen時にaddEventListenerで安全にバインドする(下記参照)。
                         marker.bindPopup(
                             '<div class="text-slate-900 text-xs font-sans">' +
-                            '<strong class="text-sm font-bold block mb-1">' + safeName + '</strong>' +
-                            '<span class="inline-block bg-slate-200 px-1.5 py-0.5 rounded text-[10px] mb-1">' + safeCat + '</span>' +
+                            '<strong class="text-sm font-bold block mb-1">' + escapeHtml(safeName) + '</strong>' +
+                            '<span class="inline-block bg-slate-200 px-1.5 py-0.5 rounded text-[10px] mb-1">' + escapeHtml(safeCat) + '</span>' +
+                            addressLine +
                             infoBadge +
                             hoursPopup +
-                            '<button onclick="addWaypoint(\'' + safeName.replace(/'/g, "\\'") + '\', ' + spot.lat + ', ' + spot.lng + ')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded text-xs w-full mt-2">' +
+                            '<button type="button" class="js-add-waypoint-btn bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded text-xs w-full mt-2">' +
                             '＋ 散歩ルートに追加' +
                             '</button>' +
                             '</div>'
                         );
+
+                        // ポップアップが開くたびに呼ばれるが、ボタン自体は毎回作り直されるDOMなので
+                        // 二重バインドの心配はない。name/lat/lngは文字列結合せずクロージャで直接渡す。
+                        marker.on('popupopen', function(evt) {
+                            try {
+                                const popupEl = evt && evt.popup && evt.popup.getElement ? evt.popup.getElement() : null;
+                                const btn = popupEl ? popupEl.querySelector('.js-add-waypoint-btn') : null;
+                                if (!btn) return;
+
+                                let handled = false;
+                                const trigger = function(uiEvent) {
+                                    if (uiEvent) {
+                                        uiEvent.preventDefault();
+                                        uiEvent.stopPropagation();
+                                    }
+                                    // touchend発火直後に合成clickも飛んでくる端末があるため二重追加を防止
+                                    if (handled) return;
+                                    handled = true;
+                                    addWaypoint(safeName, lat, lng);
+                                    setTimeout(() => { handled = false; }, 400);
+                                };
+                                btn.addEventListener('click', trigger);
+                                btn.addEventListener('touchend', trigger, { passive: false });
+                            } catch (err) {
+                                console.warn('popup button bind error:', err);
+                            }
+                        });
                     } catch (err) {
                         console.warn('tokyoWalkSpots marker build error:', err, spot);
                     }
@@ -927,8 +1015,11 @@
                 map.on('click', function(e) {
                     try {
                         if (!e || !e.latlng) return;
-                        const name = '任意スポット (' + e.latlng.lat.toFixed(3) + ', ' + e.latlng.lng.toFixed(3) + ')';
-                        addWaypoint(name, e.latlng.lat, e.latlng.lng);
+                        const lat = parseFloat(e.latlng.lat);
+                        const lng = parseFloat(e.latlng.lng);
+                        if (isNaN(lat) || isNaN(lng)) return;
+                        const name = '任意スポット (' + lat.toFixed(3) + ', ' + lng.toFixed(3) + ')';
+                        addWaypoint(name, lat, lng);
                     } catch (err) {
                         console.warn('map click handler error:', err);
                     }
@@ -968,7 +1059,7 @@
                     });
 
                     const marker = L.marker([lat, lng], { icon: stationIcon }).addTo(map);
-                    marker.bindPopup('<strong class="text-xs">' + displayName + ' (検索追加)</strong>').openPopup();
+                    marker.bindPopup('<strong class="text-xs">' + escapeHtml(displayName) + ' (検索追加)</strong>').openPopup();
                     map.panTo([lat, lng]);
 
                     addWaypoint(displayName, lat, lng);
@@ -984,13 +1075,14 @@
 
         function addWaypoint(name, lat, lng) {
             try {
-                lat = Number(lat);
-                lng = Number(lng);
+                lat = parseFloat(lat);
+                lng = parseFloat(lng);
                 if (isNaN(lat) || isNaN(lng)) {
                     console.warn('addWaypoint: invalid coordinates', name, lat, lng);
+                    showErrorToast('座標データが不正なため、このスポットは追加できません: ' + (name || '不明'));
                     return;
                 }
-                routeWaypoints.push({ name: name || '名称不明スポット', lat: lat, lng: lng });
+                routeWaypoints.push({ name: (name && String(name).trim()) || '名称不明スポット', lat: lat, lng: lng });
                 updateRoute();
             } catch (err) {
                 console.error('addWaypoint error:', err);
@@ -1008,7 +1100,7 @@
             }
 
             const marker = L.marker([lat, lng]).addTo(map);
-            marker.bindPopup('<strong class="text-xs">' + name + '</strong>').openPopup();
+            marker.bindPopup('<strong class="text-xs">' + escapeHtml(name) + '</strong>').openPopup();
             map.panTo([lat, lng]);
 
             addWaypoint(name, lat, lng);
@@ -1122,7 +1214,7 @@
                     item.innerHTML = 
                         '<span class="flex items-center gap-1.5 font-medium truncate pointer-events-none">' +
                         '<span class="w-4 h-4 rounded-full bg-emerald-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">' + (i + 1) + '</span>' +
-                        '<span class="truncate text-slate-200">' + wp.name + '</span>' +
+                        '<span class="truncate text-slate-200">' + escapeHtml(wp.name) + '</span>' +
                         '</span>' +
                         '<div class="flex items-center gap-1">' +
                         '<span class="text-slate-500 text-[10px]">⠿ </span>' +
@@ -1387,9 +1479,9 @@
                     savedHtml +=
                         '<div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded border border-slate-700">' +
                         '<div>' +
-                        '<strong class="text-slate-200 text-xs block mb-0.5">' + title + '</strong>' +
+                        '<strong class="text-slate-200 text-xs block mb-0.5">' + escapeHtml(title) + '</strong>' +
                         // ★ 日付・経由地数に加えて総距離を表示するよう修正
-                        '<span class="text-[10px] text-slate-400">' + date + ' | 経由地: ' + waypointCount + '箇所' + distText + '</span>' +
+                        '<span class="text-[10px] text-slate-400">' + escapeHtml(date) + ' | 経由地: ' + waypointCount + '箇所' + distText + '</span>' +
                         '</div>' +
                         '<div class="flex gap-1">' +
                         '<button onclick="applySavedRoute(' + i + ')" class="bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded font-bold">呼出</button>' +
