@@ -630,8 +630,9 @@
                 structure: s[7],
                 floraGantt: s[8],
                 // 固定のスポットID直リンクは対応するページが存在せず404になることが多いため、
-                // 確実にヒットするGANREF内キーワード検索URLに統一する
-                ganrefUrl: 'https://ganref.jp/search/photo?keyword=' + encodeURIComponent(s[2]),
+                // GANREFトップページのGoogleカスタム検索フォーム(action="/common/search_results.html")と
+                // 同じパラメータ構成で組み立てる。実際にcurlで200/検索結果ページを確認済み。
+                ganrefUrl: 'https://ganref.jp/common/search_results.html?cx=' + encodeURIComponent('016230292038133056483:qltyvljgmvs') + '&cof=' + encodeURIComponent('FORID:9') + '&ie=UTF-8&q=' + encodeURIComponent(s[2]),
                 statusUrl: s[10],
                 officialUrl: s[10],
                 distanceLinear: distLin,

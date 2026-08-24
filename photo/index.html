@@ -4,17 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（保存ルート詳細情報対応版）</title>
+    <!-- ブラウザキャッシュ無効化: スマホが古いJS/HTMLを掴み続けるのを防ぐ -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <!-- Tailwind CSS (CDN) -->
+    <!-- 注意: cdn.tailwindcss.comはAccess-Control-Allow-Originを返さないため、
+         crossoriginを付けると読み込み自体が失敗する(curlで確認済み)。付与しない。 -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Lucide Icons (unpkgはAccess-Control-Allow-Origin: *を返すためcrossorigin付与可) -->
+    <script src="https://unpkg.com/lucide@latest" crossorigin="anonymous"></script>
     <!-- Leaflet CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Chart.js for Elevation Profile -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- スマホ・タブレットのタッチ操作対応ポリフィル -->
-    <script src="https://unpkg.com/drag-drop-touch-js@0.2.2/dist/drag-drop-touch.esm.min.js" type="module"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+    <!-- Chart.js for Elevation Profile (jsdelivrもAccess-Control-Allow-Origin: *) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" crossorigin="anonymous"></script>
+    <!-- drag-drop-touch-js@0.2.2 は未使用(実際の並べ替えは自前のtouchstart/touchmove実装)かつ
+         unpkg側のCORSヘッダ欠如で常に読み込み失敗していたため削除。
+         「Script error.」の一因になり得るため撤去する。 -->
     <style>
         .month-active { background-color: #10B981; color: #FFFFFF; font-weight: 700; }
         .month-inactive { color: #64748B; background-color: rgba(30, 41, 59, 0.5); }
@@ -668,8 +675,9 @@
                 structure: s[7],
                 floraGantt: s[8],
                 // 固定のスポットID直リンクは対応するページが存在せず404になることが多いため、
-                // 確実にヒットするGANREF内キーワード検索URLに統一する
-                ganrefUrl: 'https://ganref.jp/search/photo?keyword=' + encodeURIComponent(s[2]),
+                // GANREFトップページのGoogleカスタム検索フォーム(action="/common/search_results.html")と
+                // 同じパラメータ構成で組み立てる。実際にcurlで200/検索結果ページを確認済み。
+                ganrefUrl: 'https://ganref.jp/common/search_results.html?cx=' + encodeURIComponent('016230292038133056483:qltyvljgmvs') + '&cof=' + encodeURIComponent('FORID:9') + '&ie=UTF-8&q=' + encodeURIComponent(s[2]),
                 statusUrl: s[10],
                 officialUrl: s[10],
                 distanceLinear: distLin,
@@ -945,9 +953,10 @@
                         // ポップアップ・地図タップの競合防止(念のための明示的保護。Leafletは既定でも
                         // マーカー自体のクリックが地図のclickへバブリングしないようにしている)
                         marker.on('click', function(evt) {
-                            if (evt && evt.originalEvent) {
-                                L.DomEvent.stopPropagation(evt.originalEvent);
-                            }
+                            // モバイルSafariでのタッチ由来clickの重複発火・地図clickへの
+                            // バブリングを明示的に止める(オプショナルチェイニングでnull安全に)
+                            evt?.originalEvent?.stopPropagation?.();
+                            evt?.originalEvent?.preventDefault?.();
                         });
 
                         if (safeHours && safeHoliday) {

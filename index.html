@@ -3,16 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（営業時間・定休日完全対応版）</title>
+    <title>GANREF関東 撮影スポットNAVI & 都内撮影散歩ルート作成（保存ルート詳細情報対応版）</title>
+    <!-- ブラウザキャッシュ無効化: スマホが古いJS/HTMLを掴み続けるのを防ぐ -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <!-- Tailwind CSS (CDN) -->
+    <!-- 注意: cdn.tailwindcss.comはAccess-Control-Allow-Originを返さないため、
+         crossoriginを付けると読み込み自体が失敗する(curlで確認済み)。付与しない。 -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Lucide Icons (unpkgはAccess-Control-Allow-Origin: *を返すためcrossorigin付与可) -->
+    <script src="https://unpkg.com/lucide@latest" crossorigin="anonymous"></script>
     <!-- Leaflet CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Chart.js for Elevation Profile -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+    <!-- Chart.js for Elevation Profile (jsdelivrもAccess-Control-Allow-Origin: *) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" crossorigin="anonymous"></script>
+    <!-- drag-drop-touch-js@0.2.2 は未使用(実際の並べ替えは自前のtouchstart/touchmove実装)かつ
+         unpkg側のCORSヘッダ欠如で常に読み込み失敗していたため削除。
+         「Script error.」の一因になり得るため撤去する。 -->
     <style>
         .month-active { background-color: #10B981; color: #FFFFFF; font-weight: 700; }
         .month-inactive { color: #64748B; background-color: rgba(30, 41, 59, 0.5); }
@@ -20,7 +29,6 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #1E293B; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
         #map { height: 480px; z-index: 10; border-radius: 0.75rem; width: 100%; }
-        /* ホバー用ツールチップのスタイル */
         .custom-hover-tooltip {
             background-color: #1e293b;
             color: #f8fafc;
@@ -29,6 +37,16 @@
             padding: 6px 10px;
             font-size: 11px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+        .sorting-item {
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .sorting-item.dragging {
+            opacity: 0.5;
+            background: #0f172a !important;
+            border: 2px dashed #10B981 !important;
         }
     </style>
 </head>
@@ -63,7 +81,6 @@
 
     <!-- TAB 1: 関東撮影スポットNAVI -->
     <main id="tabContentSpot" class="max-w-7xl mx-auto px-3 sm:px-4 mt-4">
-        <!-- Filters Bar -->
         <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-5 flex flex-wrap justify-between items-center gap-3 text-xs sm:text-sm">
             <div class="flex items-center gap-1.5 text-slate-300">
                 <i data-lucide="map-pin" class="w-4 h-4 text-rose-400 shrink-0"></i>
@@ -121,7 +138,7 @@
                         <i data-lucide="compass" class="w-4 h-4 text-emerald-400"></i> 都内レトロ・散歩撮影ルート作成
                     </h2>
                     <p class="text-xs text-slate-300 leading-relaxed mb-3">
-                        マップ上のピン（青:スポット・駅 / オレンジ:そば / 茶:珈琲）にカーソルを合わせると営業時間が表示され、クリックすると詳細ポップアップが表示されます。
+                        下の経由地カードを<strong>スマホで指タッチ＆スライド</strong>、またはPCでドラッグして順番を自由に変更できます。
                     </p>
                     <div class="flex gap-2">
                         <button onclick="clearRoute()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-2 rounded-lg font-bold transition flex items-center justify-center gap-1 border border-slate-600">
@@ -166,7 +183,7 @@
                 <!-- Route Waypoints List -->
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
                     <h3 class="font-bold text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
-                        <span>選択された経由地 (<span id="routeCount">0</span>)</span>
+                        <span>選択された経由地 (<span id="routeCount">0</span>) <span class="text-[10px] text-emerald-400 font-normal">※タッチ/ドラッグで順序変更</span></span>
                         <span id="routeDistText" class="text-emerald-400 font-bold">0.0 km</span>
                     </h3>
                     <div id="routeWaypointsList" class="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar text-xs text-slate-300">
@@ -234,14 +251,52 @@
 
     <!-- App Main Script Logic -->
     <script>
+        // スマホ実機ではコンソールが見えないため、エラー発生時に画面上部へ赤いトースト通知を出す。
+        // (以前はdocument.body全体を書き換えて画面を潰していたが、1箇所の不具合でアプリ全体が
+        //  操作不能になるのを避けるため、非破壊のトースト通知に変更)
+        function showErrorToast(message, line) {
+            try {
+                let toast = document.getElementById('__errorToast');
+                if (!toast) {
+                    toast = document.createElement('div');
+                    toast.id = '__errorToast';
+                    toast.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;' +
+                        'background:#dc2626;color:#fff;padding:10px 14px;font-size:12px;' +
+                        'font-family:-apple-system,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.3);' +
+                        'white-space:pre-wrap;word-break:break-word;';
+                    document.body.appendChild(toast);
+                }
+                toast.textContent = '⚠️ ' + message + (line ? ' (行: ' + line + ')' : '');
+                toast.style.display = 'block';
+                clearTimeout(toast._hideTimer);
+                toast._hideTimer = setTimeout(() => { toast.style.display = 'none'; }, 5000);
+            } catch (e) {
+                // トースト表示自体の失敗で連鎖エラーにならないよう握りつぶす
+            }
+        }
+
         window.onerror = function(msg, url, line) {
             console.error('Global Error: ' + msg + ' at line ' + line);
-            document.body.innerHTML = '<div style="background:#1e293b; color:#f87171; padding:30px; font-family:sans-serif; min-height:100vh;">' +
-                '<h2 style="font-size:24px; font-weight:bold; margin-bottom:10px;">⚠️ スクリプト実行エラーが発生しました</h2>' +
-                '<p style="font-size:16px; margin-bottom:5px;"><strong>エラー内容:</strong> ' + msg + '</p>' +
-                '<p style="font-size:14px; color:#94a3b8; margin-bottom:15px;"><strong>発生行:</strong> ' + line + '</p>' +
-                '</div>';
+            showErrorToast(String(msg), line);
+            return true;
         };
+
+        window.addEventListener('unhandledrejection', function(event) {
+            const reason = event && event.reason;
+            const message = (reason && reason.message) ? reason.message : String(reason);
+            console.error('Unhandled Promise Rejection:', reason);
+            showErrorToast('Promise rejection: ' + message);
+        });
+
+        // ポップアップ等にユーザー由来/外部データ文字列をHTMLとして差し込む際の簡易エスケープ
+        function escapeHtml(str) {
+            return String(str == null ? '' : str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
 
         function safeCreateIcons() {
             try {
@@ -620,8 +675,9 @@
                 structure: s[7],
                 floraGantt: s[8],
                 // 固定のスポットID直リンクは対応するページが存在せず404になることが多いため、
-                // 確実にヒットするGANREF内キーワード検索URLに統一する
-                ganrefUrl: 'https://ganref.jp/search/photo?keyword=' + encodeURIComponent(s[2]),
+                // GANREFトップページのGoogleカスタム検索フォーム(action="/common/search_results.html")と
+                // 同じパラメータ構成で組み立てる。実際にcurlで200/検索結果ページを確認済み。
+                ganrefUrl: 'https://ganref.jp/common/search_results.html?cx=' + encodeURIComponent('016230292038133056483:qltyvljgmvs') + '&cof=' + encodeURIComponent('FORID:9') + '&ie=UTF-8&q=' + encodeURIComponent(s[2]),
                 statusUrl: s[10],
                 officialUrl: s[10],
                 distanceLinear: distLin,
@@ -767,7 +823,7 @@
                                 '</div>' +
                                 '<div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full lg:w-auto">' +
                                     '<a href="' + spot.yahooTransitUrl + '" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-sky-900/80 hover:bg-sky-800 text-sky-200 font-medium px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-center gap-1 border border-sky-700/80">' +
-                                        '<i data-lucide="subway" class="w-3.5 h-3.5 text-sky-300"></i> 路線検索' +
+                                        '<i data-lucide="train-front" class="w-3.5 h-3.5 text-sky-300"></i> 路線検索' +
                                     '</a>' +
                                     '<a href="' + spot.gmapLocalUrl + '" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-amber-600 hover:bg-amber-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow flex items-center justify-center gap-1">' +
                                         '<i data-lucide="car" class="w-3.5 h-3.5"></i> 車（一般道）' +
@@ -864,50 +920,118 @@
                 });
 
                 tokyoWalkSpots.forEach(spot => {
-                    let markerOpts = {};
-                    if (spot.cat === '主要駅') {
-                        markerOpts = { icon: stationIcon };
-                    } else if (spot.cat === '立ち食いそば') {
-                        markerOpts = { icon: sobaIcon };
-                    } else if (spot.cat === '珈琲専門店') {
-                        markerOpts = { icon: coffeeIcon };
-                    }
+                    try {
+                        if (!spot) {
+                            console.warn('tokyoWalkSpots: skipping empty spot entry');
+                            return;
+                        }
+                        // 文字列で渡ってきた座標にも対応できるよう parseFloat を通し、
+                        // 数値化できない場合はこのスポットの生成自体を中断する
+                        const lat = parseFloat(spot.lat);
+                        const lng = parseFloat(spot.lng);
+                        if (isNaN(lat) || isNaN(lng)) {
+                            console.warn('tokyoWalkSpots: skipping spot with invalid coordinates', spot);
+                            return;
+                        }
+                        const safeName = spot.name || '名称不明スポット';
+                        const safeAddress = spot.address || '';
+                        const safeCat = spot.cat || '';
+                        const safeInfo = spot.info || '';
+                        const safeHours = spot.hours || '';
+                        const safeHoliday = spot.holiday || '';
 
-                    const marker = L.marker([spot.lat, spot.lng], markerOpts).addTo(map);
+                        let markerOpts = {};
+                        if (safeCat === '主要駅') {
+                            markerOpts = { icon: stationIcon };
+                        } else if (safeCat === '立ち食いそば') {
+                            markerOpts = { icon: sobaIcon };
+                        } else if (safeCat === '珈琲専門店') {
+                            markerOpts = { icon: coffeeIcon };
+                        }
 
-                    // ★ ホバー時（カーソルを合わせた時）のツールチップ（営業時間・定休日）
-                    if (spot.hours && spot.holiday) {
-                        const tooltipContent = '<div style="font-weight:bold; color:#f8fafc;">' + spot.name + '</div>' +
-                                               '<div style="color:#34d399;">🕒 営業時間: ' + spot.hours + '</div>' +
-                                               '<div style="color:#f43f5e;">📅 定休日: ' + spot.holiday + '</div>';
-                        marker.bindTooltip(tooltipContent, {
-                            className: 'custom-hover-tooltip',
-                            direction: 'top',
-                            offset: [0, -10]
+                        const marker = L.marker([lat, lng], markerOpts).addTo(map);
+                        // ポップアップ・地図タップの競合防止(念のための明示的保護。Leafletは既定でも
+                        // マーカー自体のクリックが地図のclickへバブリングしないようにしている)
+                        marker.on('click', function(evt) {
+                            // モバイルSafariでのタッチ由来clickの重複発火・地図clickへの
+                            // バブリングを明示的に止める(オプショナルチェイニングでnull安全に)
+                            evt?.originalEvent?.stopPropagation?.();
+                            evt?.originalEvent?.preventDefault?.();
                         });
+
+                        if (safeHours && safeHoliday) {
+                            const tooltipContent = '<div style="font-weight:bold; color:#f8fafc;">' + escapeHtml(safeName) + '</div>' +
+                                                   '<div style="color:#34d399;">🕒 営業時間: ' + escapeHtml(safeHours) + '</div>' +
+                                                   '<div style="color:#f43f5e;">📅 定休日: ' + escapeHtml(safeHoliday) + '</div>';
+                            marker.bindTooltip(tooltipContent, {
+                                className: 'custom-hover-tooltip',
+                                direction: 'top',
+                                offset: [0, -10]
+                            });
+                        }
+
+                        const infoBadge = safeInfo ? '<div class="text-amber-300 font-bold mt-1 text-[11px]">' + escapeHtml(safeInfo) + '</div>' : '';
+                        const addressLine = safeAddress ? '<div class="text-slate-500 text-[10px] mt-0.5">' + escapeHtml(safeAddress) + '</div>' : '';
+                        const hoursPopup = (safeHours && safeHoliday) ? '<div class="text-emerald-400 font-semibold text-[11px] mt-1">🕒 営業時間: ' + escapeHtml(safeHours) + '<br>📅 定休日: ' + escapeHtml(safeHoliday) + '</div>' : '';
+
+                        // 店名などをそのままonclick属性へ文字列展開すると、引用符・特殊文字を含む
+                        // 名称でSyntaxErrorになり得るため、inline onclickは使わずボタンだけ用意し、
+                        // popupopen時にaddEventListenerで安全にバインドする(下記参照)。
+                        marker.bindPopup(
+                            '<div class="text-slate-900 text-xs font-sans">' +
+                            '<strong class="text-sm font-bold block mb-1">' + escapeHtml(safeName) + '</strong>' +
+                            '<span class="inline-block bg-slate-200 px-1.5 py-0.5 rounded text-[10px] mb-1">' + escapeHtml(safeCat) + '</span>' +
+                            addressLine +
+                            infoBadge +
+                            hoursPopup +
+                            '<button type="button" class="js-add-waypoint-btn bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded text-xs w-full mt-2">' +
+                            '＋ 散歩ルートに追加' +
+                            '</button>' +
+                            '</div>'
+                        );
+
+                        // ポップアップが開くたびに呼ばれるが、ボタン自体は毎回作り直されるDOMなので
+                        // 二重バインドの心配はない。name/lat/lngは文字列結合せずクロージャで直接渡す。
+                        marker.on('popupopen', function(evt) {
+                            try {
+                                const popupEl = evt && evt.popup && evt.popup.getElement ? evt.popup.getElement() : null;
+                                const btn = popupEl ? popupEl.querySelector('.js-add-waypoint-btn') : null;
+                                if (!btn) return;
+
+                                let handled = false;
+                                const trigger = function(uiEvent) {
+                                    if (uiEvent) {
+                                        uiEvent.preventDefault();
+                                        uiEvent.stopPropagation();
+                                    }
+                                    // touchend発火直後に合成clickも飛んでくる端末があるため二重追加を防止
+                                    if (handled) return;
+                                    handled = true;
+                                    addWaypoint(safeName, lat, lng);
+                                    setTimeout(() => { handled = false; }, 400);
+                                };
+                                btn.addEventListener('click', trigger);
+                                btn.addEventListener('touchend', trigger, { passive: false });
+                            } catch (err) {
+                                console.warn('popup button bind error:', err);
+                            }
+                        });
+                    } catch (err) {
+                        console.warn('tokyoWalkSpots marker build error:', err, spot);
                     }
-
-                    const infoBadge = spot.info ? '<div class="text-amber-300 font-bold mt-1 text-[11px]">' + spot.info + '</div>' : '';
-                    
-                    // ★ クリックした時のポップアップ内部にも営業時間と定休日を表示
-                    const hoursPopup = spot.hours ? '<div class="text-emerald-400 font-semibold text-[11px] mt-1">🕒 営業時間: ' + spot.hours + '<br>📅 定休日: ' + spot.holiday + '</div>' : '';
-
-                    marker.bindPopup(
-                        '<div class="text-slate-900 text-xs font-sans">' +
-                        '<strong class="text-sm font-bold block mb-1">' + spot.name + '</strong>' +
-                        '<span class="inline-block bg-slate-200 px-1.5 py-0.5 rounded text-[10px] mb-1">' + spot.cat + '</span>' +
-                        infoBadge +
-                        hoursPopup +
-                        '<button onclick="addWaypoint(\'' + spot.name.replace(/'/g, "\\'") + '\', ' + spot.lat + ', ' + spot.lng + ')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded text-xs w-full mt-2">' +
-                        '＋ 散歩ルートに追加' +
-                        '</button>' +
-                        '</div>'
-                    );
                 });
 
                 map.on('click', function(e) {
-                    const name = '任意スポット (' + e.latlng.lat.toFixed(3) + ', ' + e.latlng.lng.toFixed(3) + ')';
-                    addWaypoint(name, e.latlng.lat, e.latlng.lng);
+                    try {
+                        if (!e || !e.latlng) return;
+                        const lat = parseFloat(e.latlng.lat);
+                        const lng = parseFloat(e.latlng.lng);
+                        if (isNaN(lat) || isNaN(lng)) return;
+                        const name = '任意スポット (' + lat.toFixed(3) + ', ' + lng.toFixed(3) + ')';
+                        addWaypoint(name, lat, lng);
+                    } catch (err) {
+                        console.warn('map click handler error:', err);
+                    }
                 });
 
                 initChart();
@@ -944,7 +1068,7 @@
                     });
 
                     const marker = L.marker([lat, lng], { icon: stationIcon }).addTo(map);
-                    marker.bindPopup('<strong class="text-xs">' + displayName + ' (検索追加)</strong>').openPopup();
+                    marker.bindPopup('<strong class="text-xs">' + escapeHtml(displayName) + ' (検索追加)</strong>').openPopup();
                     map.panTo([lat, lng]);
 
                     addWaypoint(displayName, lat, lng);
@@ -959,8 +1083,19 @@
         }
 
         function addWaypoint(name, lat, lng) {
-            routeWaypoints.push({ name: name, lat: lat, lng: lng });
-            updateRoute();
+            try {
+                lat = parseFloat(lat);
+                lng = parseFloat(lng);
+                if (isNaN(lat) || isNaN(lng)) {
+                    console.warn('addWaypoint: invalid coordinates', name, lat, lng);
+                    showErrorToast('座標データが不正なため、このスポットは追加できません: ' + (name || '不明'));
+                    return;
+                }
+                routeWaypoints.push({ name: (name && String(name).trim()) || '名称不明スポット', lat: lat, lng: lng });
+                updateRoute();
+            } catch (err) {
+                console.error('addWaypoint error:', err);
+            }
         }
 
         function addCustomSpot() {
@@ -974,7 +1109,7 @@
             }
 
             const marker = L.marker([lat, lng]).addTo(map);
-            marker.bindPopup('<strong class="text-xs">' + name + '</strong>').openPopup();
+            marker.bindPopup('<strong class="text-xs">' + escapeHtml(name) + '</strong>').openPopup();
             map.panTo([lat, lng]);
 
             addWaypoint(name, lat, lng);
@@ -993,6 +1128,78 @@
             updateRoute();
         }
 
+        // --- 総歩行距離保持用変数 & updateStats ---
+        let currentRouteTotalDist = 0; // ルート総距離保持用
+
+        function updateStats(distKm) {
+            currentRouteTotalDist = distKm;
+            document.getElementById('routeDistText').textContent = distKm.toFixed(1) + ' km';
+            document.getElementById('statDistance').textContent = distKm.toFixed(1);
+
+            const walkMin = Math.round(distKm * 15);
+            const stayMin = routeWaypoints.length * 12;
+            const totalMin = walkMin + stayMin;
+
+            document.getElementById('statWalkTime').textContent = walkMin;
+            document.getElementById('statStayTime').textContent = stayMin;
+            document.getElementById('statTotalTime').textContent = totalMin;
+        }
+
+        // --- タッチ＆マウス両対応のドラッグ＆ドロップ並び替えエンジン ---
+        let dragSrcEl = null;
+
+        function handleDragStart(e) {
+            dragSrcEl = this;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', this.dataset.index);
+            this.classList.add('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleDragEnter(e) {
+            this.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            try {
+                e.stopPropagation();
+                e.preventDefault();
+                this.classList.remove('drag-over');
+
+                if (dragSrcEl && dragSrcEl !== this && dragSrcEl.dataset && this.dataset) {
+                    const srcIndex = parseInt(dragSrcEl.dataset.index);
+                    const targetIndex = parseInt(this.dataset.index);
+
+                    if (!isNaN(srcIndex) && !isNaN(targetIndex) && srcIndex >= 0 && srcIndex < routeWaypoints.length) {
+                        const item = routeWaypoints.splice(srcIndex, 1)[0];
+                        if (item) {
+                            routeWaypoints.splice(targetIndex, 0, item);
+                            updateRoute();
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('handleDrop error:', err);
+            }
+            return false;
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            document.querySelectorAll('#routeWaypointsList > div').forEach(item => {
+                item.classList.remove('drag-over');
+            });
+        }
+
         async function updateRoute() {
             try {
                 const listEl = document.getElementById('routeWaypointsList');
@@ -1006,21 +1213,84 @@
                     return;
                 }
 
-                let waypointsHtml = '';
-                for (let i = 0; i < routeWaypoints.length; i++) {
-                    const wp = routeWaypoints[i];
-                    waypointsHtml += 
-                        '<div class="flex items-center justify-between bg-slate-900/80 px-2.5 py-1.5 rounded border border-slate-700">' +
-                        '<span class="flex items-center gap-1.5 font-medium truncate">' +
+                listEl.innerHTML = '';
+                routeWaypoints.forEach((wp, i) => {
+                    const item = document.createElement('div');
+                    item.className = 'sorting-item flex items-center justify-between bg-slate-900/80 px-2.5 py-1.5 rounded border border-slate-700 cursor-move hover:border-emerald-500 transition';
+                    item.draggable = true;
+                    item.dataset.index = i;
+
+                    item.innerHTML = 
+                        '<span class="flex items-center gap-1.5 font-medium truncate pointer-events-none">' +
                         '<span class="w-4 h-4 rounded-full bg-emerald-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">' + (i + 1) + '</span>' +
-                        '<span class="truncate">' + wp.name + '</span>' +
+                        '<span class="truncate text-slate-200">' + escapeHtml(wp.name) + '</span>' +
                         '</span>' +
-                        '<button onclick="removeWaypoint(' + i + ')" class="text-slate-500 hover:text-rose-400 p-0.5">' +
+                        '<div class="flex items-center gap-1">' +
+                        '<span class="text-slate-500 text-[10px]">⠿ </span>' +
+                        '<button onclick="event.stopPropagation(); removeWaypoint(' + i + ')" class="text-slate-400 hover:text-rose-400 p-0.5">' +
                         '<i data-lucide="x-circle" class="w-3.5 h-3.5"></i>' +
                         '</button>' +
                         '</div>';
-                }
-                listEl.innerHTML = waypointsHtml;
+
+                    item.addEventListener('dragstart', handleDragStart);
+                    item.addEventListener('dragenter', handleDragEnter);
+                    item.addEventListener('dragover', handleDragOver);
+                    item.addEventListener('dragleave', handleDragLeave);
+                    item.addEventListener('drop', handleDrop);
+                    item.addEventListener('dragend', handleDragEnd);
+
+                    // スマホのタッチ操作シミュレーション
+                    let touchStartY = 0;
+                    item.addEventListener('touchstart', (e) => {
+                        try {
+                            if (!e.touches || !e.touches[0]) return;
+                            touchStartY = e.touches[0].clientY;
+                            dragSrcEl = item;
+                            dragSrcEl.dataset.index = i;
+                            item.classList.add('dragging');
+                        } catch (err) {
+                            console.warn('touchstart handler error:', err);
+                        }
+                    }, {passive: true});
+
+                    item.addEventListener('touchmove', (e) => {
+                        try {
+                            if (!dragSrcEl || !e.touches || !e.touches[0]) return;
+                            const touchY = e.touches[0].clientY;
+                            const diff = touchY - touchStartY;
+                            if (Math.abs(diff) > 25) {
+                                const target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+                                const targetItem = target ? target.closest('.sorting-item') : null;
+                                if (targetItem && targetItem !== dragSrcEl && targetItem.dataset && dragSrcEl.dataset) {
+                                    const srcIndex = parseInt(dragSrcEl.dataset.index);
+                                    const targetIndex = parseInt(targetItem.dataset.index);
+                                    if (!isNaN(srcIndex) && !isNaN(targetIndex) && srcIndex >= 0 && srcIndex < routeWaypoints.length) {
+                                        const itemData = routeWaypoints.splice(srcIndex, 1)[0];
+                                        if (itemData) {
+                                            routeWaypoints.splice(targetIndex, 0, itemData);
+                                            updateRoute();
+                                        }
+                                    }
+                                }
+                                touchStartY = touchY;
+                            }
+                        } catch (err) {
+                            console.warn('touchmove handler error:', err);
+                        }
+                    }, {passive: true});
+
+                    item.addEventListener('touchend', () => {
+                        try {
+                            item.classList.remove('dragging');
+                            dragSrcEl = null;
+                        } catch (err) {
+                            console.warn('touchend handler error:', err);
+                        }
+                    });
+
+                    listEl.appendChild(item);
+                });
+
                 safeCreateIcons();
 
                 if (routeWaypoints.length < 2) {
@@ -1033,8 +1303,15 @@
                 const locString = routeWaypoints.map(wp => `${wp.lng},${wp.lat}`).join(';');
                 const osrmUrl = `https://router.project-osrm.org/route/v1/foot/${locString}?overview=full&geometries=geojson`;
 
-                const res = await fetch(osrmUrl);
-                const data = await res.json();
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+                let res, data;
+                try {
+                    res = await fetch(osrmUrl, { signal: controller.signal });
+                    data = await res.json();
+                } finally {
+                    clearTimeout(timeoutId);
+                }
 
                 if (data.code === 'Ok' && data.routes.length > 0) {
                     const route = data.routes[0];
@@ -1059,19 +1336,6 @@
                 }
                 updateStats(directDist);
             }
-        }
-
-        function updateStats(distKm) {
-            document.getElementById('routeDistText').textContent = distKm.toFixed(1) + ' km';
-            document.getElementById('statDistance').textContent = distKm.toFixed(1);
-
-            const walkMin = Math.round(distKm * 15);
-            const stayMin = routeWaypoints.length * 12;
-            const totalMin = walkMin + stayMin;
-
-            document.getElementById('statWalkTime').textContent = walkMin;
-            document.getElementById('statStayTime').textContent = stayMin;
-            document.getElementById('statTotalTime').textContent = totalMin;
         }
 
         async function fetchElevationProfile(coords) {
@@ -1147,62 +1411,126 @@
             window.open(url, '_blank');
         }
 
-        function saveCurrentRoute() {
-            if (routeWaypoints.length < 2) {
-                alert('保存するルートを作成してください。');
-                return;
+        // 破損したlocalStorageデータでもクラッシュしないよう、安全にパースするヘルパー
+        function safeLoadSavedRoutes() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem('savedWalkRoutes') || '[]');
+                if (!Array.isArray(parsed)) return [];
+                // 各要素がwaypoints配列を持つ有効なオブジェクトであることを保証する
+                return parsed.filter(r => r && typeof r === 'object' && Array.isArray(r.waypoints) && r.waypoints.length > 0);
+            } catch (e) {
+                console.warn('savedWalkRoutesの読み込みに失敗したため、空リストとして扱います:', e);
+                return [];
             }
-
-            const title = prompt('保存する散歩ルートのタイトルを入力してください:', routeWaypoints[0].name + '〜' + routeWaypoints[routeWaypoints.length - 1].name + 'コース');
-            if (!title) return;
-
-            const saved = JSON.parse(localStorage.getItem('savedWalkRoutes') || '[]');
-            saved.push({ title: title, waypoints: routeWaypoints, date: new Date().toLocaleDateString() });
-            localStorage.setItem('savedWalkRoutes', JSON.stringify(saved));
-            loadSavedRoutes();
         }
 
+        function saveCurrentRoute() {
+            try {
+                if (!routeWaypoints || routeWaypoints.length < 2) {
+                    alert('保存するルートを作成してください。');
+                    return;
+                }
+
+                const firstName = routeWaypoints[0] && routeWaypoints[0].name ? routeWaypoints[0].name : '出発地';
+                const lastName = routeWaypoints[routeWaypoints.length - 1] && routeWaypoints[routeWaypoints.length - 1].name ? routeWaypoints[routeWaypoints.length - 1].name : '到着地';
+                const title = prompt('保存する散歩ルートのタイトルを入力してください:', firstName + '〜' + lastName + 'コース');
+                if (!title) return;
+
+                const saved = safeLoadSavedRoutes();
+
+                saved.push({
+                    title: title,
+                    waypoints: routeWaypoints,
+                    totalDist: (currentRouteTotalDist || 0).toFixed(1),
+                    date: new Date().toLocaleDateString()
+                });
+
+                localStorage.setItem('savedWalkRoutes', JSON.stringify(saved));
+                loadSavedRoutes();
+            } catch (e) {
+                console.error('saveCurrentRoute error:', e);
+                alert('ルートの保存中にエラーが発生しました。');
+            }
+        }
+
+        function calculateSavedRouteDistance(waypoints) {
+            if (!waypoints || waypoints.length < 2) return '0.0';
+            let dist = 0;
+            for (let i = 0; i < waypoints.length - 1; i++) {
+                dist += calcDist(waypoints[i].lat, waypoints[i].lng, waypoints[i+1].lat, waypoints[i+1].lng);
+            }
+            return (dist * 1.25).toFixed(1);
+        }
+
+        // --- デバッガー指示書準拠: loadSavedRoutes (総歩行距離の明示表示) ---
         function loadSavedRoutes() {
-            const listEl = document.getElementById('savedRoutesList');
-            const saved = JSON.parse(localStorage.getItem('savedWalkRoutes') || '[]');
+            try {
+                const listEl = document.getElementById('savedRoutesList');
+                if (!listEl) return;
+                const saved = safeLoadSavedRoutes();
 
-            if (saved.length === 0) {
-                listEl.innerHTML = '<div class="text-slate-500 text-center py-2">保存されたルートはありません</div>';
-                return;
-            }
+                if (saved.length === 0) {
+                    listEl.innerHTML = '<div class="text-slate-500 text-center py-2">保存されたルートはありません</div>';
+                    return;
+                }
 
-            let savedHtml = '';
-            for (let i = 0; i < saved.length; i++) {
-                const r = saved[i];
-                savedHtml += 
-                    '<div class="flex items-center justify-between bg-slate-900/80 p-2 rounded border border-slate-700">' +
-                    '<div>' +
-                    '<strong class="text-slate-200 text-xs block">' + r.title + '</strong>' +
-                    '<span class="text-[10px] text-slate-500">' + r.date + ' | 経由地: ' + r.waypoints.length + '箇所</span>' +
-                    '</div>' +
-                    '<div class="flex gap-1">' +
-                    '<button onclick="applySavedRoute(' + i + ')" class="bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded font-bold">呼出</button>' +
-                    '<button onclick="deleteSavedRoute(' + i + ')" class="text-slate-500 hover:text-rose-400 p-0.5"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>' +
-                    '</div>' +
-                    '</div>';
+                let savedHtml = '';
+                for (let i = 0; i < saved.length; i++) {
+                    const r = saved[i];
+                    const title = r.title || '無題のルート';
+                    const date = r.date || '';
+                    const waypointCount = Array.isArray(r.waypoints) ? r.waypoints.length : 0;
+
+                    // ★ 総距離が存在する場合に表示するHTMLスニペットを作成
+                    const distVal = r.totalDist ? r.totalDist : calculateSavedRouteDistance(r.waypoints);
+                    const distText = distVal ? ' | 総歩行距離: <strong class="text-emerald-300">' + distVal + ' km</strong>' : '';
+
+                    savedHtml +=
+                        '<div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded border border-slate-700">' +
+                        '<div>' +
+                        '<strong class="text-slate-200 text-xs block mb-0.5">' + escapeHtml(title) + '</strong>' +
+                        // ★ 日付・経由地数に加えて総距離を表示するよう修正
+                        '<span class="text-[10px] text-slate-400">' + escapeHtml(date) + ' | 経由地: ' + waypointCount + '箇所' + distText + '</span>' +
+                        '</div>' +
+                        '<div class="flex gap-1">' +
+                        '<button onclick="applySavedRoute(' + i + ')" class="bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded font-bold">呼出</button>' +
+                        '<button onclick="deleteSavedRoute(' + i + ')" class="text-slate-500 hover:text-rose-400 p-0.5"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>' +
+                        '</div>' +
+                        '</div>';
+                }
+                listEl.innerHTML = savedHtml;
+                safeCreateIcons();
+            } catch (e) {
+                console.error('loadSavedRoutes error:', e);
             }
-            listEl.innerHTML = savedHtml;
-            safeCreateIcons();
         }
 
         function applySavedRoute(idx) {
-            const saved = JSON.parse(localStorage.getItem('savedWalkRoutes') || '[]');
-            if (saved[idx]) {
-                routeWaypoints = [...saved[idx].waypoints];
-                updateRoute();
+            try {
+                const saved = safeLoadSavedRoutes();
+                if (saved[idx] && Array.isArray(saved[idx].waypoints) && saved[idx].waypoints.length > 0) {
+                    routeWaypoints = saved[idx].waypoints
+                        .filter(wp => wp && typeof wp.lat === 'number' && typeof wp.lng === 'number')
+                        .map(wp => ({ name: wp.name || '無題のスポット', lat: wp.lat, lng: wp.lng }));
+                    updateRoute();
+                } else {
+                    alert('このルートのデータが壊れているため呼び出せません。削除してください。');
+                }
+            } catch (e) {
+                console.error('applySavedRoute error:', e);
+                alert('ルートの呼び出し中にエラーが発生しました。');
             }
         }
 
         function deleteSavedRoute(idx) {
-            const saved = JSON.parse(localStorage.getItem('savedWalkRoutes') || '[]');
-            saved.splice(idx, 1);
-            localStorage.setItem('savedWalkRoutes', JSON.stringify(saved));
-            loadSavedRoutes();
+            try {
+                const saved = safeLoadSavedRoutes();
+                saved.splice(idx, 1);
+                localStorage.setItem('savedWalkRoutes', JSON.stringify(saved));
+                loadSavedRoutes();
+            } catch (e) {
+                console.error('deleteSavedRoute error:', e);
+            }
         }
 
         // イベントリスナー設定
