@@ -191,9 +191,20 @@ DEALS_STORES = [
      "tokubai_query": "ベルク北本東間店", "category_scope": None},
     {"name": "ウエルシア", "source": "tokubai",
      "tokubai_query": "ウエルシア北本中丸店", "category_scope": DRUGSTORE_ALLOWED_GENRES},
-    # 業務スーパー・とりせん・ヨークマートは、実サイト調査のうえ個別のスクレイパー
-    # (fetch_gyomu_super() / fetch_torisen() / fetch_yorkmart())を実装してから
-    # ここに追加する(未調査のまま追加すると動かないコードになるため保留)。
+    # とりせん北本店: 公式サイト(torisen.co.jp/shop/)がtokubai.co.jpへの店舗ウィジェット
+    # (offices/119)を掲載していたことから発見。実際にresolve_tokubai_store_path()で
+    # 店舗解決・チラシ画像URL取得まで動作確認済み(2026-08-25実施)。
+    {"name": "とりせん", "source": "tokubai",
+     "tokubai_query": "とりせん 北本店", "category_scope": None},
+    # 業務スーパー・ヤオコー公式・ベルク・ウエルシア公式・ヨークマートは、
+    # 実サイト調査のうえ個別のスクレイパーを実装してからここに追加する
+    # (未調査のまま追加すると動かないコードになるため保留)。
+    # 調査結果メモ:
+    #   - ヤオコー公式(yaoko-net.com): この実行環境からTCP接続タイムアウトで到達不可
+    #   - Shufoo!(shufoo.net): 店舗名検索で「ヤオコー」自体は0件(テナント店のみヒット)。
+    #     ヤオコー本体はShufoo!に出店していないため経由不可と判断。
+    #   - とりせん(torisen.jp): 公式(torisen.co.jp)とは無関係の別サイトだったため使用禁止。
+    #   - 業務スーパー(gyomuu.com)・ヨークマート(yorkmart.co.jp): TCP接続タイムアウトで到達不可
 ]
 
 # category_scope=None は「全ジャンルが対象(絞り込みなし)」を意味する。
