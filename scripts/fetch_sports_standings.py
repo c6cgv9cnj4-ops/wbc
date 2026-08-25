@@ -184,15 +184,17 @@ def fetch_f1_top3(now):
     return results
 
 
-def build_f1_embed(top3):
+def build_f1_embed(top3, now):
     if not top3:
         return None
     medals = ["🥇", "🥈", "🥉"]
     lines = [f"{medals[i]} {d['name']} ({d['team']})" for i, d in enumerate(top3)]
+    now_jst = now.strftime("%Y-%m-%d")
     return {
         "title": "🏎️ F1ドライバーズ・ランキング TOP3",
         "description": "\n".join(lines),
         "color": COLOR_F1,
+        "footer": {"text": f"Formula1.com / {now_jst} 時点"},
     }
 
 
@@ -228,15 +230,17 @@ def fetch_motogp_top3(now):
     return [r for r in rows if r.get("name") and r.get("team")]
 
 
-def build_motogp_embed(top3):
+def build_motogp_embed(top3, now):
     if not top3:
         return None
     medals = ["🥇", "🥈", "🥉"]
     lines = [f"{medals[i]} {d['name']} ({d['team']})" for i, d in enumerate(top3)]
+    now_jst = now.strftime("%Y-%m-%d")
     return {
         "title": "🏍️ MotoGPライダーズ・ランキング TOP3",
         "description": "\n".join(lines),
         "color": COLOR_MOTOGP,
+        "footer": {"text": f"MotoGP.com / {now_jst} 時点"},
     }
 
 
@@ -330,12 +334,12 @@ def main():
         embeds.append(jleague_embed)
 
     f1_top3 = fetch_f1_top3(now)
-    f1_embed = build_f1_embed(f1_top3)
+    f1_embed = build_f1_embed(f1_top3, now)
     if f1_embed:
         embeds.append(f1_embed)
 
     motogp_top3 = fetch_motogp_top3(now)
-    motogp_embed = build_motogp_embed(motogp_top3)
+    motogp_embed = build_motogp_embed(motogp_top3, now)
     if motogp_embed:
         embeds.append(motogp_embed)
 

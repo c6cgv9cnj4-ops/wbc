@@ -224,7 +224,7 @@ def fetch_matches_from_article(url):
     return matches
 
 
-def build_badminton_embeds(matches):
+def build_badminton_embeds(matches, now):
     embeds = []
     for m in matches:
         winner_display = m["winner"] + (f"({m['winner_country']})" if m["winner_country"] else "")
@@ -243,6 +243,11 @@ def build_badminton_embeds(matches):
         title = " ".join(title_parts)
         if m["date_estimate"]:
             title += f"（{m['date_estimate']}・推定）"
+        else:
+            # 大会日程表からラウンド名が逆引きできなかった場合(見出し表記の
+            # ゆらぎ等)のフォールバック。試合日そのものではなく、この結果を
+            # 検知・取得した日時であることが分かるように明記する。
+            title += f"（取得: {now.strftime('%m/%d %H:%M')}）"
 
         embeds.append({
             "title": title[:256],  # Discord Embedのtitle上限
@@ -301,7 +306,7 @@ def main():
         print(f"  [{m['event']}/{m['round']}] {m['tournament']}: {m['winner']} {m['score']} {m['loser']}")
 
     had_error = False
-    embeds = build_badminton_embeds(new_matches)
+    embeds = build_badminton_embeds(new_matches, now)
     if embeds:
         if not send_embeds_to_discord(webhook, embeds):
             had_error = True
