@@ -38,11 +38,19 @@ USER_AGENT = (
 
 TAG_PAGE_URL = "https://www.sposoku.com/tag/badminton/"
 
-# 指定注目選手(この文字列が記事側の選手名表記に含まれる場合にマッチとする。
-# ダブルスは記事側が姓のみで表記されるため、部分一致で判定する)
+# 指定注目選手(現役選手に確定。引退選手は含めない)。
+# この文字列が記事側の選手名表記に含まれる場合にマッチとする。
 TARGET_PLAYERS = [
-    "奥原希望", "渡辺勇大", "田口真彩", "志田千陽", "東野有紗",
-    "中出", "高橋", "福島由紀", "松山奈未", "松友美佐紀",
+    "奥原希望",
+    "渡辺勇大",
+    "田口真彩",
+    "志田千陽",
+    "東野有紗", "五十嵐有紗",  # 東野有紗(旧姓:五十嵐有紗)。ダブルスでは旧姓表記の場合があるため両方登録
+    "中西貴映",  # 岩永/中西ペア
+    "高橋明日香",  # ※高橋沙也加(引退)とは別人。フルネームで区別する
+    "福島由紀",  # 松本/福島ペア等
+    "松山奈未",
+    "松友美佐紀",  # 混合ダブルス等の出場も含めて捕捉
 ]
 
 MATCH_LINE_RE = re.compile(r"^([〇×])(.+?)　(\d+)[－\-](\d+)　([〇×])(.+?)(?:\(([^)]+)\))?$")
@@ -82,7 +90,14 @@ def prune_old_entries(state, now):
 
 
 def is_target_player(name):
-    return any(target in name or name in target for target in TARGET_PLAYERS)
+    # ダブルスは記事側が「姓・姓」の形式(例: 岩永・中西)で表記されるため、
+    # 「・」で分割してペアの片方だけでも指定選手と一致すれば検出する。
+    parts = re.split("[・･]", name) + [name]
+    return any(
+        target in part or part in target
+        for part in parts
+        for target in TARGET_PLAYERS
+    )
 
 
 def fetch_tournament_article_urls():
