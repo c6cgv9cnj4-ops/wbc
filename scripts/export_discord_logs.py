@@ -16,10 +16,14 @@ Discordログ収集 & Issues自動起票(Step 2)
 
 環境変数:
   DISCORD_BOT_TOKEN          (必須) Discord Botのトークン
-  DISCORD_CHANNEL_ID_INPUT   (必須) 「#インプット」チャンネルのID
-  DISCORD_CHANNEL_ID_HEALTH  (必須) 「#ヘルス・日報」チャンネルのID
+  DISCORD_CHANNEL_ID_INPUT   (任意) 「#インプット」チャンネルのID
+  DISCORD_CHANNEL_ID_HEALTH  (任意) 「#ヘルス・日報」チャンネルのID
   GITHUB_TOKEN               (必須) Issue作成用(Actions既定のGITHUB_TOKENを使う想定)
   GITHUB_REPOSITORY          (Actions実行時は自動設定される。"owner/repo"形式)
+
+いずれかのチャンネルID未設定・取得失敗(権限不足によるDiscord APIの403等)が
+あっても、このステップ自体は失敗させない(exit 0で終える)。後続の日刊/週刊
+レポート生成ステップは、ログの有無に関わらず必ず実行されるべきため。
 """
 import datetime
 import os
@@ -217,7 +221,6 @@ def main():
         sys.exit(1)
 
     date_str = datetime.datetime.now(JST).strftime("%Y-%m-%d")
-    had_error = False
     issue_count = 0
 
     for channel in CHANNELS:
@@ -230,8 +233,9 @@ def main():
         try:
             messages = fetch_today_messages(channel_id, bot_token)
         except Exception as err:  # noqa: BLE001
-            print(f"[ERROR] #{channel['label']} の取得に失敗しました: {err}")
-            had_error = True
+            # 権限不足(403)やチャンネルID誤りなど、このチャンネル固有の問題で
+            # ジョブ全体(後続の日刊/週刊レポート生成)を止めないよう、警告に留めて次へ進む。
+            print(f"[WARN] #{channel['label']} の取得に失敗したためスキップします: {err}")
             continue
 
         print(f"[INFO] {len(messages)}件のメッセージを取得しました。")
@@ -245,8 +249,6 @@ def main():
                 issue_count += 1
 
     print(f"=== 完了: Issue新規作成 {issue_count}件 ===")
-    if had_error:
-        sys.exit(1)
 
 
 if __name__ == "__main__":
