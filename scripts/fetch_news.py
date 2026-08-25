@@ -214,22 +214,20 @@ def fetch_usdjpy():
 # メッセージ組み立て・Discord送信
 # ============================================================
 
+def fetch_anzn_new_items(state, now):
+    """あんぜんねっと(北本市安全安心情報)の新着だけを切り出す。
+    最上部に赤枠強調(Discord Embed)で単独送信するため、他セクションとは分離している。
+    """
+    anzn_all = fetch_anzn_new_arrivals()
+    return dedupe_new_items(anzn_all, "url", state, now)
+
+
 def build_news_message(state, now):
-    """新着が1件も無ければNoneを返す(Discordへ空更新を送らないため)。"""
+    """新着が1件も無ければNoneを返す(Discordへ空更新を送らないため)。
+    あんぜんねっとの新着はここには含めない(build_anzn_alert_embed()で別送するため)。
+    """
     sections = []
     has_any_new = False
-
-    anzn_all = fetch_anzn_new_arrivals()
-    anzn_new = dedupe_new_items(anzn_all, "url", state, now)
-    if anzn_new:
-        has_any_new = True
-        lines = ["## 🚨 北本市安全安心情報(新着)"]
-        for item in anzn_new:
-            line = f"- **{item['datetime']}** [{item['city']}] {item['summary']}"
-            if item["url"]:
-                line += f" — <{item['url']}>"
-            lines.append(line)
-        sections.append("\n".join(lines))
 
     saitama_all = fetch_rss_items(GOOGLE_NEWS_SAITAMA_RSS)
     saitama_new = dedupe_new_items(saitama_all, "url", state, now)
@@ -287,6 +285,55 @@ def build_market_message(state, now):
     return "\n".join(lines)
 
 
+ANZN_EMBED_COLOR = 0xE53E3E  # 赤枠(Discord Embedの左側カラーバー)
+ANZN_EMBED_FIELD_LIMIT = 25  # Discord Embedのfields上限
+
+
+def build_anzn_alert_embed(anzn_new, now):
+    """あんぜんねっとの新着を、最上部に表示される赤色のDiscord Embedとして組み立てる。
+    火災・消防出動情報という速報性・緊急性の高い情報のため、他の一般ニュースとは
+    視覚的に分離し、常に最優先(最上部)で配信する。
+    """
+    if not anzn_new:
+        return None
+
+    fields = []
+    for item in anzn_new[:ANZN_EMBED_FIELD_LIMIT]:
+        value = item["summary"]
+        if item["url"]:
+            value += f"\n[詳細を見る]({item['url']})"
+        fields.append({
+            "name": f"🚒 {item['datetime']}［{item['city']}］",
+            "value": value[:1024],
+            "inline": False,
+        })
+
+    now_jst = now.strftime("%Y-%m-%d %H:%M")
+    return {
+        "embeds": [{
+            "title": "🚨 北本市安全安心情報(新着) — 火災・消防出動速報",
+            "color": ANZN_EMBED_COLOR,
+            "fields": fields,
+            "footer": {"text": f"あんぜんねっと(埼玉県央) / {now_jst} JST時点"},
+        }]
+    }
+
+
+def send_embed_to_discord(webhook_url, embed_payload):
+    if not webhook_url:
+        print("[ERROR] Webhook URLが設定されていないため送信をスキップします。")
+        return False
+    try:
+        resp = requests.post(webhook_url, json=embed_payload, timeout=REQUEST_TIMEOUT)
+        if resp.status_code >= 300:
+            print(f"[ERROR] Discord Embed送信に失敗しました(HTTP {resp.status_code}): {resp.text[:300]}")
+            return False
+        return True
+    except Exception as err:  # noqa: BLE001
+        print(f"[ERROR] Discord Embed送信中に例外が発生しました: {err}")
+        return False
+
+
 def chunk_message(text, limit=DISCORD_CHUNK_LIMIT):
     """Discordの1メッセージ2000文字制限に収まるよう、改行単位で分割する。"""
     lines = text.split("\n")
@@ -338,6 +385,16 @@ def main():
     had_error = False
 
     if news_webhook:
+        anzn_new = fetch_anzn_new_items(state, now)
+        anzn_embed = build_anzn_alert_embed(anzn_new, now)
+        if anzn_embed:
+            print("=== あんぜんねっと新着(赤枠強調・最優先送信) ===")
+            print(anzn_new)
+            if not send_embed_to_discord(news_webhook, anzn_embed):
+                had_error = True
+        else:
+            print("[INFO] あんぜんねっとの新着はありませんでした。")
+
         news_message = build_news_message(state, now)
         if news_message:
             print("=== ニュースメッセージ(新着あり) ===")
