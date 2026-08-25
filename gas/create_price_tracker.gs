@@ -9,10 +9,12 @@
  *    ※このファイルには実際のシークレット値を書き込まないこと(公開リポジトリで
  *      管理しているため、実際の値が漏えいする)。
  * 3. 関数選択プルダウンで実行する関数を選ぶ:
- *    - 初めてこのシートに導入する場合、または旧レイアウト(店舗1列/ヨークマート含む)から
- *      横展開レイアウト(店舗2列/ヨークマート除外)へ移行する場合は
- *      migrateToDualColumnLayout を1回だけ実行する(既存データは新レイアウトに変換して
- *      引き継がれる。ヨークマート列のデータのみ引き継がれず破棄される)。
+ *    - 現在のシートが「1行ヘッダー・横展開レイアウト」(店舗ごとに実売価格+換算単価の
+ *      2列を持つが、ヘッダーが1行のみの状態)の場合は migrateToTwoRowHeader を
+ *      1回だけ実行する(既存データはそのまま2行階層ヘッダーの下(3行目以降)へ
+ *      引き継がれる)。
+ *    - さらに古い「1店舗1列(換算単価のみ)」レイアウトから移行する場合は
+ *      先に migrateToDualColumnLayout を実行してから migrateToTwoRowHeader を実行する。
  *    - 単に書式だけを再適用したい場合は applyFormattingToExistingSheet を実行する。
  *    - まだ一度もこのシートで初期化していない場合は buildPriceTracker を実行する。
  *    (どの関数も、このシートに紐づいた状態のApps Scriptとして実行すること。既存の
@@ -54,6 +56,8 @@ var THEME = {
 // ダッシュボードシートの列。
 // 店舗ごとに「実売価格(内容量表示、テキスト)」「換算単価(数値、比較・ランキング用)」の
 // 2列を持つ横展開レイアウト(Amazon基準単価も同様に2列)。
+// ヘッダーは2行構成(1行目=親見出し(店舗名等、横結合/縦結合)、2行目=子見出し
+// (実売価格(内容量)/換算単価))で、データは3行目から始まる。
 var COL = {
   GENRE: 1, MAKER: 2, NAME: 3, SPEC: 4, UNIT: 5,
   AMAZON_PRICE: 6, AMAZON_UNIT: 7,
@@ -64,6 +68,9 @@ COL.MIN_PRICE = COL.STORE_END + 1;   // 実店舗最安単価
 COL.BEST_STORE = COL.STORE_END + 2;  // エリア最安店舗
 COL.RANKING = COL.STORE_END + 3;     // 買い推奨・価格順位ランキング
 var MASTER_HEADER_COUNT = COL.RANKING;
+
+var HEADER_ROWS = 2;      // ヘッダーが占める行数(1行目=親見出し、2行目=子見出し)
+var DATA_START_ROW = 3;   // 商品データの開始行
 
 // 価格ログ蓄積タブの列
 var LOG_COL = {
@@ -134,63 +141,99 @@ function buildPriceTracker() {
   return ss.getUrl();
 }
 
+// 2行階層ヘッダー(1行目=親見出し、2行目=子見出し)を構築する。
+// 呼び出すたびに冪等(既存のヘッダー2行を一旦解除・クリアしてから再構築する)。
+// データ行(3行目以降)には触れない(数値書式の再適用のみ行う)。
 function buildMasterDashboardSheet_(sheet) {
   sheet.setTabColor('#0284C7');
 
-  var headers = ['ジャンル', 'メーカー', '商品名', '規格・容量', '単位', 'Amazon実売価格(内容量)', 'Amazon換算単価'];
-  STORES.forEach(function (s) {
-    headers.push(s + ' 実売価格(内容量)');
-    headers.push(s + ' 換算単価');
+  var totalCols = MASTER_HEADER_COUNT;
+
+  // 既存のヘッダー2行分の結合・内容を一旦リセットしてから組み直す(冪等にするため)
+  var headerBlock = sheet.getRange(1, 1, HEADER_ROWS, totalCols);
+  headerBlock.breakApart();
+  headerBlock.clearContent();
+
+  // --- 固定項目(ジャンル〜単位): 1〜2行目を縦結合して1つの見出しにする ---
+  var fixedLabels = [
+    { col: COL.GENRE, label: 'ジャンル' },
+    { col: COL.MAKER, label: 'メーカー' },
+    { col: COL.NAME, label: '商品名' },
+    { col: COL.SPEC, label: '規格・容量' },
+    { col: COL.UNIT, label: '単位' },
+  ];
+  fixedLabels.forEach(function (f) {
+    sheet.getRange(1, f.col, HEADER_ROWS, 1).merge().setValue(f.label);
   });
-  headers.push('実店舗最安単価', 'エリア最安店舗', '買い推奨・価格順位ランキング');
 
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-
-  var headerRange = sheet.getRange(1, 1, 1, headers.length);
-  headerRange.setBackground(THEME.headerBg)
-    .setFontColor(THEME.headerFont)
-    .setFontWeight('bold')
-    .setFontSize(10)
-    .setVerticalAlignment('middle')
-    .setHorizontalAlignment('center');
-
-  sheet.getRange(1, COL.AMAZON_PRICE).setNote(
+  // --- Amazon基準単価: 1行目を横結合して親見出し、2行目に子見出し2つ ---
+  sheet.getRange(1, COL.AMAZON_PRICE, 1, 2).merge().setValue('Amazon基準単価');
+  sheet.getRange(2, COL.AMAZON_PRICE).setValue('実売価格(内容量)');
+  sheet.getRange(2, COL.AMAZON_UNIT).setValue('換算単価');
+  sheet.getRange(2, COL.AMAZON_PRICE).setNote(
     '自動取得していません。マスタデータ(基準価格・容量)として、ご自身で確認した実売価格と' +
     '内容量を手動入力してください(例: 1,280円(500ml))。空欄なら実店舗内ランキングのみ表示されます。'
   );
-  sheet.getRange(1, COL.AMAZON_UNIT).setNote(
+  sheet.getRange(2, COL.AMAZON_UNIT).setNote(
     '左のAmazon実売価格(内容量)から算出した100g/100mlあたりの換算単価を手動入力してください。' +
     'この列の数値が実店舗の換算単価と比較され、ランキングに反映されます。'
   );
 
-  sheet.setRowHeight(1, 40);
-  sheet.setFrozenRows(1);
+  // --- 各店舗: 1行目を横結合して店舗名、2行目に子見出し2つ ---
+  STORES.forEach(function (s, i) {
+    var priceCol = getStorePriceColumn_(i);
+    sheet.getRange(1, priceCol, 1, 2).merge().setValue(s);
+    sheet.getRange(2, priceCol).setValue('実売価格(内容量)');
+    sheet.getRange(2, priceCol + 1).setValue('換算単価');
+  });
+
+  // --- サマリー項目(実店舗最安単価・エリア最安店舗・ランキング): 縦結合 ---
+  var summaryLabels = [
+    { col: COL.MIN_PRICE, label: '実店舗最安単価' },
+    { col: COL.BEST_STORE, label: 'エリア最安店舗' },
+    { col: COL.RANKING, label: '買い推奨・価格順位ランキング' },
+  ];
+  summaryLabels.forEach(function (f) {
+    sheet.getRange(1, f.col, HEADER_ROWS, 1).merge().setValue(f.label);
+  });
+
+  headerBlock.setBackground(THEME.headerBg)
+    .setFontColor(THEME.headerFont)
+    .setFontWeight('bold')
+    .setFontSize(9.5)
+    .setVerticalAlignment('middle')
+    .setHorizontalAlignment('center')
+    .setWrap(true);
+
+  sheet.setRowHeight(1, 28);
+  sheet.setRowHeight(2, 34);
+  sheet.setFrozenRows(HEADER_ROWS);
   sheet.setFrozenColumns(3); // 商品名まで固定
 
   var widths = [110, 110, 220, 100, 70]; // ジャンル/メーカー/商品名/規格・容量/単位
   for (var i = 0; i < widths.length; i++) {
     sheet.setColumnWidth(i + 1, widths[i]);
   }
-  sheet.setColumnWidth(COL.AMAZON_PRICE, 150);
-  sheet.setColumnWidth(COL.AMAZON_UNIT, 100);
+  sheet.setColumnWidth(COL.AMAZON_PRICE, 90);
+  sheet.setColumnWidth(COL.AMAZON_UNIT, 85);
   for (var s = 0; s < STORES.length; s++) {
-    sheet.setColumnWidth(getStorePriceColumn_(s), 120);
-    sheet.setColumnWidth(getStoreUnitColumn_(s), 95);
+    sheet.setColumnWidth(getStorePriceColumn_(s), 90);
+    sheet.setColumnWidth(getStoreUnitColumn_(s), 85);
   }
   sheet.setColumnWidth(COL.MIN_PRICE, 110);
   sheet.setColumnWidth(COL.BEST_STORE, 130);
   sheet.setColumnWidth(COL.RANKING, 320);
 
-  // 既存データ行があれば、換算単価列の書式(3桁カンマ+右寄せ)を再適用する
+  // 既存データ行(3行目以降)があれば、換算単価列の書式(3桁カンマ+右寄せ)を再適用する
   var lastRow = sheet.getLastRow();
-  if (lastRow >= 2) {
-    var rows = lastRow - 1;
-    sheet.getRange(2, COL.AMAZON_UNIT, rows, 1).setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
+  if (lastRow >= DATA_START_ROW) {
+    var rows = lastRow - DATA_START_ROW + 1;
+    sheet.getRange(DATA_START_ROW, COL.AMAZON_UNIT, rows, 1).setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
     for (var u = 0; u < STORES.length; u++) {
-      sheet.getRange(2, getStoreUnitColumn_(u), rows, 1).setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
-      sheet.getRange(2, getStorePriceColumn_(u), rows, 1).setHorizontalAlignment('center');
+      sheet.getRange(DATA_START_ROW, getStoreUnitColumn_(u), rows, 1).setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
+      sheet.getRange(DATA_START_ROW, getStorePriceColumn_(u), rows, 1).setHorizontalAlignment('center');
     }
-    sheet.getRange(2, COL.MIN_PRICE, rows, 1).setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
+    sheet.getRange(DATA_START_ROW, COL.MIN_PRICE, rows, 1).setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
   }
 }
 
@@ -241,17 +284,14 @@ function applyFormattingToExistingSheet() {
 }
 
 /**
- * 【1回だけ実行する移行関数】
- * 旧レイアウト(店舗1列=換算単価のみ、ヨークマート列を含む)のダッシュボードから、
- * 新レイアウト(店舗2列=実売価格(内容量)+換算単価、ヨークマート除外)へデータを移行する。
+ * 【1回だけ実行する移行関数・その1】
+ * 旧レイアウト(店舗1列=換算単価のみ、ヨークマート列を含む、1行ヘッダー)のダッシュボードから、
+ * 横展開レイアウト(店舗2列=実売価格(内容量)+換算単価、ヨークマート除外、1行ヘッダー)へ
+ * データを移行する。
  *
- * 既存の商品行(ジャンル/メーカー/商品名/規格・容量/単位/Amazon基準単価/各店舗の換算単価)は
- * ヘッダーのテキストを見て自動的に対応する新しい列へ引き継がれる。
- * ヨークマート列にあったデータのみ、監視対象店舗から削除されたため引き継がれず破棄される。
- * 各店舗の「実売価格(内容量)」列は、旧レイアウトには存在しなかった情報のため空欄になる
- * (次回以降のfetch_deals.py実行時に自動で埋まる)。
- *
- * 既にこのシートが新レイアウトで作成済み(移行不要)の場合は、安全のため何もせず終了する。
+ * ※現在のシートが既に横展開レイアウト、または2行階層ヘッダーになっている場合は、
+ * 安全のため何もせず終了する(2行階層ヘッダーへ移行したい場合は
+ * migrateToTwoRowHeader を使うこと)。
  */
 function migrateToDualColumnLayout() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -269,19 +309,19 @@ function migrateToDualColumnLayout() {
     return;
   }
 
-  var headerRow = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  if (headerRow.indexOf('Amazon実売価格(内容量)') !== -1) {
-    Logger.log('既に新レイアウト(横展開)のため、移行をスキップしました。');
+  var headerRow1 = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  if (headerRow1.indexOf('Amazon実売価格(内容量)') !== -1 || headerRow1.indexOf('Amazon基準単価') !== -1) {
+    Logger.log('既に横展開レイアウト(または2行階層ヘッダー)のため、移行をスキップしました。');
     return;
   }
 
   var fixedHeaders = ['ジャンル', 'メーカー', '商品名', '規格・容量', '単位', 'Amazon基準単価'];
   var summaryHeaders = ['実店舗最安単価', 'エリア最安店舗', '買い推奨・価格順位ランキング'];
-  var oldAmazonCol = headerRow.indexOf('Amazon基準単価') + 1; // 見つからなければ0
+  var oldAmazonCol = headerRow1.indexOf('Amazon基準単価') + 1; // 見つからなければ0
 
   var oldStoreCols = []; // { name: '店舗名', col: 列番号 }
   for (var c = 1; c <= lastCol; c++) {
-    var h = headerRow[c - 1];
+    var h = headerRow1[c - 1];
     if (!h || fixedHeaders.indexOf(h) !== -1 || summaryHeaders.indexOf(h) !== -1) continue;
     oldStoreCols.push({ name: h, col: c });
   }
@@ -309,7 +349,7 @@ function migrateToDualColumnLayout() {
 
   // 既存データ範囲をクリアしてから新レイアウトのヘッダー・書式を構築する
   sheet.getRange(2, 1, lastRow - 1, lastCol).clearContent().clearFormat();
-  buildMasterDashboardSheet_(sheet);
+  buildMasterDashboardSheet_(sheet); // この時点ではまだ旧: 1行ヘッダー扱いでデータは2行目から
 
   records.forEach(function (rec, i) {
     if (!rec.name) return; // 空行はスキップ
@@ -332,12 +372,59 @@ function migrateToDualColumnLayout() {
     applyRowStyle_(sheet, row);
   });
 
-  var msg = '新レイアウト(横展開)への移行が完了しました: ' + records.length + '行。';
+  var msg = '横展開レイアウトへの移行が完了しました: ' + records.length + '行。';
   if (droppedStores.length > 0) {
     msg += ' 監視対象から外れたため破棄した列: ' + droppedStores.join(', ') + '。';
   }
+  msg += ' 続けて migrateToTwoRowHeader を実行すると2行階層ヘッダーに移行できます。';
   Logger.log(msg);
   return msg;
+}
+
+/**
+ * 【1回だけ実行する移行関数・その2】
+ * 「横展開レイアウト・1行ヘッダー(データは2行目から)」のダッシュボードを、
+ * 「横展開レイアウト・2行階層ヘッダー(親見出し+子見出し、データは3行目から)」へ移行する。
+ * 列の意味(どの列が何のデータか)は一切変わらないため、既存データ行を1行下へ
+ * ずらす(insertRowBefore)だけでよく、値の再配置は不要。
+ *
+ * 既に2行階層ヘッダーの場合は、安全のため何もせず終了する。
+ */
+function migrateToTwoRowHeader() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(MASTER_SHEET_NAME);
+  if (!sheet) {
+    throw new Error('シートが見つかりません: ' + MASTER_SHEET_NAME);
+  }
+
+  if (sheet.getRange(2, COL.STORE_START).getValue() === '実売価格(内容量)') {
+    Logger.log('既に2行階層ヘッダーのため、移行をスキップしました。');
+    return;
+  }
+
+  var lastRow = sheet.getLastRow();
+
+  if (lastRow >= 2) {
+    // 1行目(旧ヘッダー)の下に空行を1行挿入し、既存データ(旧2行目〜)を1行下へずらす。
+    // Google Sheetsは行挿入時にセル内の数式の行参照を自動追従させるため、
+    // 各行の実店舗最安単価等の数式は書き換え不要(再設定は安全のための保険)。
+    sheet.insertRowBefore(2);
+  }
+
+  buildMasterDashboardSheet_(sheet); // 1〜2行目を2行階層ヘッダーとして組み直す
+
+  var newLastRow = sheet.getLastRow();
+  if (newLastRow >= DATA_START_ROW) {
+    var names = sheet.getRange(DATA_START_ROW, COL.NAME, newLastRow - DATA_START_ROW + 1, 1).getValues();
+    for (var i = 0; i < names.length; i++) {
+      if (!names[i][0]) continue;
+      var row = i + DATA_START_ROW;
+      setRowFormulas_(sheet, row);
+      applyRowStyle_(sheet, row);
+    }
+  }
+
+  Logger.log('2行階層ヘッダーへの移行が完了しました。データは' + DATA_START_ROW + '行目から始まります。');
 }
 
 // =====================================================================
@@ -483,18 +570,20 @@ function applyRowStyle_(sheet, row) {
 
 function updateMasterRecord_(sheet, item, storeIndex) {
   var lastRow = sheet.getLastRow();
-  var productNames = lastRow > 1 ? sheet.getRange(2, COL.NAME, lastRow - 1, 1).getValues() : [];
+  var productNames = lastRow >= DATA_START_ROW
+    ? sheet.getRange(DATA_START_ROW, COL.NAME, lastRow - DATA_START_ROW + 1, 1).getValues()
+    : [];
   var targetRow = -1;
 
   for (var i = 0; i < productNames.length; i++) {
     if (productNames[i][0] === item.product_name) {
-      targetRow = i + 2;
+      targetRow = i + DATA_START_ROW;
       break;
     }
   }
 
   if (targetRow === -1) {
-    targetRow = lastRow + 1;
+    targetRow = Math.max(lastRow + 1, DATA_START_ROW);
     initNewRow_(sheet, targetRow, item);
   }
 
