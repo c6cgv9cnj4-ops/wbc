@@ -14,8 +14,8 @@
   4. MotoGPライダーズ・スタンディング上位3名:
      https://www.motogp.com/en/world-standing/{year}/motogp/championship-standings
      (公式サイト。JS動的レンダリングのためPlaywrightが必要なことを確認済み)
-
-MLBの順位表は、信頼できる公式無料ソースを別途調査してから追加する。
+  5. MLB順位表: https://statsapi.mlb.com/api/v1/standings?leagueId=103,104
+     (MLB公式Stats API。APIキー不要・無認証で叩けることを実際に確認済み)
 
 環境変数:
   DISCORD_WEBHOOK_SPORTS_CULTURE (必須)
@@ -38,6 +38,14 @@ COLOR_NPB = 0x1A365D
 COLOR_JLEAGUE = 0x2C7A7B
 COLOR_F1 = 0xE10600
 COLOR_MOTOGP = 0xCC0000
+COLOR_MLB = 0x002D72
+
+MLB_LEAGUE_NAMES = {103: "アメリカン・リーグ", 104: "ナショナル・リーグ"}
+# division IDと地区の対応は、実際にMLB Stats APIのレスポンスを取得して確認済み。
+MLB_DIVISION_NAMES = {
+    200: "AL西地区", 201: "AL東地区", 202: "AL中地区",
+    203: "NL西地区", 204: "NL東地区", 205: "NL中地区",
+}
 
 
 def current_year(now):
@@ -233,6 +241,52 @@ def build_motogp_embed(top3):
 
 
 # ============================================================
+# 5. MLB順位表
+# ============================================================
+
+def fetch_mlb_standings():
+    url = "https://statsapi.mlb.com/api/v1/standings?leagueId=103,104"
+    try:
+        resp = requests.get(url, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+        return resp.json().get("records", [])
+    except Exception as err:  # noqa: BLE001
+        print(f"[ERROR] MLB順位表の取得に失敗しました: {err}")
+        return []
+
+
+def build_mlb_embed(records, now):
+    if not records:
+        return None
+
+    by_league = {103: [], 104: []}
+    for rec in records:
+        league_id = rec["league"]["id"]
+        div_name = MLB_DIVISION_NAMES.get(rec["division"]["id"], "")
+        teams = sorted(rec["teamRecords"], key=lambda t: int(t["divisionRank"]))
+        lines = [div_name]
+        for t in teams:
+            name = t["team"]["name"]
+            w = t["leagueRecord"]["wins"]
+            losses = t["leagueRecord"]["losses"]
+            gb = t.get("gamesBack", "-")
+            lines.append(f"  {t['divisionRank']}. {name} {w}勝{losses}敗 差{gb}")
+        by_league.setdefault(league_id, []).append("\n".join(lines))
+
+    now_jst = now.strftime("%Y-%m-%d")
+    description = "\n\n".join(
+        f"**{MLB_LEAGUE_NAMES[lid]}**\n" + "\n\n".join(sections)
+        for lid, sections in by_league.items() if sections
+    )
+    return {
+        "title": "⚾ MLB順位表",
+        "description": description,
+        "color": COLOR_MLB,
+        "footer": {"text": f"MLB Stats API / {now_jst} 時点"},
+    }
+
+
+# ============================================================
 # Discord送信
 # ============================================================
 
@@ -284,6 +338,11 @@ def main():
     motogp_embed = build_motogp_embed(motogp_top3)
     if motogp_embed:
         embeds.append(motogp_embed)
+
+    mlb_records = fetch_mlb_standings()
+    mlb_embed = build_mlb_embed(mlb_records, now)
+    if mlb_embed:
+        embeds.append(mlb_embed)
 
     had_error = False
     if embeds:
