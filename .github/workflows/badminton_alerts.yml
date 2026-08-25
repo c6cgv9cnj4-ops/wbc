@@ -1,0 +1,41 @@
+name: バドミントン注目選手速報(#webhook_sports_culture)
+
+on:
+  schedule:
+    - cron: "43 * * * *"  # 1時間ごと(大会期間中の速報性を考慮)
+  workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+
+permissions:
+  contents: write  # state/badminton_alerts_seen.json(既送信記録)のコミット用
+
+jobs:
+  fetch-badminton-alerts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: badminton-alerts
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      - name: 指定選手の試合結果を取得してDiscordへ配信
+        env:
+          DISCORD_WEBHOOK_SPORTS_CULTURE: ${{ secrets.WEBHOOK_SPORTS_CULTURE }}
+        run: python scripts/fetch_badminton_alerts.py
+
+      - name: 既送信記録をコミット
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state/badminton_alerts_seen.json
+          git diff --cached --quiet || git commit -m "バドミントン速報既送信記録を更新"
+          git pull --rebase origin main
+          git push
