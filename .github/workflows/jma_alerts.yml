@@ -1,0 +1,43 @@
+name: JMA防災速報(#webhook_local)
+
+on:
+  schedule:
+    # 10分ごと(気象警報・地震情報は速報性が重要なため)。
+    # 毎時0分ちょうどは混雑するため、他のcronと合わせて分をずらしている。
+    - cron: "7,17,27,37,47,57 * * * *"
+  workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+
+permissions:
+  contents: write  # state/jma_alerts_seen.json(既送信記録)のコミット用
+
+jobs:
+  fetch-jma-alerts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: jma-alerts
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      - name: JMA気象警報・地震情報を取得してDiscordへ配信
+        env:
+          DISCORD_WEBHOOK_LOCAL: ${{ secrets.WEBHOOK_LOCAL }}
+        run: python scripts/fetch_jma_alerts.py
+
+      - name: 既送信記録をコミット
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state/jma_alerts_seen.json
+          git diff --cached --quiet || git commit -m "JMA防災速報の既送信記録を更新"
+          git pull --rebase origin main
+          git push
