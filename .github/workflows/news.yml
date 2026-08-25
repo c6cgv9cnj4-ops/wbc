@@ -34,6 +34,7 @@ jobs:
           # fetch_news.py が読む環境変数名(DISCORD_WEBHOOK_NEWS等)とは別物なので、ここで変換する。
           DISCORD_WEBHOOK_NEWS: ${{ secrets.WEBHOOK_NEWS }}
           DISCORD_WEBHOOK_MARKET: ${{ secrets.WEBHOOK_MARKET }}
+          DISCORD_WEBHOOK_SPORTS_CULTURE: ${{ secrets.WEBHOOK_SPORTS_CULTURE }}
         run: python scripts/fetch_news.py
 
       - name: 既送信記録をコミット
