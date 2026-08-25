@@ -2,71 +2,95 @@
 """
 Step 3: 週刊レポート自動生成
 
-過去7日分の reports/daily/YYYY-MM-DD.md を読み込み、Anthropic API(Claude)で
-「週間統合マインドマップ(Mermaid)」「思考変遷」「身体相関分析」「ネクストアクション」
-を生成し、reports/weekly/YYYY-Wxx.md に保存したうえでDiscordへ送信する。
+過去7日分の logs/daily/YYYY-MM-DD.md (#インプット) ・ logs/health/YYYY-MM-DD.md
+(#ヘルス・日報) の生ログ(discord_logs.ymlが日次で蓄積)を読み込み、Gemini API
+(gemini-2.5-flash)で「週間統合マインドマップ(Mermaid)」「思考変遷」
+「身体相関分析」「ネクストアクション」を生成し、reports/weekly/YYYY-Wxx.md に
+保存したうえでDiscordへ送信する。
+
+日刊レポート(旧daily_summary.yml、Claudeによる日次要約)は廃止されたため、
+要約済みレポートではなく生ログを直接週間分析の入力とする。
+また、無料枠で運用するためAPIをAnthropic(Claude)からGoogle GenAI SDK
+(Gemini)へ移行し、ANTHROPIC_API_KEYへの依存は完全に排除している。
 
 環境変数:
-  ANTHROPIC_API_KEY     (必須)
-  ANTHROPIC_MODEL        (任意。既定値は下記MODEL参照)
+  GEMINI_API_KEY         (必須)
   DISCORD_WEBHOOK_WEEKLY (必須)
 """
 import datetime
 import os
 import sys
 
-import anthropic
 import requests
 
 JST = datetime.timezone(datetime.timedelta(hours=9))
 REQUEST_TIMEOUT = 15
 DISCORD_CHUNK_LIMIT = 1900
 
-# generate_daily_report.py と同じ理由でモデル名を環境変数で上書き可能にしている。
-DEFAULT_MODEL = "claude-sonnet-5"
+# 他スクリプト(fetch_injury_alerts.py等)と同じくGEMINI_MODEL_NAMEとして固定管理。
+GEMINI_MODEL_NAME = "gemini-2.5-flash"
 
-REPORT_DAILY_DIR = "reports/daily"
+LOG_DAILY_DIR = "logs/daily"
+LOG_HEALTH_DIR = "logs/health"
 REPORT_WEEKLY_DIR = "reports/weekly"
 PAST_DAYS = 7
 
 
+def _read_if_exists(path):
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+    return None
+
+
 def collect_past_daily_reports(today):
+    """過去PAST_DAYS日分の #インプット / #ヘルス・日報 の生ログをまとめて返す。
+    どちらか一方でも存在する日のみ収集対象とする。
+    """
     collected = []
     for i in range(PAST_DAYS):
         day = today - datetime.timedelta(days=i)
         date_str = day.strftime("%Y-%m-%d")
-        path = os.path.join(REPORT_DAILY_DIR, f"{date_str}.md")
-        if os.path.exists(path):
-            with open(path, encoding="utf-8") as f:
-                collected.append((date_str, f.read()))
+        daily_log = _read_if_exists(os.path.join(LOG_DAILY_DIR, f"{date_str}.md"))
+        health_log = _read_if_exists(os.path.join(LOG_HEALTH_DIR, f"{date_str}.md"))
+        if daily_log is None and health_log is None:
+            continue
+
+        parts = []
+        if daily_log:
+            parts.append(f"【#インプット】\n{daily_log}")
+        if health_log:
+            parts.append(f"【#ヘルス・日報】\n{health_log}")
+        collected.append((date_str, "\n\n".join(parts)))
+
     collected.sort(key=lambda x: x[0])  # 古い順
     return collected
 
 
 def build_prompt(week_label, daily_reports):
     if not daily_reports:
-        body = "(過去7日分の日刊レポートが見つかりませんでした)"
+        body = "(過去7日分のログが見つかりませんでした)"
     else:
         parts = []
         for date_str, content in daily_reports:
             parts.append(f"### {date_str}\n{content}")
         body = "\n\n".join(parts)
 
-    return f"""あなたは記録者本人の思考パートナーです。以下は{week_label}の日刊レポート群です。
+    return f"""あなたは記録者本人の思考パートナーです。以下は{week_label}のDiscord生ログ(#インプット・#ヘルス・日報)です。
 
 {body}
 
 上記を踏まえて、Markdown形式で以下の4つを作成してください。
 迎合的な相槌や定型的な挨拶は省き、本質を突いた鋭い視点と建設的な分析を提供してください。
 抽象論を避け、具体的かつ検証可能な言葉で記述してください。
-日刊レポートが実質的に無い場合は、その旨を素直に記載し、内容を捏造しないでください。
+ログが実質的に無い場合は、その旨を素直に記載し、内容を捏造しないでください。
 
 ## 週間統合マインドマップ
 ```mermaid
 mindmap
   root((今週のテーマ))
 ```
-の形式で、実際の日刊レポートの内容に基づいたノードに置き換えてください。
+の形式で、実際のログの内容に基づいたノードに置き換えてください。
 
 ## 思考変遷
 月曜〜日曜にかけての思考の深化・見解の変化を箇条書きで比較整理する。
@@ -80,14 +104,12 @@ mindmap
 """
 
 
-def call_claude(api_key, model, prompt):
-    client = anthropic.Anthropic(api_key=api_key)
-    response = client.messages.create(
-        model=model,
-        max_tokens=4000,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return "".join(block.text for block in response.content if hasattr(block, "text"))
+def call_gemini(api_key, prompt):
+    from google import genai
+
+    client = genai.Client(api_key=api_key)
+    resp = client.models.generate_content(model=GEMINI_MODEL_NAME, contents=prompt)
+    return resp.text.strip()
 
 
 def chunk_message(text, limit=DISCORD_CHUNK_LIMIT):
@@ -125,12 +147,11 @@ def send_to_discord(webhook_url, message):
 
 
 def main():
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    model = os.environ.get("ANTHROPIC_MODEL") or DEFAULT_MODEL
+    api_key = os.environ.get("GEMINI_API_KEY")
     webhook_url = os.environ.get("DISCORD_WEBHOOK_WEEKLY")
 
     if not api_key:
-        print("[ERROR] 環境変数 ANTHROPIC_API_KEY が設定されていません。")
+        print("[ERROR] 環境変数 GEMINI_API_KEY が設定されていません。")
         sys.exit(1)
     if not webhook_url:
         print("[ERROR] 環境変数 DISCORD_WEBHOOK_WEEKLY が設定されていません。")
@@ -141,14 +162,14 @@ def main():
     week_label = f"{iso_year}-W{iso_week:02d}"
 
     daily_reports = collect_past_daily_reports(today)
-    print(f"[INFO] 過去{PAST_DAYS}日分中、{len(daily_reports)}件の日刊レポートが見つかりました。")
+    print(f"[INFO] 過去{PAST_DAYS}日分中、{len(daily_reports)}件の日次ログが見つかりました。")
 
     prompt = build_prompt(week_label, daily_reports)
 
     try:
-        report_text = call_claude(api_key, model, prompt)
+        report_text = call_gemini(api_key, prompt)
     except Exception as err:  # noqa: BLE001
-        print(f"[ERROR] Claude APIの呼び出しに失敗しました: {err}")
+        print(f"[ERROR] Gemini APIの呼び出しに失敗しました: {err}")
         sys.exit(1)
 
     os.makedirs(REPORT_WEEKLY_DIR, exist_ok=True)

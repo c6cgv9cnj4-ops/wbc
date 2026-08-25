@@ -1,7 +1,12 @@
 name: Discordログ収集・Issues自動起票
 
 on:
-  workflow_dispatch: {}  # 現時点では手動実行のみ。定期実行のタイミングが決まったらcronを追加する。
+  schedule:
+    # 毎日 24:00 JST(=翌日0:00 JST) = UTC 15:00
+    # 日刊レポート(daily_summary.yml)廃止後、週刊レポートが読む生ログの
+    # 蓄積を絶やさないため、このログ収集ステップ単体を日次実行する。
+    - cron: "0 15 * * *"
+  workflow_dispatch: {}  # 手動実行用ボタン
 
 permissions:
   contents: write   # logs/daily, logs/health への書き込み(コミット)用

@@ -3,5 +3,4 @@ requests
 beautifulsoup4
 google-genai
 youtube-transcript-api
-anthropic
 playwright
