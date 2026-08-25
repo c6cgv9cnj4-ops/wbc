@@ -50,6 +50,18 @@ YAHOO_BUSINESS_RSS = "https://news.yahoo.co.jp/rss/categories/business.xml"
 YAHOO_FINANCE_NIKKEI225_URL = "https://finance.yahoo.co.jp/quote/998407.O"
 EXCHANGE_RATE_API_URL = "https://open.er-api.com/v6/latest/USD"
 
+# 米国株価指数(株探・米国株版。サーバーサイドレンダリングで静的HTMLから
+# 取得可能なことを実際に確認済み)。
+KABUTAN_US_INDICES = [
+    {"label": "S&P500", "url": "https://us.kabutan.jp/indexes/%5ESPX"},
+    {"label": "NASDAQ総合", "url": "https://us.kabutan.jp/indexes/%5EIXIC"},
+    {"label": "SOX半導体指数", "url": "https://us.kabutan.jp/indexes/%5ESOX"},
+]
+# WTI原油先物は、finance.yahoo.co.jpに先物そのもののページが無く(ETF/投資信託
+# のページしか無い)、みんかぶ先物(fu.minkabu.jp)はJS動的レンダリングのため
+# 静的取得できないことを確認済み。無理に不正確なデータ(ETF価格等)を「原油
+# 先物」として出すより、未実装のままにする方が安全と判断した。
+
 # 重複排除に使う「見た記事」の記録先。取得件数を少し多めに見ておき、
 # 30分間隔のポーリングで新着を取りこぼしにくくする。
 ANZN_ITEM_LIMIT = 10
@@ -226,6 +238,36 @@ def fetch_usdjpy():
         return None
 
 
+def fetch_kabutan_us_index(url, label):
+    """株探・米国株版(us.kabutan.jp)から米国株価指数を取得する。
+    ページ内のdata属性・クラス名からのパースであり、サイト側のマークアップ
+    変更で失敗する可能性があるため、抽出できなければNoneを返し推測で埋めない。
+    """
+    try:
+        resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+        html = resp.text
+    except Exception as err:  # noqa: BLE001
+        print(f"[ERROR] {label}の取得に失敗しました: {err}")
+        return None
+
+    price_m = re.search(r'text-3xl mr-1">([\d,]+\.\d+)</div>', html)
+    change_block_m = re.search(
+        r'前日比.*?</div>\s*<div class="flex justify-center">(.*?)</div>\s*</div>',
+        html, re.DOTALL,
+    )
+    if not price_m or not change_block_m:
+        print(f"[WARN] {label}の値を抽出できませんでした(ページ構造が変わった可能性があります)。")
+        return None
+
+    change_nums = re.findall(r"[+-]?[\d,]+\.\d+", change_block_m.group(1))
+    if len(change_nums) < 2:
+        print(f"[WARN] {label}の前日比を抽出できませんでした。")
+        return None
+
+    return {"price": price_m.group(1), "change": change_nums[0], "change_rate": change_nums[1]}
+
+
 # ============================================================
 # メッセージ組み立て・Discord送信
 # ============================================================
@@ -300,6 +342,17 @@ def build_market_message(state, now):
         lines.append(f"- 日経平均株価: **{nikkei['price']}円** {arrow} {nikkei['change']} ({nikkei['change_rate']}%)")
     else:
         lines.append("- 日経平均株価: 取得できませんでした")
+
+    for idx_conf in KABUTAN_US_INDICES:
+        idx_data = fetch_kabutan_us_index(idx_conf["url"], idx_conf["label"])
+        if idx_data:
+            arrow = "🔺" if not idx_data["change"].startswith("-") else "🔻"
+            lines.append(
+                f"- {idx_conf['label']}: **{idx_data['price']}** "
+                f"{arrow} {idx_data['change']} ({idx_data['change_rate']}%)"
+            )
+        else:
+            lines.append(f"- {idx_conf['label']}: 取得できませんでした")
 
     usdjpy = fetch_usdjpy()
     if usdjpy is not None:
