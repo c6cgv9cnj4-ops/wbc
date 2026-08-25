@@ -1,0 +1,42 @@
+name: カルチャー・テック・国債速報(#webhook_news)
+
+on:
+  schedule:
+    # 1日3回(朝・昼・夕)。速報性より質重視のため高頻度にはしない。
+    - cron: "13 22 * * *"  # 07:13 JST
+    - cron: "13 3 * * *"   # 12:13 JST
+    - cron: "13 9 * * *"   # 18:13 JST
+  workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+
+permissions:
+  contents: write  # state/culture_news_seen.json(既送信記録)のコミット用
+
+jobs:
+  fetch-culture-news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      - name: 国債先物・林信行氏記事・カルチャー系ニュースを取得してDiscordへ配信
+        env:
+          DISCORD_WEBHOOK_NEWS: ${{ secrets.WEBHOOK_NEWS }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scripts/fetch_culture_news.py
+
+      - name: 既送信記録をコミット
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state/culture_news_seen.json
+          git diff --cached --quiet || git commit -m "カルチャー系ニュース既送信記録を更新"
+          git pull --rebase origin main
+          git push
