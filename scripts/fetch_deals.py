@@ -2,13 +2,26 @@
 """
 底値トラッカー(コア品目マスター約35品目) 自動収集スクリプト
 
-対象店舗(現時点で実装済みなのは以下2店舗。他店舗は個別調査のうえ順次追加する):
+対象店舗:
   - ロヂャース北本店: 公式サイト経由のWebビューアー(cms.mechao.tv、タイル画像結合)
-  - マルサン桶川店・ヤオコー・ベルク・ウエルシア: トクバイ(tokubai.co.jp)
-    (ヤオコー/ベルク/ウエルシアはtokubai上に該当店舗ページ自体はあるが、
-     時期によっては「チラシ掲載なし」になることがある。トクバイ以外の
-     代替取得先(公式サイト/Shufoo!等)は、実際のサイト構造を調査してから
-     個別に追加実装する)
+  - マルサン桶川店・ウエルシア・とりせん: トクバイ(tokubai.co.jp)
+  - ヤオコー: 公式サイト(yaoko-net.com/store/store01/{store_code}.html)。
+    2026-08-26実施の実サイト調査で、トクバイ上のヤオコー店舗ページには
+    チラシへのリンクが存在しない(近隣の別チェーン店のチラシ枠が誤って
+    表示されるだけ)ことを確認したため、公式サイト直接取得に切り替えた。
+    サムネイルURL(thumb_flyer_*.jpg)の"thumb_"を除去すると実寸画像が
+    取得できることを確認済み。
+  - ベルク: 外部サービス「デリッシュチラシ」(chirashi.delishkitchen.tv/shops/{shop_id})。
+    ベルク公式サイト(belc.jp/shop)の店舗別「チラシを見る」リンクの遷移先。
+    2026-08-26実施の実サイト調査で、トクバイ上のベルク店舗ページも同様に
+    チラシへのリンクが存在しないことを確認したため切り替えた。サムネイル
+    URL(small.jpg)を"large.jpg"に置き換えると実寸画像(HTTP 200)が
+    取得できることを確認済み。
+  - 業務スーパー: 公式サイト(gyomuu.com)・トクバイともに取得手段が無いため、
+    監視対象から完全に除外した(GAS側のSTORES配列からも削除)。
+    ウエルシアも時期によってはトクバイ上で「チラシ掲載なし」になることが
+    あるが、店舗ページ自体・チラシへのリンク構造自体はヤオコー/ベルクとは
+    異なり現状は正常に動作しているため、今回は変更していない。
 
 処理の流れ:
   1. 各店舗のチラシ画像を取得(price_bot/scripts/scraper.py の
@@ -184,10 +197,16 @@ DEALS_STORES = [
      "mechao_store_id": "50098efb7172597ee67c0a957a43a0cb", "category_scope": None},
     {"name": "マルサン桶川店", "source": "tokubai",
      "tokubai_query": "スーパーマルサン桶川店", "category_scope": None},
-    {"name": "ヤオコー", "source": "tokubai",
-     "tokubai_query": "ヤオコー北本中央店", "category_scope": None},
-    {"name": "ベルク", "source": "tokubai",
-     "tokubai_query": "ベルク北本東間店", "category_scope": None},
+    # ヤオコー: トクバイ上のチラシリンクが存在しないため、公式サイト直接取得に切り替えた
+    # (2026-08-26実施。yaoko_store_codeは「北本中央店」の店舗コード)。
+    {"name": "ヤオコー", "source": "yaoko",
+     "yaoko_store_code": "191", "category_scope": None},
+    # ベルク: トクバイ上のチラシリンクが存在しないため、ベルク公式サイトが実際に
+    # チラシ配信を委託している外部サービス「デリッシュチラシ」経由の取得に切り替えた
+    # (2026-08-26実施。delishkitchen_shop_idは「北本東間店」の店舗UUID。
+    # belc.jp/shop の店舗一覧から「北本東間店」の「チラシを見る」リンク先を確認して特定)。
+    {"name": "ベルク", "source": "belc",
+     "delishkitchen_shop_id": "8cbd58ec-6999-458d-af16-379bf1805009", "category_scope": None},
     {"name": "ウエルシア", "source": "tokubai",
      "tokubai_query": "ウエルシア北本中丸店", "category_scope": DRUGSTORE_ALLOWED_GENRES},
     # とりせん北本店: 公式サイト(torisen.co.jp/shop/)がtokubai.co.jpへの店舗ウィジェット
@@ -195,15 +214,13 @@ DEALS_STORES = [
     # 店舗解決・チラシ画像URL取得まで動作確認済み(2026-08-25実施)。
     {"name": "とりせん", "source": "tokubai",
      "tokubai_query": "とりせん 北本店", "category_scope": None},
-    # 業務スーパー・ヤオコー公式・ベルク・ウエルシア公式・ヨークマートは、
-    # 実サイト調査のうえ個別のスクレイパーを実装してからここに追加する
-    # (未調査のまま追加すると動かないコードになるため保留)。
+    # 業務スーパーは監視対象から完全に除外した(2026-08-26)。
     # 調査結果メモ:
-    #   - ヤオコー公式(yaoko-net.com): この実行環境からTCP接続タイムアウトで到達不可
     #   - Shufoo!(shufoo.net): 店舗名検索で「ヤオコー」自体は0件(テナント店のみヒット)。
     #     ヤオコー本体はShufoo!に出店していないため経由不可と判断。
     #   - とりせん(torisen.jp): 公式(torisen.co.jp)とは無関係の別サイトだったため使用禁止。
-    #   - 業務スーパー(gyomuu.com)・ヨークマート(yorkmart.co.jp): TCP接続タイムアウトで到達不可
+    #   - 業務スーパー(gyomuu.com)・ヨークマート(yorkmart.co.jp): TCP接続タイムアウトで到達不可、
+    #     かつトクバイにも店舗掲載自体が無いため、取得できる情報源が存在しない。
 ]
 
 # category_scope=None は「全ジャンルが対象(絞り込みなし)」を意味する。
@@ -290,6 +307,64 @@ def scrape_rogers_store(context, page, store, image_records):
         print(f"[OK][rogers] {store['name']}: {count}ページ取得")
     except Exception as err:  # noqa: BLE001
         print(f"[ERROR][rogers] {store['name']}: {err}")
+
+
+def scrape_yaoko_store(context, page, store, image_records):
+    url = f"https://www.yaoko-net.com/store/store01/{store['yaoko_store_code']}.html"
+    try:
+        page.goto(url, wait_until="networkidle", timeout=30000)
+        time.sleep(REQUEST_INTERVAL_SEC)
+        srcs = page.eval_on_selector_all("img", "els => els.map(e => e.src)")
+        flyer_srcs = [s for s in srcs if s and "yap-pd.yaoko-net.com/assets/flyer/" in s and "/thumb_flyer_" in s]
+        if not flyer_srcs:
+            print(f"[INFO][yaoko] チラシ掲載なし: {store['name']}")
+            return
+
+        full_urls = sorted(set(s.replace("/thumb_flyer_", "/flyer_") for s in flyer_srcs))
+        safe_store = re.sub(r"[^\w]", "_", store["name"])
+        count = 0
+        for full_url in full_urls:
+            m = re.search(r"/assets/flyer/(\d+)/flyer_(.+)\.jpg$", full_url)
+            flyer_key = f"{m.group(1)}_{m.group(2)}" if m else re.sub(r"[^\w]", "_", full_url)
+            dest = os.path.join(DOWNLOAD_DIR, f"{safe_store}_{flyer_key}.jpg")
+            resp = context.request.get(full_url, timeout=30000)
+            if resp.status == 200:
+                with open(dest, "wb") as f:
+                    f.write(resp.body())
+                image_records.append({"store": store["name"], "local_path": dest})
+                count += 1
+        print(f"[OK][yaoko] {store['name']}: {count}枚取得")
+    except Exception as err:  # noqa: BLE001
+        print(f"[ERROR][yaoko] {store['name']}: {err}")
+
+
+def scrape_belc_store(context, page, store, image_records):
+    url = f"https://chirashi.delishkitchen.tv/shops/{store['delishkitchen_shop_id']}"
+    try:
+        page.goto(url, wait_until="networkidle", timeout=30000)
+        time.sleep(REQUEST_INTERVAL_SEC)
+        srcs = page.eval_on_selector_all("img", "els => els.map(e => e.src)")
+        flyer_srcs = [s for s in srcs if s and "flyer-media.delishkitchen.tv/flyers/" in s and "/small.jpg" in s]
+        if not flyer_srcs:
+            print(f"[INFO][belc] チラシ掲載なし: {store['name']}")
+            return
+
+        full_urls = sorted(set(s.replace("/small.jpg", "/large.jpg") for s in flyer_srcs))
+        safe_store = re.sub(r"[^\w]", "_", store["name"])
+        count = 0
+        for full_url in full_urls:
+            m = re.search(r"/flyers/([0-9a-f-]+)/large\.jpg", full_url)
+            flyer_key = m.group(1) if m else re.sub(r"[^\w]", "_", full_url)
+            dest = os.path.join(DOWNLOAD_DIR, f"{safe_store}_{flyer_key}.jpg")
+            resp = context.request.get(full_url, timeout=30000)
+            if resp.status == 200:
+                with open(dest, "wb") as f:
+                    f.write(resp.body())
+                image_records.append({"store": store["name"], "local_path": dest})
+                count += 1
+        print(f"[OK][belc] {store['name']}: {count}枚取得")
+    except Exception as err:  # noqa: BLE001
+        print(f"[ERROR][belc] {store['name']}: {err}")
 
 
 # ============================================================
@@ -533,6 +608,10 @@ def main():
                 scrape_tokubai_store(context, page, store, image_records)
             elif store["source"] == "rogers":
                 scrape_rogers_store(context, page, store, image_records)
+            elif store["source"] == "yaoko":
+                scrape_yaoko_store(context, page, store, image_records)
+            elif store["source"] == "belc":
+                scrape_belc_store(context, page, store, image_records)
 
         browser.close()
 

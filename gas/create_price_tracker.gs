@@ -9,6 +9,10 @@
  *    ※このファイルには実際のシークレット値を書き込まないこと(公開リポジトリで
  *      管理しているため、実際の値が漏えいする)。
  * 3. 関数選択プルダウンで実行する関数を選ぶ:
+ *    - STORES配列(監視対象店舗)を追加・削除・並び替えた直後は、必ず
+ *      migrateStoreListChange を1回だけ実行する(店舗名をヘッダーのテキストで
+ *      照合し、既存の各店舗の実売価格・換算単価データを新しい列位置へ書き直す。
+ *      STORES配列から無くなった店舗の列は破棄される)。
  *    - 現在のシートが「2行階層ヘッダー・サマリー列が末尾(店舗の右側)」の状態の場合は
  *      migrateSummaryColumnsToFront を1回だけ実行する(サマリー列(実店舗最安単価・
  *      エリア最安店舗・ランキング)が商品名のすぐ右側へ移動し、固定列も拡大される。
@@ -42,10 +46,11 @@ var MASTER_SHEET_NAME = '📊 底値ダッシュボード';
 var LOG_SHEET_NAME = '📋 価格ログ蓄積';
 var LEGACY_LOG_SHEET_NAME = '価格ログ蓄積'; // 旧バージョンでのシート名(データ引き継ぎ用)
 
-// 追跡対象店舗(計7店舗。ヨークマートは監視対象から削除した。
+// 追跡対象店舗(計6店舗。ヨークマート・業務スーパーは監視対象から削除した
+// (業務スーパーは公式サイト・トクバイともに取得手段が無いため2026-08-26に除外)。
 // ウエルシアは生鮮・米を除く「ペーパー類・洗剤・調味料・飲料」のみが対象。
 // scripts/fetch_deals.py の DEALS_STORES の category_scope と対応させる)
-var STORES = ['ロヂャース北本店', 'マルサン桶川店', '業務スーパー', 'ヤオコー', 'ベルク', 'とりせん', 'ウエルシア'];
+var STORES = ['ロヂャース北本店', 'マルサン桶川店', 'ヤオコー', 'ベルク', 'とりせん', 'ウエルシア'];
 
 var THEME = {
   headerBg: '#1E293B',        // スレートネイビー
@@ -524,6 +529,115 @@ function migrateSummaryColumnsToFront() {
     'サマリー列(実店舗最安単価・エリア最安店舗・ランキング)を商品名側へ移動する移行が完了しました: ' +
     records.length + '行。固定列も' + FROZEN_COLUMNS + '列目まで拡大されています。'
   );
+}
+
+/**
+ * 【STORES配列を変更した直後に実行する汎用移行関数】
+ * STORES配列(監視対象店舗)に対して店舗の追加・削除・並び替えを行った後、
+ * 既存データを新しい店舗構成に合わせて列を再構築する。
+ *
+ * 現在のシート上のヘッダーの店舗名テキストを見て、旧データを店舗名でマッチングし、
+ * 新しいSTORES配列の並びで書き直す(STORES配列に無くなった店舗のデータは破棄され、
+ * 新しく追加された店舗の列は空欄で用意される)。列の総数・レイアウト自体(2行階層
+ * ヘッダー・サマリー列の位置)は変更しない。
+ *
+ * 既にヘッダーの店舗名構成がSTORES配列と完全一致している場合は、安全のため
+ * 何もせず終了する。
+ */
+function migrateStoreListChange() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(MASTER_SHEET_NAME);
+  if (!sheet) {
+    throw new Error('シートが見つかりません: ' + MASTER_SHEET_NAME);
+  }
+
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+
+  if (lastRow < DATA_START_ROW) {
+    buildMasterDashboardSheet_(sheet);
+    Logger.log('データ行が無いため、新しい店舗構成での初期化のみ実行しました。');
+    return;
+  }
+
+  // 現在の店舗ブロック(STORE_START列以降、2列おき)を、店舗名ごとの価格/単価列に
+  // マッピングする(店舗名はヘッダー1行目の結合セルの左上アンカーから読み取る)
+  var oldStoreCols = {}; // { '店舗名': { priceCol: 列番号, unitCol: 列番号 } }
+  for (var c = COL.STORE_START; c <= lastCol; c += 2) {
+    var storeName = sheet.getRange(1, c).getValue();
+    if (storeName) {
+      oldStoreCols[storeName] = { priceCol: c, unitCol: c + 1 };
+    }
+  }
+
+  var currentNames = Object.keys(oldStoreCols);
+  var sameOrder = currentNames.length === STORES.length &&
+    currentNames.every(function (name, i) { return STORES[i] === name; });
+  if (sameOrder) {
+    Logger.log('店舗構成は既に最新のため、移行をスキップしました。');
+    return;
+  }
+
+  var droppedStores = currentNames.filter(function (name) { return STORES.indexOf(name) === -1; });
+
+  var dataRange = sheet.getRange(DATA_START_ROW, 1, lastRow - DATA_START_ROW + 1, lastCol).getValues();
+  var records = dataRange.map(function (row) {
+    var rec = {
+      genre: row[COL.GENRE - 1],
+      maker: row[COL.MAKER - 1],
+      name: row[COL.NAME - 1],
+      spec: row[COL.SPEC - 1],
+      unit: row[COL.UNIT - 1],
+      amazonPrice: row[COL.AMAZON_PRICE - 1],
+      amazonUnit: row[COL.AMAZON_UNIT - 1],
+      storePrices: {},
+      storeUnits: {},
+    };
+    currentNames.forEach(function (name) {
+      var cols = oldStoreCols[name];
+      rec.storePrices[name] = row[cols.priceCol - 1];
+      rec.storeUnits[name] = row[cols.unitCol - 1];
+    });
+    return rec;
+  });
+
+  sheet.getRange(DATA_START_ROW, 1, lastRow - DATA_START_ROW + 1, lastCol).clearContent().clearFormat();
+  buildMasterDashboardSheet_(sheet); // 新STORES配列でヘッダー・列幅を再構築
+
+  records.forEach(function (rec, i) {
+    if (!rec.name) return; // 空行はスキップ
+    var row = i + DATA_START_ROW;
+    sheet.getRange(row, COL.GENRE).setValue(rec.genre || '一般');
+    sheet.getRange(row, COL.MAKER).setValue(rec.maker || '-');
+    sheet.getRange(row, COL.NAME).setValue(rec.name);
+    sheet.getRange(row, COL.SPEC).setValue(rec.spec || '-');
+    sheet.getRange(row, COL.UNIT).setValue(rec.unit || '-');
+    if (rec.amazonPrice) {
+      sheet.getRange(row, COL.AMAZON_PRICE).setValue(rec.amazonPrice);
+    }
+    if (typeof rec.amazonUnit === 'number') {
+      sheet.getRange(row, COL.AMAZON_UNIT).setValue(rec.amazonUnit);
+    }
+    STORES.forEach(function (storeName, si) {
+      var price = rec.storePrices[storeName];
+      var unit = rec.storeUnits[storeName];
+      if (price) {
+        sheet.getRange(row, getStorePriceColumn_(si)).setValue(price);
+      }
+      if (typeof unit === 'number') {
+        sheet.getRange(row, getStoreUnitColumn_(si)).setValue(unit);
+      }
+    });
+    setRowFormulas_(sheet, row);
+    applyRowStyle_(sheet, row);
+  });
+
+  var msg = '店舗構成の変更を反映しました: ' + records.length + '行。';
+  if (droppedStores.length > 0) {
+    msg += ' 監視対象から外れたため破棄した列: ' + droppedStores.join(', ') + '。';
+  }
+  Logger.log(msg);
+  return msg;
 }
 
 // =====================================================================
