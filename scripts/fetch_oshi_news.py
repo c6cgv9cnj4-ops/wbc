@@ -6,6 +6,9 @@
 新着のみをDiscordへ配信する。キーワード一覧は OSHI_KEYWORDS (このファイル内、
 下記参照)で一元管理し、今後の追加・削除はここを編集するだけで完結する。
 
+各記事リンクの末尾には、RSS側から取得できた公開日時をJSTの "MM/DD HH:MM" 形式で
+`[08/25 18:30]` のように付与する(鮮度判断のため)。取得できない場合のみ "-" とする。
+
 環境変数:
   DISCORD_WEBHOOK_OSHI (必須)
 """
@@ -69,6 +72,23 @@ def prune_old_entries(state, now):
     return state
 
 
+def format_published_jst(entry):
+    """feedparserのエントリから公開日時を取得し、JSTの "MM/DD HH:MM" 形式で返す。
+    取得できない場合(フィード側に日時情報が無い等)は "-" を返す。
+    """
+    parsed = getattr(entry, "published_parsed", None) or getattr(entry, "updated_parsed", None)
+    if not parsed:
+        return "-"
+    try:
+        # feedparserは公開日時をUTCに正規化したtime.struct_timeとして返すため、
+        # 各フィールドをそのままUTCとして扱ってからJSTへ変換する。
+        dt_utc = datetime.datetime(*parsed[:6], tzinfo=datetime.timezone.utc)
+    except (TypeError, ValueError):
+        return "-"
+    dt_jst = dt_utc.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
+    return dt_jst.strftime("%m/%d %H:%M")
+
+
 def fetch_keyword_news(keyword, retries=2):
     """指定キーワードのGoogle News RSSを取得する。
     短時間の連続リクエストによるレート制限(503)を避けるため、
@@ -95,7 +115,10 @@ def fetch_keyword_news(keyword, retries=2):
         return []
 
     feed = feedparser.parse(resp.content)
-    return [{"title": e.title, "url": e.link} for e in feed.entries[:ITEMS_PER_KEYWORD]]
+    return [
+        {"title": e.title, "url": e.link, "published": format_published_jst(e)}
+        for e in feed.entries[:ITEMS_PER_KEYWORD]
+    ]
 
 
 def build_oshi_message(state, now):
@@ -114,7 +137,7 @@ def build_oshi_message(state, now):
             has_any_new = True
             lines = [f"## 🌟 {keyword}"]
             for item in new_items:
-                lines.append(f"- [{item['title']}](<{item['url']}>)")
+                lines.append(f"- [{item['title']}](<{item['url']}>) `[{item['published']}]`")
             sections.append("\n".join(lines))
 
     if not has_any_new:
