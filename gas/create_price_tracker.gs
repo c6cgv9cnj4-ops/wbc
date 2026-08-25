@@ -4,8 +4,13 @@
  * 【使い方】
  * 1. 既存のApps Scriptプロジェクト(このファイルの旧バージョンを貼り付けたもの)を開き、
  *    このファイルの内容で丸ごと上書き保存する。
- * 2. ファイル冒頭の SHARED_SECRET を、自分で決めたランダムな文字列に書き換えて保存する
- *    (この値をGitHub Secretsの DEALS_GAS_SHARED_SECRET にも同じ値で登録する)。
+ * 2. Apps Scriptエディタ左側の「プロジェクトの設定」(歯車アイコン)>
+ *    「スクリプト プロパティ」>「スクリプト プロパティを追加」で、
+ *    プロパティ名: DEALS_GAS_SHARED_SECRET / 値: 自分で決めたランダムな文字列
+ *    を1回だけ登録する(この値をGitHub Secretsの DEALS_GAS_SHARED_SECRET にも
+ *    同じ値で登録する)。スクリプトプロパティはコードの外(プロジェクト単位)に
+ *    保存されるため、以降このファイルの内容を何度貼り直しても消えず、
+ *    再設定は不要になる。
  *    ※このファイルには実際のシークレット値を書き込まないこと(公開リポジトリで
  *      管理しているため、実際の値が漏えいする)。
  * 3. 関数選択プルダウンで実行する関数を選ぶ:
@@ -34,12 +39,15 @@
  * あります。実行後に結果を教えていただければ、以降の疎通確認はこちらで代行します。
  */
 
-// GitHub Actions(fetch_deals.py)からのリクエストを認証するための合言葉。必ず書き換えること。
+// GitHub Actions(fetch_deals.py)からのリクエストを認証するための合言葉。
 // 【重要】このリポジトリ(wbc)は公開リポジトリのため、実際の値をこのファイルに
-// 書き込んでコミットしないこと。ここはプレースホルダーのままにし、実際の値は
-// Apps Scriptエディタ上で直接書き換えて保存すること(GitHub Secretsの
-// DEALS_GAS_SHARED_SECRET と同じ値にする)。
-var SHARED_SECRET = 'CHANGE_ME_TO_A_RANDOM_STRING';
+// 書き込んでコミットしないこと。値はコードではなく「スクリプト プロパティ」
+// (プロジェクトの設定 > スクリプト プロパティ、プロパティ名: DEALS_GAS_SHARED_SECRET)
+// に保存する運用にしているため、このファイルを何度貼り直してもスクリプト
+// プロパティの値は消えず、再設定は不要(GitHub Secretsの DEALS_GAS_SHARED_SECRET
+// と同じ値を登録すること)。スクリプトプロパティ未設定の場合はプレースホルダーの
+// ままとなり、doGet側で「初期値のまま」エラーになる。
+var SHARED_SECRET = PropertiesService.getScriptProperties().getProperty('DEALS_GAS_SHARED_SECRET') || 'CHANGE_ME_TO_A_RANDOM_STRING';
 
 var SPREADSHEET_NAME = '北本・桶川 底値トラッカー';
 var MASTER_SHEET_NAME = '📊 底値ダッシュボード';
