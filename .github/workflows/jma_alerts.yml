@@ -5,7 +5,12 @@ on:
     # 10分ごと(気象警報・地震情報は速報性が重要なため)。
     # 毎時0分ちょうどは混雑するため、他のcronと合わせて分をずらしている。
     - cron: "7,17,27,37,47,57 * * * *"
-  workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+  workflow_dispatch:
+    inputs:
+      test_send:
+        description: "trueにするとダミーデータでDiscordへテスト送信する(本番のstateは変更しない)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write  # state/jma_alerts_seen.json(既送信記録)のコミット用
@@ -30,10 +35,10 @@ jobs:
       - name: JMA気象警報・地震情報を取得してDiscordへ配信
         env:
           DISCORD_WEBHOOK_LOCAL: ${{ secrets.WEBHOOK_LOCAL }}
-        run: python scripts/fetch_jma_alerts.py
+        run: python scripts/fetch_jma_alerts.py ${{ inputs.test_send && '--test' || '' }}
 
       - name: 既送信記録をコミット
-        if: always()
+        if: ${{ always() && !inputs.test_send }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

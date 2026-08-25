@@ -335,9 +335,29 @@ def send_embeds_to_discord(webhook_url, embeds, batch_size=10):
             if resp.status_code >= 300:
                 print(f"[ERROR] Discord送信に失敗しました(HTTP {resp.status_code}): {resp.text[:300]}")
                 ok = False
+            else:
+                print(f"[OK] Discord送信成功(HTTP {resp.status_code}, {len(batch)}件)")
         except Exception as err:  # noqa: BLE001
             print(f"[ERROR] Discord送信中に例外が発生しました: {err}")
             ok = False
+    return ok
+
+
+def send_test_alert(webhook):
+    """実際にWebhookへ疎通するかを確認するためのダミー送信(--testオプション)。
+    本番のstate(既送信記録)には一切触れない。"""
+    now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
+    dummy_warning_embed = build_warning_embeds([{
+        "municipality": "北本市(テスト)", "code": "03", "name": "大雨警報",
+        "severity": "警報", "color": COLOR_WARNING, "status": "テスト送信",
+    }], now)
+    dummy_quake_embed = build_quake_embeds([{
+        "anm": "テスト震源(実在しません)", "mag": "0.0", "maxi": "1",
+        "at": now.isoformat(),
+        "municipalities": [("北本市(テスト)", "1")],
+    }])
+    ok = send_embeds_to_discord(webhook, dummy_warning_embed + dummy_quake_embed)
+    print("[TEST] テスト送信結果:", "成功" if ok else "失敗")
     return ok
 
 
@@ -346,6 +366,9 @@ def main():
     if not webhook:
         print("[ERROR] 環境変数 DISCORD_WEBHOOK_LOCAL が設定されていません。")
         sys.exit(1)
+
+    if "--test" in sys.argv:
+        sys.exit(0 if send_test_alert(webhook) else 1)
 
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
     state = load_seen_state()
