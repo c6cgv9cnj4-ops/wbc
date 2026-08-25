@@ -150,6 +150,13 @@ function buildPriceTracker() {
 function buildMasterDashboardSheet_(sheet) {
   sheet.setTabColor('#0284C7');
 
+  // セル結合の前に固定行・固定列を一旦全解除する。
+  // (固定行/列の境界をまたぐセル結合はGASでエラーになるため、旧レイアウトの
+  // setFrozenRows(1)等が残ったまま1〜2行目を結合しようとすると
+  // 「固定されている行と固定されていない行は結合できません」で失敗する)
+  sheet.setFrozenRows(0);
+  sheet.setFrozenColumns(0);
+
   // 既存のヘッダー2行分の結合・内容を一旦リセットしてから組み直す(冪等にするため)
   var headerBlock = sheet.getRange(1, 1, HEADER_ROWS, TOTAL_COLS);
   headerBlock.breakApart();
