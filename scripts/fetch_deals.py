@@ -157,22 +157,21 @@ DEALS_ITEMS = [
      "measure_type": "count", "count_units": ["斤"], "keywords": ["食パン"]},
 
     # ---- 日用品・紙類・飲料 ----
+    # キッチンペーパー・柔軟剤は監視対象から削除(ユーザー指示による)。
     {"genre": GENRE_PAPER_ETC, "name": "トイレットペーパー(12ロール等)", "unit": "1m",
      "measure_type": "toilet_paper", "keywords": ["トイレットペーパー"]},
-    {"genre": GENRE_PAPER_ETC, "name": "キッチンペーパー(4ロール等)", "unit": "1ロール",
-     "measure_type": "count_roll", "count_units": ["ロール", "本"], "keywords": ["キッチンペーパー"]},
     {"genre": GENRE_PAPER_ETC, "name": "洗濯用洗剤", "unit": "1回",
      "measure_type": "detergent", "count_units": ["回"], "keywords": ["洗濯用洗剤", "洗濯洗剤", "ジェルボール"]},
-    {"genre": GENRE_PAPER_ETC, "name": "柔軟剤", "unit": "100ml",
-     "measure_type": "volume_ml", "keywords": ["柔軟剤"]},
     {"genre": GENRE_PAPER_ETC, "name": "炭酸水", "unit": "500ml",
      "measure_type": "volume_ml_basis", "volume_basis_ml": 500, "keywords": ["炭酸水", "スパークリングウォーター"]},
 
     # ---- 日用品・ヘアケア ----
-    {"genre": GENRE_HAIRCARE, "name": "シャンプー", "unit": "100ml",
-     "measure_type": "volume_ml", "keywords": ["シャンプー"]},
-    {"genre": GENRE_HAIRCARE, "name": "コンディショナー/トリートメント", "unit": "100ml",
-     "measure_type": "volume_ml", "keywords": ["コンディショナー", "トリートメント", "リンス"]},
+    # 一般名ではなく、普段使用している具体的な銘柄を指定(ユーザー指示による)。
+    # 銘柄名を変更したい場合は、この "name" と "keywords" を書き換えるだけで良い。
+    {"genre": GENRE_HAIRCARE, "name": "P&G パンテーン エクストラダメージケア シャンプー 詰め替え 特大", "unit": "100ml",
+     "measure_type": "volume_ml", "keywords": ["パンテーン", "エクストラダメージケア", "シャンプー"]},
+    {"genre": GENRE_HAIRCARE, "name": "P&G パンテーン エクストラダメージケア トリートメント 詰め替え 特大", "unit": "100ml",
+     "measure_type": "volume_ml", "keywords": ["パンテーン", "エクストラダメージケア", "トリートメント"]},
     {"genre": GENRE_HAIRCARE, "name": "ボディーソープ", "unit": "100ml",
      "measure_type": "volume_ml", "keywords": ["ボディーソープ", "ボディソープ"]},
 ]
@@ -327,7 +326,12 @@ JSON配列のみを出力してください(説明文・Markdownのコードブ�
 - "genre": 上記リストのジャンル名をそのまま使う
 - "product_name": 上記リストの商品名を完全一致するものだけ使う(曖昧なら含めない)
 - "maker": メーカー名・銘柄名(読み取れない場合はnull)
-- "price_yen": 税込価格(数値のみ。読み取れない場合はnull)
+- "price_yen": その商品1パッケージ(1点)を購入する際の実売価格(税込)。
+   精肉・生鮮コーナー等でよくある「100gあたり128円」のような単位価格
+   (グラム単価)表示は、price_yenとして使わないでください。パッケージ
+   全体の実売価格が読み取れない場合は、必ずnullにしてください
+   (単位価格をpackage_size_textの重量と誤って組み合わせると、実際より
+   大幅に安い単価が算出されてしまうため、この区別は特に重要です)。
 - "package_size_text": パッケージ規格・内容量の原文(例: "1000ml","400g","5kg","1玉","4ロール",
    "3パック","12回分"等。読み取れない場合はnull)
 - "deal_type": 特売の種別が読み取れれば記載(例: "平日市","週末朝市","週末セール","通常"等。

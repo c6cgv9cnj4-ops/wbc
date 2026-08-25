@@ -8,10 +8,15 @@
  *    (この値をGitHub Secretsの DEALS_GAS_SHARED_SECRET にも同じ値で登録する)。
  *    ※このファイルには実際のシークレット値を書き込まないこと(公開リポジトリで
  *      管理しているため、実際の値が漏えいする)。
- * 3. 関数選択プルダウンで buildPriceTracker を選び、▷実行ボタンを1回だけ押す。
- *    (このシートに紐づいた状態のApps Scriptとして実行すること。既存の
- *    「価格ログ蓄積」シートのデータはそのまま引き継がれ、削除されない。
- *    未使用になった旧ジャンル別タブは削除ではなく「_旧」を付けて非表示アーカイブされる)
+ * 3. 関数選択プルダウンで実行する関数を選ぶ:
+ *    - 初めてこのシートに導入する場合、または旧レイアウト(店舗1列/ヨークマート含む)から
+ *      横展開レイアウト(店舗2列/ヨークマート除外)へ移行する場合は
+ *      migrateToDualColumnLayout を1回だけ実行する(既存データは新レイアウトに変換して
+ *      引き継がれる。ヨークマート列のデータのみ引き継がれず破棄される)。
+ *    - 単に書式だけを再適用したい場合は applyFormattingToExistingSheet を実行する。
+ *    - まだ一度もこのシートで初期化していない場合は buildPriceTracker を実行する。
+ *    (どの関数も、このシートに紐づいた状態のApps Scriptとして実行すること。既存の
+ *    「価格ログ蓄積」シートのデータはそのまま引き継がれ、削除されない)
  * 4. 右上「デプロイ」>「デプロイを管理」>既存のウェブアプリのデプロイの鉛筆アイコン>
  *    「バージョン」を「新バージョン」にして「デプロイ」(URLは変わらない)。
  *
@@ -33,9 +38,10 @@ var MASTER_SHEET_NAME = '📊 底値ダッシュボード';
 var LOG_SHEET_NAME = '📋 価格ログ蓄積';
 var LEGACY_LOG_SHEET_NAME = '価格ログ蓄積'; // 旧バージョンでのシート名(データ引き継ぎ用)
 
-// 追跡対象店舗(計8店舗。ウエルシアは生鮮・米を除く「ペーパー類・洗剤・調味料・飲料」のみが対象。
+// 追跡対象店舗(計7店舗。ヨークマートは監視対象から削除した。
+// ウエルシアは生鮮・米を除く「ペーパー類・洗剤・調味料・飲料」のみが対象。
 // scripts/fetch_deals.py の DEALS_STORES の category_scope と対応させる)
-var STORES = ['ロヂャース北本店', 'マルサン桶川店', '業務スーパー', 'ヤオコー', 'ベルク', 'とりせん', 'ヨークマート', 'ウエルシア'];
+var STORES = ['ロヂャース北本店', 'マルサン桶川店', '業務スーパー', 'ヤオコー', 'ベルク', 'とりせん', 'ウエルシア'];
 
 var THEME = {
   headerBg: '#1E293B',        // スレートネイビー
@@ -45,12 +51,15 @@ var THEME = {
   fontFamily: 'Roboto, "Noto Sans JP", sans-serif',
 };
 
-// ダッシュボードシートの列(A〜N、店舗数に応じてG〜Mが伸縮する)
+// ダッシュボードシートの列。
+// 店舗ごとに「実売価格(内容量表示、テキスト)」「換算単価(数値、比較・ランキング用)」の
+// 2列を持つ横展開レイアウト(Amazon基準単価も同様に2列)。
 var COL = {
-  GENRE: 1, MAKER: 2, NAME: 3, SPEC: 4, UNIT: 5, AMAZON: 6,
-  STORE_START: 7, // G列から店舗数ぶん
+  GENRE: 1, MAKER: 2, NAME: 3, SPEC: 4, UNIT: 5,
+  AMAZON_PRICE: 6, AMAZON_UNIT: 7,
+  STORE_START: 8, // H列から店舗数×2列ぶん
 };
-COL.STORE_END = COL.STORE_START + STORES.length - 1; // 7店舗なら G〜M
+COL.STORE_END = COL.STORE_START + STORES.length * 2 - 1;
 COL.MIN_PRICE = COL.STORE_END + 1;   // 実店舗最安単価
 COL.BEST_STORE = COL.STORE_END + 2;  // エリア最安店舗
 COL.RANKING = COL.STORE_END + 3;     // 買い推奨・価格順位ランキング
@@ -61,6 +70,26 @@ var LOG_COL = {
   DATE: 1, STORE: 2, GENRE: 3, NAME: 4, SPEC: 5, RAW_PRICE: 6, UNIT_PRICE: 7, DEAL_TYPE: 8, MEMO: 9,
 };
 var LOG_COLUMN_WIDTHS = [150, 120, 110, 220, 100, 110, 100, 110, 180];
+
+// =====================================================================
+// 列番号ヘルパー(店舗ごとに2列を割り当てる横展開レイアウト用)
+// =====================================================================
+
+function getStorePriceColumn_(storeIndex) {
+  return COL.STORE_START + storeIndex * 2;
+}
+function getStoreUnitColumn_(storeIndex) {
+  return COL.STORE_START + storeIndex * 2 + 1;
+}
+function columnToLetter_(col) {
+  var letter = '';
+  while (col > 0) {
+    var rem = (col - 1) % 26;
+    letter = String.fromCharCode(65 + rem) + letter;
+    col = Math.floor((col - 1) / 26);
+  }
+  return letter;
+}
 
 // =====================================================================
 // 1. スプレッドシート構築・書式再適用(手動で実行する)
@@ -108,9 +137,12 @@ function buildPriceTracker() {
 function buildMasterDashboardSheet_(sheet) {
   sheet.setTabColor('#0284C7');
 
-  var headers = ['ジャンル', 'メーカー', '商品名', '規格・容量', '単位', 'Amazon基準単価']
-    .concat(STORES)
-    .concat(['実店舗最安単価', 'エリア最安店舗', '買い推奨・価格順位ランキング']);
+  var headers = ['ジャンル', 'メーカー', '商品名', '規格・容量', '単位', 'Amazon実売価格(内容量)', 'Amazon換算単価'];
+  STORES.forEach(function (s) {
+    headers.push(s + ' 実売価格(内容量)');
+    headers.push(s + ' 換算単価');
+  });
+  headers.push('実店舗最安単価', 'エリア最安店舗', '買い推奨・価格順位ランキング');
 
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
 
@@ -122,33 +154,42 @@ function buildMasterDashboardSheet_(sheet) {
     .setVerticalAlignment('middle')
     .setHorizontalAlignment('center');
 
-  sheet.getRange(1, COL.AMAZON).setNote(
-    '自動取得していません。誤った金額を自動で入れると誤判定の原因になるため、' +
-    '実際の相場をご自身で確認したうえで手動入力してください(空欄なら実店舗内ランキングのみ表示されます)。'
+  sheet.getRange(1, COL.AMAZON_PRICE).setNote(
+    '自動取得していません。マスタデータ(基準価格・容量)として、ご自身で確認した実売価格と' +
+    '内容量を手動入力してください(例: 1,280円(500ml))。空欄なら実店舗内ランキングのみ表示されます。'
+  );
+  sheet.getRange(1, COL.AMAZON_UNIT).setNote(
+    '左のAmazon実売価格(内容量)から算出した100g/100mlあたりの換算単価を手動入力してください。' +
+    'この列の数値が実店舗の換算単価と比較され、ランキングに反映されます。'
   );
 
   sheet.setRowHeight(1, 40);
   sheet.setFrozenRows(1);
   sheet.setFrozenColumns(3); // 商品名まで固定
 
-  var widths = [110, 110, 220, 100, 70, 110]; // ジャンル/メーカー/商品名/規格・容量/単位/Amazon基準単価
+  var widths = [110, 110, 220, 100, 70]; // ジャンル/メーカー/商品名/規格・容量/単位
   for (var i = 0; i < widths.length; i++) {
     sheet.setColumnWidth(i + 1, widths[i]);
   }
-  for (var s = COL.STORE_START; s <= COL.STORE_END; s++) {
-    sheet.setColumnWidth(s, 105);
+  sheet.setColumnWidth(COL.AMAZON_PRICE, 150);
+  sheet.setColumnWidth(COL.AMAZON_UNIT, 100);
+  for (var s = 0; s < STORES.length; s++) {
+    sheet.setColumnWidth(getStorePriceColumn_(s), 120);
+    sheet.setColumnWidth(getStoreUnitColumn_(s), 95);
   }
   sheet.setColumnWidth(COL.MIN_PRICE, 110);
   sheet.setColumnWidth(COL.BEST_STORE, 130);
   sheet.setColumnWidth(COL.RANKING, 320);
 
-  // 既存データ行があれば、価格列の書式(3桁カンマ+右寄せ)を再適用する
+  // 既存データ行があれば、換算単価列の書式(3桁カンマ+右寄せ)を再適用する
   var lastRow = sheet.getLastRow();
   if (lastRow >= 2) {
     var rows = lastRow - 1;
-    sheet.getRange(2, COL.AMAZON, rows, 1).setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
-    sheet.getRange(2, COL.STORE_START, rows, COL.STORE_END - COL.STORE_START + 1)
-      .setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
+    sheet.getRange(2, COL.AMAZON_UNIT, rows, 1).setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
+    for (var u = 0; u < STORES.length; u++) {
+      sheet.getRange(2, getStoreUnitColumn_(u), rows, 1).setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
+      sheet.getRange(2, getStorePriceColumn_(u), rows, 1).setHorizontalAlignment('center');
+    }
     sheet.getRange(2, COL.MIN_PRICE, rows, 1).setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
   }
 }
@@ -197,6 +238,106 @@ function applyFormattingToExistingSheet() {
   var logSheet = ss.getSheetByName(LOG_SHEET_NAME) || ss.getSheetByName(LEGACY_LOG_SHEET_NAME);
   if (logSheet) applyLogSheetLayout_(logSheet);
   Logger.log('フォーマットの再適用が完了しました。');
+}
+
+/**
+ * 【1回だけ実行する移行関数】
+ * 旧レイアウト(店舗1列=換算単価のみ、ヨークマート列を含む)のダッシュボードから、
+ * 新レイアウト(店舗2列=実売価格(内容量)+換算単価、ヨークマート除外)へデータを移行する。
+ *
+ * 既存の商品行(ジャンル/メーカー/商品名/規格・容量/単位/Amazon基準単価/各店舗の換算単価)は
+ * ヘッダーのテキストを見て自動的に対応する新しい列へ引き継がれる。
+ * ヨークマート列にあったデータのみ、監視対象店舗から削除されたため引き継がれず破棄される。
+ * 各店舗の「実売価格(内容量)」列は、旧レイアウトには存在しなかった情報のため空欄になる
+ * (次回以降のfetch_deals.py実行時に自動で埋まる)。
+ *
+ * 既にこのシートが新レイアウトで作成済み(移行不要)の場合は、安全のため何もせず終了する。
+ */
+function migrateToDualColumnLayout() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(MASTER_SHEET_NAME);
+  if (!sheet) {
+    throw new Error('シートが見つかりません: ' + MASTER_SHEET_NAME);
+  }
+
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+
+  if (lastRow < 2) {
+    buildMasterDashboardSheet_(sheet);
+    Logger.log('データ行が無いため、新レイアウトでの初期化のみ実行しました。');
+    return;
+  }
+
+  var headerRow = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  if (headerRow.indexOf('Amazon実売価格(内容量)') !== -1) {
+    Logger.log('既に新レイアウト(横展開)のため、移行をスキップしました。');
+    return;
+  }
+
+  var fixedHeaders = ['ジャンル', 'メーカー', '商品名', '規格・容量', '単位', 'Amazon基準単価'];
+  var summaryHeaders = ['実店舗最安単価', 'エリア最安店舗', '買い推奨・価格順位ランキング'];
+  var oldAmazonCol = headerRow.indexOf('Amazon基準単価') + 1; // 見つからなければ0
+
+  var oldStoreCols = []; // { name: '店舗名', col: 列番号 }
+  for (var c = 1; c <= lastCol; c++) {
+    var h = headerRow[c - 1];
+    if (!h || fixedHeaders.indexOf(h) !== -1 || summaryHeaders.indexOf(h) !== -1) continue;
+    oldStoreCols.push({ name: h, col: c });
+  }
+
+  var droppedStores = oldStoreCols
+    .map(function (sc) { return sc.name; })
+    .filter(function (name) { return STORES.indexOf(name) === -1; });
+
+  var dataRange = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var records = dataRange.map(function (row) {
+    var rec = {
+      genre: row[COL.GENRE - 1],
+      maker: row[COL.MAKER - 1],
+      name: row[COL.NAME - 1],
+      spec: row[COL.SPEC - 1],
+      unit: row[COL.UNIT - 1],
+      amazonUnit: oldAmazonCol ? row[oldAmazonCol - 1] : '',
+      storeUnitPrices: {},
+    };
+    oldStoreCols.forEach(function (sc) {
+      rec.storeUnitPrices[sc.name] = row[sc.col - 1];
+    });
+    return rec;
+  });
+
+  // 既存データ範囲をクリアしてから新レイアウトのヘッダー・書式を構築する
+  sheet.getRange(2, 1, lastRow - 1, lastCol).clearContent().clearFormat();
+  buildMasterDashboardSheet_(sheet);
+
+  records.forEach(function (rec, i) {
+    if (!rec.name) return; // 空行はスキップ
+    var row = i + 2;
+    sheet.getRange(row, COL.GENRE).setValue(rec.genre || '一般');
+    sheet.getRange(row, COL.MAKER).setValue(rec.maker || '-');
+    sheet.getRange(row, COL.NAME).setValue(rec.name);
+    sheet.getRange(row, COL.SPEC).setValue(rec.spec || '-');
+    sheet.getRange(row, COL.UNIT).setValue(rec.unit || '-');
+    if (typeof rec.amazonUnit === 'number') {
+      sheet.getRange(row, COL.AMAZON_UNIT).setValue(rec.amazonUnit);
+    }
+    STORES.forEach(function (storeName, si) {
+      var v = rec.storeUnitPrices[storeName];
+      if (typeof v === 'number') {
+        sheet.getRange(row, getStoreUnitColumn_(si)).setValue(v);
+      }
+    });
+    setRowFormulas_(sheet, row);
+    applyRowStyle_(sheet, row);
+  });
+
+  var msg = '新レイアウト(横展開)への移行が完了しました: ' + records.length + '行。';
+  if (droppedStores.length > 0) {
+    msg += ' 監視対象から外れたため破棄した列: ' + droppedStores.join(', ') + '。';
+  }
+  Logger.log(msg);
+  return msg;
 }
 
 // =====================================================================
@@ -276,6 +417,70 @@ function processIncomingDeals_(items) {
   return { updated: updated, logged: logged, errors: errors };
 }
 
+// 新規商品行を1行分作成し、数式・書式を適用する(値の書き込みは呼び出し元で行う)
+function initNewRow_(sheet, row, item) {
+  sheet.getRange(row, COL.GENRE).setValue(item.genre || '一般');
+  sheet.getRange(row, COL.MAKER).setValue(item.maker || '-');
+  sheet.getRange(row, COL.NAME).setValue(item.product_name);
+  sheet.getRange(row, COL.SPEC).setValue(item.spec || '-');
+  sheet.getRange(row, COL.UNIT).setValue(item.unit || '-');
+
+  setRowFormulas_(sheet, row);
+  applyRowStyle_(sheet, row);
+}
+
+// 実店舗最安単価・エリア最安店舗・ランキングの数式を1行分設定する。
+// 店舗の「換算単価」列は STORE_START から1列おきに並ぶ非連続列のため、
+// 単純な範囲参照ではなく配列リテラル({A1,C1,E1,...})を組み立てて参照する。
+function setRowFormulas_(sheet, row) {
+  var unitRefs = [];
+  for (var i = 0; i < STORES.length; i++) {
+    unitRefs.push(columnToLetter_(getStoreUnitColumn_(i)) + row);
+  }
+  var minArgs = unitRefs.join(',');
+  var unitArray = '{' + minArgs + '}';
+  var nameArray = '{' + STORES.map(function (s) {
+    return '"' + String(s).replace(/"/g, '""') + '"';
+  }).join(',') + '}';
+
+  sheet.getRange(row, COL.MIN_PRICE).setFormula('=IFERROR(MIN(' + minArgs + '), "-")');
+  sheet.getRange(row, COL.BEST_STORE).setFormula(
+    '=IFERROR(INDEX(' + nameArray + ', MATCH(MIN(' + minArgs + '), ' + unitArray + ', 0)), "-")'
+  );
+  sheet.getRange(row, COL.RANKING).setFormula(
+    '=IF(COUNT(' + minArgs + ')=0, "データなし", ' +
+    '"🥇 " & INDEX(' + nameArray + ', MATCH(SMALL(' + unitArray + ',1), ' + unitArray + ', 0)) &' +
+    'IF(COUNT(' + minArgs + ')>1, "  |  🥈 " & INDEX(' + nameArray + ', MATCH(SMALL(' + unitArray + ',2), ' + unitArray + ', 0)), "") &' +
+    'IF(COUNT(' + minArgs + ')>2, "  |  🥉 " & INDEX(' + nameArray + ', MATCH(SMALL(' + unitArray + ',3), ' + unitArray + ', 0)), ""))'
+  );
+}
+
+// 1行分の見た目(行高・フォント・数値書式・ゼブラ等)をまとめて適用する
+function applyRowStyle_(sheet, row) {
+  sheet.setRowHeight(row, 32);
+  sheet.getRange(row, 1, 1, MASTER_HEADER_COUNT)
+    .setVerticalAlignment('middle')
+    .setFontFamily(THEME.fontFamily)
+    .setFontSize(9.5);
+
+  sheet.getRange(row, COL.AMAZON_PRICE).setHorizontalAlignment('center');
+  sheet.getRange(row, COL.AMAZON_UNIT).setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
+  for (var i = 0; i < STORES.length; i++) {
+    sheet.getRange(row, getStorePriceColumn_(i)).setHorizontalAlignment('center');
+    sheet.getRange(row, getStoreUnitColumn_(i)).setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
+  }
+  sheet.getRange(row, COL.MIN_PRICE).setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
+  sheet.getRange(row, COL.GENRE, 1, 2).setHorizontalAlignment('center');
+  sheet.getRange(row, COL.SPEC, 1, 2).setHorizontalAlignment('center');
+  sheet.getRange(row, COL.BEST_STORE).setHorizontalAlignment('center').setFontWeight('bold').setFontColor(THEME.bestPriceFont);
+
+  if (row % 2 === 0) {
+    sheet.getRange(row, 1, 1, MASTER_HEADER_COUNT).setBackground(THEME.zebraEven);
+  } else {
+    sheet.getRange(row, 1, 1, MASTER_HEADER_COUNT).setBackground(null);
+  }
+}
+
 function updateMasterRecord_(sheet, item, storeIndex) {
   var lastRow = sheet.getLastRow();
   var productNames = lastRow > 1 ? sheet.getRange(2, COL.NAME, lastRow - 1, 1).getValues() : [];
@@ -290,46 +495,15 @@ function updateMasterRecord_(sheet, item, storeIndex) {
 
   if (targetRow === -1) {
     targetRow = lastRow + 1;
-    sheet.getRange(targetRow, COL.GENRE).setValue(item.genre || '一般');
-    sheet.getRange(targetRow, COL.MAKER).setValue(item.maker || '-');
-    sheet.getRange(targetRow, COL.NAME).setValue(item.product_name);
-    sheet.getRange(targetRow, COL.SPEC).setValue(item.spec || '-');
-    sheet.getRange(targetRow, COL.UNIT).setValue(item.unit || '-');
-
-    var storeRangeA1 = sheet.getRange(targetRow, COL.STORE_START, 1, COL.STORE_END - COL.STORE_START + 1).getA1Notation();
-    var storeHeaderA1 = sheet.getRange(1, COL.STORE_START, 1, COL.STORE_END - COL.STORE_START + 1).getA1Notation();
-
-    sheet.getRange(targetRow, COL.MIN_PRICE).setFormula('=IFERROR(MIN(' + storeRangeA1 + '), "-")');
-    sheet.getRange(targetRow, COL.BEST_STORE).setFormula(
-      '=IFERROR(INDEX(' + storeHeaderA1 + ', MATCH(MIN(' + storeRangeA1 + '), ' + storeRangeA1 + ', 0)), "-")'
-    );
-    sheet.getRange(targetRow, COL.RANKING).setFormula(
-      '=IF(COUNT(' + storeRangeA1 + ')=0, "データなし", ' +
-      '"🥇 " & INDEX(' + storeHeaderA1 + ', MATCH(SMALL(' + storeRangeA1 + ',1), ' + storeRangeA1 + ', 0)) &' +
-      'IF(COUNT(' + storeRangeA1 + ')>1, "  |  🥈 " & INDEX(' + storeHeaderA1 + ', MATCH(SMALL(' + storeRangeA1 + ',2), ' + storeRangeA1 + ', 0)), "") &' +
-      'IF(COUNT(' + storeRangeA1 + ')>2, "  |  🥉 " & INDEX(' + storeHeaderA1 + ', MATCH(SMALL(' + storeRangeA1 + ',3), ' + storeRangeA1 + ', 0)), ""))'
-    );
-
-    sheet.setRowHeight(targetRow, 32);
-    sheet.getRange(targetRow, 1, 1, MASTER_HEADER_COUNT)
-      .setVerticalAlignment('middle')
-      .setFontFamily(THEME.fontFamily)
-      .setFontSize(9.5);
-
-    sheet.getRange(targetRow, COL.STORE_START, 1, COL.STORE_END - COL.STORE_START + 1)
-      .setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
-    sheet.getRange(targetRow, COL.MIN_PRICE).setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
-    sheet.getRange(targetRow, COL.GENRE, 1, 2).setHorizontalAlignment('center');
-    sheet.getRange(targetRow, COL.SPEC, 1, 2).setHorizontalAlignment('center');
-    sheet.getRange(targetRow, COL.BEST_STORE).setHorizontalAlignment('center').setFontWeight('bold').setFontColor(THEME.bestPriceFont);
-
-    if (targetRow % 2 === 0) {
-      sheet.getRange(targetRow, 1, 1, MASTER_HEADER_COUNT).setBackground(THEME.zebraEven);
-    }
+    initNewRow_(sheet, targetRow, item);
   }
 
   if (typeof item.unit_price === 'number') {
-    sheet.getRange(targetRow, COL.STORE_START + storeIndex).setValue(item.unit_price);
+    sheet.getRange(targetRow, getStoreUnitColumn_(storeIndex)).setValue(item.unit_price);
+  }
+  if (typeof item.raw_price === 'number') {
+    var priceLabel = item.raw_price + '円' + (item.spec && item.spec !== '-' ? '(' + item.spec + ')' : '');
+    sheet.getRange(targetRow, getStorePriceColumn_(storeIndex)).setValue(priceLabel);
   }
 }
 
