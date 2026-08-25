@@ -188,15 +188,27 @@ def build_nobi_embed(articles):
 # 3. Apple/ガジェット/珈琲/器/食文化(Gemini質フィルタ付き)
 # ============================================================
 
-def fetch_topic_rss(query):
+def fetch_topic_rss(query, retries=2):
+    import time
     import urllib.parse
     q = urllib.parse.quote(query)
     url = f"https://news.google.com/rss/search?q={q}&hl=ja&gl=JP&ceid=JP:ja"
-    try:
-        resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
-        resp.raise_for_status()
-    except Exception as err:  # noqa: BLE001
-        print(f"[ERROR] Google News RSS取得に失敗しました({query}): {err}")
+    # 短時間に連続でGoogle News検索を叩くとレート制限(503)されることを
+    # 実際のGitHub Actions実行で確認したため、リクエスト間隔を空け、
+    # 503時は一度だけリトライする。
+    time.sleep(2.0)
+    resp = None
+    for attempt in range(retries):
+        try:
+            resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
+            resp.raise_for_status()
+            break
+        except Exception as err:  # noqa: BLE001
+            print(f"[WARN] Google News RSS取得に失敗(試行{attempt + 1}/{retries})({query}): {err}")
+            resp = None
+            time.sleep(5.0)
+    if resp is None:
+        print(f"[ERROR] Google News RSS取得に失敗しました({query})")
         return []
     feed = feedparser.parse(resp.content)
     return [{"title": e.title, "url": e.link} for e in feed.entries]
