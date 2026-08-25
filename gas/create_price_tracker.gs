@@ -28,6 +28,10 @@
  *      最初に migrateToDualColumnLayout を実行してから上記の順で進める。
  *    - 単に書式だけを再適用したい場合は applyFormattingToExistingSheet を実行する。
  *    - まだ一度もこのシートで初期化していない場合は buildPriceTracker を実行する。
+ *    - 価格ログ蓄積の月次自動アーカイブ&月間最安値集計(毎月1日 午前2時台に自動実行)を
+ *      有効化する場合は setupMonthlyTrigger を1回だけ実行する(既に設定済みの場合は
+ *      重複登録を避けるため、実行するたびに古いトリガーを削除してから作り直す)。
+ *      手動で今すぐ先月分の集計を試したい場合は monthlyArchiveAndSummary を直接実行する。
  *    (どの関数も、このシートに紐づいた状態のApps Scriptとして実行すること。既存の
  *    「価格ログ蓄積」シートのデータはそのまま引き継がれ、削除されない)
  * 4. 右上「デプロイ」>「デプロイを管理」>既存のウェブアプリのデプロイの鉛筆アイコン>
@@ -94,6 +98,13 @@ var LOG_COL = {
 };
 var LOG_COLUMN_WIDTHS = [150, 120, 110, 220, 100, 110, 100, 110, 180];
 
+// 月間最安値サマリータブ(商品×店舗の組み合わせごとに1行)
+var SUMMARY_SHEET_NAME = '📅 月間最安値サマリー';
+var SUMMARY_COL = {
+  MONTH: 1, GENRE: 2, NAME: 3, STORE: 4, MIN_UNIT_PRICE: 5, MIN_RAW_PRICE: 6,
+};
+var SUMMARY_COLUMN_WIDTHS = [100, 110, 220, 110, 120, 160];
+
 // =====================================================================
 // 列番号ヘルパー(店舗ごとに2列を割り当てる横展開レイアウト用)
 // =====================================================================
@@ -143,14 +154,17 @@ function buildPriceTracker() {
 
   // 旧ジャンル別タブ等、新設計で使わなくなったシートは削除せず、
   // 「_旧」を付けて非表示アーカイブするだけにとどめる(データを失わないため)。
+  // 月間最安値サマリー・月次アーカイブ(ログ_YYYY_MM)は現行の設計に含まれるため対象外。
   ss.getSheets().forEach(function (sheet) {
     var name = sheet.getName();
-    if (name !== MASTER_SHEET_NAME && name !== LOG_SHEET_NAME) {
-      if (name.indexOf('_旧') === -1) {
-        sheet.setName(name + '_旧');
-      }
-      sheet.hideSheet();
+    if (name === MASTER_SHEET_NAME || name === LOG_SHEET_NAME || name === SUMMARY_SHEET_NAME ||
+      name.indexOf('ログ_') === 0) {
+      return;
     }
+    if (name.indexOf('_旧') === -1) {
+      sheet.setName(name + '_旧');
+    }
+    sheet.hideSheet();
   });
 
   Logger.log('スプレッドシート初期化完了: ' + ss.getUrl());
@@ -288,6 +302,19 @@ function applyLogSheetLayout_(sheet) {
     sheet.getRange(2, LOG_COL.DATE, dataRows, 1).setNumberFormat('yyyy/mm/dd hh:mm').setHorizontalAlignment('center');
     sheet.getRange(2, LOG_COL.RAW_PRICE, dataRows, 1).setNumberFormat('¥#,##0').setHorizontalAlignment('right');
     sheet.getRange(2, LOG_COL.UNIT_PRICE, dataRows, 1).setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
+  }
+}
+
+// 価格ログ形式のシート(価格ログ蓄積・ログ_YYYY_MM)のゼブラ背景を、実データがある
+// 行数ぶんだけ再適用する(setValuesでの一括書き込み後は自動で付かないため)。
+function applyLogZebra_(sheet) {
+  var lastRow = sheet.getLastRow();
+  for (var r = 2; r <= lastRow; r++) {
+    if (r % 2 === 0) {
+      sheet.getRange(r, 1, 1, LOG_COLUMN_WIDTHS.length).setBackground(THEME.zebraEven);
+    } else {
+      sheet.getRange(r, 1, 1, LOG_COLUMN_WIDTHS.length).setBackground(null);
+    }
   }
 }
 
@@ -860,4 +887,211 @@ function safeJsonParse_(text) {
 function jsonResponse_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// =====================================================================
+// 3. 月次自動アーカイブ&月間最安値集計
+//    「価格ログ蓄積」が無制限に肥大化しないよう、当月より前のデータを月ごとの
+//    「ログ_YYYY_MM」シートへ退避し、退避した月の商品×店舗ごとの最安値を
+//    「📅 月間最安値サマリー」に1行ずつ記録する。
+// =====================================================================
+
+/**
+ * 【1回だけ実行する設定関数】
+ * 毎月1日 午前2時台に monthlyArchiveAndSummary を自動実行する時間主導トリガーを設定する。
+ * 既に同名のトリガーが設定済みの場合は、重複登録を避けるため一旦削除してから作り直す
+ * (何度実行しても安全)。
+ */
+function setupMonthlyTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'monthlyArchiveAndSummary') {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+  ScriptApp.newTrigger('monthlyArchiveAndSummary')
+    .timeBased()
+    .onMonthDay(1)
+    .atHour(2)
+    .create();
+  Logger.log('毎月1日 午前2時台に monthlyArchiveAndSummary を実行するトリガーを設定しました。');
+}
+
+/**
+ * 「価格ログ蓄積」のうち当月より前の日付の行を、月ごとに「ログ_YYYY_MM」シートへ
+ * 移動し(シートが無ければ自動作成)、その月の商品×店舗ごとの最安値(換算単価・
+ * 実売価格)を「📅 月間最安値サマリー」に1行ずつ記録する。「価格ログ蓄積」には
+ * 当月以降のデータのみが残る。
+ *
+ * 通常運用(毎月1回実行)では対象は先月分のみになるが、何らかの理由で複数月分の
+ * 古いデータが残っていた場合も、行ごとの実際の日付に基づいて月ごとに正しく
+ * 振り分ける。同じ月に対して複数回実行しても、既存のサマリー行は上書きされ
+ * 重複しない(アーカイブ側は「価格ログ蓄積」から既に移動済みのため再実行しても
+ * 二重に移動されることはない)。
+ */
+function monthlyArchiveAndSummary() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var logSheet = ss.getSheetByName(LOG_SHEET_NAME) || ss.getSheetByName(LEGACY_LOG_SHEET_NAME);
+  if (!logSheet) {
+    throw new Error('シートが見つかりません: ' + LOG_SHEET_NAME);
+  }
+
+  var lastRow = logSheet.getLastRow();
+  if (lastRow < 2) {
+    Logger.log('価格ログ蓄積にデータが無いため、アーカイブ処理をスキップしました。');
+    return;
+  }
+
+  var numRows = lastRow - 1;
+  var data = logSheet.getRange(2, 1, numRows, LOG_COLUMN_WIDTHS.length).getValues();
+
+  var now = new Date();
+  var currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  var tz = Session.getScriptTimeZone();
+
+  var keepRows = [];
+  var archiveGroups = {}; // { 'yyyy_MM': [row, ...] }
+
+  data.forEach(function (row) {
+    var d = row[LOG_COL.DATE - 1];
+    if (!(d instanceof Date) || d.getTime() >= currentMonthStart.getTime()) {
+      keepRows.push(row);
+      return;
+    }
+    var key = Utilities.formatDate(d, tz, 'yyyy_MM');
+    if (!archiveGroups[key]) archiveGroups[key] = [];
+    archiveGroups[key].push(row);
+  });
+
+  var archivedMonths = Object.keys(archiveGroups).sort();
+  if (archivedMonths.length === 0) {
+    Logger.log('アーカイブ対象(当月より前)のデータが無いため、アーカイブ処理をスキップしました。');
+    return;
+  }
+
+  var totalArchived = 0;
+  archivedMonths.forEach(function (key) {
+    var rows = archiveGroups[key];
+    totalArchived += rows.length;
+
+    var archiveSheetName = 'ログ_' + key;
+    var archiveSheet = ss.getSheetByName(archiveSheetName);
+    if (!archiveSheet) {
+      archiveSheet = ss.insertSheet(archiveSheetName);
+      ensureLogSheetHeader_(archiveSheet);
+      archiveSheet.setTabColor('#94A3B8');
+    }
+    var startRow = archiveSheet.getLastRow() + 1;
+    archiveSheet.getRange(startRow, 1, rows.length, LOG_COLUMN_WIDTHS.length).setValues(rows);
+    applyLogSheetLayout_(archiveSheet);
+    applyLogZebra_(archiveSheet);
+
+    buildMonthlySummary_(ss, key, rows);
+  });
+
+  // 「価格ログ蓄積」を当月以降のデータのみに再構築する
+  logSheet.getRange(2, 1, numRows, LOG_COLUMN_WIDTHS.length).clearContent();
+  if (keepRows.length > 0) {
+    logSheet.getRange(2, 1, keepRows.length, LOG_COLUMN_WIDTHS.length).setValues(keepRows);
+  }
+  applyLogSheetLayout_(logSheet);
+  applyLogZebra_(logSheet);
+
+  Logger.log(
+    '月次アーカイブが完了しました。対象月: ' + archivedMonths.join(', ') +
+    '。移動した行数: ' + totalArchived + '。「価格ログ蓄積」に残った行数: ' + keepRows.length + '。'
+  );
+}
+
+// 指定した月(monthKey: 'yyyy_MM')ぶんの価格ログ行(rows、LOG_COL準拠の配列)から、
+// 商品×店舗の組み合わせごとに換算単価が最も安い行を1つ選び、
+// 「📅 月間最安値サマリー」へ1行ずつ記録する(同じ対象年月の既存行は上書きする)。
+function buildMonthlySummary_(ss, monthKey, rows) {
+  var summarySheet = ss.getSheetByName(SUMMARY_SHEET_NAME);
+  if (!summarySheet) {
+    summarySheet = ss.insertSheet(SUMMARY_SHEET_NAME);
+    ensureSummarySheetHeader_(summarySheet);
+  }
+
+  var monthLabel = monthKey.replace('_', '年') + '月';
+
+  var best = {}; // key: '商品名店舗名' -> { genre, store, name, spec, unitPrice, rawPrice }
+  rows.forEach(function (row) {
+    var store = row[LOG_COL.STORE - 1];
+    var name = row[LOG_COL.NAME - 1];
+    var unitPrice = row[LOG_COL.UNIT_PRICE - 1];
+    if (!name || !store || typeof unitPrice !== 'number') return;
+
+    var key = name + '' + store;
+    if (!best[key] || unitPrice < best[key].unitPrice) {
+      best[key] = {
+        genre: row[LOG_COL.GENRE - 1],
+        store: store,
+        name: name,
+        spec: row[LOG_COL.SPEC - 1],
+        unitPrice: unitPrice,
+        rawPrice: row[LOG_COL.RAW_PRICE - 1],
+      };
+    }
+  });
+
+  var newRows = Object.keys(best).sort().map(function (key) {
+    var b = best[key];
+    var rawLabel = (typeof b.rawPrice === 'number')
+      ? (b.rawPrice + '円' + (b.spec && b.spec !== '-' ? '(' + b.spec + ')' : ''))
+      : '-';
+    return [monthLabel, b.genre || '', b.name, b.store, b.unitPrice, rawLabel];
+  });
+
+  // 同じ対象年月の既存行があれば入れ替える(再実行しても重複しないようにする)
+  var lastRow = summarySheet.getLastRow();
+  var existingRows = lastRow >= 2
+    ? summarySheet.getRange(2, 1, lastRow - 1, SUMMARY_COLUMN_WIDTHS.length).getValues()
+      .filter(function (r) { return r[SUMMARY_COL.MONTH - 1] !== monthLabel; })
+    : [];
+
+  var allRows = existingRows.concat(newRows);
+  if (lastRow >= 2) {
+    summarySheet.getRange(2, 1, lastRow - 1, SUMMARY_COLUMN_WIDTHS.length).clearContent();
+  }
+  if (allRows.length > 0) {
+    summarySheet.getRange(2, 1, allRows.length, SUMMARY_COLUMN_WIDTHS.length).setValues(allRows);
+  }
+  applySummarySheetLayout_(summarySheet);
+}
+
+function ensureSummarySheetHeader_(sheet) {
+  var headers = ['対象年月', 'ジャンル', '商品名', '店舗名', '最安換算単価', '実売価格(内容量)'];
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length)
+    .setBackground(THEME.headerBg)
+    .setFontColor(THEME.headerFont)
+    .setFontWeight('bold')
+    .setFontSize(10)
+    .setVerticalAlignment('middle')
+    .setHorizontalAlignment('center');
+  sheet.setRowHeight(1, 34);
+  sheet.setFrozenRows(1);
+  sheet.setFrozenColumns(2);
+  sheet.setTabColor('#0EA5E9');
+}
+
+function applySummarySheetLayout_(sheet) {
+  for (var i = 0; i < SUMMARY_COLUMN_WIDTHS.length; i++) {
+    sheet.setColumnWidth(i + 1, SUMMARY_COLUMN_WIDTHS[i]);
+  }
+  var lastRow = sheet.getLastRow();
+  if (lastRow >= 2) {
+    var rows = lastRow - 1;
+    sheet.getRange(2, SUMMARY_COL.MONTH, rows, 1).setHorizontalAlignment('center');
+    sheet.getRange(2, SUMMARY_COL.STORE, rows, 1).setHorizontalAlignment('center');
+    sheet.getRange(2, SUMMARY_COL.MIN_UNIT_PRICE, rows, 1).setNumberFormat('¥#,##0.0').setHorizontalAlignment('right');
+    sheet.getRange(2, SUMMARY_COL.MIN_RAW_PRICE, rows, 1).setHorizontalAlignment('center');
+    for (var r = 2; r <= lastRow; r++) {
+      sheet.getRange(r, 1, 1, SUMMARY_COLUMN_WIDTHS.length)
+        .setBackground(r % 2 === 0 ? THEME.zebraEven : null)
+        .setVerticalAlignment('middle')
+        .setFontFamily(THEME.fontFamily)
+        .setFontSize(9.5);
+    }
+  }
 }
