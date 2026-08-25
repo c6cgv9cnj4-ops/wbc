@@ -6,7 +6,7 @@ on:
   workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
 
 permissions:
-  contents: read
+  contents: write  # state/sports_standings_snapshot.json(前回配信スナップショット)の書き込み(コミット)用
 
 jobs:
   fetch-sports-standings:
@@ -24,7 +24,17 @@ jobs:
           pip install -r requirements.txt
           playwright install --with-deps chromium
 
-      - name: NPB/Jリーグ/F1/MotoGPの順位表を取得してDiscordへ配信
+      - name: NPB/Jリーグ/F1/MotoGPの順位表を取得してDiscordへ配信(更新があった場合のみ)
         env:
           DISCORD_WEBHOOK_SPORTS_CULTURE: ${{ secrets.WEBHOOK_SPORTS_CULTURE }}
         run: python scripts/fetch_sports_standings.py
+
+      - name: スナップショットをコミット
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state/sports_standings_snapshot.json
+          git diff --cached --quiet || git commit -m "スポーツ順位表スナップショットを更新"
+          git pull --rebase origin main
+          git push

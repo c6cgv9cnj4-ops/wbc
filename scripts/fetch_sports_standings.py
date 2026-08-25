@@ -14,13 +14,24 @@
   4. MotoGPライダーズ・スタンディング上位3名:
      https://www.motogp.com/en/world-standing/{year}/motogp/championship-standings
      (公式サイト。JS動的レンダリングのためPlaywrightが必要なことを確認済み)
-  5. MLB順位表: https://statsapi.mlb.com/api/v1/standings?leagueId=103,104
-     (MLB公式Stats API。APIキー不要・無認証で叩けることを実際に確認済み)
+
+  ※MLB順位表は配信不要となったため削除した(旧: MLB公式Stats API連携)。
+
+配信タイミング: 外部の試合日程/レースカレンダーには依存せず、各ソースの
+取得結果を前回配信分のハッシュ値(state/sports_standings_snapshot.json)と
+比較し、「前回から内容が変化した場合のみ」そのソースのEmbedを配信する。
+NPB/Jリーグは順位・勝敗数が試合消化ごとに変わるため、プロ野球の月曜休み
+やオフシーズンなど試合が無い日は自然にハッシュ不一致が発生せず配信され
+ない。F1/MotoGPはTOP3の顔ぶれ・順番が変わらない限り配信されない
+(ポイント数は取得対象外のため、TOP3の構成に変化が無いレースは検知対象外
+という制約がある)。
 
 環境変数:
   DISCORD_WEBHOOK_SPORTS_CULTURE (必須)
 """
 import datetime
+import hashlib
+import json
 import os
 import sys
 
@@ -34,18 +45,12 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 )
 
+STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "state", "sports_standings_snapshot.json")
+
 COLOR_NPB = 0x1A365D
 COLOR_JLEAGUE = 0x2C7A7B
 COLOR_F1 = 0xE10600
 COLOR_MOTOGP = 0xCC0000
-COLOR_MLB = 0x002D72
-
-MLB_LEAGUE_NAMES = {103: "アメリカン・リーグ", 104: "ナショナル・リーグ"}
-# division IDと地区の対応は、実際にMLB Stats APIのレスポンスを取得して確認済み。
-MLB_DIVISION_NAMES = {
-    200: "AL西地区", 201: "AL東地区", 202: "AL中地区",
-    203: "NL西地区", 204: "NL東地区", 205: "NL中地区",
-}
 
 
 def current_year(now):
@@ -245,54 +250,45 @@ def build_motogp_embed(top3, now):
 
 
 # ============================================================
-# 5. MLB順位表
-# ============================================================
-
-def fetch_mlb_standings():
-    url = "https://statsapi.mlb.com/api/v1/standings?leagueId=103,104"
-    try:
-        resp = requests.get(url, timeout=REQUEST_TIMEOUT)
-        resp.raise_for_status()
-        return resp.json().get("records", [])
-    except Exception as err:  # noqa: BLE001
-        print(f"[ERROR] MLB順位表の取得に失敗しました: {err}")
-        return []
-
-
-def build_mlb_embed(records, now):
-    if not records:
-        return None
-
-    by_league = {103: [], 104: []}
-    for rec in records:
-        league_id = rec["league"]["id"]
-        div_name = MLB_DIVISION_NAMES.get(rec["division"]["id"], "")
-        teams = sorted(rec["teamRecords"], key=lambda t: int(t["divisionRank"]))
-        lines = [div_name]
-        for t in teams:
-            name = t["team"]["name"]
-            w = t["leagueRecord"]["wins"]
-            losses = t["leagueRecord"]["losses"]
-            gb = t.get("gamesBack", "-")
-            lines.append(f"  {t['divisionRank']}. {name} {w}勝{losses}敗 差{gb}")
-        by_league.setdefault(league_id, []).append("\n".join(lines))
-
-    now_jst = now.strftime("%Y-%m-%d")
-    description = "\n\n".join(
-        f"**{MLB_LEAGUE_NAMES[lid]}**\n" + "\n\n".join(sections)
-        for lid, sections in by_league.items() if sections
-    )
-    return {
-        "title": "⚾ MLB順位表",
-        "description": description,
-        "color": COLOR_MLB,
-        "footer": {"text": f"MLB Stats API / {now_jst} 時点"},
-    }
-
-
-# ============================================================
 # Discord送信
 # ============================================================
+
+# ============================================================
+# 配信要否の判定(前回配信時からの差分検知)
+# ============================================================
+
+def load_state():
+    if os.path.exists(STATE_PATH):
+        try:
+            with open(STATE_PATH, encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            return {}
+    return {}
+
+
+def save_state(state):
+    os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
+    with open(STATE_PATH, "w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False, indent=2)
+
+
+def content_hash(data):
+    return hashlib.sha256(json.dumps(data, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def build_embed_if_changed(source_key, data, state, build_fn, now):
+    """dataが前回配信時のスナップショット(stateのハッシュ)から変化していなければ
+    Noneを返して配信をスキップする。変化していれば(または初回なら)Embedを構築し、
+    stateのハッシュを今回分に更新する(実際の保存はmain側でsave_stateする)。
+    """
+    new_hash = content_hash(data)
+    if state.get(source_key) == new_hash:
+        print(f"[INFO] {source_key}: 前回配信時から変化なし(試合/レースの動きなし)。スキップします。")
+        return None
+    state[source_key] = new_hash
+    return build_fn(data, now)
+
 
 def send_embeds_to_discord(webhook_url, embeds, batch_size=10):
     if not webhook_url:
@@ -321,40 +317,49 @@ def main():
         sys.exit(1)
 
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
+    state = load_state()
     embeds = []
+    any_fetch_ok = False
 
     npb = fetch_npb_standings(now)
-    npb_embed = build_npb_embed(npb, now)
-    if npb_embed:
-        embeds.append(npb_embed)
+    if npb:
+        any_fetch_ok = True
+        embed = build_embed_if_changed("npb", npb, state, build_npb_embed, now)
+        if embed:
+            embeds.append(embed)
 
     jleague = fetch_jleague_standings()
-    jleague_embed = build_jleague_embed(jleague, now)
-    if jleague_embed:
-        embeds.append(jleague_embed)
+    if jleague:
+        any_fetch_ok = True
+        embed = build_embed_if_changed("jleague", jleague, state, build_jleague_embed, now)
+        if embed:
+            embeds.append(embed)
 
     f1_top3 = fetch_f1_top3(now)
-    f1_embed = build_f1_embed(f1_top3, now)
-    if f1_embed:
-        embeds.append(f1_embed)
+    if f1_top3:
+        any_fetch_ok = True
+        embed = build_embed_if_changed("f1", f1_top3, state, build_f1_embed, now)
+        if embed:
+            embeds.append(embed)
 
     motogp_top3 = fetch_motogp_top3(now)
-    motogp_embed = build_motogp_embed(motogp_top3, now)
-    if motogp_embed:
-        embeds.append(motogp_embed)
+    if motogp_top3:
+        any_fetch_ok = True
+        embed = build_embed_if_changed("motogp", motogp_top3, state, build_motogp_embed, now)
+        if embed:
+            embeds.append(embed)
 
-    mlb_records = fetch_mlb_standings()
-    mlb_embed = build_mlb_embed(mlb_records, now)
-    if mlb_embed:
-        embeds.append(mlb_embed)
+    save_state(state)
 
     had_error = False
     if embeds:
-        print(f"=== 配信内容: {len(embeds)}件のEmbed ===")
+        print(f"=== 配信内容: {len(embeds)}件のEmbed(前回から更新があったソースのみ) ===")
         if not send_embeds_to_discord(webhook, embeds):
             had_error = True
+    elif any_fetch_ok:
+        print("[INFO] 全ソースとも前回配信時から変化なし(試合/レースが無かったとみられるため)、今回は配信をスキップします。")
     else:
-        print("[INFO] 配信対象がありませんでした(全ソースの取得に失敗した可能性があります)。")
+        print("[ERROR] 全ソースの取得に失敗しました。")
         had_error = True
 
     if had_error:
