@@ -4,7 +4,7 @@ Step 3: 週刊レポート自動生成
 
 過去7日分の logs/daily/YYYY-MM-DD.md (#インプット) ・ logs/health/YYYY-MM-DD.md
 (#ヘルス・日報) の生ログ(discord_logs.ymlが日次で蓄積)を読み込み、Gemini API
-(gemini-2.5-flash)で「週間統合マインドマップ(Mermaid)」「思考変遷」
+(gemini-3.6-flash)で「週間統合マインドマップ(Mermaid)」「思考変遷」
 「身体相関分析」「ネクストアクション」を生成し、reports/weekly/YYYY-Wxx.md に
 保存したうえでDiscordへ送信する。
 
@@ -27,8 +27,10 @@ JST = datetime.timezone(datetime.timedelta(hours=9))
 REQUEST_TIMEOUT = 15
 DISCORD_CHUNK_LIMIT = 1900
 
-# 他スクリプト(fetch_injury_alerts.py等)と同じくGEMINI_MODEL_NAMEとして固定管理。
-GEMINI_MODEL_NAME = "gemini-2.5-flash"
+# 依頼当初はgemini-2.5-flashを指定されていたが、Gemini API側で廃止済み
+# (404 NOT_FOUND、"models/gemini-3.6-flashを使ってください"と応答)だったため、
+# 他スクリプト(fetch_injury_alerts.py等)と同じ現行モデルに合わせている。
+GEMINI_MODEL_NAME = "gemini-3.6-flash"
 
 LOG_DAILY_DIR = "logs/daily"
 LOG_HEALTH_DIR = "logs/health"
