@@ -9,12 +9,19 @@
 対象は以下の指定選手を含む試合のみ(シングルスは完全一致、ダブルスは
 記事側が姓のみで表記されるため、指定選手名にその表記が含まれるかで判定)。
 
-【スコープについて】
-このソースには、世界ランキング・大会グレード(Super 1000等)・ゲームごとの
-得点(21-18等)・高校生選手の年齢は掲載されていない。無理に他ソース
-(BWF公式は403でブロック済み)を混ぜて精度を落とすより、まずは「選手名・
-所属国・対戦結果・セット数」のシンプルな実データ配信を確実に動かすことを
-優先した(ユーザーとの合意による設計判断)。
+【実装済み】種目(男子シングルス等)・ラウンド(1回戦〜決勝)は、記事内の
+見出し行(「男子シングルス」「■1回戦」等)を実際に確認し、順に走査しながら
+各試合結果に紐づける形で実装した。
+
+【推定表示】試合日は、記事冒頭の日程表(例:「1月6日(火)｜1回戦 10:00～」)
+からラウンド名で対応する日付を逆引きしている。これは「その大会の予定表」
+からの推定であり、順延等があった場合の実際の消化日とは異なる可能性がある
+(そのため常に「推定」であることを踏まえた表示にしている)。
+
+【未実装・既知の制約】世界ランキング(BWF)・大会グレード(Super 1000等)・
+ゲームごとの得点(21-18等)は、sposoku.com側に一切掲載されておらず、BWF公式
+サイト(bwfbadminton.com)も403で直接アクセスできないため実装していない
+(実際に再確認済み。状況が変わり次第、再調査する)。
 
 環境変数:
   DISCORD_WEBHOOK_SPORTS_CULTURE (必須)
@@ -53,7 +60,27 @@ TARGET_PLAYERS = [
     "松友美佐紀",  # 混合ダブルス等の出場も含めて捕捉
 ]
 
-MATCH_LINE_RE = re.compile(r"^([〇×])(.+?)　(\d+)[－\-](\d+)　([〇×])(.+?)(?:\(([^)]+)\))?$")
+# 1番目の選手にも国名が付くケース(例: 日本人同士の対戦「熊谷・西(日本) 2-0 霜上・野村(日本)」)
+# が実データで見つかったため、両方の選手名に(...)をオプションで許容する。
+MATCH_LINE_RE = re.compile(
+    r"^([〇×])(.+?)(?:\(([^)]+)\))?　(\d+)[－\-](\d+)　([〇×])(.+?)(?:\(([^)]+)\))?$"
+)
+
+# 種目見出し(記事内で単独行として出現する。実データで確認済み)
+EVENT_HEADINGS = [
+    "男子シングルス", "女子シングルス", "男子ダブルス", "女子ダブルス",
+    "混合ダブルス", "混合ミックスダブルス",
+]
+
+# ラウンド見出し(「■」始まりの単独行。実データで確認済み)
+ROUND_HEADING_RE = re.compile(r"^■(.+?)(?:\(.*\))?$")
+# 「■最終成績」は個々の試合結果ではなくサマリー見出しなので、ラウンドとしては扱わない
+NON_ROUND_HEADINGS = {"最終成績"}
+
+# 大会日程表の行(例: "1月6日(火)｜1回戦 10:00～")からラウンド→日付を逆引きするための正規表現。
+# ラウンド名自体に数字が含まれる(「1回戦」等)ため、数字除外はせず、｜の直後の
+# 最初のトークン(次の空白まで)をそのままラウンド名として扱う。
+SCHEDULE_LINE_RE = re.compile(r"(\d{1,2})月(\d{1,2})日\([月火水木金土日]\)[｜|]\s*([^\s　]+)")
 
 COLOR_BADMINTON = 0x38A169
 
@@ -117,6 +144,22 @@ def fetch_tournament_article_urls():
     return list(urls)
 
 
+def build_round_to_date_map(lines):
+    """記事冒頭の日程表(例: "1月6日(火)｜1回戦 10:00～")から、
+    ラウンド名(例: "1回戦")→日付("1/6")の対応表を作る。
+    同じラウンドが複数日にまたがる場合(例: 1回戦が2日間)は、最初に
+    出現した日付(=そのラウンドの開始日)を採用する。
+    見つからないラウンドは単に対応が無い(=推定表示できない)ものとして扱う。
+    """
+    mapping = {}
+    for line in lines:
+        m = SCHEDULE_LINE_RE.search(line)
+        if m:
+            month, day, round_label = m.groups()
+            mapping.setdefault(round_label, f"{int(month)}/{int(day)}")
+    return mapping
+
+
 def fetch_matches_from_article(url):
     try:
         resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
@@ -129,34 +172,82 @@ def fetch_matches_from_article(url):
     title_tag = soup.find("h1") or soup.find("title")
     tournament_title = title_tag.get_text(strip=True) if title_tag else url
 
-    text = soup.get_text("\n", strip=True)
+    lines = soup.get_text("\n", strip=True).split("\n")
+    round_date_map = build_round_to_date_map(lines)
+
     matches = []
-    for line in text.split("\n"):
+    current_event = None
+    current_round = None
+
+    for line in lines:
+        if line in EVENT_HEADINGS:
+            current_event = line
+            current_round = None  # 種目が変わったらラウンドをリセット
+            continue
+
+        round_m = ROUND_HEADING_RE.match(line)
+        if round_m:
+            round_label = round_m.group(1)
+            if round_label not in NON_ROUND_HEADINGS:
+                current_round = round_label
+            else:
+                current_round = None
+            continue
+
         m = MATCH_LINE_RE.match(line)
         if not m:
             continue
-        w_mark, w_name, w_set, l_set, l_mark, l_name, opponent_country = m.groups()
-        if is_target_player(w_name) or is_target_player(l_name):
-            matches.append({
-                "tournament": tournament_title,
-                "winner": w_name if w_mark == "〇" else l_name,
-                "loser": l_name if w_mark == "〇" else w_name,
-                "score": f"{max(w_set, l_set)}-{min(w_set, l_set)}",
-                "country": opponent_country or "",
-                "url": url,
-                "raw_line": line,
-            })
+        w_mark, w_name, w_country, w_set, l_set, l_mark, l_name, l_country = m.groups()
+        if not (is_target_player(w_name) or is_target_player(l_name)):
+            continue
+
+        # 記事の表記ルール: 通常は1番目(w_name)に国名は付かず(日本選手側)、
+        # 2番目(l_name)にだけ国名が付くが、日本人同士の対戦では両方に
+        # 「(日本)」が付くケースも実データで確認したため、両方を個別に
+        # キャプチャして、それぞれの選手名にそのまま紐づける
+        # (以前は2番目の国名を常に敗者側に付けており、日本選手が負けた
+        # 試合では対戦相手の国名が誤って日本選手の方に表示されるバグがあった)。
+        is_w_winner = w_mark == "〇"
+        matches.append({
+            "tournament": tournament_title,
+            "event": current_event,
+            "round": current_round,
+            "date_estimate": round_date_map.get(current_round) if current_round else None,
+            "winner": w_name if is_w_winner else l_name,
+            "winner_country": (w_country or "") if is_w_winner else (l_country or ""),
+            "loser": l_name if is_w_winner else w_name,
+            "loser_country": (l_country or "") if is_w_winner else (w_country or ""),
+            "score": f"{max(w_set, l_set)}-{min(w_set, l_set)}",
+            "url": url,
+            "raw_line": line,
+        })
     return matches
 
 
 def build_badminton_embeds(matches):
     embeds = []
     for m in matches:
+        winner_display = m["winner"] + (f"({m['winner_country']})" if m["winner_country"] else "")
+        loser_display = m["loser"] + (f"({m['loser_country']})" if m["loser_country"] else "")
+
+        # 記事タイトル(例: "【バドミントンマレーシアオープン2026】日本代表の試合結果速報、組み合わせ")
+        # から、既に【】で囲まれている大会名部分だけを取り出す(無いければ記事タイトル全体を使う)。
+        tournament_m = re.match(r"【(.+?)】", m["tournament"])
+        tournament_short = tournament_m.group(1) if tournament_m else m["tournament"]
+
+        title_parts = [f"🏸 【{tournament_short}】"]
+        if m["event"]:
+            title_parts.append(m["event"])
+        if m["round"]:
+            title_parts.append(m["round"])
+        title = " ".join(title_parts)
+        if m["date_estimate"]:
+            title += f"（{m['date_estimate']}・推定）"
+
         embeds.append({
-            "title": f"🏸 {m['tournament']}",
-            "description": f"**{m['winner']}** {m['score']} {m['loser']}" +
-                            (f"({m['country']})" if m["country"] else "") +
-                            f"\n[詳細を見る]({m['url']})",
+            "title": title[:256],  # Discord Embedのtitle上限
+            "description": f"**{winner_display}** {m['score']} {loser_display}" +
+                            f"\n[詳細を見る](<{m['url']}>)",
             "color": COLOR_BADMINTON,
         })
     return embeds
@@ -207,7 +298,7 @@ def main():
 
     print(f"=== 指定選手の新着試合結果: {len(new_matches)}件 ===")
     for m in new_matches:
-        print(f"  {m['tournament']}: {m['winner']} {m['score']} {m['loser']}")
+        print(f"  [{m['event']}/{m['round']}] {m['tournament']}: {m['winner']} {m['score']} {m['loser']}")
 
     had_error = False
     embeds = build_badminton_embeds(new_matches)

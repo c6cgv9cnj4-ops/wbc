@@ -58,6 +58,22 @@ RSS_ITEM_LIMIT = 10
 STATE_PATH = "state/news_seen.json"
 STATE_RETENTION_DAYS = 14  # 古い記録は掃除して肥大化を防ぐ
 
+# 一般ニュースフィード(Yahoo!トップピックス等)にスポーツ記事が混入した場合、
+# #webhook_news ではなく #webhook_sports_culture へ振り分けるためのキーワード。
+# タイトルにこれらの語が含まれていれば「スポーツニュース」とみなす。
+SPORTS_KEYWORDS = [
+    "野球", "プロ野球", "セ・リーグ", "パ・リーグ", "甲子園", "MLB", "大谷翔平",
+    "西武", "日本ハム", "ドーム", "1軍", "2軍", "内野手", "外野手", "投手",
+    "負傷交代", "スタメン", "先発", "本塁打", "打点", "防御率",
+    "阪神", "巨人", "読売ジャイアンツ", "ロッテ", "ソフトバンク", "楽天イーグルス",
+    "オリックス", "DeNA", "ベイスターズ", "ヤクルト", "広島東洋カープ", "中日ドラゴンズ",
+    "Jリーグ", "サッカー", "J1", "J2", "バドミントン", "F1", "MotoGP", "モータースポーツ",
+]
+
+
+def is_sports_related(title):
+    return any(kw in title for kw in SPORTS_KEYWORDS)
+
 
 # ============================================================
 # 既送信記事の状態管理(state/news_seen.json)
@@ -223,36 +239,52 @@ def fetch_anzn_new_items(state, now):
 
 
 def build_news_message(state, now):
-    """新着が1件も無ければNoneを返す(Discordへ空更新を送らないため)。
+    """新着が1件も無ければ(None, [])を返す(Discordへ空更新を送らないため)。
     あんぜんねっとの新着はここには含めない(build_anzn_alert_embed()で別送するため)。
+    戻り値は (news_message_or_None, sports_items) のタプル。
+    sports_itemsは、一般ニュースフィードに混入していたスポーツ記事(#webhook_news
+    ではなく#webhook_sports_cultureへ回すため、ここでは除外して別途返す)。
     """
     sections = []
     has_any_new = False
+    sports_items = []
 
     saitama_all = fetch_rss_items(GOOGLE_NEWS_SAITAMA_RSS)
     saitama_new = dedupe_new_items(saitama_all, "url", state, now)
-    if saitama_new:
+    saitama_general = []
+    for item in saitama_new:
+        if is_sports_related(item["title"]):
+            sports_items.append(item)
+        else:
+            saitama_general.append(item)
+    if saitama_general:
         has_any_new = True
         lines = ["## 🗾 埼玉地域ニュース"]
-        for item in saitama_new:
-            lines.append(f"- [{item['title']}]({item['url']})")
+        for item in saitama_general:
+            lines.append(f"- [{item['title']}](<{item['url']}>)")
         sections.append("\n".join(lines))
 
     top_all = fetch_rss_items(YAHOO_TOP_PICKS_RSS)
     top_new = dedupe_new_items(top_all, "url", state, now)
-    if top_new:
+    top_general = []
+    for item in top_new:
+        if is_sports_related(item["title"]):
+            sports_items.append(item)
+        else:
+            top_general.append(item)
+    if top_general:
         has_any_new = True
         lines = ["## 🌐 主要ニュース"]
-        for item in top_new:
-            lines.append(f"- [{item['title']}]({item['url']})")
+        for item in top_general:
+            lines.append(f"- [{item['title']}](<{item['url']}>)")
         sections.append("\n".join(lines))
 
     if not has_any_new:
-        return None
+        return None, sports_items
 
     now_jst = now.strftime("%Y-%m-%d %H:%M")
     header = f"# 📰 新着ニュース ({now_jst} JST時点)"
-    return "\n\n".join([header] + sections)
+    return "\n\n".join([header] + sections), sports_items
 
 
 def build_market_message(state, now):
@@ -280,8 +312,24 @@ def build_market_message(state, now):
     if biz_new:
         lines.append("\n## 💰 経済ニュース(新着)")
         for item in biz_new:
-            lines.append(f"- [{item['title']}]({item['url']})")
+            lines.append(f"- [{item['title']}](<{item['url']}>)")
 
+    return "\n".join(lines)
+
+
+SPORTS_LEAK_COLOR = 0x2C7A7B
+
+
+def build_sports_leak_message(sports_items, now):
+    """一般ニュースフィードに混入していたスポーツ記事を、#webhook_news ではなく
+    #webhook_sports_culture 側へ回すためのメッセージを組み立てる。
+    """
+    if not sports_items:
+        return None
+    now_jst = now.strftime("%Y-%m-%d %H:%M")
+    lines = [f"# ⚾ 一般ニュースフィードで検知したスポーツ記事 ({now_jst} JST時点)"]
+    for item in sports_items:
+        lines.append(f"- [{item['title']}](<{item['url']}>)")
     return "\n".join(lines)
 
 
@@ -373,6 +421,7 @@ def send_to_discord(webhook_url, message):
 def main():
     news_webhook = os.environ.get("DISCORD_WEBHOOK_NEWS")
     market_webhook = os.environ.get("DISCORD_WEBHOOK_MARKET")
+    sports_webhook = os.environ.get("DISCORD_WEBHOOK_SPORTS_CULTURE")
 
     if not news_webhook and not market_webhook:
         print("[ERROR] DISCORD_WEBHOOK_NEWS / DISCORD_WEBHOOK_MARKET のどちらも設定されていません。")
@@ -395,7 +444,7 @@ def main():
         else:
             print("[INFO] あんぜんねっとの新着はありませんでした。")
 
-        news_message = build_news_message(state, now)
+        news_message, sports_items = build_news_message(state, now)
         if news_message:
             print("=== ニュースメッセージ(新着あり) ===")
             print(news_message)
@@ -403,6 +452,18 @@ def main():
                 had_error = True
         else:
             print("[INFO] 新着ニュースはありませんでした。送信をスキップします。")
+
+        if sports_items:
+            print(f"=== 一般ニュースフィードからスポーツ記事を検知: {len(sports_items)}件 ===")
+            for item in sports_items:
+                print(f"  {item['title']}")
+            sports_message = build_sports_leak_message(sports_items, now)
+            if sports_webhook:
+                if not send_to_discord(sports_webhook, sports_message):
+                    had_error = True
+            else:
+                print("[WARN] DISCORD_WEBHOOK_SPORTS_CULTURE が未設定のため、"
+                      "検知したスポーツ記事の振り分け送信をスキップします(#webhook_newsへの誤配信は防止済み)。")
     else:
         print("[WARN] DISCORD_WEBHOOK_NEWS が未設定のため、ニュース配信をスキップします。")
 
