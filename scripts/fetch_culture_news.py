@@ -30,14 +30,10 @@
      通常のDiscord Incoming Webhookではインタラクティブな「ボタンUI」
      (Message Components)は送信できないため、クリック可能な
      テキストリンクとして実装している。
-  5. 推しウォッチ(バドミントン/アニメ・メカ/漫画/作家・カルチャー・ビジネス/
-     音楽、地域限定なし)
-     OSHI_WATCH_KEYWORDSで指定した固有名詞ごとにGoogle News RSSを検索し、
-     4.と同じGemini構造化抽出(ただし関東限定の絞り込みは適用しない)に
-     かけて「展覧会・イベント・公演」情報を検知した場合は4.と同様に
-     Googleカレンダー連携リンク付きで配信する。展覧会/イベントと判定
-     されなかった一般ニュースは「🌟 推しウォッチ」として単純なリンク
-     一覧で配信する(Gemini質フィルタは適用せず、キーワード一致のみ)。
+
+  ※個人の「推し」キーワード追跡(バドミントン選手・アニメ/漫画・作家等)は
+    専用の #推し チャンネル向けスクリプト(fetch_oshi_news.py)側で扱う。
+    このファイルには実装しない(2026-08-26、配信先を分離する方針に変更)。
 
 環境変数:
   DISCORD_WEBHOOK_NEWS (必須。既存のfetch_news.pyと同じWebhookを共用する)
@@ -95,31 +91,10 @@ EXHIBITION_QUERIES = [
 EXHIBITION_REMINDER_DAYS = 14
 GOOGLE_CALENDAR_RENDER_URL = "https://calendar.google.com/calendar/render"
 
-# 推しウォッチ(2026-08-26確定)。地域限定なし。固有名詞そのものを検索クエリ
-# として使う(既存の珈琲枠のような複合クエリではなく、名前が十分に固有性を
-# 持つため単独検索で足りると判断した)。
-OSHI_WATCH_KEYWORDS = [
-    # バドミントン
-    "渡辺勇大", "松友美佐紀", "田児賢一",
-    # アニメ・映画・メカ
-    "押井守", "パトレイバー", "ガンダム", "無職転生", "幼女戦記", "閃光のハサウェイ",
-    # 漫画・クリエイター
-    "永野護", "ファイブスター物語",
-    # 作家・カルチャー・ビジネス
-    "今野敏", "桐野夏生", "椎名誠", "水曜どうでしょう", "大泉洋", "田端信太郎", "箕輪厚介",
-    # 音楽・アーティスト(既存継続)
-    "サカナクション", "U2",
-]
-# Discord EmbedのdescriptionはDiscord公式上限4096文字。Google NewsのRSS URLは
-# 非常に長い(実データで1件150〜250文字超)ため、件数ではなく文字数で打ち切る
-# (件数ベースの上限だけでは実際にHTTP 400 "embeds"エラーが発生した実績がある)。
-OSHI_WATCH_DESCRIPTION_LIMIT = 3800
-
 COLOR_JGB = 0x2B6CB0
 COLOR_NOBI = 0xED8936
 COLOR_CULTURE = 0x38A169
 COLOR_EXHIBITION = 0xB83280
-COLOR_OSHI_WATCH = 0x805AD5
 
 
 def load_seen_state():
@@ -500,42 +475,6 @@ def build_exhibition_embeds_from_candidates(client, candidates, state, now, regi
 
 
 # ============================================================
-# 5. 推しウォッチ(バドミントン/アニメ・メカ/漫画/作家・カルチャー・ビジネス/
-#    音楽。地域限定なし。展覧会/イベント検知分は上のGoogleカレンダー連携
-#    Embedとして扱い、それ以外は単純なリンク一覧として配信する)
-# ============================================================
-
-def build_oshi_watch_embed(candidates, exclude_urls, state, now):
-    remaining = [c for c in candidates if c["url"] not in exclude_urls]
-    if not remaining:
-        return None
-
-    for c in remaining:
-        mark_seen(state, c["url"], now)
-
-    lines = []
-    total_chars = 0
-    shown_count = 0
-    for c in remaining:
-        line = f"- [{c['title']}]({c['url']})"
-        if total_chars + len(line) + 1 > OSHI_WATCH_DESCRIPTION_LIMIT:
-            break
-        lines.append(line)
-        total_chars += len(line) + 1
-        shown_count += 1
-    if shown_count < len(remaining):
-        lines.append(f"…他{len(remaining) - shown_count}件")
-
-    now_jst = now.strftime("%Y-%m-%d %H:%M")
-    return {
-        "title": "🌟 推しウォッチ",
-        "description": "\n".join(lines),
-        "color": COLOR_OSHI_WATCH,
-        "footer": {"text": f"{now_jst} JST時点"},
-    }
-
-
-# ============================================================
 # Discord送信
 # ============================================================
 
@@ -632,15 +571,6 @@ def main():
         client, exhibition_candidates, state, now, region_instruction=KANTO_INSTRUCTION
     )
     embeds.extend(exhibition_embeds)
-
-    oshi_candidates = fetch_candidates_for_queries(OSHI_WATCH_KEYWORDS, state)
-    oshi_exhibition_embeds, oshi_consumed_urls = build_exhibition_embeds_from_candidates(
-        client, oshi_candidates, state, now, region_instruction=None
-    )
-    embeds.extend(oshi_exhibition_embeds)
-    oshi_watch_embed = build_oshi_watch_embed(oshi_candidates, oshi_consumed_urls, state, now)
-    if oshi_watch_embed:
-        embeds.append(oshi_watch_embed)
 
     had_error = False
     if embeds:

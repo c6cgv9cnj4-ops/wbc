@@ -13,8 +13,10 @@ Google News RSSは記事本文を含まない(summaryフィールドは実質タ
 2026-08-26実施の実データ確認済み)ため、開催日程の抽出は記事タイトルのみを
 対象とする。タイトルから「YYYY年M月D日」(単発/範囲)または「【M/D】」
 「【M/D-D】」(全角括弧付きの短縮表記)の明確なパターンが見つかった記事のみ、
-Googleカレンダーへのワンクリック登録リンクを付与する。パターンに合致しない
-一般ニュース記事は誤検出を避けるため無理に付与せずスキップする。
+Googleカレンダーへのワンクリック登録リンクを、a)会期そのものの登録リンクと
+b)終了日(単発イベントは開催日)のEVENT_REMINDER_DAYS日前を1日だけ登録する
+リマインダーリンクの2種類付与する。パターンに合致しない一般ニュース記事は
+誤検出を避けるため無理に付与せずスキップする。
 
 環境変数:
   DISCORD_WEBHOOK_OSHI (必須)
@@ -51,9 +53,32 @@ BRACKET_DATE_MAX_PAST_DAYS = 60
 # 追跡キーワード設定(ここに追加・削除するだけで対象を変更できる)
 # ============================================================
 OSHI_KEYWORDS = [
+    # 音楽・アーティスト
     "U2",
     "サカナクション",
     "伊藤若冲",
+    # バドミントン
+    "渡辺勇大",
+    "松友美佐紀",
+    "田児賢一",
+    # アニメ・映画・メカ
+    "押井守",
+    "パトレイバー",
+    "ガンダム",
+    "無職転生",
+    "幼女戦記",
+    "閃光のハサウェイ",
+    # 漫画・クリエイター
+    "永野護",
+    "ファイブスター物語",
+    # 作家・カルチャー・ビジネス
+    "今野敏",
+    "桐野夏生",
+    "椎名誠",
+    "水曜どうでしょう",
+    "大泉洋",
+    "田端信太郎",
+    "箕輪厚介",
 ]
 
 STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "state", "oshi_news_seen.json")
@@ -214,6 +239,20 @@ def build_calendar_url(event_title, article_url, start_date, end_date):
     return "https://calendar.google.com/calendar/render?" + urllib.parse.urlencode(params)
 
 
+EVENT_REMINDER_DAYS = 14
+
+
+def build_reminder_calendar_url(event_title, article_url, end_date):
+    """終了日(単発イベントならその開催日)のEVENT_REMINDER_DAYS日前を1日だけの
+    終日イベントとして登録するGoogleカレンダーURLを組み立てる。
+    """
+    reminder_date = end_date - datetime.timedelta(days=EVENT_REMINDER_DAYS)
+    return build_calendar_url(
+        f"【終了まであと{EVENT_REMINDER_DAYS}日】{event_title}",
+        article_url, reminder_date, reminder_date,
+    )
+
+
 def build_oshi_message(state, now):
     """新着が1件も無ければNoneを返す。"""
     seen = state.setdefault("seen_urls", {})
@@ -236,7 +275,11 @@ def build_oshi_message(state, now):
                     start, end = event_dates
                     event_title = f"{keyword} {item['title']}"
                     calendar_url = build_calendar_url(event_title, item["url"], start, end)
-                    lines.append(f"  - 📅 [カレンダーに追加](<{calendar_url}>)")
+                    reminder_url = build_reminder_calendar_url(event_title, item["url"], end)
+                    lines.append(
+                        f"  - 📅 [カレンダーに追加](<{calendar_url}>) ｜ "
+                        f"⏰ [終了{EVENT_REMINDER_DAYS}日前リマインダー追加](<{reminder_url}>)"
+                    )
             sections.append("\n".join(lines))
 
     if not has_any_new:
