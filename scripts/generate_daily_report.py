@@ -3,34 +3,31 @@
 日刊レポート自動生成
 
 logs/daily/YYYY-MM-DD.md ・ logs/health/YYYY-MM-DD.md (当日分、discord_logs.yml
-が日次で蓄積)を読み込み、Anthropic API(Claude)で「日刊サマリー」と
-「ミニMermaidマップ」を生成し、reports/daily/YYYY-MM-DD.md に保存したうえで
-Discordへ送信する。
+が日次で蓄積)を読み込み、Gemini APIで「日刊サマリー」と「ミニMermaidマップ」を
+生成し、reports/daily/YYYY-MM-DD.md に保存したうえでDiscordへ送信する。
 
-2026-08-26に一度廃止され、週刊レポート(generate_weekly_report.py)は
-無料枠のGoogle GenAI SDK(Gemini)へ移行済みだが、日刊レポートは要望により
-Anthropic API(Claude)のまま復元している。週刊レポートの入力元は
-本レポート(reports/daily)ではなく logs/daily・logs/health の生ログを直接
-参照する設計のままなので、本スクリプトが仮に失敗・スキップされても
-週刊レポートには影響しない。
+当初はAnthropic API(Claude)を使用していたが、日次実行(週刊より高頻度)での
+API費用を抑えるため、generate_weekly_report.pyと同様に無料枠のGoogle GenAI
+SDK(Gemini)へ移行した。週刊レポートの入力元は本レポート(reports/daily)
+ではなく logs/daily・logs/health の生ログを直接参照する設計のままなので、
+本スクリプトが仮に失敗・スキップされても週刊レポートには影響しない。
 
 環境変数:
-  ANTHROPIC_API_KEY    (必須)
-  ANTHROPIC_MODEL       (任意。既定値は下記DEFAULT_MODEL参照)
+  GEMINI_API_KEY        (必須)
   DISCORD_WEBHOOK_DAILY (必須)
 """
 import datetime
 import os
 import sys
 
-import anthropic
 import requests
 
 JST = datetime.timezone(datetime.timedelta(hours=9))
 REQUEST_TIMEOUT = 15
 DISCORD_CHUNK_LIMIT = 1900
 
-DEFAULT_MODEL = "claude-sonnet-5"
+# generate_weekly_report.pyと同一モデルに揃えている(理由は同ファイルのコメント参照)。
+GEMINI_MODEL_NAME = "gemini-3.6-flash"
 
 LOG_DAILY_DIR = "logs/daily"
 LOG_HEALTH_DIR = "logs/health"
@@ -74,14 +71,12 @@ mindmap
 """
 
 
-def call_claude(api_key, model, prompt):
-    client = anthropic.Anthropic(api_key=api_key)
-    response = client.messages.create(
-        model=model,
-        max_tokens=2000,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return "".join(block.text for block in response.content if hasattr(block, "text"))
+def call_gemini(api_key, prompt):
+    from google import genai
+
+    client = genai.Client(api_key=api_key)
+    resp = client.models.generate_content(model=GEMINI_MODEL_NAME, contents=prompt)
+    return resp.text.strip()
 
 
 def chunk_message(text, limit=DISCORD_CHUNK_LIMIT):
@@ -119,12 +114,11 @@ def send_to_discord(webhook_url, message):
 
 
 def main():
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    model = os.environ.get("ANTHROPIC_MODEL") or DEFAULT_MODEL
+    api_key = os.environ.get("GEMINI_API_KEY")
     webhook_url = os.environ.get("DISCORD_WEBHOOK_DAILY")
 
     if not api_key:
-        print("[ERROR] 環境変数 ANTHROPIC_API_KEY が設定されていません。")
+        print("[ERROR] 環境変数 GEMINI_API_KEY が設定されていません。")
         sys.exit(1)
     if not webhook_url:
         print("[ERROR] 環境変数 DISCORD_WEBHOOK_DAILY が設定されていません。")
@@ -140,9 +134,9 @@ def main():
     prompt = build_prompt(date_str, daily_log, health_log)
 
     try:
-        report_text = call_claude(api_key, model, prompt)
+        report_text = call_gemini(api_key, prompt)
     except Exception as err:  # noqa: BLE001
-        print(f"[ERROR] Claude APIの呼び出しに失敗しました: {err}")
+        print(f"[ERROR] Gemini APIの呼び出しに失敗しました: {err}")
         sys.exit(1)
 
     os.makedirs(REPORT_DAILY_DIR, exist_ok=True)

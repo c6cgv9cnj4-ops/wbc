@@ -13,8 +13,8 @@ Step 3: 週刊レポート自動生成
 週間分析の入力とする設計を維持している(日刊側が失敗・未生成でも
 週刊レポートがデータ切れで空にならないようにするため)。
 また、無料枠で運用するためAPIをAnthropic(Claude)からGoogle GenAI SDK
-(Gemini)へ移行し、ANTHROPIC_API_KEYへの依存は排除している
-(日刊レポート側は要望によりAnthropic APIを使用)。
+(Gemini)へ移行し、ANTHROPIC_API_KEYへの依存は排除している。
+日刊レポート(generate_daily_report.py)も同じ理由で同APIへ移行済み。
 
 環境変数:
   GEMINI_API_KEY         (必須)
