@@ -8,10 +8,13 @@ Step 3: 週刊レポート自動生成
 「身体相関分析」「ネクストアクション」を生成し、reports/weekly/YYYY-Wxx.md に
 保存したうえでDiscordへ送信する。
 
-日刊レポート(旧daily_summary.yml、Claudeによる日次要約)は廃止されたため、
-要約済みレポートではなく生ログを直接週間分析の入力とする。
+日刊レポート(daily_summary.yml)が要約済みレポート(reports/daily)を
+生成する構成になった後も、そちらへの依存を避けるため、生ログを直接
+週間分析の入力とする設計を維持している(日刊側が失敗・未生成でも
+週刊レポートがデータ切れで空にならないようにするため)。
 また、無料枠で運用するためAPIをAnthropic(Claude)からGoogle GenAI SDK
-(Gemini)へ移行し、ANTHROPIC_API_KEYへの依存は完全に排除している。
+(Gemini)へ移行し、ANTHROPIC_API_KEYへの依存は排除している
+(日刊レポート側は要望によりAnthropic APIを使用)。
 
 環境変数:
   GEMINI_API_KEY         (必須)

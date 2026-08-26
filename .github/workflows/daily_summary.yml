@@ -1,0 +1,44 @@
+name: 日刊レポート自動生成
+
+on:
+  schedule:
+    # 毎日 24:15 JST(=翌日0:15 JST) = UTC 15:15
+    # discord_logs.yml(UTC 15:00起動、logs/daily・logs/healthを収集してpush)の
+    # 直後に走らせることで、当日分のログが確実にpush済みの状態で読み込む。
+    # 同時刻(UTC 15:00)に重ねると、両ワークフローが同じログをコミット/pushしよう
+    # として競合(git push失敗)するおそれがあるため15分ずらしている。
+    - cron: "15 15 * * *"
+  workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+
+permissions:
+  contents: write  # reports/daily への書き込み(コミット)用
+
+jobs:
+  summarize-day:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      - name: 日刊サマリー生成(Claude API)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
+          DISCORD_WEBHOOK_DAILY: ${{ secrets.DISCORD_WEBHOOK_DAILY }}
+        run: python scripts/generate_daily_report.py
+
+      - name: 生成物をコミット
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/daily
+          git diff --cached --quiet || git commit -m "日刊レポートを自動生成 ($(date -u +%Y-%m-%d))"
+          git pull --rebase origin main
+          git push
