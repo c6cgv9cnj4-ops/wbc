@@ -8,13 +8,17 @@ state/news_seen.json に記録し、そのURL/IDと重複するものはスキ�
 重複排除の対象外で、実行するたびに最新値を送る)。
 
 配信内容:
-  DISCORD_WEBHOOK_NEWS   : 北本市安全安心情報(新着) + 埼玉地域ニュース + 主要ニュース
+  DISCORD_WEBHOOK_NEWS   : 北本市安全安心情報(新着) + 埼玉・県央ローカルニュース + 主要ニュース
   DISCORD_WEBHOOK_MARKET : 株価(日経平均/ドル円) + 経済ニュース
 
 情報源:
   - 北本市安全安心情報: あんぜんねっと(https://anzn.net/sp/?11217F&r1=1)
     ※このページはEUC-JPエンコーディングなので明示的にデコードする
-  - 埼玉地域ニュース: Google ニュース検索RSS(個人利用目的)
+  - 埼玉・県央ローカルニュース: Google ニュース検索RSS(個人利用目的)。
+    「埼玉県」丸ごとの検索だと県全体の広域予算ニュースや、埼玉県民が他県で
+    巻き込まれた事故・事件、ドラマのロケ地情報等のノイズが多かったため、
+    北本市・桶川市・鴻巣市・上尾市・さいたま市大宮区の市区町村名によるOR検索
+    + ノイズ除外キーワード(is_saitama_local_noise、2026-08-26追加)に変更した。
   - 主要ニュース/経済ニュース: Yahoo!ニュース トピックスRSS
   - 日経平均株価: Yahoo!ファイナンスの銘柄ページに埋め込まれたJSONを抽出
   - ドル円: open.er-api.com(無料・APIキー不要の為替レートAPI)
@@ -28,6 +32,7 @@ import json
 import os
 import re
 import sys
+import urllib.parse
 
 import feedparser
 import requests
@@ -41,10 +46,52 @@ REQUEST_TIMEOUT = 15
 DISCORD_CHUNK_LIMIT = 1900  # Discordの2000文字制限に対する安全マージン
 
 ANZN_URL = "https://anzn.net/sp/?11217F&r1=1"
-GOOGLE_NEWS_SAITAMA_RSS = (
-    "https://news.google.com/rss/search"
-    "?q=%E5%9F%BC%E7%8E%89%E7%9C%8C%20when:1d&hl=ja&gl=JP&ceid=JP:ja"
-)
+
+# 「埼玉県」丸ごとでの検索は、県全体の広域予算ニュースや、埼玉県民が他県で
+# 巻き込まれた事故・事件、ドラマのロケ地情報等のノイズが多かったため、
+# 北本市を中心とした生活圏(県央エリア)の市区町村名だけをOR検索する
+# クエリに変更した(2026-08-26)。
+SAITAMA_LOCAL_AREAS = ["北本市", "桶川市", "鴻巣市", "上尾市", "大宮区"]
+
+
+def _build_saitama_local_rss_url():
+    query = "(" + " OR ".join(SAITAMA_LOCAL_AREAS) + ") when:1d"
+    q = urllib.parse.quote(query)
+    return f"https://news.google.com/rss/search?q={q}&hl=ja&gl=JP&ceid=JP:ja"
+
+
+GOOGLE_NEWS_SAITAMA_RSS = _build_saitama_local_rss_url()
+
+# 上記のOR検索だけでは除外しきれない広域政治・予算ニュースや、地域名の
+# 偶然の一致(例: 「北本市の男性が(他県)で事故」のような他県発の事件・事故に
+# 埼玉県央の居住者が巻き込まれただけの記事)を弾くための追加フィルタ。
+SAITAMA_NOISE_KEYWORDS = [
+    "予算案", "補正予算", "当初予算", "県議会", "県知事", "県政",
+    "ロケ地", "撮影地", "撮影スポット", "聖地巡礼",
+]
+SAITAMA_INCIDENT_KEYWORDS = ["死亡", "死去", "事故", "事件", "逮捕", "重体", "重傷", "遺体", "行方不明"]
+# 県央エリア以外の主要地名(これらと事件・事故キーワードが同時に出てくる場合、
+# 「埼玉県央の住民が他県で事故等に遭った」という実質県外ニュースとみなして除外する)
+NON_LOCAL_PLACE_HINTS = [
+    "伊豆", "静岡", "山梨", "長野", "新潟", "群馬", "栃木", "茨城",
+    "千葉", "東京", "神奈川", "北海道", "沖縄", "大阪", "京都", "兵庫",
+    "福岡", "愛知", "岐阜", "三重", "滋賀", "奈良", "和歌山",
+]
+
+
+def is_saitama_local_noise(title):
+    """埼玉地域ニュースの候補記事のうち、県央の生活圏ニュースとして
+    ふさわしくないもの(広域政治・予算ニュース、他県で起きた事故・事件に
+    県央住民が巻き込まれただけの記事、ドラマのロケ地情報等)をTrueで返す。
+    """
+    if any(kw in title for kw in SAITAMA_NOISE_KEYWORDS):
+        return True
+    if any(kw in title for kw in SAITAMA_INCIDENT_KEYWORDS) and \
+            any(place in title for place in NON_LOCAL_PLACE_HINTS):
+        return True
+    return False
+
+
 YAHOO_TOP_PICKS_RSS = "https://news.yahoo.co.jp/rss/topics/top-picks.xml"
 YAHOO_BUSINESS_RSS = "https://news.yahoo.co.jp/rss/categories/business.xml"
 YAHOO_FINANCE_NIKKEI225_URL = "https://finance.yahoo.co.jp/quote/998407.O"
@@ -178,6 +225,21 @@ def fetch_anzn_new_arrivals(limit=ANZN_ITEM_LIMIT):
 # RSSフィード(Google News / Yahoo!ニュース)
 # ============================================================
 
+def format_published_jst(entry):
+    """feedparserのエントリから公開日時を取得し、JSTの "MM/DD HH:MM" 形式で返す。
+    取得できない場合(フィード側に日時情報が無い等)は "-" を返す。
+    """
+    parsed = entry.get("published_parsed") or entry.get("updated_parsed")
+    if not parsed:
+        return "-"
+    try:
+        dt_utc = datetime.datetime(*parsed[:6], tzinfo=datetime.timezone.utc)
+    except (TypeError, ValueError):
+        return "-"
+    dt_jst = dt_utc.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
+    return dt_jst.strftime("%m/%d %H:%M")
+
+
 def fetch_rss_items(url, limit=RSS_ITEM_LIMIT):
     try:
         feed = feedparser.parse(url)
@@ -190,6 +252,7 @@ def fetch_rss_items(url, limit=RSS_ITEM_LIMIT):
         items.append({
             "title": entry.get("title", "(タイトル不明)"),
             "url": entry.get("link", ""),
+            "published": format_published_jst(entry),
         })
     return items
 
@@ -295,15 +358,17 @@ def build_news_message(state, now):
     saitama_new = dedupe_new_items(saitama_all, "url", state, now)
     saitama_general = []
     for item in saitama_new:
+        if is_saitama_local_noise(item["title"]):
+            continue
         if is_sports_related(item["title"]):
             sports_items.append(item)
         else:
             saitama_general.append(item)
     if saitama_general:
         has_any_new = True
-        lines = ["## 🗾 埼玉地域ニュース"]
+        lines = ["## 🗾 埼玉・県央ローカルニュース"]
         for item in saitama_general:
-            lines.append(f"- [{item['title']}](<{item['url']}>)")
+            lines.append(f"- [{item['title']}](<{item['url']}>) `[{item['published']}]`")
         sections.append("\n".join(lines))
 
     top_all = fetch_rss_items(YAHOO_TOP_PICKS_RSS)
