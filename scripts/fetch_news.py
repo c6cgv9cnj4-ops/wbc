@@ -23,7 +23,16 @@ state/news_seen.json に記録し、そのURL/IDと重複するものはスキ�
     巻き込まれた事故・事件、ドラマのロケ地情報等のノイズが多かったため、
     北本市・桶川市・鴻巣市・上尾市・さいたま市大宮区の市区町村名によるOR検索
     + ノイズ除外キーワード(is_saitama_local_noise、2026-08-26追加)に変更した。
-  - 主要ニュース/経済ニュース: Yahoo!ニュース トピックスRSS
+  - 主要ニュース: Yahoo!ニュース トピックスRSS
+  - 経済ニュース(2026-08-26改修): Yahoo!ニュースの「business」カテゴリRSSは
+    自動車カスタム系メディア(VAGUE/Auto Messe Web/WEB CARTOP等)やライフスタイル
+    コラムが大量混入する(実データで確認済み)ため廃止。経済特化のGoogle News RSS
+    検索(site:指定、ECONOMY_NEWS_QUERIES参照)に切り替えた。reuters.com/
+    bloomberg.co.jpは直接のsite:検索だと0件になる組み合わせが多かったため、
+    実際にヒットが確認できたクエリ(reuters.com/markets/japan配下限定、
+    ブルームバーグはsite:指定なしの固有名詞検索)を採用している。
+    さらに、site:検索だけでは除外しきれない自動車趣味記事等を弾くため、
+    ECONOMY_NEWS_BLACKLISTによるタイトルベースの除外フィルタも併用する。
   - 日経平均株価: Yahoo!ファイナンスの銘柄ページに埋め込まれたJSONを抽出
   - ドル円: open.er-api.com(無料・APIキー不要の為替レートAPI)
 
@@ -37,6 +46,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.parse
 
 import feedparser
@@ -98,9 +108,52 @@ def is_saitama_local_noise(title):
 
 
 YAHOO_TOP_PICKS_RSS = "https://news.yahoo.co.jp/rss/topics/top-picks.xml"
-YAHOO_BUSINESS_RSS = "https://news.yahoo.co.jp/rss/categories/business.xml"
 YAHOO_FINANCE_NIKKEI225_URL = "https://finance.yahoo.co.jp/quote/998407.O"
 EXCHANGE_RATE_API_URL = "https://open.er-api.com/v6/latest/USD"
+
+# 経済ニュース(#webhook_market向け)の取得元。実際にGoogle News RSS検索で
+# ヒット件数・記事の質を確認した上で採用したクエリのみを列挙している
+# (reuters.com/bloomberg.co.jpへのsite:検索は、キーワードとの組み合わせに
+# よって0件になることが多く実データで確認できた組み合わせのみ採用した)。
+ECONOMY_NEWS_QUERIES = [
+    "site:nikkei.com 市場",
+    "site:nikkei.com 企業",
+    "site:finance.yahoo.co.jp 株式市場",
+    "site:reuters.com/markets/japan",
+    "ブルームバーグ 日本 経済",
+]
+
+# 経済ニュースのタイトルに以下が含まれる場合は、site:検索だけでは除外し
+# きれない自動車趣味記事・ライフスタイルコラム等とみなして即座に除外する。
+ECONOMY_NEWS_BLACKLIST = [
+    "カスタム", "エアロ", "試乗", "ワンオフ", "ポルシェ", "セレナ",
+    "デコトラ", "愛車", "年金一覧表", "草ボーボー", "散歩ガイド",
+]
+
+# site:指定なしの緩いクエリ(ブルームバーグ等、site:検索だと0件になるため
+# 固有名詞ベースの検索を使わざるを得ないもの)は、稀に市況と無関係な
+# ライフスタイルコラム等を拾うことが実データで確認できた(例:「60歳は
+# 高齢なのか？老いない日本のロックスターが打ち破る固定観念」)。そのため
+# site:検索を使わないクエリの結果に限り、以下のいずれかを含む記事のみ
+# 経済ニュースとして許可する追加フィルタをかける。
+FINANCE_REQUIRED_KEYWORDS = [
+    "市況", "日経平均", "株式", "株価", "円", "債券", "金利", "決算", "業績",
+    "相場", "為替", "GDP", "インフレ", "利上げ", "利下げ", "日銀", "FRB", "市場",
+]
+
+
+def is_economy_news_blacklisted(title):
+    return any(kw in title for kw in ECONOMY_NEWS_BLACKLIST)
+
+
+def is_finance_relevant(title, query):
+    """site:検索を使わない緩いクエリの結果にのみ、金融キーワード必須の
+    追加フィルタを適用する(site:検索は情報源自体が経済専門メディアの
+    ため、このフィルタは不要かつ過剰除外のリスクがある)。
+    """
+    if query.startswith("site:"):
+        return True
+    return any(kw in title for kw in FINANCE_REQUIRED_KEYWORDS)
 
 # 米国株価指数(株探・米国株版。サーバーサイドレンダリングで静的HTMLから
 # 取得可能なことを実際に確認済み)。
@@ -260,6 +313,60 @@ def fetch_rss_items(url, limit=RSS_ITEM_LIMIT):
             "published": format_published_jst(entry),
         })
     return items
+
+
+def fetch_google_news_query(query, limit=RSS_ITEM_LIMIT, retries=2):
+    """Google News RSS検索を取得する。経済ニュースの複数クエリを短時間に
+    連続して叩くとレート制限(503)されることがあるため、リクエスト間隔を
+    空け、失敗時は1回リトライする(fetch_culture_news.py等と同じ対策)。
+    """
+    q = urllib.parse.quote(query)
+    url = f"https://news.google.com/rss/search?q={q}&hl=ja&gl=JP&ceid=JP:ja"
+    time.sleep(2.0)
+
+    resp = None
+    for attempt in range(retries):
+        try:
+            resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
+            resp.raise_for_status()
+            break
+        except Exception as err:  # noqa: BLE001
+            print(f"[WARN] Google News RSS取得に失敗(試行{attempt + 1}/{retries})({query}): {err}")
+            resp = None
+            time.sleep(5.0)
+
+    if resp is None:
+        print(f"[ERROR] Google News RSS取得に失敗しました({query})")
+        return []
+
+    feed = feedparser.parse(resp.content)
+    items = []
+    for entry in feed.entries[:limit]:
+        items.append({
+            "title": entry.get("title", "(タイトル不明)"),
+            "url": entry.get("link", ""),
+            "published": format_published_jst(entry),
+        })
+    return items
+
+
+def fetch_economy_news_candidates():
+    """ECONOMY_NEWS_QUERIESの各クエリを取得し、URL重複除去とブラックリスト
+    フィルタを適用した候補リストを返す(この時点ではまだ既送信排除はしない)。
+    """
+    candidates = []
+    seen_in_batch = set()
+    for query in ECONOMY_NEWS_QUERIES:
+        for item in fetch_google_news_query(query):
+            if item["url"] in seen_in_batch:
+                continue
+            if is_economy_news_blacklisted(item["title"]):
+                continue
+            if not is_finance_relevant(item["title"], query):
+                continue
+            seen_in_batch.add(item["url"])
+            candidates.append(item)
+    return candidates
 
 
 # ============================================================
@@ -440,12 +547,12 @@ def build_market_message(state, now):
     else:
         lines.append("- ドル円: 取得できませんでした")
 
-    biz_all = fetch_rss_items(YAHOO_BUSINESS_RSS)
+    biz_all = fetch_economy_news_candidates()
     biz_new = dedupe_new_items(biz_all, "url", state, now)
     if biz_new:
         lines.append("\n## 💰 経済ニュース(新着)")
         for item in biz_new:
-            lines.append(f"- [{item['title']}](<{item['url']}>)")
+            lines.append(f"- [{item['title']}](<{item['url']}>) `[{item['published']}]`")
 
     return "\n".join(lines)
 
