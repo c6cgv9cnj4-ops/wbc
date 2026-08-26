@@ -166,8 +166,7 @@ DEALS_ITEMS = [
     {"genre": GENRE_SEASONING, "name": "納豆", "unit": "3パック",
      "measure_type": "count_basis_n", "count_basis": 3, "count_units": ["パック", "個"],
      "keywords": ["納豆"]},
-    {"genre": GENRE_SEASONING, "name": "食パン", "unit": "1斤",
-     "measure_type": "count", "count_units": ["斤"], "keywords": ["食パン"]},
+    # 食パン(ヤマザキ等)は監視対象から削除(ユーザー指示による、2026-08-26)。
 
     # ---- 日用品・紙類・飲料 ----
     # キッチンペーパー・柔軟剤は監視対象から削除(ユーザー指示による)。
@@ -181,10 +180,8 @@ DEALS_ITEMS = [
     # ---- 日用品・ヘアケア ----
     # 一般名ではなく、普段使用している具体的な銘柄を指定(ユーザー指示による)。
     # 銘柄名を変更したい場合は、この "name" と "keywords" を書き換えるだけで良い。
-    {"genre": GENRE_HAIRCARE, "name": "P&G パンテーン エクストラダメージケア シャンプー 詰め替え 特大", "unit": "100ml",
-     "measure_type": "volume_ml", "keywords": ["パンテーン", "エクストラダメージケア", "シャンプー"]},
-    {"genre": GENRE_HAIRCARE, "name": "P&G パンテーン エクストラダメージケア トリートメント 詰め替え 特大", "unit": "100ml",
-     "measure_type": "volume_ml", "keywords": ["パンテーン", "エクストラダメージケア", "トリートメント"]},
+    # P&Gパンテーン エクストラダメージケア(シャンプー/トリートメント)は監視対象から
+    # 削除(ユーザー指示による、2026-08-26)。
     {"genre": GENRE_HAIRCARE, "name": "ボディーソープ", "unit": "100ml",
      "measure_type": "volume_ml", "keywords": ["ボディーソープ", "ボディソープ"]},
 ]
