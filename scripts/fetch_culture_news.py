@@ -11,9 +11,14 @@
      dc:creator="Nobuyuki Hayashi　　　林信行"であることを確認済み)
      ※note.com/nobi は同姓同名の別人(Nobuko Masui)のアカウントであり、
        誤って使用しないよう明記しておく。
-  3. Apple/シリコンバレー/PC周辺ガジェット, 珈琲/器/工芸(ディープカルチャー)
+  3. Apple/シリコンバレー、珈琲(関東地方限定)
      Google News RSS検索を情報源とし、Gemini APIで「記名記事/専門性の高い
      読み物」かどうかを判定してノイズ(煽り見出し・中身のないコピペ記事)を除外する。
+     珈琲枠は「器・工芸」を対象外にし、関東地方(東京・埼玉・神奈川・千葉・茨城・
+     栃木・群馬)に関連する情報のみに絞り込む(2026-08-26変更。PC周辺機器・
+     ガジェット枠は同日付で完全に削除した)。関東限定の判定は記事タイトルの
+     テキストのみを根拠にGeminiが行う(Google News RSSは本文を含まないため、
+     タイトルに地域名が出てこない記事は誤って除外される可能性がある)。
 
 環境変数:
   DISCORD_WEBHOOK_NEWS (必須。既存のfetch_news.pyと同じWebhookを共用する)
@@ -46,13 +51,22 @@ TOPIC_QUERIES = {
     "🍎 Apple・シリコンバレー": [
         "Apple デザイン思想", "シリコンバレー 新製品 考察",
     ],
-    "⌨️ PC周辺機器・ガジェット": [
-        "ディスプレイ レビュー 徹底", "DAC オーディオ レビュー", "キーボード レビュー こだわり",
-    ],
-    "☕ 珈琲・器・工芸": [
-        "スペシャルティコーヒー 焙煎", "民藝 作家もの", "陶磁器 工芸 note",
+    # 珈琲のみに特化(器・工芸は対象外)。関東地方(東京・埼玉・神奈川・千葉・茨城・
+    # 栃木・群馬)関連かどうかはGeminiによるタイトルベースの判定で絞り込む
+    # (build_topic_embeds -> filter_quality_articles の extra_instruction 参照)。
+    "☕ 珈琲（関東）": [
+        "スペシャルティコーヒー 新店 オープン", "コーヒー 焙煎所 オープン",
+        "コーヒースタンド オープン", "喫茶店 新規オープン",
     ],
 }
+
+KANTO_INSTRUCTION = (
+    "さらに、これらの記事は「関東地方(東京都・埼玉県・神奈川県・千葉県・茨城県・"
+    "栃木県・群馬県)」に関連するものだけを選んでください。九州・沖縄・関西など"
+    "他地域の店舗・イベント・ニュースは、たとえ記名記事で専門性が高くても除外して"
+    "ください。タイトルから地域が判断できない場合は含めないでください(安全側に"
+    "倒してスキップする)。"
+)
 
 COLOR_JGB = 0x2B6CB0
 COLOR_NOBI = 0xED8936
@@ -211,8 +225,10 @@ def fetch_topic_rss(query, retries=2):
     return [{"title": e.title, "url": e.link} for e in feed.entries]
 
 
-def filter_quality_articles(client, candidates, max_items=3):
+def filter_quality_articles(client, candidates, max_items=3, extra_instruction=None):
     """Geminiで「記名記事・専門性が高い・煽りでない」もののみ残す。
+    extra_instruction を指定すると、トピックごとの追加条件(地域限定等)を
+    プロンプトに追加できる。
     API呼び出し自体が失敗した場合は、安全側(何も表示しない)に倒す
     (低品質な記事を誤って通すより、今回は0件の方が実害が小さいため)。
     """
@@ -220,11 +236,12 @@ def filter_quality_articles(client, candidates, max_items=3):
         return []
 
     titles_text = "\n".join(f"{i}. {c['title']}" for i, c in enumerate(candidates))
+    extra_text = f"\n{extra_instruction}\n" if extra_instruction else ""
     prompt = f"""以下は複数のニュース記事タイトルのリストです。それぞれについて、
 「執筆者の顔が見える記名記事・専門性の高い読み物・単なる商品告知やコピペではない
 本質的な内容」と判断できるものだけを選んでください。煽り見出しや、内容の薄い
 プレスリリース系の記事は除外してください。
-
+{extra_text}
 {titles_text}
 
 選んだ記事の番号(0始まり)だけをJSON配列で出力してください(例: [0, 3])。
@@ -259,7 +276,8 @@ def build_topic_embeds(client, state, now):
                 seen_in_batch.add(c["url"])
                 uniq_candidates.append(c)
 
-        selected = filter_quality_articles(client, uniq_candidates)
+        extra_instruction = KANTO_INSTRUCTION if topic_label == "☕ 珈琲（関東）" else None
+        selected = filter_quality_articles(client, uniq_candidates, extra_instruction=extra_instruction)
         if not selected:
             continue
         lines = [f"- [{a['title']}]({a['url']})" for a in selected]
