@@ -7,9 +7,13 @@ state/news_seen.json に記録し、そのURL/IDと重複するものはスキ�
 「新しく見つかった記事のみ」を都度Discordへ送信する(株価は都度変動するため
 重複排除の対象外で、実行するたびに最新値を送る)。
 
-配信内容:
-  DISCORD_WEBHOOK_NEWS   : 北本市安全安心情報(新着) + 埼玉・県央ローカルニュース + 主要ニュース
+配信内容(2026-08-26、ローカル/全国を別Webhookに完全分離):
+  DISCORD_WEBHOOK_LOCAL  : 北本市安全安心情報(新着) + 埼玉・県央ローカルニュース
+  DISCORD_WEBHOOK_NEWS   : 全国・総合主要ニュース(Yahoo!トップピックス)
   DISCORD_WEBHOOK_MARKET : 株価(日経平均/ドル円) + 経済ニュース
+
+ローカル系(あんぜんねっと・埼玉ローカルニュース)と全国系(主要ニュース)は、
+1つのDiscordメッセージに混在させず、送信先Webhookも完全に分離している。
 
 情報源:
   - 北本市安全安心情報: あんぜんねっと(https://anzn.net/sp/?11217F&r1=1)
@@ -24,6 +28,7 @@ state/news_seen.json に記録し、そのURL/IDと重複するものはスキ�
   - ドル円: open.er-api.com(無料・APIキー不要の為替レートAPI)
 
 環境変数:
+  DISCORD_WEBHOOK_LOCAL  (必須)
   DISCORD_WEBHOOK_NEWS   (必須)
   DISCORD_WEBHOOK_MARKET (必須)
 """
@@ -343,15 +348,15 @@ def fetch_anzn_new_items(state, now):
     return dedupe_new_items(anzn_all, "url", state, now)
 
 
-def build_news_message(state, now):
+def build_local_news_message(state, now):
     """新着が1件も無ければ(None, [])を返す(Discordへ空更新を送らないため)。
     あんぜんねっとの新着はここには含めない(build_anzn_alert_embed()で別送するため)。
-    戻り値は (news_message_or_None, sports_items) のタプル。
-    sports_itemsは、一般ニュースフィードに混入していたスポーツ記事(#webhook_news
+    戻り値は (message_or_None, sports_items) のタプル。
+    sports_itemsは、埼玉ローカルニュースに混入していたスポーツ記事(#webhook_local
     ではなく#webhook_sports_cultureへ回すため、ここでは除外して別途返す)。
+    全国ニュース(build_national_news_message)とは完全に別メッセージ・別Webhookで
+    送信するため、ここでは混在させない。
     """
-    sections = []
-    has_any_new = False
     sports_items = []
 
     saitama_all = fetch_rss_items(GOOGLE_NEWS_SAITAMA_RSS)
@@ -364,12 +369,26 @@ def build_news_message(state, now):
             sports_items.append(item)
         else:
             saitama_general.append(item)
-    if saitama_general:
-        has_any_new = True
-        lines = ["## 🗾 埼玉・県央ローカルニュース"]
-        for item in saitama_general:
-            lines.append(f"- [{item['title']}](<{item['url']}>) `[{item['published']}]`")
-        sections.append("\n".join(lines))
+
+    if not saitama_general:
+        return None, sports_items
+
+    now_jst = now.strftime("%Y-%m-%d %H:%M")
+    lines = [f"# 🗾 埼玉・県央ローカルニュース ({now_jst} JST時点)"]
+    for item in saitama_general:
+        lines.append(f"- [{item['title']}](<{item['url']}>) `[{item['published']}]`")
+    return "\n".join(lines), sports_items
+
+
+def build_national_news_message(state, now):
+    """新着が1件も無ければ(None, [])を返す(Discordへ空更新を送らないため)。
+    戻り値は (message_or_None, sports_items) のタプル。
+    sports_itemsは、一般ニュースフィードに混入していたスポーツ記事(#webhook_news
+    ではなく#webhook_sports_cultureへ回すため、ここでは除外して別途返す)。
+    ローカルニュース(build_local_news_message)とは完全に別メッセージ・別Webhookで
+    送信するため、ここでは混在させない。
+    """
+    sports_items = []
 
     top_all = fetch_rss_items(YAHOO_TOP_PICKS_RSS)
     top_new = dedupe_new_items(top_all, "url", state, now)
@@ -379,19 +398,15 @@ def build_news_message(state, now):
             sports_items.append(item)
         else:
             top_general.append(item)
-    if top_general:
-        has_any_new = True
-        lines = ["## 🌐 主要ニュース"]
-        for item in top_general:
-            lines.append(f"- [{item['title']}](<{item['url']}>)")
-        sections.append("\n".join(lines))
 
-    if not has_any_new:
+    if not top_general:
         return None, sports_items
 
     now_jst = now.strftime("%Y-%m-%d %H:%M")
-    header = f"# 📰 新着ニュース ({now_jst} JST時点)"
-    return "\n\n".join([header] + sections), sports_items
+    lines = [f"# 🌐 主要ニュース ({now_jst} JST時点)"]
+    for item in top_general:
+        lines.append(f"- [{item['title']}](<{item['url']}>)")
+    return "\n".join(lines), sports_items
 
 
 def build_market_message(state, now):
@@ -536,13 +551,32 @@ def send_to_discord(webhook_url, message):
     return ok
 
 
+def _handle_sports_leak(sports_items, sports_webhook, now, source_label):
+    """ローカル/全国いずれかのフィードに混入していたスポーツ記事を
+    #webhook_sports_culture へ振り分ける共通処理。戻り値はhad_errorか否か。
+    """
+    if not sports_items:
+        return False
+    print(f"=== {source_label}からスポーツ記事を検知: {len(sports_items)}件 ===")
+    for item in sports_items:
+        print(f"  {item['title']}")
+    sports_message = build_sports_leak_message(sports_items, now)
+    if not sports_webhook:
+        print("[WARN] DISCORD_WEBHOOK_SPORTS_CULTURE が未設定のため、"
+              "検知したスポーツ記事の振り分け送信をスキップします(誤配信は防止済み)。")
+        return False
+    return not send_to_discord(sports_webhook, sports_message)
+
+
 def main():
+    local_webhook = os.environ.get("DISCORD_WEBHOOK_LOCAL")
     news_webhook = os.environ.get("DISCORD_WEBHOOK_NEWS")
     market_webhook = os.environ.get("DISCORD_WEBHOOK_MARKET")
     sports_webhook = os.environ.get("DISCORD_WEBHOOK_SPORTS_CULTURE")
 
-    if not news_webhook and not market_webhook:
-        print("[ERROR] DISCORD_WEBHOOK_NEWS / DISCORD_WEBHOOK_MARKET のどちらも設定されていません。")
+    if not local_webhook and not news_webhook and not market_webhook:
+        print("[ERROR] DISCORD_WEBHOOK_LOCAL / DISCORD_WEBHOOK_NEWS / DISCORD_WEBHOOK_MARKET "
+              "のいずれも設定されていません。")
         sys.exit(1)
 
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
@@ -551,39 +585,48 @@ def main():
 
     had_error = False
 
-    if news_webhook:
+    # ローカル系(#webhook_local): あんぜんねっと(北本市安全安心情報) + 埼玉・県央ローカルニュース。
+    # 全国ニュースとは完全に別メッセージ・別Webhookで送信し、混在させない。
+    if local_webhook:
         anzn_new = fetch_anzn_new_items(state, now)
         anzn_embed = build_anzn_alert_embed(anzn_new, now)
         if anzn_embed:
             print("=== あんぜんねっと新着(赤枠強調・最優先送信) ===")
             print(anzn_new)
-            if not send_embed_to_discord(news_webhook, anzn_embed):
+            if not send_embed_to_discord(local_webhook, anzn_embed):
                 had_error = True
         else:
             print("[INFO] あんぜんねっとの新着はありませんでした。")
 
-        news_message, sports_items = build_news_message(state, now)
-        if news_message:
-            print("=== ニュースメッセージ(新着あり) ===")
-            print(news_message)
-            if not send_to_discord(news_webhook, news_message):
+        local_message, local_sports_items = build_local_news_message(state, now)
+        if local_message:
+            print("=== ローカルニュースメッセージ(新着あり) ===")
+            print(local_message)
+            if not send_to_discord(local_webhook, local_message):
                 had_error = True
         else:
-            print("[INFO] 新着ニュースはありませんでした。送信をスキップします。")
+            print("[INFO] 新着のローカルニュースはありませんでした。送信をスキップします。")
 
-        if sports_items:
-            print(f"=== 一般ニュースフィードからスポーツ記事を検知: {len(sports_items)}件 ===")
-            for item in sports_items:
-                print(f"  {item['title']}")
-            sports_message = build_sports_leak_message(sports_items, now)
-            if sports_webhook:
-                if not send_to_discord(sports_webhook, sports_message):
-                    had_error = True
-            else:
-                print("[WARN] DISCORD_WEBHOOK_SPORTS_CULTURE が未設定のため、"
-                      "検知したスポーツ記事の振り分け送信をスキップします(#webhook_newsへの誤配信は防止済み)。")
+        if _handle_sports_leak(local_sports_items, sports_webhook, now, "埼玉ローカルニュース"):
+            had_error = True
     else:
-        print("[WARN] DISCORD_WEBHOOK_NEWS が未設定のため、ニュース配信をスキップします。")
+        print("[WARN] DISCORD_WEBHOOK_LOCAL が未設定のため、ローカルニュース配信をスキップします。")
+
+    # 全国系(#webhook_news): 主要ニュース(Yahoo!トップピックス)のみ。
+    if news_webhook:
+        national_message, national_sports_items = build_national_news_message(state, now)
+        if national_message:
+            print("=== 全国ニュースメッセージ(新着あり) ===")
+            print(national_message)
+            if not send_to_discord(news_webhook, national_message):
+                had_error = True
+        else:
+            print("[INFO] 新着の全国ニュースはありませんでした。送信をスキップします。")
+
+        if _handle_sports_leak(national_sports_items, sports_webhook, now, "一般ニュースフィード"):
+            had_error = True
+    else:
+        print("[WARN] DISCORD_WEBHOOK_NEWS が未設定のため、全国ニュース配信をスキップします。")
 
     if market_webhook:
         market_message = build_market_message(state, now)

@@ -30,9 +30,10 @@ jobs:
 
       - name: ニュース・マーケット情報を取得してDiscordへ配信
         env:
-          # GitHub Secrets側の実際の登録名は WEBHOOK_NEWS / WEBHOOK_MARKET (DISCORD_プレフィックス無し)。
+          # GitHub Secrets側の実際の登録名は WEBHOOK_NEWS / WEBHOOK_MARKET 等 (DISCORD_プレフィックス無し)。
           # fetch_news.py が読む環境変数名(DISCORD_WEBHOOK_NEWS等)とは別物なので、ここで変換する。
           DISCORD_WEBHOOK_NEWS: ${{ secrets.WEBHOOK_NEWS }}
+          DISCORD_WEBHOOK_LOCAL: ${{ secrets.WEBHOOK_LOCAL }}
           DISCORD_WEBHOOK_MARKET: ${{ secrets.WEBHOOK_MARKET }}
           DISCORD_WEBHOOK_SPORTS_CULTURE: ${{ secrets.WEBHOOK_SPORTS_CULTURE }}
         run: python scripts/fetch_news.py
