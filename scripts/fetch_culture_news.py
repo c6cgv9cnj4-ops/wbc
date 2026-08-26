@@ -19,6 +19,17 @@
      ガジェット枠は同日付で完全に削除した)。関東限定の判定は記事タイトルの
      テキストのみを根拠にGeminiが行う(Google News RSSは本文を含まないため、
      タイトルに地域名が出てこない記事は誤って除外される可能性がある)。
+  4. 展覧会・美術展・写真展(関東地方限定、Googleカレンダー連携リンク付き)
+     Google News RSS検索を情報源とし、Geminiで見出しから「展示名・会場・
+     開始日・終了日」を構造化抽出する(会期が読み取れない記事は除外)。
+     抽出できた各展示について、Googleカレンダーの公式クイックリンク
+     (calendar.google.com/calendar/render、GAS等の追加サーバー不要で
+     ワンクリックで登録画面が開く)を2種類生成する:
+       a) その展示自体を会期の期間で登録するリンク
+       b) 終了日の14日前を1日だけのリマインダーとして登録するリンク
+     通常のDiscord Incoming Webhookではインタラクティブな「ボタンUI」
+     (Message Components)は送信できないため、クリック可能な
+     テキストリンクとして実装している。
 
 環境変数:
   DISCORD_WEBHOOK_NEWS (必須。既存のfetch_news.pyと同じWebhookを共用する)
@@ -68,9 +79,18 @@ KANTO_INSTRUCTION = (
     "倒してスキップする)。"
 )
 
+# 展覧会・美術展・写真展(関東地方限定)。検索クエリは既存の珈琲枠と同じ発想で、
+# タイトルに「開催」等が含まれる会期情報を持つ記事を拾いやすくしている。
+EXHIBITION_QUERIES = [
+    "美術展 開催 東京", "写真展 開催 東京", "展覧会 開催 都内",
+]
+EXHIBITION_REMINDER_DAYS = 14
+GOOGLE_CALENDAR_RENDER_URL = "https://calendar.google.com/calendar/render"
+
 COLOR_JGB = 0x2B6CB0
 COLOR_NOBI = 0xED8936
 COLOR_CULTURE = 0x38A169
+COLOR_EXHIBITION = 0xB83280
 
 
 def load_seen_state():
@@ -292,6 +312,150 @@ def build_topic_embeds(client, state, now):
 
 
 # ============================================================
+# 4. 展覧会・美術展・写真展(Gemini構造化抽出 + Googleカレンダー連携)
+# ============================================================
+
+def parse_iso_date(date_str):
+    if not date_str:
+        return None
+    try:
+        return datetime.date.fromisoformat(date_str)
+    except (TypeError, ValueError):
+        return None
+
+
+def build_google_calendar_url(title, start_date, end_date_exclusive, location=None, details=None):
+    """Googleカレンダーの「予定を追加」クイックリンク(公式URLスキーム)を
+    組み立てる。GASや追加サーバーは不要で、リンクを開くだけで登録画面が
+    表示される。終日予定のため、end_date_exclusiveは最終日の翌日を渡すこと
+    (Googleカレンダーの終日予定は終了日が排他的表記のため)。
+    """
+    import urllib.parse
+    params = {
+        "action": "TEMPLATE",
+        "text": title,
+        "dates": f"{start_date.strftime('%Y%m%d')}/{end_date_exclusive.strftime('%Y%m%d')}",
+    }
+    if location:
+        params["location"] = location
+    if details:
+        params["details"] = details
+    return f"{GOOGLE_CALENDAR_RENDER_URL}?{urllib.parse.urlencode(params)}"
+
+
+def extract_exhibitions_via_gemini(client, candidates):
+    """候補記事タイトルから、具体的な1つの展覧会/美術展/写真展の開催情報
+    (展示名・会場・開始日・終了日)を構造化抽出する。会期が読み取れない記事
+    (感想記事、過去の回顧記事、チケット販売告知のみ等)は除外する。
+    API呼び出し自体が失敗した場合は安全側(0件)に倒す。
+    """
+    if not candidates:
+        return []
+
+    titles_text = "\n".join(f"{i}. {c['title']}" for i, c in enumerate(candidates))
+    prompt = f"""以下は展覧会・美術展・写真展に関連する可能性があるニュース見出しの
+リストです。それぞれについて、具体的な1つの展覧会/美術展/写真展の開催情報
+(会期が分かるもの)を報じているかを判定してください。単なる感想記事、過去の
+展覧会の回顧記事、海外の展覧会、チケット販売開始のみを報じ会期に触れていない
+記事は除外してください。{KANTO_INSTRUCTION}
+
+該当するものだけ、以下の形式のJSON配列で出力してください:
+[{{"index": 0, "exhibition_name": "展示名", "venue": "会場名(不明ならnull)",
+   "start_date": "YYYY-MM-DD(不明ならnull)", "end_date": "YYYY-MM-DD(不明ならnull)"}}]
+
+見出しに明記されていない情報は絶対に推測せず、必ずnullにしてください。
+年が明記されていない日付は記事の文脈(発行日等)から妥当な年を判断し、
+それでも判断できない場合はnullにしてください。該当する見出しが無ければ
+空配列[]を返してください。説明文は不要です。
+
+見出し一覧:
+{titles_text}"""
+
+    try:
+        resp = client.models.generate_content(model=GEMINI_MODEL_NAME, contents=prompt)
+        text = resp.text.strip()
+        text = re.sub(r"^```(json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
+        parsed = json.loads(text)
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] Gemini展覧会情報抽出に失敗したため、このバッチは0件扱いにします: {err}")
+        return []
+
+    results = []
+    for item in parsed:
+        idx = item.get("index")
+        if not isinstance(idx, int) or not (0 <= idx < len(candidates)):
+            continue
+        results.append({
+            "url": candidates[idx]["url"],
+            "exhibition_name": item.get("exhibition_name"),
+            "venue": item.get("venue"),
+            "start_date": item.get("start_date"),
+            "end_date": item.get("end_date"),
+        })
+    return results
+
+
+def build_exhibition_embeds(client, state, now):
+    candidates = []
+    for q in EXHIBITION_QUERIES:
+        for item in fetch_topic_rss(q):
+            if not is_seen(state, item["url"]):
+                candidates.append(item)
+
+    seen_in_batch = set()
+    uniq_candidates = []
+    for c in candidates:
+        if c["url"] not in seen_in_batch:
+            seen_in_batch.add(c["url"])
+            uniq_candidates.append(c)
+
+    extracted = extract_exhibitions_via_gemini(client, uniq_candidates)
+
+    embeds = []
+    for ex in extracted:
+        mark_seen(state, ex["url"], now)
+
+        if not ex["exhibition_name"]:
+            continue
+        end_date = parse_iso_date(ex["end_date"])
+        if not end_date:
+            # 終了日が取れない展示は、カレンダー登録・リマインダー計算が
+            # できないためスキップする(推測で埋めない)。
+            continue
+        start_date = parse_iso_date(ex["start_date"]) or end_date
+
+        cal_url = build_google_calendar_url(
+            ex["exhibition_name"], start_date, end_date + datetime.timedelta(days=1),
+            location=ex["venue"], details=ex["url"],
+        )
+
+        reminder_date = end_date - datetime.timedelta(days=EXHIBITION_REMINDER_DAYS)
+        reminder_url = build_google_calendar_url(
+            f"【終了まであと{EXHIBITION_REMINDER_DAYS}日】{ex['exhibition_name']}",
+            reminder_date, reminder_date + datetime.timedelta(days=1),
+            location=ex["venue"], details=ex["url"],
+        )
+
+        lines = []
+        if ex["venue"]:
+            lines.append(f"📍 {ex['venue']}")
+        lines.append(f"🗓️ 会期: {start_date.isoformat()} 〜 {end_date.isoformat()}")
+        lines.append("")
+        lines.append(
+            f"[📅 Googleカレンダーに追加]({cal_url}) ｜ "
+            f"[⏰ 終了{EXHIBITION_REMINDER_DAYS}日前リマインダー追加]({reminder_url})"
+        )
+        lines.append(f"[記事を見る]({ex['url']})")
+
+        embeds.append({
+            "title": f"🖼️ {ex['exhibition_name']}"[:256],
+            "description": "\n".join(lines),
+            "color": COLOR_EXHIBITION,
+        })
+    return embeds
+
+
+# ============================================================
 # Discord送信
 # ============================================================
 
@@ -346,6 +510,9 @@ def main():
 
     topic_embeds = build_topic_embeds(client, state, now)
     embeds.extend(topic_embeds)
+
+    exhibition_embeds = build_exhibition_embeds(client, state, now)
+    embeds.extend(exhibition_embeds)
 
     had_error = False
     if embeds:
