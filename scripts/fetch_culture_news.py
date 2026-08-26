@@ -30,6 +30,14 @@
      通常のDiscord Incoming Webhookではインタラクティブな「ボタンUI」
      (Message Components)は送信できないため、クリック可能な
      テキストリンクとして実装している。
+  5. 推しウォッチ(バドミントン/アニメ・メカ/漫画/作家・カルチャー・ビジネス/
+     音楽、地域限定なし)
+     OSHI_WATCH_KEYWORDSで指定した固有名詞ごとにGoogle News RSSを検索し、
+     4.と同じGemini構造化抽出(ただし関東限定の絞り込みは適用しない)に
+     かけて「展覧会・イベント・公演」情報を検知した場合は4.と同様に
+     Googleカレンダー連携リンク付きで配信する。展覧会/イベントと判定
+     されなかった一般ニュースは「🌟 推しウォッチ」として単純なリンク
+     一覧で配信する(Gemini質フィルタは適用せず、キーワード一致のみ)。
 
 環境変数:
   DISCORD_WEBHOOK_NEWS (必須。既存のfetch_news.pyと同じWebhookを共用する)
@@ -87,10 +95,28 @@ EXHIBITION_QUERIES = [
 EXHIBITION_REMINDER_DAYS = 14
 GOOGLE_CALENDAR_RENDER_URL = "https://calendar.google.com/calendar/render"
 
+# 推しウォッチ(2026-08-26確定)。地域限定なし。固有名詞そのものを検索クエリ
+# として使う(既存の珈琲枠のような複合クエリではなく、名前が十分に固有性を
+# 持つため単独検索で足りると判断した)。
+OSHI_WATCH_KEYWORDS = [
+    # バドミントン
+    "渡辺勇大", "松友美佐紀", "田児賢一",
+    # アニメ・映画・メカ
+    "押井守", "パトレイバー", "ガンダム", "無職転生", "幼女戦記", "閃光のハサウェイ",
+    # 漫画・クリエイター
+    "永野護", "ファイブスター物語",
+    # 作家・カルチャー・ビジネス
+    "今野敏", "桐野夏生", "椎名誠", "水曜どうでしょう", "大泉洋", "田端信太郎", "箕輪厚介",
+    # 音楽・アーティスト(既存継続)
+    "サカナクション", "U2",
+]
+OSHI_WATCH_MAX_ITEMS = 15  # Discord Embed 1件あたりの文字数上限対策
+
 COLOR_JGB = 0x2B6CB0
 COLOR_NOBI = 0xED8936
 COLOR_CULTURE = 0x38A169
 COLOR_EXHIBITION = 0xB83280
+COLOR_OSHI_WATCH = 0x805AD5
 
 
 def load_seen_state():
@@ -343,30 +369,51 @@ def build_google_calendar_url(title, start_date, end_date_exclusive, location=No
     return f"{GOOGLE_CALENDAR_RENDER_URL}?{urllib.parse.urlencode(params)}"
 
 
-def extract_exhibitions_via_gemini(client, candidates):
-    """候補記事タイトルから、具体的な1つの展覧会/美術展/写真展の開催情報
-    (展示名・会場・開始日・終了日)を構造化抽出する。会期が読み取れない記事
-    (感想記事、過去の回顧記事、チケット販売告知のみ等)は除外する。
+def fetch_candidates_for_queries(queries, state):
+    """複数クエリでGoogle News RSSを検索し、URL重複を除いた未送信候補を返す。"""
+    candidates = []
+    for q in queries:
+        for item in fetch_topic_rss(q):
+            if not is_seen(state, item["url"]):
+                candidates.append(item)
+
+    seen_in_batch = set()
+    uniq_candidates = []
+    for c in candidates:
+        if c["url"] not in seen_in_batch:
+            seen_in_batch.add(c["url"])
+            uniq_candidates.append(c)
+    return uniq_candidates
+
+
+def extract_exhibitions_via_gemini(client, candidates, region_instruction=KANTO_INSTRUCTION):
+    """候補記事タイトルから、具体的な1つの展覧会/美術展/写真展/イベント/公演の
+    開催情報(催事名・会場・開始日・終了日)を構造化抽出する。会期・開催日が
+    読み取れない記事(感想記事、過去の回顧記事、チケット販売告知のみ等)は除外する。
+    region_instructionにNoneを渡すと地域限定を適用しない(全国対象)。
     API呼び出し自体が失敗した場合は安全側(0件)に倒す。
     """
     if not candidates:
         return []
 
     titles_text = "\n".join(f"{i}. {c['title']}" for i, c in enumerate(candidates))
-    prompt = f"""以下は展覧会・美術展・写真展に関連する可能性があるニュース見出しの
-リストです。それぞれについて、具体的な1つの展覧会/美術展/写真展の開催情報
-(会期が分かるもの)を報じているかを判定してください。単なる感想記事、過去の
-展覧会の回顧記事、海外の展覧会、チケット販売開始のみを報じ会期に触れていない
-記事は除外してください。{KANTO_INSTRUCTION}
-
+    region_text = f"\n{region_instruction}\n" if region_instruction else ""
+    prompt = f"""以下は展覧会・美術展・写真展・イベント・公演に関連する可能性がある
+ニュース見出しのリストです。それぞれについて、具体的な1つの展覧会/美術展/
+写真展/イベント/公演の開催情報(会期・開催日が分かるもの)を報じているかを
+判定してください。単なる感想記事、過去の回顧記事、チケット販売開始のみを
+報じ会期・開催日に触れていない記事は除外してください。
+{region_text}
 該当するものだけ、以下の形式のJSON配列で出力してください:
-[{{"index": 0, "exhibition_name": "展示名", "venue": "会場名(不明ならnull)",
+[{{"index": 0, "exhibition_name": "催事名", "venue": "会場名(不明ならnull)",
    "start_date": "YYYY-MM-DD(不明ならnull)", "end_date": "YYYY-MM-DD(不明ならnull)"}}]
 
 見出しに明記されていない情報は絶対に推測せず、必ずnullにしてください。
 年が明記されていない日付は記事の文脈(発行日等)から妥当な年を判断し、
-それでも判断できない場合はnullにしてください。該当する見出しが無ければ
-空配列[]を返してください。説明文は不要です。
+それでも判断できない場合はnullにしてください。トークイベント・公演等、
+終了日という概念が無い単発の催事は、開催日をstart_dateとend_dateの両方に
+入れてください。該当する見出しが無ければ空配列[]を返してください。
+説明文は不要です。
 
 見出し一覧:
 {titles_text}"""
@@ -377,7 +424,7 @@ def extract_exhibitions_via_gemini(client, candidates):
         text = re.sub(r"^```(json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
         parsed = json.loads(text)
     except Exception as err:  # noqa: BLE001
-        print(f"[WARN] Gemini展覧会情報抽出に失敗したため、このバッチは0件扱いにします: {err}")
+        print(f"[WARN] Gemini展覧会/イベント情報抽出に失敗したため、このバッチは0件扱いにします: {err}")
         return []
 
     results = []
@@ -395,32 +442,26 @@ def extract_exhibitions_via_gemini(client, candidates):
     return results
 
 
-def build_exhibition_embeds(client, state, now):
-    candidates = []
-    for q in EXHIBITION_QUERIES:
-        for item in fetch_topic_rss(q):
-            if not is_seen(state, item["url"]):
-                candidates.append(item)
-
-    seen_in_batch = set()
-    uniq_candidates = []
-    for c in candidates:
-        if c["url"] not in seen_in_batch:
-            seen_in_batch.add(c["url"])
-            uniq_candidates.append(c)
-
-    extracted = extract_exhibitions_via_gemini(client, uniq_candidates)
+def build_exhibition_embeds_from_candidates(client, candidates, state, now, region_instruction=KANTO_INSTRUCTION):
+    """candidatesのうちGeminiが展覧会/イベントと判定したものをEmbed化する。
+    戻り値は (embeds, consumed_urls) のタプル。consumed_urlsはGeminiが
+    展覧会/イベント候補として選んだ(=結果的にEmbed化されなかったものも含む)
+    URL集合で、呼び出し側が「一般ニュースとしての二重掲載」を避けるために使う。
+    """
+    extracted = extract_exhibitions_via_gemini(client, candidates, region_instruction=region_instruction)
 
     embeds = []
+    consumed_urls = set()
     for ex in extracted:
         mark_seen(state, ex["url"], now)
+        consumed_urls.add(ex["url"])
 
         if not ex["exhibition_name"]:
             continue
         end_date = parse_iso_date(ex["end_date"])
         if not end_date:
-            # 終了日が取れない展示は、カレンダー登録・リマインダー計算が
-            # できないためスキップする(推測で埋めない)。
+            # 終了日(単発イベントなら開催日)が取れない場合は、カレンダー登録・
+            # リマインダー計算ができないためスキップする(推測で埋めない)。
             continue
         start_date = parse_iso_date(ex["start_date"]) or end_date
 
@@ -452,20 +493,83 @@ def build_exhibition_embeds(client, state, now):
             "description": "\n".join(lines),
             "color": COLOR_EXHIBITION,
         })
-    return embeds
+    return embeds, consumed_urls
+
+
+# ============================================================
+# 5. 推しウォッチ(バドミントン/アニメ・メカ/漫画/作家・カルチャー・ビジネス/
+#    音楽。地域限定なし。展覧会/イベント検知分は上のGoogleカレンダー連携
+#    Embedとして扱い、それ以外は単純なリンク一覧として配信する)
+# ============================================================
+
+def build_oshi_watch_embed(candidates, exclude_urls, state, now):
+    remaining = [c for c in candidates if c["url"] not in exclude_urls]
+    if not remaining:
+        return None
+
+    for c in remaining:
+        mark_seen(state, c["url"], now)
+
+    shown = remaining[:OSHI_WATCH_MAX_ITEMS]
+    lines = [f"- [{c['title']}]({c['url']})" for c in shown]
+    if len(remaining) > OSHI_WATCH_MAX_ITEMS:
+        lines.append(f"…他{len(remaining) - OSHI_WATCH_MAX_ITEMS}件")
+
+    now_jst = now.strftime("%Y-%m-%d %H:%M")
+    return {
+        "title": "🌟 推しウォッチ",
+        "description": "\n".join(lines),
+        "color": COLOR_OSHI_WATCH,
+        "footer": {"text": f"{now_jst} JST時点"},
+    }
 
 
 # ============================================================
 # Discord送信
 # ============================================================
 
+DISCORD_EMBED_TOTAL_CHAR_LIMIT = 6000  # Discord公式の1メッセージあたりEmbed合計文字数上限
+DISCORD_EMBED_CHAR_SAFETY_MARGIN = 200  # 概算誤差に対する安全マージン
+
+
+def _embed_char_count(embed):
+    count = len(embed.get("title", "")) + len(embed.get("description", ""))
+    footer = embed.get("footer")
+    if footer:
+        count += len(footer.get("text", ""))
+    for field in embed.get("fields", []):
+        count += len(field.get("name", "")) + len(field.get("value", ""))
+    return count
+
+
+def _batch_embeds(embeds, batch_size=10):
+    """Discordの制限(1メッセージあたりEmbed最大10件・合計文字数6000)の
+    両方を満たすようEmbedをバッチに分割する。展覧会/推しウォッチセクション
+    追加により合計文字数超過(HTTP 400)が実際に発生したための対応。
+    """
+    batches = []
+    current, current_chars = [], 0
+    for embed in embeds:
+        chars = _embed_char_count(embed)
+        if current and (
+            len(current) >= batch_size
+            or current_chars + chars > DISCORD_EMBED_TOTAL_CHAR_LIMIT - DISCORD_EMBED_CHAR_SAFETY_MARGIN
+        ):
+            batches.append(current)
+            current, current_chars = [], 0
+        current.append(embed)
+        current_chars += chars
+    if current:
+        batches.append(current)
+    return batches
+
+
 def send_embeds_to_discord(webhook_url, embeds, batch_size=10):
     if not webhook_url:
         print("[ERROR] DISCORD_WEBHOOK_NEWS が設定されていないため送信をスキップします。")
         return False
     ok = True
-    for i in range(0, len(embeds), batch_size):
-        batch = embeds[i:i + batch_size]
+    for batch in _batch_embeds(embeds, batch_size=batch_size):
         try:
             resp = requests.post(webhook_url, json={"embeds": batch}, timeout=REQUEST_TIMEOUT)
             if resp.status_code >= 300:
@@ -511,8 +615,20 @@ def main():
     topic_embeds = build_topic_embeds(client, state, now)
     embeds.extend(topic_embeds)
 
-    exhibition_embeds = build_exhibition_embeds(client, state, now)
+    exhibition_candidates = fetch_candidates_for_queries(EXHIBITION_QUERIES, state)
+    exhibition_embeds, _ = build_exhibition_embeds_from_candidates(
+        client, exhibition_candidates, state, now, region_instruction=KANTO_INSTRUCTION
+    )
     embeds.extend(exhibition_embeds)
+
+    oshi_candidates = fetch_candidates_for_queries(OSHI_WATCH_KEYWORDS, state)
+    oshi_exhibition_embeds, oshi_consumed_urls = build_exhibition_embeds_from_candidates(
+        client, oshi_candidates, state, now, region_instruction=None
+    )
+    embeds.extend(oshi_exhibition_embeds)
+    oshi_watch_embed = build_oshi_watch_embed(oshi_candidates, oshi_consumed_urls, state, now)
+    if oshi_watch_embed:
+        embeds.append(oshi_watch_embed)
 
     had_error = False
     if embeds:
