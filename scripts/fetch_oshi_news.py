@@ -9,18 +9,43 @@
 各記事リンクの末尾には、RSS側から取得できた公開日時をJSTの "MM/DD HH:MM" 形式で
 `[08/25 18:30]` のように付与する(鮮度判断のため)。取得できない場合のみ "-" とする。
 
+Google News RSSは記事本文を含まない(summaryフィールドは実質タイトルの再掲のみ、
+2026-08-26実施の実データ確認済み)ため、開催日程の抽出は記事タイトルのみを
+対象とする。タイトルから「YYYY年M月D日」(単発/範囲)または「【M/D】」
+「【M/D-D】」(全角括弧付きの短縮表記)の明確なパターンが見つかった記事のみ、
+Googleカレンダーへのワンクリック登録リンクを付与する。パターンに合致しない
+一般ニュース記事は誤検出を避けるため無理に付与せずスキップする。
+
 環境変数:
   DISCORD_WEBHOOK_OSHI (必須)
 """
 import datetime
 import json
 import os
+import re
 import sys
 import time
 import urllib.parse
 
 import feedparser
 import requests
+
+JST = datetime.timezone(datetime.timedelta(hours=9))
+
+# 開催日程抽出パターン(タイトルのみが対象。誤検出を避けるため、
+# 明確な年月日表記、または全角括弧【】で囲まれた短縮日付表記のみを対象にする)
+EVENT_DATE_RANGE_RE = re.compile(
+    r"(?P<y1>\d{4})年(?P<m1>\d{1,2})月(?P<d1>\d{1,2})日\s*[~〜～\-－ー]\s*"
+    r"(?:(?P<y2>\d{4})年)?(?P<m2>\d{1,2})月(?P<d2>\d{1,2})日"
+)
+EVENT_DATE_SINGLE_RE = re.compile(r"(?P<y>\d{4})年(?P<m>\d{1,2})月(?P<d>\d{1,2})日")
+EVENT_DATE_BRACKET_RANGE_RE = re.compile(
+    r"【(?P<m>\d{1,2})/(?P<d1>\d{1,2})\s*[~〜～\-－ー]\s*(?P<d2>\d{1,2})】"
+)
+EVENT_DATE_BRACKET_SINGLE_RE = re.compile(r"【(?P<m>\d{1,2})/(?P<d>\d{1,2})】")
+# 年を含まない短縮表記(【M/D】等)で組み立てた日付が、これより過去だった場合は
+# 誤検出(去年のイベント記事等)とみなして安全側でスキップする
+BRACKET_DATE_MAX_PAST_DAYS = 60
 
 # ============================================================
 # 追跡キーワード設定(ここに追加・削除するだけで対象を変更できる)
@@ -85,7 +110,7 @@ def format_published_jst(entry):
         dt_utc = datetime.datetime(*parsed[:6], tzinfo=datetime.timezone.utc)
     except (TypeError, ValueError):
         return "-"
-    dt_jst = dt_utc.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
+    dt_jst = dt_utc.astimezone(JST)
     return dt_jst.strftime("%m/%d %H:%M")
 
 
@@ -121,6 +146,74 @@ def fetch_keyword_news(keyword, retries=2):
     ]
 
 
+def extract_event_dates(title, now):
+    """記事タイトルから開催日程(開始日・終了日)を抽出する。
+    明確なパターン(年月日表記、または全角括弧【】付きの短縮表記)に一致しない場合は
+    Noneを返す(一般ニュース記事を誤って拾わないよう、安全側に倒してスキップする)。
+    戻り値: (start_date, end_date) の datetime.date タプル、またはNone。
+    """
+    m = EVENT_DATE_RANGE_RE.search(title)
+    if m:
+        y1 = int(m.group("y1"))
+        y2 = int(m.group("y2")) if m.group("y2") else y1
+        try:
+            start = datetime.date(y1, int(m.group("m1")), int(m.group("d1")))
+            end = datetime.date(y2, int(m.group("m2")), int(m.group("d2")))
+        except ValueError:
+            return None
+        return (start, end) if end >= start else None
+
+    m = EVENT_DATE_SINGLE_RE.search(title)
+    if m:
+        try:
+            d = datetime.date(int(m.group("y")), int(m.group("m")), int(m.group("d")))
+        except ValueError:
+            return None
+        return d, d
+
+    # ここから先は年を含まない短縮表記のため、当年として組み立てたうえで
+    # 過去すぎる日付(去年のイベント記事等の誤検出)は除外する
+    m = EVENT_DATE_BRACKET_RANGE_RE.search(title)
+    if m:
+        year = now.year
+        try:
+            start = datetime.date(year, int(m.group("m")), int(m.group("d1")))
+            end = datetime.date(year, int(m.group("m")), int(m.group("d2")))
+        except ValueError:
+            return None
+        if end < start or (now.date() - end).days > BRACKET_DATE_MAX_PAST_DAYS:
+            return None
+        return start, end
+
+    m = EVENT_DATE_BRACKET_SINGLE_RE.search(title)
+    if m:
+        year = now.year
+        try:
+            d = datetime.date(year, int(m.group("m")), int(m.group("d")))
+        except ValueError:
+            return None
+        if (now.date() - d).days > BRACKET_DATE_MAX_PAST_DAYS:
+            return None
+        return d, d
+
+    return None
+
+
+def build_calendar_url(event_title, article_url, start_date, end_date):
+    """Googleカレンダーのワンクリック登録用URLを組み立てる(終日イベント)。
+    Googleカレンダーの終日イベントは終了日を「排他的(実際の最終日の翌日)」で
+    指定する仕様のため、end_dateに1日加算する。
+    """
+    exclusive_end = end_date + datetime.timedelta(days=1)
+    params = {
+        "action": "TEMPLATE",
+        "text": event_title,
+        "dates": f"{start_date.strftime('%Y%m%d')}/{exclusive_end.strftime('%Y%m%d')}",
+        "details": article_url,
+    }
+    return "https://calendar.google.com/calendar/render?" + urllib.parse.urlencode(params)
+
+
 def build_oshi_message(state, now):
     """新着が1件も無ければNoneを返す。"""
     seen = state.setdefault("seen_urls", {})
@@ -138,6 +231,12 @@ def build_oshi_message(state, now):
             lines = [f"## 🌟 {keyword}"]
             for item in new_items:
                 lines.append(f"- [{item['title']}](<{item['url']}>) `[{item['published']}]`")
+                event_dates = extract_event_dates(item["title"], now)
+                if event_dates:
+                    start, end = event_dates
+                    event_title = f"{keyword} {item['title']}"
+                    calendar_url = build_calendar_url(event_title, item["url"], start, end)
+                    lines.append(f"  - 📅 [カレンダーに追加](<{calendar_url}>)")
             sections.append("\n".join(lines))
 
     if not has_any_new:
@@ -188,7 +287,7 @@ def main():
         print("[ERROR] 環境変数 DISCORD_WEBHOOK_OSHI が設定されていません。")
         sys.exit(1)
 
-    now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
+    now = datetime.datetime.now(JST)
     state = load_seen_state()
     state = prune_old_entries(state, now)
 
