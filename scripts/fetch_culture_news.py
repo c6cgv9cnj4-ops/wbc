@@ -110,7 +110,10 @@ OSHI_WATCH_KEYWORDS = [
     # 音楽・アーティスト(既存継続)
     "サカナクション", "U2",
 ]
-OSHI_WATCH_MAX_ITEMS = 15  # Discord Embed 1件あたりの文字数上限対策
+# Discord EmbedのdescriptionはDiscord公式上限4096文字。Google NewsのRSS URLは
+# 非常に長い(実データで1件150〜250文字超)ため、件数ではなく文字数で打ち切る
+# (件数ベースの上限だけでは実際にHTTP 400 "embeds"エラーが発生した実績がある)。
+OSHI_WATCH_DESCRIPTION_LIMIT = 3800
 
 COLOR_JGB = 0x2B6CB0
 COLOR_NOBI = 0xED8936
@@ -510,10 +513,18 @@ def build_oshi_watch_embed(candidates, exclude_urls, state, now):
     for c in remaining:
         mark_seen(state, c["url"], now)
 
-    shown = remaining[:OSHI_WATCH_MAX_ITEMS]
-    lines = [f"- [{c['title']}]({c['url']})" for c in shown]
-    if len(remaining) > OSHI_WATCH_MAX_ITEMS:
-        lines.append(f"…他{len(remaining) - OSHI_WATCH_MAX_ITEMS}件")
+    lines = []
+    total_chars = 0
+    shown_count = 0
+    for c in remaining:
+        line = f"- [{c['title']}]({c['url']})"
+        if total_chars + len(line) + 1 > OSHI_WATCH_DESCRIPTION_LIMIT:
+            break
+        lines.append(line)
+        total_chars += len(line) + 1
+        shown_count += 1
+    if shown_count < len(remaining):
+        lines.append(f"…他{len(remaining) - shown_count}件")
 
     now_jst = now.strftime("%Y-%m-%d %H:%M")
     return {
