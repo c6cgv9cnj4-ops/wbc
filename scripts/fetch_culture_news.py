@@ -573,7 +573,8 @@ def send_embeds_to_discord(webhook_url, embeds, batch_size=10):
         try:
             resp = requests.post(webhook_url, json={"embeds": batch}, timeout=REQUEST_TIMEOUT)
             if resp.status_code >= 300:
-                print(f"[ERROR] Discord送信に失敗しました(HTTP {resp.status_code}): {resp.text[:300]}")
+                print(f"[ERROR] Discord送信に失敗しました(HTTP {resp.status_code}): {resp.text}")
+                print(f"[DEBUG] 失敗したバッチの内容: {json.dumps(batch, ensure_ascii=False)}")
                 ok = False
             else:
                 print(f"[OK] Discord送信成功(HTTP {resp.status_code}, {len(batch)}件)")
