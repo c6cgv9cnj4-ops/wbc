@@ -933,6 +933,20 @@
         updatedAt: new Date().toISOString()
       };
 
+      // --- 同一日付の二重登録防止（新規保存時のみ） ---
+      if (!editingDocId && payload.date) {
+        const dupe = rawEventsData.find(e => e.type === "practice" && e.date === payload.date);
+        if (dupe) {
+          const proceed = confirm(
+            `${payload.date} の練習記録はすでに存在します。\n\n` +
+            `［OK］既存の記録をこの内容で上書きする\n` +
+            `［キャンセル］保存を中止する`
+          );
+          if (!proceed) return;
+          editingDocId = dupe.id; // 以降は更新（上書き）パスで処理される
+        }
+      }
+
       const ok = await runSave(async () => {
         if (isFirebaseReady && db) {
           if (editingDocId) {
@@ -1139,10 +1153,13 @@
           card.innerHTML = `
             <div class="history-header">
               <span>🏸 ${isCancel ? '中止/コート代のみ' : '練習'}: ${d.date} (${d.time||'3h'})</span>
-              <span>収入: ${practiceIncome.toLocaleString()}円</span>
+              <span style="display:flex; flex-direction:column; align-items:flex-end; gap:2px; white-space:nowrap;">
+                <span>収入: ${practiceIncome.toLocaleString()}円</span>
+                <span style="color:var(--danger-color); font-weight:600; font-size:0.8rem;">支出: ${practiceCourt.toLocaleString()}円<span style="color:var(--text-sub); font-weight:500;">（コート代）</span></span>
+              </span>
             </div>
             <div>👥 参加 (${d.memberCount||0}名): ${isCancel ? '<span style="color:var(--warning-color); font-weight:600;">なし(中止)</span>' : (d.members||[]).join(", ")}</div>
-            <div style="margin-top:2px;">🏟️ ${practiceCourt > 0 ? `支出（コート代）: <span style="color:var(--danger-color); font-weight:600;">-${practiceCourt.toLocaleString()}円</span>` : `コート代: 0円`} ｜ 💰 純損益: <strong style="color:${calculatedNetProfit >= 0 ? 'var(--primary-color)' : 'var(--danger-color)'};">${calculatedNetProfit >= 0 ? '+' : ''}${calculatedNetProfit.toLocaleString()}円</strong></div>
+            <div style="margin-top:2px;">💰 純損益: <strong style="color:${calculatedNetProfit >= 0 ? 'var(--primary-color)' : 'var(--danger-color)'};">${calculatedNetProfit >= 0 ? '+' : ''}${calculatedNetProfit.toLocaleString()}円</strong></div>
             <div class="action-btns">
               <button type="button" class="btn-edit" onclick="editEvent('${id}')">✏️ 編集</button>
               <button type="button" class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
