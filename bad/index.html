@@ -125,8 +125,28 @@
     .profit-card-label { font-size: 0.75rem; color: #0050b3; font-weight: 600; margin-bottom: 4px; }
     .profit-card-value { font-size: 1.15rem; font-weight: 700; color: var(--primary-color); }
 
-    .dashboard-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-    .dash-card-mini { background: #fafafa; border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-sm); font-size: 0.8rem; }
+    /* 財務サマリー: スマホ・PC共通で 2×2 グリッド（横スクロール/圧縮を防止） */
+    .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .summary-card {
+      min-width: 0; background: #fafafa; border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm); padding: 14px 12px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .summary-card__label { font-size: clamp(0.68rem, 2.8vw, 0.78rem); color: var(--text-sub); font-weight: 600; letter-spacing: -0.01em; }
+    .summary-card__value { font-size: clamp(1rem, 4.6vw, 1.35rem); font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
+    .summary-card__sub { font-size: clamp(0.62rem, 2.4vw, 0.72rem); color: var(--text-sub); font-weight: 500; overflow-wrap: anywhere; }
+    .summary-card--income { background: #eef5ff; border-color: #bae0ff; }
+    .summary-card--income .summary-card__value { color: var(--primary-color); }
+    .summary-card--expense { background: #fff2f2; border-color: #ffccc7; }
+    .summary-card--expense .summary-card__value { color: var(--danger-color); }
+    .summary-card--pool { background: #faf5ff; border-color: #e9d5ff; }
+    .summary-card--pool .summary-card__value { color: var(--purple-color); font-size: clamp(1.05rem, 5vw, 1.5rem); }
+    .summary-card--shuttle .summary-card__value { color: var(--text-main); }
+
+    @media (max-width: 480px) {
+      .summary-grid { gap: 8px; }
+      .summary-card { padding: 12px 10px; }
+    }
     .history-card { background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px; font-size: 0.825rem; }
     .history-header { font-weight: 600; color: var(--primary-color); display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.875rem; }
     .action-btns { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border-color); display: flex; justify-content: flex-end; }
@@ -139,13 +159,86 @@
     .stats-table th, .stats-table td { padding: 10px 8px; text-align: center; border-bottom: 1px solid var(--border-color); }
     .stats-table th { background: #fafafa; color: var(--text-sub); font-weight: 600; }
 
+    /* トースト通知（保存失敗などをユーザーに明示） */
+    #toastContainer {
+      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+      z-index: 9999; display: flex; flex-direction: column; gap: 8px;
+      width: calc(100% - 32px); max-width: 420px; pointer-events: none;
+    }
+    .toast {
+      pointer-events: auto; padding: 12px 16px; border-radius: var(--radius-sm);
+      font-size: 0.85rem; font-weight: 600; line-height: 1.4; color: #fff;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18); opacity: 0; transform: translateY(8px);
+      transition: opacity 0.2s ease, transform 0.2s ease; word-break: break-word;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.toast-error { background: var(--danger-color); }
+    .toast.toast-info { background: #1d1d1f; }
+
     details { background: var(--card-bg); border-radius: var(--radius-md); margin-bottom: 16px; border: 1px solid rgba(0, 0, 0, 0.04); box-shadow: var(--shadow-sm); width: 100%; overflow: hidden; }
     details summary { padding: 16px 20px; font-weight: 600; font-size: 0.95rem; cursor: pointer; outline: none; }
     details[open] summary { border-bottom: 1px solid var(--border-color); }
     .accordion-content { padding: 16px 20px 20px 20px; }
+
+    /* 日程コピペ用モーダル */
+    button.btn-schedule-copy {
+      width: 100%; padding: 14px; background-color: var(--primary-color); color: #fff;
+      font-size: 0.95rem; margin-bottom: 12px;
+    }
+    .sc-overlay {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5);
+      display: none; align-items: flex-start; justify-content: center;
+      z-index: 9000; padding: 24px 12px; overflow-y: auto;
+    }
+    .sc-overlay.show { display: flex; }
+    .sc-modal {
+      background: var(--card-bg); width: 100%; max-width: 420px; margin: auto;
+      border-radius: var(--radius-md); padding: 20px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+    }
+    .sc-modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      font-weight: 700; font-size: 1.05rem; margin-bottom: 8px;
+    }
+    .sc-close-btn {
+      background: #e5e5ea; color: var(--text-main); flex-shrink: 0;
+      width: 36px; height: 36px; border-radius: 50%; font-size: 1.2rem; line-height: 1;
+    }
+    .sc-modal-note { font-size: 0.75rem; color: var(--text-sub); margin-bottom: 14px; }
+    .sc-month-block {
+      border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+      padding: 12px; margin-bottom: 12px; background: #fafafa;
+    }
+    .sc-month-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 8px; color: var(--primary-color); }
+    .sc-date-list {
+      font-family: inherit; font-size: 0.9rem; color: var(--text-main);
+      white-space: pre-wrap; margin: 0 0 10px 0; line-height: 1.5;
+    }
+    button.sc-copy-btn {
+      width: 100%; padding: 12px; background-color: var(--primary-color); color: #fff; font-size: 0.9rem;
+    }
+    button.sc-copy-all-btn {
+      width: 100%; padding: 16px; background-color: var(--success-color); color: #fff;
+      font-size: 1rem; margin-top: 4px;
+    }
   </style>
 </head>
 <body>
+
+  <div id="toastContainer"></div>
+
+  <!-- 日程コピペ用モーダル（本日以降・予約済みのみ） -->
+  <div id="scheduleCopyOverlay" class="sc-overlay">
+    <div class="sc-modal" role="dialog" aria-modal="true" aria-labelledby="scheduleCopyTitle">
+      <div class="sc-modal-header">
+        <span id="scheduleCopyTitle">📋 日程コピペ</span>
+        <button type="button" id="scheduleCopyCloseBtn" class="sc-close-btn" aria-label="閉じる">×</button>
+      </div>
+      <div class="sc-modal-note">本日以降・予約済みの金曜日を月ごとにまとめました。ボタンでコピーできます。</div>
+      <div id="scheduleCopyBody"></div>
+      <button type="button" id="scheduleCopyAllBtn" class="sc-copy-all-btn">📋 全日程をコピー</button>
+    </div>
+  </div>
 
   <div class="app-header">
     <h1>🏸 バドミントン現場記録</h1>
@@ -154,6 +247,13 @@
   <div id="mainPage">
     <!-- 1. 現場入力 -->
     <div class="container" style="border-top: 4px solid var(--primary-color);">
+      <div class="today-guide-card">
+        <div class="today-guide-title">⚖️ 本日の推奨黒字ライン</div>
+        <div id="todayBreakEven" class="today-guide-value">
+          参加 0名 ｜ 利益 0円 ➔ 消耗 <strong>0球</strong> まで黒字
+        </div>
+      </div>
+
       <div class="section-title">
         <span>👥 参加メンバー選択</span>
         <span style="font-size:0.75rem; color:var(--text-sub);">(タップ: 700円青 ➔ 500円緑 ➔ 未選択)</span>
@@ -192,18 +292,13 @@
           </div>
         </div>
 
-        <div class="form-row">
-          <label>シャトル損益個数 (黒字限界球数)</label>
-          <input type="text" id="usedShuttleBallsDisplay" value="0 球" readonly style="background:#eef5ff; color:var(--primary-color); font-weight:700; font-size:1.05rem;">
-        </div>
-
         <div class="profit-summary-grid">
           <div class="profit-card">
             <div class="profit-card-label">💰 本日の純損益</div>
             <div id="todayNetProfitDisplay" class="profit-card-value">0 円</div>
           </div>
           <div class="profit-card" style="background:#f6ffed; border-color:#b7ebc6;">
-            <div class="profit-card-label" style="color:#274fee;">📈 8/24からの累計損益</div>
+            <div class="profit-card-label" style="color:#274fee;">📈 8/7からの累計損益</div>
             <div id="sinceAug7ProfitDisplay" class="profit-card-value" style="color:var(--success-color);">0 円</div>
           </div>
         </div>
@@ -238,6 +333,7 @@
           <div style="font-weight:600; font-size:0.85rem; color:var(--primary-color); margin-bottom:10px;">
             <span>📋 直近3ヶ月先の全金曜日 予約点検表</span>
           </div>
+          <button type="button" id="openScheduleCopyBtn" class="btn-schedule-copy">📋 日程コピー</button>
           <div id="reserveCheckList">3ヶ月先までの金曜日を計算中...</div>
         </div>
       </div>
@@ -274,14 +370,24 @@
     <!-- 4. 財務サマリー -->
     <div class="container">
       <div class="section-title">💰 サークル財務サマリー（総金庫）</div>
-      <div class="dashboard-mini">
-        <div class="dash-card-mini">
-          <div style="color:var(--text-sub);">現在のサークルプール金</div>
-          <div id="dashBalance" style="font-size:1.15rem; font-weight:700; margin-top:2px;">0 円</div>
+      <div class="summary-grid">
+        <div class="summary-card summary-card--income">
+          <div class="summary-card__label">📈 総収入累計（会費）</div>
+          <div id="dashTotalIncome" class="summary-card__value">0 円</div>
         </div>
-        <div class="dash-card-mini">
-          <div style="color:var(--text-sub);">シャトル仕入れ累計</div>
-          <div id="dashStock" style="font-size:1.15rem; font-weight:700; margin-top:2px;">0 球</div>
+        <div class="summary-card summary-card--expense">
+          <div class="summary-card__label">📉 総支出累計</div>
+          <div id="dashTotalExpense" class="summary-card__value">0 円</div>
+          <div id="dashExpenseBreakdown" class="summary-card__sub">コート 0 ＋ シャトル 0</div>
+        </div>
+        <div class="summary-card summary-card--pool">
+          <div class="summary-card__label">💰 現在のプール金残高</div>
+          <div id="dashBalance" class="summary-card__value">0 円</div>
+        </div>
+        <div class="summary-card summary-card--shuttle">
+          <div class="summary-card__label">📦 シャトル在庫</div>
+          <div id="dashStock" class="summary-card__value">0 球</div>
+          <div id="dashStockBoxes" class="summary-card__sub">累計仕入れ ＝約 0 箱</div>
         </div>
       </div>
       <div id="dashGuide" style="font-size:0.75rem; color:var(--text-sub); margin-top:8px;">データ計算中...</div>
@@ -356,7 +462,15 @@
   </div>
 
   <script type="module">
-    // ✅ newwbc プロジェクトの実際の設定値
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, writeBatch, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import {
+      getAuth, signInAnonymously, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    // 💡 ご自身のFirebaseプロジェクト情報に置き換えてください
     const firebaseConfig = {
       apiKey: "AIzaSyCldmf_WfKx2BubIg91vc79cLzlGrAzpH4",
       authDomain: "newwbc-a6e29.firebaseapp.com",
@@ -366,10 +480,86 @@
       appId: "1:1022221182643:web:b73a31c9aa447bdb7bf2c6"
     };
 
-    // Firebase関連はすべて「動的」に読み込む（失敗しても他の機能を止めないため）
     let db = null;
+    let auth = null;
     let isFirebaseReady = false;
-    let fbCollection, fbAddDoc, fbUpdateDoc, fbDeleteDoc, fbDoc, fbOnSnapshot, fbQuery, fbOrderBy, fbWriteBatch, fbServerTimestamp;
+
+    try {
+      if (firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("dummy") && !firebaseConfig.apiKey.includes("YOUR_ACTUAL")) {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+        isFirebaseReady = true;
+      }
+    } catch (err) {
+      console.warn("Firebase Init fallback:", err);
+    }
+
+    /* ===== ストレージ安全アクセス & トースト（iOS Safari プライベートモード対策） ===== */
+    // プライベートブラウズ等で localStorage/IndexedDB が拒否されても処理を止めない
+    const memFallbackStore = {};
+    let storageBlockedNotified = false;
+
+    function notifyStorageBlocked() {
+      if (storageBlockedNotified) return;
+      storageBlockedNotified = true;
+      showToast("端末ストレージにアクセスできません（プライベートブラウズの可能性）。この端末では入力内容が保持されない場合があります。", "error", 6000);
+    }
+
+    function safeGetLS(key, fallback) {
+      try {
+        const v = localStorage.getItem(key);
+        return v == null ? fallback : v;
+      } catch (e) {
+        console.warn("localStorage read blocked:", e);
+        notifyStorageBlocked();
+        return memFallbackStore[key] != null ? memFallbackStore[key] : fallback;
+      }
+    }
+
+    function safeSetLS(key, val) {
+      memFallbackStore[key] = val;
+      try {
+        localStorage.setItem(key, val);
+        return true;
+      } catch (e) {
+        console.warn("localStorage write blocked:", e);
+        notifyStorageBlocked();
+        return false;
+      }
+    }
+
+    function showToast(message, type = "info", duration = 4000) {
+      const container = document.getElementById("toastContainer");
+      if (!container) { alert(message); return; }
+      const el = document.createElement("div");
+      el.className = `toast toast-${type === "error" ? "error" : "info"}`;
+      el.textContent = message;
+      container.appendChild(el);
+      requestAnimationFrame(() => el.classList.add("show"));
+      setTimeout(() => {
+        el.classList.remove("show");
+        setTimeout(() => el.remove(), 250);
+      }, duration);
+    }
+
+    // 保存系処理の共通ラッパー: 失敗時はトーストで具体的な理由を明示（握りつぶさない）
+    async function runSave(taskFn, okMessage) {
+      try {
+        await taskFn();
+        if (okMessage) showToast(okMessage, "info", 2500);
+        return true;
+      } catch (e) {
+        console.error("save failed:", e);
+        const reason = (e && (e.code === "permission-denied" || /permission/i.test(e.message || "")))
+          ? "アクセス権限がありません（DBルール期限切れの可能性）"
+          : (e && /quota|storage|private/i.test(e.message || ""))
+            ? "プライベートブラウズを解除してお試しください"
+            : (e && e.message) ? e.message : "原因不明のエラー";
+        showToast(`保存に失敗しました：${reason}`, "error", 6000);
+        return false;
+      }
+    }
 
     const weekDays = ["日", "月", "火", "水", "木", "金", "土"];
     const eventDateInput = document.getElementById("eventDate");
@@ -379,43 +569,25 @@
     const reserveCourtFeeInput = document.getElementById("reserveCourtFee");
     const courtFeeInput = document.getElementById("courtFee");
     const todayNetProfitDisplay = document.getElementById("todayNetProfitDisplay");
-    const usedShuttleBallsDisplay = document.getElementById("usedShuttleBallsDisplay");
 
     const today = new Date();
-
-    // 日付を "YYYY-MM-DD" のローカル文字列に変換（valueAsDateはUTC扱いになりズレるため使わない）
-    function toLocalISODateString(d) {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    }
-
-    // 今日から見て一番近い金曜日を求める（今日が金曜ならそのまま今日）
-    function getNearestFriday(baseDate) {
-      const d = new Date(baseDate);
-      const day = d.getDay(); // 0:日 ... 5:金 6:土
-      const diffToFriday = (5 - day + 7) % 7;
-      d.setDate(d.getDate() + diffToFriday);
-      return d;
-    }
-    const nearestFriday = getNearestFriday(today);
-
-    if (eventDateInput) eventDateInput.value = toLocalISODateString(nearestFriday);
-    if (reserveTargetDate) reserveTargetDate.value = toLocalISODateString(today);
-    if (shuttleBuyDate) shuttleBuyDate.value = toLocalISODateString(today);
-    if (adjustDateInput) adjustDateInput.value = toLocalISODateString(today);
+    if (eventDateInput) eventDateInput.valueAsDate = today;
+    if (reserveTargetDate) reserveTargetDate.valueAsDate = today;
+    if (shuttleBuyDate) shuttleBuyDate.valueAsDate = today;
+    if (adjustDateInput) adjustDateInput.valueAsDate = today;
 
     let editingDocId = null;
     let editingReserveDocId = null;
     let selectedMemberFees = new Map();
     let currentCalculatedNetBalance = 0;
     let accumulatedProfitSinceAug7Base = 0;
-    let latestShuttleBallUnitPrice = 333;
 
-    let rawMembersData = JSON.parse(localStorage.getItem("bad_members") || "[]");
-    let rawEventsData = JSON.parse(localStorage.getItem("bad_events") || "[]");
-    let rawReservesData = JSON.parse(localStorage.getItem("bad_reserves") || "[]");
+    function parseJSONSafe(str, fallback) {
+      try { return JSON.parse(str); } catch (e) { return fallback; }
+    }
+    let rawMembersData = parseJSONSafe(safeGetLS("bad_members", "[]"), []);
+    let rawEventsData = parseJSONSafe(safeGetLS("bad_events", "[]"), []);
+    let rawReservesData = parseJSONSafe(safeGetLS("bad_reserves", "[]"), []);
     let reservedCourtsMap = {};
     let reservedDocIdsMap = {};
 
@@ -425,9 +597,9 @@
       onEnd: async () => {
         const chips = Array.from(memberListContainer.querySelectorAll(".member-chip"));
         if (isFirebaseReady && db) {
-          const batch = fbWriteBatch(db);
+          const batch = writeBatch(db);
           chips.forEach((el, index) => {
-            batch.update(fbDoc(db, "members", el.dataset.id), { order: index });
+            batch.update(doc(db, "members", el.dataset.id), { order: index });
           });
           await batch.commit();
         } else {
@@ -436,7 +608,7 @@
             if (idx !== -1) m.order = idx;
           });
           rawMembersData.sort((a,b) => a.order - b.order);
-          localStorage.setItem("bad_members", JSON.stringify(rawMembersData));
+          safeSetLS("bad_members", JSON.stringify(rawMembersData));
         }
       }
     });
@@ -454,6 +626,7 @@
     });
 
     if (reserveTargetDate) reserveTargetDate.addEventListener("change", calcExactReserveDate);
+    calcExactReserveDate();
 
     function calcExactReserveDate() {
       if (!reserveTargetDate || !reserveTargetDate.value) return;
@@ -513,10 +686,10 @@
           if (confirm(`${data.name} さんを削除しますか？`)) {
             selectedMemberFees.delete(data.name);
             if (isFirebaseReady && db && data.id) {
-              await fbDeleteDoc(fbDoc(db, "members", data.id));
+              await deleteDoc(doc(db, "members", data.id));
             } else {
               rawMembersData = rawMembersData.filter(m => m.name !== data.name);
-              localStorage.setItem("bad_members", JSON.stringify(rawMembersData));
+              safeSetLS("bad_members", JSON.stringify(rawMembersData));
               renderMembersUI(rawMembersData);
             }
           }
@@ -525,6 +698,11 @@
         memberListContainer.appendChild(chip);
       });
       updateSummary();
+    }
+
+    // members のリアルタイム購読は匿名認証完了後に subscribeRealtime() で開始する。
+    if (!(isFirebaseReady && db)) {
+      renderMembersUI(rawMembersData);
     }
 
     function renderMemberSelection() {
@@ -548,28 +726,16 @@
       const input = document.getElementById("memberInput");
       const name = input.value.trim();
       if (!name) return;
-
+      
       selectedMemberFees.set(name, 700);
-      try {
-        if (isFirebaseReady && db) {
-          await fbAddDoc(fbCollection(db, "members"), { name, order: rawMembersData.length, createdAt: fbServerTimestamp() });
-        } else {
-          rawMembersData.push({ id: 'loc_' + Date.now(), name, order: rawMembersData.length });
-          localStorage.setItem("bad_members", JSON.stringify(rawMembersData));
-          renderMembersUI(rawMembersData);
-        }
-        input.value = "";
-      } catch (err) {
-        alert("メンバーの追加に失敗しました:\n" + err.message + "\n\n※Firestoreの「ルール」で書き込みが許可されているか確認してください。");
+      if (isFirebaseReady && db) {
+        await addDoc(collection(db, "members"), { name, order: rawMembersData.length, createdAt: serverTimestamp() });
+      } else {
+        rawMembersData.push({ id: 'loc_' + Date.now(), name, order: rawMembersData.length });
+        safeSetLS("bad_members", JSON.stringify(rawMembersData));
+        renderMembersUI(rawMembersData);
       }
-    });
-
-    // Enterキーでも確実に追加できるようにする
-    document.getElementById("memberInput").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        document.getElementById("addMemberForm").requestSubmit();
-      }
+      input.value = "";
     });
 
     if (courtFeeInput) courtFeeInput.addEventListener("input", updateSummary);
@@ -601,9 +767,6 @@
       const totalIncome = (count700 * 700) + (count500 * 500);
       const todayNetProfit = totalIncome - courtFee;
 
-      const maxBreakEvenBalls = todayNetProfit > 0 ? Math.floor(todayNetProfit / latestShuttleBallUnitPrice) : 0;
-      if (usedShuttleBallsDisplay) usedShuttleBallsDisplay.value = `${maxBreakEvenBalls} 球`;
-
       if (todayNetProfitDisplay) {
         todayNetProfitDisplay.textContent = `${todayNetProfit >= 0 ? '+' : ''}${todayNetProfit.toLocaleString()} 円`;
         todayNetProfitDisplay.style.color = todayNetProfit >= 0 ? 'var(--primary-color)' : 'var(--danger-color)';
@@ -620,7 +783,7 @@
       let displayAccumulated = 0;
       if (existingEvent && !editingDocId) {
         rawEventsData.forEach(d => {
-          if (d.type === "practice" && d.date >= "2026-08-24") {
+          if (d.type === "practice" && d.date >= "2026-08-07") {
             if (d.id === existingEvent.id) {
               displayAccumulated += todayNetProfit;
             } else {
@@ -632,7 +795,7 @@
         });
       } else {
         displayAccumulated = accumulatedProfitSinceAug7Base;
-        if (!editingDocId && currentSelectedDate >= "2026-08-24") {
+        if (!editingDocId && currentSelectedDate >= "2026-08-07") {
           displayAccumulated += todayNetProfit;
         }
       }
@@ -660,6 +823,11 @@
       updateSummary();
     }
 
+    // reserves のリアルタイム購読は匿名認証完了後に subscribeRealtime() で開始する。
+    if (!(isFirebaseReady && db)) {
+      renderReservesUI(rawReservesData);
+    }
+
     function renderReserveCheckList() {
       const reserveCheckList = document.getElementById("reserveCheckList");
       if (!reserveCheckList) return;
@@ -670,10 +838,8 @@
       endDate.setDate(startDate.getDate() + 90);
 
       const curr = new Date(startDate);
-      let fridayCount = 0;
       while (curr <= endDate) {
         if (curr.getDay() === 5) {
-          fridayCount++;
           const y = curr.getFullYear();
           const m = curr.getMonth() + 1;
           const d = curr.getDate();
@@ -710,10 +876,6 @@
         }
         curr.setDate(curr.getDate() + 1);
       }
-
-      if (fridayCount === 0) {
-        reserveCheckList.innerHTML = '<div style="color:#888; font-size:0.8rem;">対象期間に金曜日がありません</div>';
-      }
     }
 
     window.editReserve = function(dateStr, docId) {
@@ -732,13 +894,15 @@
 
     window.setQuickReserve = async function(dateStr) {
       const feeVal = parseInt(document.getElementById("reserveCourtFee").value, 10) || 1600;
-      if (isFirebaseReady && db) {
-        await fbAddDoc(fbCollection(db, "reserves"), { targetDate: dateStr, courtFee: feeVal, createdAt: fbServerTimestamp() });
-      } else {
-        rawReservesData.push({ id: 'res_' + Date.now(), targetDate: dateStr, courtFee: feeVal });
-        localStorage.setItem("bad_reserves", JSON.stringify(rawReservesData));
-        renderReservesUI(rawReservesData);
-      }
+      await runSave(async () => {
+        if (isFirebaseReady && db) {
+          await addDoc(collection(db, "reserves"), { targetDate: dateStr, courtFee: feeVal, createdAt: serverTimestamp() });
+        } else {
+          rawReservesData.push({ id: 'res_' + Date.now(), targetDate: dateStr, courtFee: feeVal });
+          safeSetLS("bad_reserves", JSON.stringify(rawReservesData));
+          renderReservesUI(rawReservesData);
+        }
+      }, "予約を登録しました");
     };
 
     window.deleteReserve = async function(docId) {
@@ -748,10 +912,10 @@
           document.getElementById("saveReserveBtn").textContent = "💾 コート予約代を保存";
         }
         if (isFirebaseReady && db) {
-          await fbDeleteDoc(fbDoc(db, "reserves", docId));
+          await deleteDoc(doc(db, "reserves", docId));
         } else {
           rawReservesData = rawReservesData.filter(r => r.id !== docId);
-          localStorage.setItem("bad_reserves", JSON.stringify(rawReservesData));
+          safeSetLS("bad_reserves", JSON.stringify(rawReservesData));
           renderReservesUI(rawReservesData);
         }
       }
@@ -763,26 +927,28 @@
 
       const feeVal = parseInt(reserveCourtFeeInput ? reserveCourtFeeInput.value : 1600, 10) || 0;
 
-      if (isFirebaseReady && db) {
-        if (editingReserveDocId) {
-          await fbUpdateDoc(fbDoc(db, "reserves", editingReserveDocId), { targetDate: targetDateVal, courtFee: feeVal });
-          editingReserveDocId = null;
+      const btn = this;
+      const ok = await runSave(async () => {
+        if (isFirebaseReady && db) {
+          if (editingReserveDocId) {
+            await updateDoc(doc(db, "reserves", editingReserveDocId), { targetDate: targetDateVal, courtFee: feeVal });
+            editingReserveDocId = null;
+          } else {
+            await addDoc(collection(db, "reserves"), { targetDate: targetDateVal, courtFee: feeVal, createdAt: serverTimestamp() });
+          }
         } else {
-          await fbAddDoc(fbCollection(db, "reserves"), { targetDate: targetDateVal, courtFee: feeVal, createdAt: fbServerTimestamp() });
+          if (editingReserveDocId) {
+            const idx = rawReservesData.findIndex(r => r.id === editingReserveDocId);
+            if (idx !== -1) rawReservesData[idx] = { ...rawReservesData[idx], targetDate: targetDateVal, courtFee: feeVal };
+            editingReserveDocId = null;
+          } else {
+            rawReservesData.push({ id: 'res_' + Date.now(), targetDate: targetDateVal, courtFee: feeVal });
+          }
+          safeSetLS("bad_reserves", JSON.stringify(rawReservesData));
+          renderReservesUI(rawReservesData);
         }
-      } else {
-        if (editingReserveDocId) {
-          const idx = rawReservesData.findIndex(r => r.id === editingReserveDocId);
-          if (idx !== -1) rawReservesData[idx] = { ...rawReservesData[idx], targetDate: targetDateVal, courtFee: feeVal };
-          editingReserveDocId = null;
-        } else {
-          rawReservesData.push({ id: 'res_' + Date.now(), targetDate: targetDateVal, courtFee: feeVal });
-        }
-        localStorage.setItem("bad_reserves", JSON.stringify(rawReservesData));
-        renderReservesUI(rawReservesData);
-      }
-      this.textContent = "💾 コート予約代を保存";
-      alert("コート予約代を保存しました！");
+      }, "コート予約代を保存しました");
+      if (ok) btn.textContent = "💾 コート予約代を保存";
     };
 
     document.getElementById("saveEventBtn").onclick = function() { executeSaveEvent(false); };
@@ -823,30 +989,46 @@
         updatedAt: new Date().toISOString()
       };
 
-      if (isFirebaseReady && db) {
-        if (editingDocId) {
-          await fbUpdateDoc(fbDoc(db, "events", editingDocId), payload);
-          editingDocId = null;
-          document.getElementById("saveEventBtn").textContent = "💾 本日の練習記録を保存";
-        } else {
-          payload.createdAt = fbServerTimestamp();
-          await fbAddDoc(fbCollection(db, "events"), payload);
+      // --- 同一日付の二重登録防止（新規保存時のみ） ---
+      if (!editingDocId && payload.date) {
+        const dupe = rawEventsData.find(e => e.type === "practice" && e.date === payload.date);
+        if (dupe) {
+          const proceed = confirm(
+            `${payload.date} の練習記録はすでに存在します。\n\n` +
+            `［OK］既存の記録をこの内容で上書きする\n` +
+            `［キャンセル］保存を中止する`
+          );
+          if (!proceed) return;
+          editingDocId = dupe.id; // 以降は更新（上書き）パスで処理される
         }
-      } else {
-        if (editingDocId) {
-          const idx = rawEventsData.findIndex(e => e.id === editingDocId);
-          if (idx !== -1) rawEventsData[idx] = { ...rawEventsData[idx], ...payload };
-          editingDocId = null;
-          document.getElementById("saveEventBtn").textContent = "💾 本日の練習記録を保存";
-        } else {
-          payload.id = 'ev_' + Date.now();
-          rawEventsData.unshift(payload);
-        }
-        localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
-        renderEventsUI(rawEventsData);
       }
 
-      alert("練習記録を保存しました！");
+      const ok = await runSave(async () => {
+        if (isFirebaseReady && db) {
+          if (editingDocId) {
+            await updateDoc(doc(db, "events", editingDocId), payload);
+            editingDocId = null;
+            document.getElementById("saveEventBtn").textContent = "💾 本日の練習記録を保存";
+          } else {
+            payload.createdAt = serverTimestamp();
+            await addDoc(collection(db, "events"), payload);
+          }
+        } else {
+          if (editingDocId) {
+            const idx = rawEventsData.findIndex(e => e.id === editingDocId);
+            if (idx !== -1) rawEventsData[idx] = { ...rawEventsData[idx], ...payload };
+            editingDocId = null;
+            document.getElementById("saveEventBtn").textContent = "💾 本日の練習記録を保存";
+          } else {
+            payload.id = 'ev_' + Date.now();
+            rawEventsData.unshift(payload);
+          }
+          safeSetLS("bad_events", JSON.stringify(rawEventsData));
+          renderEventsUI(rawEventsData);
+        }
+      }, "練習記録を保存しました");
+
+      if (!ok) return;
       selectedMemberFees.clear();
       renderMemberSelection();
       updateSummary();
@@ -866,16 +1048,17 @@
         ballUnitPrice: ballUnitPrice
       };
 
-      if (isFirebaseReady && db) {
-        payload.createdAt = fbServerTimestamp();
-        await fbAddDoc(fbCollection(db, "events"), payload);
-      } else {
-        payload.id = 'sh_' + Date.now();
-        rawEventsData.unshift(payload);
-        localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
-        renderEventsUI(rawEventsData);
-      }
-      alert("シャトル仕入れを保存しました！");
+      await runSave(async () => {
+        if (isFirebaseReady && db) {
+          payload.createdAt = serverTimestamp();
+          await addDoc(collection(db, "events"), payload);
+        } else {
+          payload.id = 'sh_' + Date.now();
+          rawEventsData.unshift(payload);
+          safeSetLS("bad_events", JSON.stringify(rawEventsData));
+          renderEventsUI(rawEventsData);
+        }
+      }, "シャトル仕入れを保存しました");
     };
 
     document.getElementById("saveAdjustBtn").onclick = async function() {
@@ -894,17 +1077,18 @@
         reason: reason
       };
 
-      if (isFirebaseReady && db) {
-        payload.createdAt = fbServerTimestamp();
-        await fbAddDoc(fbCollection(db, "events"), payload);
-      } else {
-        payload.id = 'adj_' + Date.now();
-        rawEventsData.unshift(payload);
-        localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
-        renderEventsUI(rawEventsData);
-      }
-      alert(`残高を ${targetBal.toLocaleString()} 円へ調整しました！`);
-      document.getElementById("adjustTargetBalance").value = "";
+      const ok = await runSave(async () => {
+        if (isFirebaseReady && db) {
+          payload.createdAt = serverTimestamp();
+          await addDoc(collection(db, "events"), payload);
+        } else {
+          payload.id = 'adj_' + Date.now();
+          rawEventsData.unshift(payload);
+          safeSetLS("bad_events", JSON.stringify(rawEventsData));
+          renderEventsUI(rawEventsData);
+        }
+      }, `残高を ${targetBal.toLocaleString()} 円へ調整しました`);
+      if (ok) document.getElementById("adjustTargetBalance").value = "";
     };
 
     document.getElementById("downloadCsvBtn").addEventListener("click", () => {
@@ -961,10 +1145,10 @@
     window.deleteEvent = async function(id) {
       if (confirm("この履歴を削除しますか？")) {
         if (isFirebaseReady && db) {
-          await fbDeleteDoc(fbDoc(db, "events", id));
+          await deleteDoc(doc(db, "events", id));
         } else {
           rawEventsData = rawEventsData.filter(e => e.id !== id);
-          localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
+          safeSetLS("bad_events", JSON.stringify(rawEventsData));
           renderEventsUI(rawEventsData);
         }
       }
@@ -981,6 +1165,9 @@
       let totalCourt = 0;
       let totalShuttleBuy = 0;
       let totalShuttleBoughtBalls = 0;
+      let sumFeeIncome = 0;     // 会費収入のみ（残高調整は含めない）
+      let sumCourtCost = 0;     // コート代のみ（残高調整は含めない）
+      let sumShuttleBoxes = 0;  // シャトル購入箱数の累計
       accumulatedProfitSinceAug7Base = 0;
 
       const monthlyData = {};
@@ -1003,8 +1190,10 @@
 
           totalIncome += practiceIncome;
           totalCourt += practiceCourt;
+          sumFeeIncome += practiceIncome;
+          sumCourtCost += practiceCourt;
 
-          if (d.date && d.date >= "2026-08-24") accumulatedProfitSinceAug7Base += calculatedNetProfit;
+          if (d.date && d.date >= "2026-08-07") accumulatedProfitSinceAug7Base += calculatedNetProfit;
           practiceBreakEvenData.push({ date: d.date.substring(5), profit: calculatedNetProfit });
 
           if (d.members && d.members.length > 0) {
@@ -1020,10 +1209,13 @@
           card.innerHTML = `
             <div class="history-header">
               <span>🏸 ${isCancel ? '中止/コート代のみ' : '練習'}: ${d.date} (${d.time||'3h'})</span>
-              <span>収入: ${practiceIncome.toLocaleString()}円</span>
+              <span style="display:flex; flex-direction:column; align-items:flex-end; gap:2px; white-space:nowrap;">
+                <span>収入: ${practiceIncome.toLocaleString()}円</span>
+                <span style="color:var(--danger-color); font-weight:600; font-size:0.8rem;">支出: ${practiceCourt.toLocaleString()}円<span style="color:var(--text-sub); font-weight:500;">（コート代）</span></span>
+              </span>
             </div>
             <div>👥 参加 (${d.memberCount||0}名): ${isCancel ? '<span style="color:var(--warning-color); font-weight:600;">なし(中止)</span>' : (d.members||[]).join(", ")}</div>
-            <div style="margin-top:2px;">🏟️ コート代: ${practiceCourt.toLocaleString()}円 ｜ 💰 純損益: <strong style="color:${calculatedNetProfit >= 0 ? 'var(--primary-color)' : 'var(--danger-color)'};">${calculatedNetProfit >= 0 ? '+' : ''}${calculatedNetProfit.toLocaleString()}円</strong></div>
+            <div style="margin-top:2px;">💰 純損益: <strong style="color:${calculatedNetProfit >= 0 ? 'var(--primary-color)' : 'var(--danger-color)'};">${calculatedNetProfit >= 0 ? '+' : ''}${calculatedNetProfit.toLocaleString()}円</strong></div>
             <div class="action-btns">
               <button type="button" class="btn-edit" onclick="editEvent('${id}')">✏️ 編集</button>
               <button type="button" class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
@@ -1032,7 +1224,7 @@
         } else if (d.type === "shuttle_buy") {
           totalShuttleBuy += (d.totalFee || 0);
           totalShuttleBoughtBalls += ((d.totalCount || 0) * 12);
-          if (d.ballUnitPrice) latestShuttleBallUnitPrice = d.ballUnitPrice;
+          sumShuttleBoxes += (d.totalCount || 0);
 
           card.innerHTML = `
             <div class="history-header" style="color:var(--warning-color);">
@@ -1078,6 +1270,18 @@
       });
 
       currentCalculatedNetBalance = totalIncome - (totalCourt + totalShuttleBuy);
+
+      // --- 財務サマリー4カード（残高調整は総支出に含めず別枠） ---
+      const totalExpenseAll = sumCourtCost + totalShuttleBuy;
+      const elIncome = document.getElementById("dashTotalIncome");
+      if (elIncome) elIncome.textContent = `${sumFeeIncome.toLocaleString()} 円`;
+      const elExpense = document.getElementById("dashTotalExpense");
+      if (elExpense) elExpense.textContent = `${totalExpenseAll > 0 ? '-' : ''}${totalExpenseAll.toLocaleString()} 円`;
+      const elBreakdown = document.getElementById("dashExpenseBreakdown");
+      if (elBreakdown) elBreakdown.textContent = `コート ${sumCourtCost.toLocaleString()} ＋ シャトル ${totalShuttleBuy.toLocaleString()}`;
+      const elStockBoxes = document.getElementById("dashStockBoxes");
+      if (elStockBoxes) elStockBoxes.textContent = `累計仕入れ ＝約 ${sumShuttleBoxes.toLocaleString()} 箱`;
+
       document.getElementById("dashBalance").textContent = `${currentCalculatedNetBalance >= 0 ? '+' : ''}${currentCalculatedNetBalance.toLocaleString()} 円`;
       document.getElementById("dashStock").textContent = `${totalShuttleBoughtBalls} 球`;
 
@@ -1096,6 +1300,11 @@
       updateSummary();
       updateChart(monthlyData);
       updateBreakEvenChart(practiceBreakEvenData.reverse());
+    }
+
+    // events のリアルタイム購読は匿名認証完了後に subscribeRealtime() で開始する。
+    if (!(isFirebaseReady && db)) {
+      renderEventsUI(rawEventsData);
     }
 
     function updateMemberStatsTable(stats, totalPractice) {
@@ -1162,58 +1371,186 @@
       });
     }
 
-    // ---- ここまでは全部「端末内保存」だけで完結する処理。Firebaseの読み込みを待たずに、まず必ずこれで画面を組み立てる ----
-    calcExactReserveDate();
-    renderMembersUI(rawMembersData);
-    renderReservesUI(rawReservesData);
-    renderEventsUI(rawEventsData);
+    /* ===== Firebase 匿名認証 → リアルタイム購読の起動 ===== */
+    // Firestore セキュリティルールを request.auth != null に絞れるよう、
+    // ページ表示時に自動で匿名サインインし、認証成立後に購読を開始する。
+    function subscribeRealtime() {
+      onSnapshot(query(collection(db, "members"), orderBy("order", "asc")), (snapshot) => {
+        rawMembersData = [];
+        snapshot.forEach((docSnap) => rawMembersData.push({ id: docSnap.id, ...docSnap.data() }));
+        safeSetLS("bad_members", JSON.stringify(rawMembersData));
+        renderMembersUI(rawMembersData);
+      });
+      onSnapshot(query(collection(db, "reserves"), orderBy("targetDate", "asc")), (snapshot) => {
+        rawReservesData = [];
+        snapshot.forEach((docSnap) => rawReservesData.push({ id: docSnap.id, ...docSnap.data() }));
+        safeSetLS("bad_reserves", JSON.stringify(rawReservesData));
+        renderReservesUI(rawReservesData);
+      });
+      onSnapshot(query(collection(db, "events"), orderBy("date", "desc")), (snapshot) => {
+        rawEventsData = [];
+        snapshot.forEach((docSnap) => rawEventsData.push({ id: docSnap.id, ...docSnap.data() }));
+        safeSetLS("bad_events", JSON.stringify(rawEventsData));
+        renderEventsUI(rawEventsData);
+      });
+    }
 
-    // ---- Firebaseは裏側で非同期に読み込みを試みる。失敗しても上の端末内保存表示はそのまま動き続ける ----
-    (async () => {
-      try {
-        if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes("dummy") || firebaseConfig.apiKey.includes("YOUR_ACTUAL")) {
+    if (isFirebaseReady && db && auth) {
+      let realtimeStarted = false;
+      onAuthStateChanged(auth, (user) => {
+        if (user && !realtimeStarted) {
+          realtimeStarted = true;
+          console.log("匿名認証OK uid:", user.uid);
+          subscribeRealtime();
+        }
+      });
+      signInAnonymously(auth).catch((err) => {
+        console.error("匿名認証に失敗:", err);
+        showToast(
+          "認証に失敗しました。オフライン表示に切り替えます：" + (err && err.message ? err.message : err),
+          "error",
+          6000
+        );
+        // フォールバック: 端末に残っているローカルデータで表示だけは行う
+        renderMembersUI(rawMembersData);
+        renderReservesUI(rawReservesData);
+        renderEventsUI(rawEventsData);
+      });
+    }
+
+    /* ===== 日程コピペ用モーダル（本日以降・予約済みのみ抽出） ===== */
+    (function initScheduleCopyModal() {
+      const openBtn = document.getElementById("openScheduleCopyBtn");
+      const overlay = document.getElementById("scheduleCopyOverlay");
+      const closeBtn = document.getElementById("scheduleCopyCloseBtn");
+      const bodyEl = document.getElementById("scheduleCopyBody");
+      const copyAllBtn = document.getElementById("scheduleCopyAllBtn");
+      if (!openBtn || !overlay || !closeBtn || !bodyEl || !copyAllBtn) return;
+
+      // 予約点検表と同じ範囲（本日〜90日先）の金曜日のうち、予約済みのものだけを月ごとにまとめる
+      function collectReservedFridayGroups() {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0); // 本日以降（当日は含む）
+        const end = new Date();
+        end.setDate(end.getDate() + 90);
+
+        const groups = []; // [{ key:'2026年8月', label:'【2026年8月】', dates:['8/28(金)', ...] }]
+        const cur = new Date(start);
+        while (cur <= end) {
+          if (cur.getDay() === 5) {
+            const y = cur.getFullYear();
+            const m = cur.getMonth() + 1;
+            const d = cur.getDate();
+            const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            if (reservedCourtsMap[dateStr] !== undefined) { // 予約済みのみ
+              const key = `${y}年${m}月`;
+              let g = groups.find(x => x.key === key);
+              if (!g) { g = { key, label: `【${key}】`, dates: [] }; groups.push(g); }
+              g.dates.push(`${m}/${d}(${weekDays[cur.getDay()]})`);
+            }
+          }
+          cur.setDate(cur.getDate() + 1);
+        }
+        return groups;
+      }
+
+      // 1ヶ月分: 【YYYY年M月】の直後に日付、各日付のあとは1行空ける
+      function formatMonth(group) {
+        return group.label + "\n" + group.dates.join("\n\n");
+      }
+      // 全月分: 月と月の間も1行空ける
+      function formatAll(groups) {
+        return groups.map(formatMonth).join("\n\n");
+      }
+
+      async function copyText(text, okMsg) {
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            throw new Error("clipboard API 非対応");
+          }
+          showToast(okMsg || "コピーしました！", "info", 2000);
+        } catch (e) {
+          // フォールバック: 一時 textarea + execCommand
+          try {
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            ta.style.position = "fixed";
+            ta.style.top = "0";
+            ta.style.left = "0";
+            ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            const ok = document.execCommand("copy");
+            document.body.removeChild(ta);
+            if (!ok) throw new Error("execCommand copy 失敗");
+            showToast(okMsg || "コピーしました！", "info", 2000);
+          } catch (e2) {
+            showToast("コピーに失敗しました。手動で範囲選択してください。", "error", 5000);
+          }
+        }
+      }
+
+      function buildModal() {
+        const groups = collectReservedFridayGroups();
+        bodyEl.innerHTML = "";
+
+        if (groups.length === 0) {
+          const p = document.createElement("p");
+          p.style.cssText = "color:var(--text-sub); font-size:0.9rem; margin:8px 0 4px 0;";
+          p.textContent = "本日以降で予約済みの金曜日がありません。";
+          bodyEl.appendChild(p);
+          copyAllBtn.style.display = "none";
           return;
         }
-        const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-        const fs = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-        fbCollection = fs.collection;
-        fbAddDoc = fs.addDoc;
-        fbUpdateDoc = fs.updateDoc;
-        fbDeleteDoc = fs.deleteDoc;
-        fbDoc = fs.doc;
-        fbOnSnapshot = fs.onSnapshot;
-        fbQuery = fs.query;
-        fbOrderBy = fs.orderBy;
-        fbWriteBatch = fs.writeBatch;
-        fbServerTimestamp = fs.serverTimestamp;
+        copyAllBtn.style.display = "";
 
-        const app = initializeApp(firebaseConfig);
-        db = fs.getFirestore(app);
-        isFirebaseReady = true;
+        groups.forEach(g => {
+          const monthText = formatMonth(g);
+          const block = document.createElement("div");
+          block.className = "sc-month-block";
 
-        fbOnSnapshot(fbQuery(fbCollection(db, "members"), fbOrderBy("order", "asc")), (snapshot) => {
-          rawMembersData = [];
-          snapshot.forEach((docSnap) => rawMembersData.push({ id: docSnap.id, ...docSnap.data() }));
-          localStorage.setItem("bad_members", JSON.stringify(rawMembersData));
-          renderMembersUI(rawMembersData);
+          const title = document.createElement("div");
+          title.className = "sc-month-title";
+          title.textContent = g.label;
+
+          const list = document.createElement("pre");
+          list.className = "sc-date-list";
+          list.textContent = g.dates.join("\n\n");
+
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "sc-copy-btn";
+          btn.textContent = "📋 この月をコピー";
+          btn.addEventListener("click", () => copyText(monthText, "コピーしました！"));
+
+          block.appendChild(title);
+          block.appendChild(list);
+          block.appendChild(btn);
+          bodyEl.appendChild(block);
         });
 
-        fbOnSnapshot(fbQuery(fbCollection(db, "reserves"), fbOrderBy("targetDate", "asc")), (snapshot) => {
-          rawReservesData = [];
-          snapshot.forEach((docSnap) => rawReservesData.push({ id: docSnap.id, ...docSnap.data() }));
-          localStorage.setItem("bad_reserves", JSON.stringify(rawReservesData));
-          renderReservesUI(rawReservesData);
-        });
-
-        fbOnSnapshot(fbQuery(fbCollection(db, "events"), fbOrderBy("date", "desc")), (snapshot) => {
-          rawEventsData = [];
-          snapshot.forEach((docSnap) => rawEventsData.push({ id: docSnap.id, ...docSnap.data() }));
-          localStorage.setItem("bad_events", JSON.stringify(rawEventsData));
-          renderEventsUI(rawEventsData);
-        });
-      } catch (err) {
-        console.warn("Firebaseの読み込みに失敗したため、この端末内保存のみで動作します:", err);
+        copyAllBtn.onclick = () => copyText(formatAll(groups), "コピーしました！");
       }
+
+      function openModal() {
+        buildModal();
+        overlay.classList.add("show");
+        document.body.style.overflow = "hidden";
+      }
+      function closeModal() {
+        overlay.classList.remove("show");
+        document.body.style.overflow = "";
+      }
+
+      openBtn.addEventListener("click", openModal);
+      closeBtn.addEventListener("click", closeModal);
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && overlay.classList.contains("show")) closeModal();
+      });
     })();
   </script>
 </body>
