@@ -407,9 +407,12 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { 
-      getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, writeBatch, serverTimestamp 
+    import {
+      getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, writeBatch, serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import {
+      getAuth, signInAnonymously, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     // 💡 ご自身のFirebaseプロジェクト情報に置き換えてください
     const firebaseConfig = {
@@ -422,12 +425,14 @@
     };
 
     let db = null;
+    let auth = null;
     let isFirebaseReady = false;
 
     try {
       if (firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("dummy") && !firebaseConfig.apiKey.includes("YOUR_ACTUAL")) {
         const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
+        auth = getAuth(app);
         isFirebaseReady = true;
       }
     } catch (err) {
@@ -639,14 +644,8 @@
       updateSummary();
     }
 
-    if (isFirebaseReady && db) {
-      onSnapshot(query(collection(db, "members"), orderBy("order", "asc")), (snapshot) => {
-        rawMembersData = [];
-        snapshot.forEach((docSnap) => rawMembersData.push({ id: docSnap.id, ...docSnap.data() }));
-        safeSetLS("bad_members", JSON.stringify(rawMembersData));
-        renderMembersUI(rawMembersData);
-      });
-    } else {
+    // members のリアルタイム購読は匿名認証完了後に subscribeRealtime() で開始する。
+    if (!(isFirebaseReady && db)) {
       renderMembersUI(rawMembersData);
     }
 
@@ -768,14 +767,8 @@
       updateSummary();
     }
 
-    if (isFirebaseReady && db) {
-      onSnapshot(query(collection(db, "reserves"), orderBy("targetDate", "asc")), (snapshot) => {
-        rawReservesData = [];
-        snapshot.forEach((docSnap) => rawReservesData.push({ id: docSnap.id, ...docSnap.data() }));
-        safeSetLS("bad_reserves", JSON.stringify(rawReservesData));
-        renderReservesUI(rawReservesData);
-      });
-    } else {
+    // reserves のリアルタイム購読は匿名認証完了後に subscribeRealtime() で開始する。
+    if (!(isFirebaseReady && db)) {
       renderReservesUI(rawReservesData);
     }
 
@@ -1236,14 +1229,8 @@
       updateBreakEvenChart(practiceBreakEvenData.reverse());
     }
 
-    if (isFirebaseReady && db) {
-      onSnapshot(query(collection(db, "events"), orderBy("date", "desc")), (snapshot) => {
-        rawEventsData = [];
-        snapshot.forEach((docSnap) => rawEventsData.push({ id: docSnap.id, ...docSnap.data() }));
-        safeSetLS("bad_events", JSON.stringify(rawEventsData));
-        renderEventsUI(rawEventsData);
-      });
-    } else {
+    // events のリアルタイム購読は匿名認証完了後に subscribeRealtime() で開始する。
+    if (!(isFirebaseReady && db)) {
       renderEventsUI(rawEventsData);
     }
 
@@ -1308,6 +1295,53 @@
           }]
         },
         options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      });
+    }
+
+    /* ===== Firebase 匿名認証 → リアルタイム購読の起動 ===== */
+    // Firestore セキュリティルールを request.auth != null に絞れるよう、
+    // ページ表示時に自動で匿名サインインし、認証成立後に購読を開始する。
+    function subscribeRealtime() {
+      onSnapshot(query(collection(db, "members"), orderBy("order", "asc")), (snapshot) => {
+        rawMembersData = [];
+        snapshot.forEach((docSnap) => rawMembersData.push({ id: docSnap.id, ...docSnap.data() }));
+        safeSetLS("bad_members", JSON.stringify(rawMembersData));
+        renderMembersUI(rawMembersData);
+      });
+      onSnapshot(query(collection(db, "reserves"), orderBy("targetDate", "asc")), (snapshot) => {
+        rawReservesData = [];
+        snapshot.forEach((docSnap) => rawReservesData.push({ id: docSnap.id, ...docSnap.data() }));
+        safeSetLS("bad_reserves", JSON.stringify(rawReservesData));
+        renderReservesUI(rawReservesData);
+      });
+      onSnapshot(query(collection(db, "events"), orderBy("date", "desc")), (snapshot) => {
+        rawEventsData = [];
+        snapshot.forEach((docSnap) => rawEventsData.push({ id: docSnap.id, ...docSnap.data() }));
+        safeSetLS("bad_events", JSON.stringify(rawEventsData));
+        renderEventsUI(rawEventsData);
+      });
+    }
+
+    if (isFirebaseReady && db && auth) {
+      let realtimeStarted = false;
+      onAuthStateChanged(auth, (user) => {
+        if (user && !realtimeStarted) {
+          realtimeStarted = true;
+          console.log("匿名認証OK uid:", user.uid);
+          subscribeRealtime();
+        }
+      });
+      signInAnonymously(auth).catch((err) => {
+        console.error("匿名認証に失敗:", err);
+        showToast(
+          "認証に失敗しました。オフライン表示に切り替えます：" + (err && err.message ? err.message : err),
+          "error",
+          6000
+        );
+        // フォールバック: 端末に残っているローカルデータで表示だけは行う
+        renderMembersUI(rawMembersData);
+        renderReservesUI(rawReservesData);
+        renderEventsUI(rawEventsData);
       });
     }
   </script>
