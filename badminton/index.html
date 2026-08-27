@@ -179,11 +179,66 @@
     details summary { padding: 16px 20px; font-weight: 600; font-size: 0.95rem; cursor: pointer; outline: none; }
     details[open] summary { border-bottom: 1px solid var(--border-color); }
     .accordion-content { padding: 16px 20px 20px 20px; }
+
+    /* 日程コピペ用モーダル */
+    button.btn-schedule-copy {
+      width: 100%; padding: 14px; background-color: var(--primary-color); color: #fff;
+      font-size: 0.95rem; margin-bottom: 12px;
+    }
+    .sc-overlay {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5);
+      display: none; align-items: flex-start; justify-content: center;
+      z-index: 9000; padding: 24px 12px; overflow-y: auto;
+    }
+    .sc-overlay.show { display: flex; }
+    .sc-modal {
+      background: var(--card-bg); width: 100%; max-width: 420px; margin: auto;
+      border-radius: var(--radius-md); padding: 20px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+    }
+    .sc-modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      font-weight: 700; font-size: 1.05rem; margin-bottom: 8px;
+    }
+    .sc-close-btn {
+      background: #e5e5ea; color: var(--text-main); flex-shrink: 0;
+      width: 36px; height: 36px; border-radius: 50%; font-size: 1.2rem; line-height: 1;
+    }
+    .sc-modal-note { font-size: 0.75rem; color: var(--text-sub); margin-bottom: 14px; }
+    .sc-month-block {
+      border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+      padding: 12px; margin-bottom: 12px; background: #fafafa;
+    }
+    .sc-month-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 8px; color: var(--primary-color); }
+    .sc-date-list {
+      font-family: inherit; font-size: 0.9rem; color: var(--text-main);
+      white-space: pre-wrap; margin: 0 0 10px 0; line-height: 1.5;
+    }
+    button.sc-copy-btn {
+      width: 100%; padding: 12px; background-color: var(--primary-color); color: #fff; font-size: 0.9rem;
+    }
+    button.sc-copy-all-btn {
+      width: 100%; padding: 16px; background-color: var(--success-color); color: #fff;
+      font-size: 1rem; margin-top: 4px;
+    }
   </style>
 </head>
 <body>
 
   <div id="toastContainer"></div>
+
+  <!-- 日程コピペ用モーダル（本日以降・予約済みのみ） -->
+  <div id="scheduleCopyOverlay" class="sc-overlay">
+    <div class="sc-modal" role="dialog" aria-modal="true" aria-labelledby="scheduleCopyTitle">
+      <div class="sc-modal-header">
+        <span id="scheduleCopyTitle">📋 日程コピペ</span>
+        <button type="button" id="scheduleCopyCloseBtn" class="sc-close-btn" aria-label="閉じる">×</button>
+      </div>
+      <div class="sc-modal-note">本日以降・予約済みの金曜日を月ごとにまとめました。ボタンでコピーできます。</div>
+      <div id="scheduleCopyBody"></div>
+      <button type="button" id="scheduleCopyAllBtn" class="sc-copy-all-btn">📋 全日程をコピー</button>
+    </div>
+  </div>
 
   <div class="app-header">
     <h1>🏸 バドミントン現場記録</h1>
@@ -278,6 +333,7 @@
           <div style="font-weight:600; font-size:0.85rem; color:var(--primary-color); margin-bottom:10px;">
             <span>📋 直近3ヶ月先の全金曜日 予約点検表</span>
           </div>
+          <button type="button" id="openScheduleCopyBtn" class="btn-schedule-copy">📋 日程コピー</button>
           <div id="reserveCheckList">3ヶ月先までの金曜日を計算中...</div>
         </div>
       </div>
@@ -1361,6 +1417,141 @@
         renderEventsUI(rawEventsData);
       });
     }
+
+    /* ===== 日程コピペ用モーダル（本日以降・予約済みのみ抽出） ===== */
+    (function initScheduleCopyModal() {
+      const openBtn = document.getElementById("openScheduleCopyBtn");
+      const overlay = document.getElementById("scheduleCopyOverlay");
+      const closeBtn = document.getElementById("scheduleCopyCloseBtn");
+      const bodyEl = document.getElementById("scheduleCopyBody");
+      const copyAllBtn = document.getElementById("scheduleCopyAllBtn");
+      if (!openBtn || !overlay || !closeBtn || !bodyEl || !copyAllBtn) return;
+
+      // 予約点検表と同じ範囲（本日〜90日先）の金曜日のうち、予約済みのものだけを月ごとにまとめる
+      function collectReservedFridayGroups() {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0); // 本日以降（当日は含む）
+        const end = new Date();
+        end.setDate(end.getDate() + 90);
+
+        const groups = []; // [{ key:'2026年8月', label:'【2026年8月】', dates:['8/28(金)', ...] }]
+        const cur = new Date(start);
+        while (cur <= end) {
+          if (cur.getDay() === 5) {
+            const y = cur.getFullYear();
+            const m = cur.getMonth() + 1;
+            const d = cur.getDate();
+            const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            if (reservedCourtsMap[dateStr] !== undefined) { // 予約済みのみ
+              const key = `${y}年${m}月`;
+              let g = groups.find(x => x.key === key);
+              if (!g) { g = { key, label: `【${key}】`, dates: [] }; groups.push(g); }
+              g.dates.push(`${m}/${d}(${weekDays[cur.getDay()]})`);
+            }
+          }
+          cur.setDate(cur.getDate() + 1);
+        }
+        return groups;
+      }
+
+      // 1ヶ月分: 【YYYY年M月】の直後に日付、各日付のあとは1行空ける
+      function formatMonth(group) {
+        return group.label + "\n" + group.dates.join("\n\n");
+      }
+      // 全月分: 月と月の間も1行空ける
+      function formatAll(groups) {
+        return groups.map(formatMonth).join("\n\n");
+      }
+
+      async function copyText(text, okMsg) {
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            throw new Error("clipboard API 非対応");
+          }
+          showToast(okMsg || "コピーしました！", "info", 2000);
+        } catch (e) {
+          // フォールバック: 一時 textarea + execCommand
+          try {
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            ta.style.position = "fixed";
+            ta.style.top = "0";
+            ta.style.left = "0";
+            ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            const ok = document.execCommand("copy");
+            document.body.removeChild(ta);
+            if (!ok) throw new Error("execCommand copy 失敗");
+            showToast(okMsg || "コピーしました！", "info", 2000);
+          } catch (e2) {
+            showToast("コピーに失敗しました。手動で範囲選択してください。", "error", 5000);
+          }
+        }
+      }
+
+      function buildModal() {
+        const groups = collectReservedFridayGroups();
+        bodyEl.innerHTML = "";
+
+        if (groups.length === 0) {
+          const p = document.createElement("p");
+          p.style.cssText = "color:var(--text-sub); font-size:0.9rem; margin:8px 0 4px 0;";
+          p.textContent = "本日以降で予約済みの金曜日がありません。";
+          bodyEl.appendChild(p);
+          copyAllBtn.style.display = "none";
+          return;
+        }
+        copyAllBtn.style.display = "";
+
+        groups.forEach(g => {
+          const monthText = formatMonth(g);
+          const block = document.createElement("div");
+          block.className = "sc-month-block";
+
+          const title = document.createElement("div");
+          title.className = "sc-month-title";
+          title.textContent = g.label;
+
+          const list = document.createElement("pre");
+          list.className = "sc-date-list";
+          list.textContent = g.dates.join("\n\n");
+
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "sc-copy-btn";
+          btn.textContent = "📋 この月をコピー";
+          btn.addEventListener("click", () => copyText(monthText, "コピーしました！"));
+
+          block.appendChild(title);
+          block.appendChild(list);
+          block.appendChild(btn);
+          bodyEl.appendChild(block);
+        });
+
+        copyAllBtn.onclick = () => copyText(formatAll(groups), "コピーしました！");
+      }
+
+      function openModal() {
+        buildModal();
+        overlay.classList.add("show");
+        document.body.style.overflow = "hidden";
+      }
+      function closeModal() {
+        overlay.classList.remove("show");
+        document.body.style.overflow = "";
+      }
+
+      openBtn.addEventListener("click", openModal);
+      closeBtn.addEventListener("click", closeModal);
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && overlay.classList.contains("show")) closeModal();
+      });
+    })();
   </script>
 </body>
 </html>
