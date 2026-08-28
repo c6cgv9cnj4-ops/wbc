@@ -139,15 +139,16 @@ def format_published_jst(entry):
     return dt_jst.strftime("%m/%d %H:%M")
 
 
-def fetch_keyword_news(keyword, retries=2):
+def fetch_keyword_news(keyword, retries=3):
     """指定キーワードのGoogle News RSSを取得する。
-    短時間の連続リクエストによるレート制限(503)を避けるため、
-    リクエスト間隔を空け、失敗時は1回リトライする
-    (fetch_culture_news.pyで実際に503が発生した実績を踏まえた対策)。
+    2026-08-28、OSHI_KEYWORDSが21件に増えたことで1回の実行が21回連続で
+    Google News RSSを叩くことになり、実際に大半のキーワードで503(レート
+    制限)が発生し配信が空振りする事例を確認した。リクエスト間隔と
+    リトライ待機を伸ばし、リトライ回数も増やして緩和する。
     """
     q = urllib.parse.quote(keyword)
     url = f"https://news.google.com/rss/search?q={q}&hl=ja&gl=JP&ceid=JP:ja"
-    time.sleep(2.0)
+    time.sleep(4.0)
 
     resp = None
     for attempt in range(retries):
@@ -158,7 +159,9 @@ def fetch_keyword_news(keyword, retries=2):
         except Exception as err:  # noqa: BLE001
             print(f"[WARN] Google News RSS取得に失敗(試行{attempt + 1}/{retries})({keyword}): {err}")
             resp = None
-            time.sleep(5.0)
+            # 試行を重ねるごとに待機を伸ばす(10秒→20秒)。503は数秒の
+            # リトライでは解消しないことが実データで確認できたため。
+            time.sleep(10.0 * (attempt + 1))
 
     if resp is None:
         print(f"[ERROR] Google News RSS取得に失敗しました({keyword})")

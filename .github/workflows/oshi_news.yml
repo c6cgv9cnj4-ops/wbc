@@ -11,7 +11,10 @@ permissions:
 jobs:
   fetch-oshi-news:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # 21キーワード×最大3回リトライ(間隔4秒+バックオフ10/20秒)の最悪ケースを
+    # 見込んで10分から拡張(2026-08-28、大半のキーワードが503でリトライ
+    # した実際の実行が10分近くかかった実績を踏まえた対応)。
+    timeout-minutes: 20
     concurrency:
       group: oshi-news
       cancel-in-progress: false
