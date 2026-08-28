@@ -590,6 +590,17 @@
     let rawReservesData = parseJSONSafe(safeGetLS("bad_reserves", "[]"), []);
     let reservedCourtsMap = {};
     let reservedDocIdsMap = {};
+    let reservedCompletedMap = {};
+
+    // 練習実績ログ(type:"practice")が存在する日付の集合。
+    // 予約点検表・日程コピーの表示除外（＝消化済み判定）に使う。
+    function getPracticeLoggedDates() {
+      const set = new Set();
+      rawEventsData.forEach(e => {
+        if (e && e.type === "practice" && e.date) set.add(e.date);
+      });
+      return set;
+    }
 
     const memberListContainer = document.getElementById("memberList");
     new Sortable(memberListContainer, {
@@ -810,12 +821,14 @@
     function renderReservesUI(reserves) {
       reservedCourtsMap = {};
       reservedDocIdsMap = {};
+      reservedCompletedMap = {};
       reserves.forEach(d => {
         const dateKey = d.targetDate || d.date;
         const feeVal = d.courtFee !== undefined ? d.courtFee : (d.fee || 1600);
         if (dateKey) {
           reservedCourtsMap[dateKey] = feeVal;
           reservedDocIdsMap[dateKey] = d.id;
+          if (d.completed) reservedCompletedMap[dateKey] = true;
         }
       });
       renderReserveCheckList();
@@ -833,6 +846,9 @@
       if (!reserveCheckList) return;
       reserveCheckList.innerHTML = "";
 
+      // 実績ログ済み／消化済み予約の金曜枠は点検表に出さない（未消化の次回以降のみ）
+      const loggedDates = getPracticeLoggedDates();
+
       const startDate = new Date();
       const endDate = new Date();
       endDate.setDate(startDate.getDate() + 90);
@@ -844,6 +860,11 @@
           const m = curr.getMonth() + 1;
           const d = curr.getDate();
           const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+          if (loggedDates.has(dateStr) || reservedCompletedMap[dateStr]) {
+            curr.setDate(curr.getDate() + 1);
+            continue;
+          }
 
           const isReserved = reservedCourtsMap[dateStr] !== undefined;
           const fee = isReserved ? reservedCourtsMap[dateStr] : 0;
@@ -1029,9 +1050,55 @@
       }, "練習記録を保存しました");
 
       if (!ok) return;
+
+      // 練習実績が保存された日付の予約を「消化済み」にして点検表・日程コピーから外す
+      try {
+        await reconcileReserveForDate(payload.date);
+      } catch (e) {
+        console.warn("予約の消化処理に失敗:", e);
+      }
+
       selectedMemberFees.clear();
       renderMemberSelection();
       updateSummary();
+      renderReserveCheckList();
+    }
+
+    // 指定日付の予約 completed フラグを一括更新する共通処理
+    async function setReservesCompletedForDate(dateStr, completed) {
+      const stamp = completed ? new Date().toISOString() : null;
+      const targets = rawReservesData.filter(r => {
+        const k = r.targetDate || r.date;
+        return k === dateStr && !!r.completed !== completed;
+      });
+      if (targets.length === 0) return;
+      if (isFirebaseReady && db) {
+        const batch = writeBatch(db);
+        targets.forEach(r => {
+          if (r.id) batch.update(doc(db, "reserves", r.id), { completed, completedAt: stamp });
+        });
+        await batch.commit();
+      }
+      // onSnapshot の再描画を待たず即時反映（ローカルモードはここが唯一の反映経路）
+      targets.forEach(r => { r.completed = completed; r.completedAt = stamp; });
+      if (!(isFirebaseReady && db)) safeSetLS("bad_reserves", JSON.stringify(rawReservesData));
+      renderReservesUI(rawReservesData);
+    }
+
+    // 練習実績のある日付の予約を completed:true に（点検表・日程コピーから除外される）
+    async function reconcileReserveForDate(dateStr) {
+      if (!dateStr) return;
+      await setReservesCompletedForDate(dateStr, true);
+    }
+
+    // 練習実績が無くなった日付の予約を completed:false に戻す（ログ削除時の整合性維持）
+    async function unreconcileReserveForDate(dateStr, excludeEventId) {
+      if (!dateStr) return;
+      const stillLogged = rawEventsData.some(e =>
+        e.type === "practice" && e.date === dateStr && e.id !== excludeEventId
+      );
+      if (stillLogged) return;
+      await setReservesCompletedForDate(dateStr, false);
     }
 
     document.getElementById("saveShuttleBtn").onclick = async function() {
@@ -1143,14 +1210,27 @@
     };
 
     window.deleteEvent = async function(id) {
-      if (confirm("この履歴を削除しますか？")) {
-        if (isFirebaseReady && db) {
-          await deleteDoc(doc(db, "events", id));
-        } else {
-          rawEventsData = rawEventsData.filter(e => e.id !== id);
-          safeSetLS("bad_events", JSON.stringify(rawEventsData));
-          renderEventsUI(rawEventsData);
+      if (!confirm("この履歴を削除しますか？")) return;
+
+      const target = rawEventsData.find(e => e.id === id);
+      const practiceDate = (target && target.type === "practice") ? target.date : null;
+
+      if (isFirebaseReady && db) {
+        await deleteDoc(doc(db, "events", id));
+      } else {
+        rawEventsData = rawEventsData.filter(e => e.id !== id);
+        safeSetLS("bad_events", JSON.stringify(rawEventsData));
+        renderEventsUI(rawEventsData);
+      }
+
+      // 練習ログを消したら、同日に他のログが無い限り予約を「未消化」に戻す
+      if (practiceDate) {
+        try {
+          await unreconcileReserveForDate(practiceDate, id);
+        } catch (e) {
+          console.warn("予約の未消化戻し処理に失敗:", e);
         }
+        renderReserveCheckList();
       }
     };
 
@@ -1300,6 +1380,8 @@
       updateSummary();
       updateChart(monthlyData);
       updateBreakEvenChart(practiceBreakEvenData.reverse());
+      // 予約点検表は練習実績ログの有無に依存するため、ログ更新時に必ず再描画する
+      renderReserveCheckList();
     }
 
     // events のリアルタイム購読は匿名認証完了後に subscribeRealtime() で開始する。
@@ -1435,6 +1517,7 @@
         end.setDate(end.getDate() + 90);
 
         const groups = []; // [{ key:'2026年8月', label:'【2026年8月】', dates:['8/28(金)', ...] }]
+        const loggedDates = getPracticeLoggedDates();
         const cur = new Date(start);
         while (cur <= end) {
           if (cur.getDay() === 5) {
@@ -1442,7 +1525,10 @@
             const m = cur.getMonth() + 1;
             const d = cur.getDate();
             const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-            if (reservedCourtsMap[dateStr] !== undefined) { // 予約済みのみ
+            // 予約済み かつ 未消化（実績ログ無し・completed でない）のみ
+            if (reservedCourtsMap[dateStr] !== undefined
+                && !reservedCompletedMap[dateStr]
+                && !loggedDates.has(dateStr)) {
               const key = `${y}年${m}月`;
               let g = groups.find(x => x.key === key);
               if (!g) { g = { key, label: `【${key}】`, dates: [] }; groups.push(g); }
