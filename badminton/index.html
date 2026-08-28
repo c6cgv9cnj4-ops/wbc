@@ -319,14 +319,6 @@
             <div id="targetDateWithDay" style="font-size:0.8rem; color:var(--primary-color); font-weight:600; margin-top:4px;"></div>
           </div>
           <div class="form-row">
-            <label>会場（カレンダー登録の時刻・住所に反映）</label>
-            <select id="reserveVenue">
-              <option value="kitamoto_taiiku">北本市体育センター（19:00〜22:00）</option>
-              <option value="seibu_kominkan">西部公民館（18:00〜22:00）</option>
-            </select>
-            <div id="reserveVenueInfo" style="font-size:0.78rem; color:var(--text-sub); font-weight:500; margin-top:4px;"></div>
-          </div>
-          <div class="form-row">
             <label>予約手続き日 (正確な3ヶ月前)</label>
             <input type="text" id="reserveCalcDate" readonly style="background:#eef5ff; color:var(--primary-color); font-weight:600;">
           </div>
@@ -343,14 +335,6 @@
           </div>
           <button type="button" id="openScheduleCopyBtn" class="btn-schedule-copy">📋 日程コピー</button>
           <div id="reserveCheckList">3ヶ月先までの金曜日を計算中...</div>
-
-          <div style="margin-top:16px; border-top:1px dashed var(--border-color); padding-top:12px;">
-            <div style="font-weight:600; font-size:0.8rem; color:var(--text-sub); margin-bottom:6px;">
-              📆 カレンダー登録用（badcal）— 予約済み・会場設定済みのみ
-            </div>
-            <pre id="badcalFeed" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:0.72rem; line-height:1.5; color:var(--text-main); background:#fafafa; border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:10px; white-space:pre-wrap; word-break:break-all; margin:0;">計算中...</pre>
-            <script id="badcalScheduleJson" type="application/json">[]</script>
-          </div>
         </div>
       </div>
     </details>
@@ -578,30 +562,8 @@
     }
 
     const weekDays = ["日", "月", "火", "水", "木", "金", "土"];
-
-    /* ===== 会場マスタ（badcal のカレンダー登録に渡す時刻・住所の単一情報源） =====
-       ここを変更したら badcal 側 references/extraction-prompt.md の会場辞書も揃えること。 */
-    const VENUES = {
-      kitamoto_taiiku: {
-        label: "北本市体育センター",
-        official: "北本市体育センター（埼玉県北本市古市場1-156）",
-        address: "埼玉県北本市古市場1-156",
-        start: "19:00", end: "22:00"
-      },
-      seibu_kominkan: {
-        label: "西部公民館",
-        official: "北本市 西部公民館（埼玉県北本市荒井3-524）",
-        address: "埼玉県北本市荒井3-524",
-        start: "18:00", end: "22:00"
-      }
-    };
-    const DEFAULT_VENUE_KEY = "kitamoto_taiiku";
-    function venueOf(key) { return VENUES[key] || null; }
-
     const eventDateInput = document.getElementById("eventDate");
     const reserveTargetDate = document.getElementById("reserveTargetDate");
-    const reserveVenueSelect = document.getElementById("reserveVenue");
-    const reserveVenueInfo = document.getElementById("reserveVenueInfo");
     const shuttleBuyDate = document.getElementById("shuttleBuyDate");
     const adjustDateInput = document.getElementById("adjustDate");
     const reserveCourtFeeInput = document.getElementById("reserveCourtFee");
@@ -628,7 +590,6 @@
     let rawReservesData = parseJSONSafe(safeGetLS("bad_reserves", "[]"), []);
     let reservedCourtsMap = {};
     let reservedDocIdsMap = {};
-    let reservedVenueMap = {};
 
     const memberListContainer = document.getElementById("memberList");
     new Sortable(memberListContainer, {
@@ -666,14 +627,6 @@
 
     if (reserveTargetDate) reserveTargetDate.addEventListener("change", calcExactReserveDate);
     calcExactReserveDate();
-
-    function renderReserveVenueInfo() {
-      if (!reserveVenueSelect || !reserveVenueInfo) return;
-      const v = venueOf(reserveVenueSelect.value) || venueOf(DEFAULT_VENUE_KEY);
-      reserveVenueInfo.textContent = `🏟 ${v.official} ／ カレンダー時刻 ${v.start}〜${v.end}`;
-    }
-    if (reserveVenueSelect) reserveVenueSelect.addEventListener("change", renderReserveVenueInfo);
-    renderReserveVenueInfo();
 
     function calcExactReserveDate() {
       if (!reserveTargetDate || !reserveTargetDate.value) return;
@@ -857,14 +810,12 @@
     function renderReservesUI(reserves) {
       reservedCourtsMap = {};
       reservedDocIdsMap = {};
-      reservedVenueMap = {};
       reserves.forEach(d => {
         const dateKey = d.targetDate || d.date;
         const feeVal = d.courtFee !== undefined ? d.courtFee : (d.fee || 1600);
         if (dateKey) {
           reservedCourtsMap[dateKey] = feeVal;
           reservedDocIdsMap[dateKey] = d.id;
-          reservedVenueMap[dateKey] = d.venue || null;
         }
       });
       renderReserveCheckList();
@@ -886,9 +837,6 @@
       const endDate = new Date();
       endDate.setDate(startDate.getDate() + 90);
 
-      const feedLines = [];   // badcal 用プレーンテキスト
-      const feedJson = [];    // badcal 用 JSON
-
       const curr = new Date(startDate);
       while (curr <= endDate) {
         if (curr.getDay() === 5) {
@@ -900,63 +848,34 @@
           const isReserved = reservedCourtsMap[dateStr] !== undefined;
           const fee = isReserved ? reservedCourtsMap[dateStr] : 0;
           const docId = isReserved ? reservedDocIdsMap[dateStr] : null;
-          const venue = isReserved ? venueOf(reservedVenueMap[dateStr]) : null;
 
           const row = document.createElement("div");
           row.className = `reserve-check-row ${isReserved ? 'reserved' : 'unreserved'}`;
 
           if (isReserved) {
-            const venueBlock = venue
-              ? `<div style="margin-top:4px; font-size:0.78rem; color:var(--text-sub);">
-                   🏟 ${venue.label} ・ ${venue.start}〜${venue.end}<br>
-                   📍 ${venue.address}
-                 </div>`
-              : `<div style="margin-top:4px; font-size:0.78rem; color:var(--warning-color); font-weight:600;">
-                   🏟 会場未設定（カレンダー登録対象外）— 「✏️ 編集」で会場を選んで再保存
-                 </div>`;
             row.innerHTML = `
               <div>
                 <strong>📅 ${m}/${d} (金)</strong>
                 <span class="status-badge-ok" style="margin-left:8px;">✅ 予約済み (${fee.toLocaleString()}円)</span>
-                ${venueBlock}
               </div>
-              <div style="display:flex; gap:4px; flex-shrink:0;">
+              <div style="display:flex; gap:4px;">
                 <button type="button" class="btn-edit" onclick="editReserve('${dateStr}', '${docId}')">✏️ 編集</button>
                 <button type="button" class="btn-del" onclick="deleteReserve('${docId}')">🗑️ 削除</button>
               </div>
             `;
-
-            if (venue) {
-              const title = `バド ${venue.label}`;
-              feedLines.push(`${dateStr}(金) | ${venue.label} | ${venue.start}-${venue.end} | ${venue.official} | コート代${fee}円`);
-              feedJson.push({
-                title, date: dateStr, start: venue.start, end: venue.end,
-                location: venue.official, org: "", source: `wbc予約表 ${m}/${d}(金) ${venue.label}`
-              });
-            }
           } else {
             row.innerHTML = `
               <div>
                 <strong>📅 ${m}/${d} (金)</strong>
                 <span class="status-badge-ng" style="margin-left:6px;">⚠️ 未予約</span>
               </div>
-              <button type="button" class="btn-primary" style="padding:4px 10px; font-size:0.75rem; flex-shrink:0;" onclick="setQuickReserve('${dateStr}')">予約登録</button>
+              <button type="button" class="btn-primary" style="padding:4px 10px; font-size:0.75rem;" onclick="setQuickReserve('${dateStr}')">予約登録</button>
             `;
           }
           reserveCheckList.appendChild(row);
         }
         curr.setDate(curr.getDate() + 1);
       }
-
-      // ===== badcal 連携フィード（予約済み・会場設定済みのみ） =====
-      const feedEl = document.getElementById("badcalFeed");
-      const jsonEl = document.getElementById("badcalScheduleJson");
-      if (feedEl) {
-        feedEl.textContent = feedLines.length
-          ? "BEGIN badcal SCHEDULE\n" + feedLines.join("\n") + "\nEND badcal SCHEDULE"
-          : "登録対象なし（会場設定済みの予約がありません）";
-      }
-      if (jsonEl) jsonEl.textContent = JSON.stringify(feedJson);
     }
 
     window.editReserve = function(dateStr, docId) {
@@ -967,7 +886,6 @@
       if (reserveTargetDate) reserveTargetDate.value = dateStr;
       calcExactReserveDate();
       if (reserveCourtFeeInput) reserveCourtFeeInput.value = target.courtFee !== undefined ? target.courtFee : 1600;
-      if (reserveVenueSelect) { reserveVenueSelect.value = target.venue || DEFAULT_VENUE_KEY; renderReserveVenueInfo(); }
 
       const saveBtn = document.getElementById("saveReserveBtn");
       if (saveBtn) saveBtn.textContent = "✏️ 予約内容を上書き保存する";
@@ -976,12 +894,11 @@
 
     window.setQuickReserve = async function(dateStr) {
       const feeVal = parseInt(document.getElementById("reserveCourtFee").value, 10) || 1600;
-      const venueVal = reserveVenueSelect ? reserveVenueSelect.value : DEFAULT_VENUE_KEY;
       await runSave(async () => {
         if (isFirebaseReady && db) {
-          await addDoc(collection(db, "reserves"), { targetDate: dateStr, courtFee: feeVal, venue: venueVal, createdAt: serverTimestamp() });
+          await addDoc(collection(db, "reserves"), { targetDate: dateStr, courtFee: feeVal, createdAt: serverTimestamp() });
         } else {
-          rawReservesData.push({ id: 'res_' + Date.now(), targetDate: dateStr, courtFee: feeVal, venue: venueVal });
+          rawReservesData.push({ id: 'res_' + Date.now(), targetDate: dateStr, courtFee: feeVal });
           safeSetLS("bad_reserves", JSON.stringify(rawReservesData));
           renderReservesUI(rawReservesData);
         }
@@ -1009,24 +926,23 @@
       if (!targetDateVal) return alert("コート使用予定日を選択してください");
 
       const feeVal = parseInt(reserveCourtFeeInput ? reserveCourtFeeInput.value : 1600, 10) || 0;
-      const venueVal = reserveVenueSelect ? reserveVenueSelect.value : DEFAULT_VENUE_KEY;
 
       const btn = this;
       const ok = await runSave(async () => {
         if (isFirebaseReady && db) {
           if (editingReserveDocId) {
-            await updateDoc(doc(db, "reserves", editingReserveDocId), { targetDate: targetDateVal, courtFee: feeVal, venue: venueVal });
+            await updateDoc(doc(db, "reserves", editingReserveDocId), { targetDate: targetDateVal, courtFee: feeVal });
             editingReserveDocId = null;
           } else {
-            await addDoc(collection(db, "reserves"), { targetDate: targetDateVal, courtFee: feeVal, venue: venueVal, createdAt: serverTimestamp() });
+            await addDoc(collection(db, "reserves"), { targetDate: targetDateVal, courtFee: feeVal, createdAt: serverTimestamp() });
           }
         } else {
           if (editingReserveDocId) {
             const idx = rawReservesData.findIndex(r => r.id === editingReserveDocId);
-            if (idx !== -1) rawReservesData[idx] = { ...rawReservesData[idx], targetDate: targetDateVal, courtFee: feeVal, venue: venueVal };
+            if (idx !== -1) rawReservesData[idx] = { ...rawReservesData[idx], targetDate: targetDateVal, courtFee: feeVal };
             editingReserveDocId = null;
           } else {
-            rawReservesData.push({ id: 'res_' + Date.now(), targetDate: targetDateVal, courtFee: feeVal, venue: venueVal });
+            rawReservesData.push({ id: 'res_' + Date.now(), targetDate: targetDateVal, courtFee: feeVal });
           }
           safeSetLS("bad_reserves", JSON.stringify(rawReservesData));
           renderReservesUI(rawReservesData);
