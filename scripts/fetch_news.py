@@ -156,16 +156,71 @@ def is_finance_relevant(title, query):
     return any(kw in title for kw in FINANCE_REQUIRED_KEYWORDS)
 
 # 米国株価指数(株探・米国株版。サーバーサイドレンダリングで静的HTMLから
-# 取得可能なことを実際に確認済み)。
+# 取得可能なことを実際に確認済み)。日経取引終了後(夜間)の表示に使う。
 KABUTAN_US_INDICES = [
+    {"label": "NYダウ", "url": "https://us.kabutan.jp/indexes/%5EDJI"},
     {"label": "S&P500", "url": "https://us.kabutan.jp/indexes/%5ESPX"},
     {"label": "NASDAQ総合", "url": "https://us.kabutan.jp/indexes/%5EIXIC"},
     {"label": "SOX半導体指数", "url": "https://us.kabutan.jp/indexes/%5ESOX"},
 ]
-# WTI原油先物は、finance.yahoo.co.jpに先物そのもののページが無く(ETF/投資信託
-# のページしか無い)、みんかぶ先物(fu.minkabu.jp)はJS動的レンダリングのため
-# 静的取得できないことを確認済み。無理に不正確なデータ(ETF価格等)を「原油
-# 先物」として出すより、未実装のままにする方が安全と判断した。
+
+# 先物・コモディティ(2026-08-28、細川さんの指定によりyfinance採用)。
+# WTI原油先物・金先物は静的な日本語サイトで信頼できる取得元が見つからず
+# 長らく未実装だったが、yfinance(Yahoo Financeの非公式無料API・APIキー
+# 不要)経由で取得できることを実際に確認できたため切り替えた。日経先物は
+# NK=Fが廃止銘柄で取得不可、NIY=F(Yahoo Finance上のCME日経225先物)なら
+# 実データで取得できることを確認済み。
+FUTURES_TICKERS = {
+    "WTI原油先物": "CL=F",
+    "金先物": "GC=F",
+    "ダウ先物": "YM=F",
+    "S&P500先物": "ES=F",
+    "ナスダック先物": "NQ=F",
+    "日経平均先物": "NIY=F",
+}
+# 日経の取引時間中(9:00〜15:30 JST、平日)かどうかで、表示する先物・指数の
+# セットを切り替える(細川さん指定の構成)。
+NIKKEI_TRADING_START = datetime.time(9, 0)
+NIKKEI_TRADING_END = datetime.time(15, 30)
+
+
+def is_nikkei_trading_hours(now):
+    """日経平均の取引時間中(平日9:00〜15:30 JST)かどうかを判定する。
+    祝日カレンダーまでは考慮しない(平日判定のみの簡易版)。
+    """
+    if now.weekday() >= 5:  # 土日
+        return False
+    return NIKKEI_TRADING_START <= now.time() < NIKKEI_TRADING_END
+
+
+def fetch_yf_quote(symbol):
+    """yfinance(Yahoo Financeの非公式API、APIキー不要・無料)で直近の
+    終値と前日比を取得する。ネットワーク先が外部サービスのため失敗しうる。
+    取得できなければNoneを返し、推測で埋めない。
+    """
+    try:
+        import yfinance as yf
+        hist = yf.Ticker(symbol).history(period="5d")
+        if hist.empty or len(hist) < 2:
+            print(f"[WARN] yfinanceで{symbol}のデータが取得できませんでした。")
+            return None
+        price = float(hist.iloc[-1]["Close"])
+        prev_close = float(hist.iloc[-2]["Close"])
+        change = price - prev_close
+        change_rate = (change / prev_close * 100) if prev_close else 0.0
+        return {"price": price, "change": change, "change_rate": change_rate}
+    except Exception as err:  # noqa: BLE001
+        print(f"[ERROR] yfinance取得に失敗しました({symbol}): {err}")
+        return None
+
+
+def format_yf_line(label, symbol):
+    quote = fetch_yf_quote(symbol)
+    if not quote:
+        return f"- {label}: 取得できませんでした"
+    arrow = "🔺" if quote["change"] >= 0 else "🔻"
+    return (f"- {label}: **{quote['price']:,.2f}** {arrow} "
+            f"{quote['change']:+.2f} ({quote['change_rate']:+.2f}%)")
 
 # 重複排除に使う「見た記事」の記録先。取得件数を少し多めに見ておき、
 # 30分間隔のポーリングで新着を取りこぼしにくくする。
@@ -455,9 +510,64 @@ def fetch_anzn_new_items(state, now):
     return dedupe_new_items(anzn_all, "url", state, now)
 
 
+ANZN_DATETIME_RE = re.compile(r"(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})")
+BOUSAI_SUMMARY_HOURS = 24  # 「直近」として拾う時間幅
+
+
+def parse_anzn_datetime(text, now):
+    """あんぜんねっとの日時表記("08-26 09:01頃")をdatetimeにパースする。
+    年の表記が無いため現在時刻を基準に補完し、年またぎ(1月の投稿を年末に
+    実行して未来日付になってしまう場合)は前年として扱う。パース不能ならNone。
+    """
+    m = ANZN_DATETIME_RE.match(text)
+    if not m:
+        return None
+    month, day, hour, minute = (int(x) for x in m.groups())
+    try:
+        dt = datetime.datetime(now.year, month, day, hour, minute, tzinfo=now.tzinfo)
+    except ValueError:
+        return None
+    if dt > now + datetime.timedelta(hours=1):
+        dt = dt.replace(year=now.year - 1)
+    return dt
+
+
+def fetch_bousai_summary_items(now, hours=BOUSAI_SUMMARY_HOURS):
+    """あんぜんねっとの直近hours時間以内の火災・出動情報を返す。
+    「新着だけ」を都度送るbuild_anzn_alert_embed()とは異なり、こちらは
+    dedup状態に関わらず「今この瞬間の状況」を毎回集計し直す(ローカル
+    ニュースメッセージ最上部の固定セクション用)。
+    """
+    all_items = fetch_anzn_new_arrivals(limit=20)
+    cutoff = now - datetime.timedelta(hours=hours)
+    recent = []
+    for item in all_items:
+        dt = parse_anzn_datetime(item["datetime"], now)
+        if dt and dt >= cutoff:
+            recent.append(item)
+    return recent
+
+
+def build_bousai_section(bousai_items):
+    """ローカルニュースメッセージの最上部に必ず入れる「防災・緊急情報」
+    セクション。該当情報が無くても省略せず、その旨を明記する
+    (2026-08-28、細川さんの指定によるフォーマット)。
+    """
+    lines = ["## 🚨 防災・緊急情報"]
+    if not bousai_items:
+        lines.append("- 現在、北本市・県央エリアに発表されている警報・火災等の情報はありません")
+    else:
+        for item in bousai_items:
+            lines.append(f"- {item['datetime']}［{item['city']}］{item['summary']}")
+    return "\n".join(lines)
+
+
 def build_local_news_message(state, now):
-    """新着が1件も無ければ(None, [])を返す(Discordへ空更新を送らないため)。
-    あんぜんねっとの新着はここには含めない(build_anzn_alert_embed()で別送するため)。
+    """あんぜんねっとの新着自体はここには含めない(build_anzn_alert_embed()で
+    速報として別送するため)。その代わり、直近BOUSAI_SUMMARY_HOURS時間分の
+    「防災・緊急情報」サマリーを最上部に必ず配置する(該当なしでも明記)。
+    新着ローカルニュースも防災アクティブ情報も無ければ(None, [])を返す
+    (Discordへ空更新を送らないため)。
     戻り値は (message_or_None, sports_items) のタプル。
     sports_itemsは、埼玉ローカルニュースに混入していたスポーツ記事(#webhook_local
     ではなく#webhook_sports_cultureへ回すため、ここでは除外して別途返す)。
@@ -477,13 +587,23 @@ def build_local_news_message(state, now):
         else:
             saitama_general.append(item)
 
-    if not saitama_general:
+    bousai_items = fetch_bousai_summary_items(now)
+
+    # 新着ローカルニュースも、直近の防災アクティブ情報も無ければ送信しない
+    # (防災セクションが「異常なし」だけの空更新を毎回送るのは避ける)。
+    if not saitama_general and not bousai_items:
         return None, sports_items
 
     now_jst = now.strftime("%Y-%m-%d %H:%M")
-    lines = [f"# 🗾 埼玉・県央ローカルニュース ({now_jst} JST時点)"]
-    for item in saitama_general:
-        lines.append(f"- [{item['title']}](<{item['url']}>) `[{item['published']}]`")
+    lines = [f"# 🗾 埼玉・県央ローカルニュース ({now_jst} JST時点)", ""]
+    lines.append(build_bousai_section(bousai_items))
+
+    if saitama_general:
+        lines.append("")
+        lines.append("## 📰 地域ニュース")
+        for item in saitama_general:
+            lines.append(f"- [{item['title']}](<{item['url']}>) `[{item['published']}]`")
+
     return "\n".join(lines), sports_items
 
 
@@ -517,10 +637,15 @@ def build_national_news_message(state, now):
 
 
 def build_market_message(state, now):
-    """株価は常に送る。経済ニュースは新着があるときだけ追記する。"""
+    """株価は常に送る。経済ニュースは新着があるときだけ追記する。
+    2026-08-28、細川さんの指定により、日経の取引時間中か否かで表示する
+    指数・先物のセットを切り替える。
+    """
     lines = []
     now_jst = now.strftime("%Y-%m-%d %H:%M")
-    lines.append(f"# 💹 マーケット情報 ({now_jst} JST時点)")
+    nikkei_hours = is_nikkei_trading_hours(now)
+    session_label = "日経取引中" if nikkei_hours else "日経取引終了後"
+    lines.append(f"# 💹 マーケット情報 ({now_jst} JST時点・{session_label})")
 
     lines.append("\n## 📈 株価")
     nikkei = fetch_nikkei225()
@@ -530,22 +655,34 @@ def build_market_message(state, now):
     else:
         lines.append("- 日経平均株価: 取得できませんでした")
 
-    for idx_conf in KABUTAN_US_INDICES:
-        idx_data = fetch_kabutan_us_index(idx_conf["url"], idx_conf["label"])
-        if idx_data:
-            arrow = "🔺" if not idx_data["change"].startswith("-") else "🔻"
-            lines.append(
-                f"- {idx_conf['label']}: **{idx_data['price']}** "
-                f"{arrow} {idx_data['change']} ({idx_data['change_rate']}%)"
-            )
-        else:
-            lines.append(f"- {idx_conf['label']}: 取得できませんでした")
+    if nikkei_hours:
+        # 日経取引中: 米国主要指数先物(前場・後場のうちに動くため先物を見る)
+        for label in ("ダウ先物", "S&P500先物", "ナスダック先物"):
+            lines.append(format_yf_line(label, FUTURES_TICKERS[label]))
+    else:
+        # 日経取引終了後: 米国主要指数(現物、株探)+ 日経平均先物(夜間の目安)
+        for idx_conf in KABUTAN_US_INDICES:
+            idx_data = fetch_kabutan_us_index(idx_conf["url"], idx_conf["label"])
+            if idx_data:
+                arrow = "🔺" if not idx_data["change"].startswith("-") else "🔻"
+                lines.append(
+                    f"- {idx_conf['label']}: **{idx_data['price']}** "
+                    f"{arrow} {idx_data['change']} ({idx_data['change_rate']}%)"
+                )
+            else:
+                lines.append(f"- {idx_conf['label']}: 取得できませんでした")
+        lines.append(format_yf_line("日経平均先物", FUTURES_TICKERS["日経平均先物"]))
 
     usdjpy = fetch_usdjpy()
     if usdjpy is not None:
         lines.append(f"- ドル円: **{usdjpy}円**")
     else:
         lines.append("- ドル円: 取得できませんでした")
+
+    # コモディティ先物(WTI原油・金)は時間帯によらず常に表示。
+    lines.append("\n## 🛢️ コモディティ先物")
+    lines.append(format_yf_line("WTI原油先物", FUTURES_TICKERS["WTI原油先物"]))
+    lines.append(format_yf_line("金先物", FUTURES_TICKERS["金先物"]))
 
     biz_all = fetch_economy_news_candidates()
     biz_new = dedupe_new_items(biz_all, "url", state, now)

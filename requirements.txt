@@ -4,3 +4,4 @@ beautifulsoup4
 google-genai
 youtube-transcript-api
 playwright
+yfinance
