@@ -23,7 +23,15 @@ state/news_seen.json に記録し、そのURL/IDと重複するものはスキ�
     巻き込まれた事故・事件、ドラマのロケ地情報等のノイズが多かったため、
     北本市・桶川市・鴻巣市・上尾市・さいたま市大宮区の市区町村名によるOR検索
     + ノイズ除外キーワード(is_saitama_local_noise、2026-08-26追加)に変更した。
-  - 主要ニュース: Yahoo!ニュース トピックスRSS
+  - 主要ニュース(2026-08-28改修): Yahoo!ニュース トップピックスRSSで見出しを
+    取得し、各記事のYahoo!ニュース pickupページ(id="uamods-pickup")から
+    ペイウォールの無いリード文を抽出する(読売・朝日・毎日・日経等の公式サイト
+    直リンクだと有料記事の壁で読めないため、Yahoo!が無料公開している範囲の
+    本文のみを情報源にする実データ確認済みの方式)。取得したリード文をGemini
+    に渡し、重要トピック4〜6件を選んでカテゴリ分け・3行の事実要約を生成する
+    (本文に無い情報は補わない)。長期国債先物(10年国債先物)はマーケット
+    情報の一部として扱うのが適切なため、fetch_culture_news.pyから移管し
+    ここ(#webhook_market)で配信する。
   - 経済ニュース(2026-08-26改修): Yahoo!ニュースの「business」カテゴリRSSは
     自動車カスタム系メディア(VAGUE/Auto Messe Web/WEB CARTOP等)やライフスタイル
     コラムが大量混入する(実データで確認済み)ため廃止。経済特化のGoogle News RSS
@@ -40,6 +48,7 @@ state/news_seen.json に記録し、そのURL/IDと重複するものはスキ�
   DISCORD_WEBHOOK_LOCAL  (必須)
   DISCORD_WEBHOOK_NEWS   (必須)
   DISCORD_WEBHOOK_MARKET (必須)
+  GEMINI_API_KEY         (必須。主要ニュースの要約生成用)
 """
 import datetime
 import json
@@ -59,6 +68,9 @@ USER_AGENT = (
 )
 REQUEST_TIMEOUT = 15
 DISCORD_CHUNK_LIMIT = 1900  # Discordの2000文字制限に対する安全マージン
+GEMINI_MODEL_NAME = "gemini-3.6-flash"
+NATIONAL_NEWS_CANDIDATE_LIMIT = 15  # Geminiに渡す候補記事数(本文取得コスト対策)
+NATIONAL_NEWS_BODY_MAX_CHARS = 1500  # 1記事あたり本文リード文の上限文字数
 
 ANZN_URL = "https://anzn.net/sp/?11217F&r1=1"
 
@@ -428,6 +440,40 @@ def fetch_economy_news_candidates():
 # 株価(日経平均・ドル円) — 重複排除の対象外(常に最新値を送る)
 # ============================================================
 
+KABUTAN_JGB_URL = "https://s.kabutan.jp/futures/%E9%95%B7%E6%9C%9F%E5%9B%BD%E5%82%B5%E5%85%88%E7%89%A9/"
+
+
+def fetch_jgb_futures():
+    """長期国債先物(10年国債先物)を株探から取得する。2026-08-28、細川さんの
+    指定によりfetch_culture_news.py(#webhook_news)からこちら(#webhook_market)
+    へ移管した(市況データは#webhook_marketに一元化する方針)。
+    """
+    try:
+        resp = requests.get(KABUTAN_JGB_URL, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+    except Exception as err:  # noqa: BLE001
+        print(f"[ERROR] 長期国債先物の取得に失敗しました: {err}")
+        return None
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    text = soup.get_text(" ", strip=True)
+
+    price_match = re.search(r"(\d{2,3}\.\d{2})\s*円", text)
+    if not price_match:
+        print("[WARN] 長期国債先物の現在値を抽出できませんでした。")
+        return None
+
+    rest = text[price_match.end():]
+    change_match = re.search(r"([+-]?\d+\.\d{2})\s*円", rest)
+    rate_match = re.search(r"([+-]?\d+\.\d{2})\s*%", rest[change_match.end():] if change_match else rest)
+
+    return {
+        "price": price_match.group(1),
+        "change": change_match.group(1) if change_match else None,
+        "change_rate": rate_match.group(1) if rate_match else None,
+    }
+
+
 def fetch_nikkei225():
     try:
         resp = requests.get(
@@ -607,13 +653,96 @@ def build_local_news_message(state, now):
     return "\n".join(lines), sports_items
 
 
-def build_national_news_message(state, now):
+def fetch_yahoo_pickup_body(url):
+    """Yahoo!ニュース pickupページから、ペイウォールの無いリード文を抽出する。
+    id="uamods-pickup" のarticle要素に本文・出典メディア名・AI要約Q&A等が
+    含まれることを実データで確認済み。読売・朝日・毎日・日経等の元記事本体
+    (有料)には一切アクセスしない。取得できなければNone。
+    """
+    try:
+        resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] Yahoo記事本文の取得に失敗しました({url}): {err}")
+        return None
+    soup = BeautifulSoup(resp.text, "html.parser")
+    article = soup.find("article", id="uamods-pickup")
+    if not article:
+        return None
+    text = article.get_text(" ", strip=True)
+    return text[:NATIONAL_NEWS_BODY_MAX_CHARS] if text else None
+
+
+def summarize_national_news(client, items):
+    """タイトル+Yahoo pickup本文リード文を渡し、Geminiに重要トピック4〜6件の
+    選定・カテゴリ分け・3行の事実要約を依頼する。本文が取得できなかった記事は
+    候補から除外し、本文に無い情報は推測で補わない指示を明示している。
+    API呼び出し自体が失敗した場合は安全側(0件)に倒す。
+    """
+    candidates = [item for item in items if item.get("body")]
+    if not candidates:
+        return []
+
+    articles_text = "\n\n".join(
+        f"{i}. タイトル: {c['title']}\n本文リード文: {c['body']}"
+        for i, c in enumerate(candidates)
+    )
+    prompt = f"""以下は本日の主要ニュース候補です。各記事について、タイトルと
+Yahoo!ニュースが無料公開しているリード文(本文の一部)が付いています。
+
+{articles_text}
+
+この中から、国内外で重要度が高く多くの人に関心があると判断できるトピックを
+4〜6件選んでください。各トピックについて:
+- category: 「政治」「国際」「経済」「社会」「科学・技術」等、内容に応じた
+  カテゴリ名を1つ付ける(スポーツニュースは対象外、他で配信済みのため除外)。
+- headline: 簡潔な見出し(タイトルを整えてよい)。
+- summary_lines: リード文に書かれている事実関係のみに基づいた3行の要約
+  (決定事項・背景や反応・今後の見通しなど、リード文から読み取れる範囲で)。
+  リード文に無い情報を推測で補わないでください。
+
+該当するものだけ、以下のJSON配列で出力してください(説明文・コードフェンス不要):
+[{{"index": 0, "category": "政治", "headline": "見出し",
+   "summary_lines": ["1行目", "2行目", "3行目"]}}]"""
+
+    try:
+        resp = client.models.generate_content(model=GEMINI_MODEL_NAME, contents=prompt)
+        text = resp.text.strip()
+        text = re.sub(r"^```(json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
+        parsed = json.loads(text)
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] Gemini主要ニュース要約に失敗しました: {err}")
+        return []
+
+    results = []
+    for entry in parsed:
+        idx = entry.get("index")
+        if not isinstance(idx, int) or not (0 <= idx < len(candidates)):
+            continue
+        summary_lines = entry.get("summary_lines") or []
+        if not summary_lines:
+            continue
+        results.append({
+            "category": entry.get("category") or "総合",
+            "headline": entry.get("headline") or candidates[idx]["title"],
+            "summary_lines": summary_lines,
+            "url": candidates[idx]["url"],
+        })
+    return results
+
+
+def build_national_news_message(client, state, now):
     """新着が1件も無ければ(None, [])を返す(Discordへ空更新を送らないため)。
     戻り値は (message_or_None, sports_items) のタプル。
     sports_itemsは、一般ニュースフィードに混入していたスポーツ記事(#webhook_news
     ではなく#webhook_sports_cultureへ回すため、ここでは除外して別途返す)。
     ローカルニュース(build_local_news_message)とは完全に別メッセージ・別Webhookで
     送信するため、ここでは混在させない。
+
+    2026-08-28改修: 見出しの羅列ではなく、Yahoo!ニュース pickupページの
+    ペイウォール外リード文をGeminiで要約し、【カテゴリ】見出し + 3行要約 +
+    出典URLの形式で配信する(読売・朝日・毎日・日経等の有料記事直リンクの壁を
+    回避するため)。
     """
     sports_items = []
 
@@ -629,11 +758,26 @@ def build_national_news_message(state, now):
     if not top_general:
         return None, sports_items
 
+    # 本文取得はネットワークコストがかかるため、候補数を上限で絞る
+    # (新しい記事を優先。RSSは新着順で返ってくる)。
+    candidates = top_general[:NATIONAL_NEWS_CANDIDATE_LIMIT]
+    for item in candidates:
+        item["body"] = fetch_yahoo_pickup_body(item["url"])
+
+    summarized = summarize_national_news(client, candidates)
+    if not summarized:
+        print("[WARN] 主要ニュースの要約が0件だったため、この回の配信をスキップします。")
+        return None, sports_items
+
     now_jst = now.strftime("%Y-%m-%d %H:%M")
-    lines = [f"# 🌐 主要ニュース ({now_jst} JST時点)"]
-    for item in top_general:
-        lines.append(f"- [{item['title']}](<{item['url']}>)")
-    return "\n".join(lines), sports_items
+    lines = [f"# 🌐 国内外の主要トップニュース ({now_jst} JST時点)", ""]
+    for entry in summarized:
+        lines.append(f"📌 【{entry['category']}】{entry['headline']}")
+        for s in entry["summary_lines"]:
+            lines.append(f"・{s}")
+        lines.append(f"（出典: Yahoo!ニュース / <{entry['url']}>）")
+        lines.append("")
+    return "\n".join(lines).rstrip(), sports_items
 
 
 def build_market_message(state, now):
@@ -683,6 +827,17 @@ def build_market_message(state, now):
     lines.append("\n## 🛢️ コモディティ先物")
     lines.append(format_yf_line("WTI原油先物", FUTURES_TICKERS["WTI原油先物"]))
     lines.append(format_yf_line("金先物", FUTURES_TICKERS["金先物"]))
+
+    # 長期国債先物(2026-08-28、fetch_culture_news.pyから移管)。
+    lines.append("\n## 📊 債券")
+    jgb = fetch_jgb_futures()
+    if jgb:
+        arrow = "🔺" if jgb["change"] and not jgb["change"].startswith("-") else "🔻"
+        change_text = f"{arrow} {jgb['change']}円" if jgb["change"] else "前日比不明"
+        rate_text = f"({jgb['change_rate']}%)" if jgb["change_rate"] is not None else ""
+        lines.append(f"- 長期国債先物(10年国債先物): **{jgb['price']}円** {change_text} {rate_text}")
+    else:
+        lines.append("- 長期国債先物(10年国債先物): 取得できませんでした")
 
     biz_all = fetch_economy_news_candidates()
     biz_new = dedupe_new_items(biz_all, "url", state, now)
@@ -817,11 +972,22 @@ def main():
     news_webhook = os.environ.get("DISCORD_WEBHOOK_NEWS")
     market_webhook = os.environ.get("DISCORD_WEBHOOK_MARKET")
     sports_webhook = os.environ.get("DISCORD_WEBHOOK_SPORTS_CULTURE")
+    gemini_api_key = os.environ.get("GEMINI_API_KEY")
 
     if not local_webhook and not news_webhook and not market_webhook:
         print("[ERROR] DISCORD_WEBHOOK_LOCAL / DISCORD_WEBHOOK_NEWS / DISCORD_WEBHOOK_MARKET "
               "のいずれも設定されていません。")
         sys.exit(1)
+    if news_webhook and not gemini_api_key:
+        # 主要ニュースの要約生成にGeminiを使うため、#webhook_news配信には必須。
+        print("[ERROR] 環境変数 GEMINI_API_KEY が設定されていません"
+              "(主要ニュースの要約生成に必要です)。")
+        sys.exit(1)
+
+    gemini_client = None
+    if gemini_api_key:
+        from google import genai
+        gemini_client = genai.Client(api_key=gemini_api_key)
 
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
     state = load_seen_state()
@@ -858,7 +1024,7 @@ def main():
 
     # 全国系(#webhook_news): 主要ニュース(Yahoo!トップピックス)のみ。
     if news_webhook:
-        national_message, national_sports_items = build_national_news_message(state, now)
+        national_message, national_sports_items = build_national_news_message(gemini_client, state, now)
         if national_message:
             print("=== 全国ニュースメッセージ(新着あり) ===")
             print(national_message)

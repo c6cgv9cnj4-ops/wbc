@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-高純度カルチャー・テック・国債先物配信スクリプト (#webhook_news 向け)
+高純度カルチャー・テック配信スクリプト (#webhook_news 向け)
 
 構成(優先順):
-  1. 【最上部・常時表示】長期国債先物(10年国債先物)の現在値・前日比・騰落率
-     https://s.kabutan.jp/futures/長期国債先物/ (株探。実際にサーバーサイド
-     レンダリングされたHTMLから取得可能なことを確認済み)
-  2. 【特枠】林信行(Nobi Hayashi)氏の最新記事
+  ※長期国債先物(10年国債先物)は2026-08-28、市況データを#webhook_marketに
+    一元化する方針により fetch_news.py へ移管した。このファイルには
+    実装しない。
+  1. 【特枠】林信行(Nobi Hayashi)氏の最新記事
      https://nobi.com/rss2.xml (本人公式サイトのRSS。実データで
      dc:creator="Nobuyuki Hayashi　　　林信行"であることを確認済み)
      ※note.com/nobi は同姓同名の別人(Nobuko Masui)のアカウントであり、
@@ -54,7 +54,6 @@ STATE_RETENTION_DAYS = 14
 REQUEST_TIMEOUT = 15
 GEMINI_MODEL_NAME = "gemini-3.6-flash"
 
-KABUTAN_JGB_URL = "https://s.kabutan.jp/futures/%E9%95%B7%E6%9C%9F%E5%9B%BD%E5%82%B5%E5%85%88%E7%89%A9/"
 NOBI_RSS_URL = "https://nobi.com/rss2.xml"
 
 USER_AGENT = (
@@ -91,7 +90,6 @@ EXHIBITION_QUERIES = [
 EXHIBITION_REMINDER_DAYS = 14
 GOOGLE_CALENDAR_RENDER_URL = "https://calendar.google.com/calendar/render"
 
-COLOR_JGB = 0x2B6CB0
 COLOR_NOBI = 0xED8936
 COLOR_CULTURE = 0x38A169
 COLOR_EXHIBITION = 0xB83280
@@ -137,58 +135,7 @@ def is_seen(state, url):
 
 
 # ============================================================
-# 1. 長期国債先物(JGB Futures)
-# ============================================================
-
-def fetch_jgb_futures():
-    try:
-        resp = requests.get(KABUTAN_JGB_URL, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
-        resp.raise_for_status()
-    except Exception as err:  # noqa: BLE001
-        print(f"[ERROR] 長期国債先物の取得に失敗しました: {err}")
-        return None
-
-    soup = BeautifulSoup(resp.text, "html.parser")
-    text = soup.get_text(" ", strip=True)
-
-    price_match = re.search(r"(\d{2,3}\.\d{2})\s*円", text)
-    if not price_match:
-        print("[WARN] 長期国債先物の現在値を抽出できませんでした。")
-        return None
-
-    rest = text[price_match.end():]
-    change_match = re.search(r"([+-]?\d+\.\d{2})\s*円", rest)
-    rate_match = re.search(r"([+-]?\d+\.\d{2})\s*%", rest[change_match.end():] if change_match else rest)
-
-    return {
-        "price": price_match.group(1),
-        "change": change_match.group(1) if change_match else None,
-        "change_rate": rate_match.group(1) if rate_match else None,
-    }
-
-
-def build_jgb_embed(jgb, now):
-    now_jst = now.strftime("%Y-%m-%d %H:%M")
-    if not jgb:
-        return {
-            "title": "📊 長期国債先物(10年国債先物)",
-            "description": "現在値を取得できませんでした。",
-            "color": COLOR_JGB,
-            "footer": {"text": f"株探 / {now_jst} JST時点"},
-        }
-    arrow = "🔺" if jgb["change"] and not jgb["change"].startswith("-") else "🔻"
-    change_text = f"{arrow} {jgb['change']}円" if jgb["change"] else "前日比不明"
-    rate_text = f"({jgb['change_rate']}%)" if jgb["change_rate"] is not None else ""
-    return {
-        "title": "📊 長期国債先物(10年国債先物)",
-        "description": f"**{jgb['price']}円** {change_text} {rate_text}",
-        "color": COLOR_JGB,
-        "footer": {"text": f"株探 / {now_jst} JST時点"},
-    }
-
-
-# ============================================================
-# 2. 林信行氏の最新記事(特枠)
+# 1. 林信行氏の最新記事(特枠)
 # ============================================================
 
 def fetch_nobi_articles(state, now, limit=3):
@@ -552,9 +499,6 @@ def main():
     state = prune_old_entries(state, now)
 
     embeds = []
-
-    jgb = fetch_jgb_futures()
-    embeds.append(build_jgb_embed(jgb, now))
 
     nobi_articles = fetch_nobi_articles(state, now)
     nobi_embed = build_nobi_embed(nobi_articles)

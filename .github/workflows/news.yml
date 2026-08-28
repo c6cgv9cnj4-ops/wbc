@@ -36,6 +36,7 @@ jobs:
           DISCORD_WEBHOOK_LOCAL: ${{ secrets.WEBHOOK_LOCAL }}
           DISCORD_WEBHOOK_MARKET: ${{ secrets.WEBHOOK_MARKET }}
           DISCORD_WEBHOOK_SPORTS_CULTURE: ${{ secrets.WEBHOOK_SPORTS_CULTURE }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/fetch_news.py
 
       - name: 既送信記録をコミット
