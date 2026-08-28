@@ -276,13 +276,18 @@ def build_oshi_message(state, now):
                 event_dates = extract_event_dates(item["title"], now)
                 if event_dates:
                     start, end = event_dates
-                    event_title = f"{keyword} {item['title']}"
+                    # カレンダーURLのtextパラメータに記事タイトル全文を入れると
+                    # URLが極端に長くなり、カレンダーリンク行が単独で
+                    # Discordの2000文字制限を超えてHTTP 400になる事例が
+                    # 実際に発生した(2026-08-28)。イベント名は短縮する。
+                    event_title = f"{keyword} {item['title']}"[:60]
                     calendar_url = build_calendar_url(event_title, item["url"], start, end)
                     reminder_url = build_reminder_calendar_url(event_title, item["url"], end)
-                    lines.append(
-                        f"  - 📅 [カレンダーに追加](<{calendar_url}>) ｜ "
-                        f"⏰ [終了{EVENT_REMINDER_DAYS}日前リマインダー追加](<{reminder_url}>)"
-                    )
+                    # 2つのリンクを1行にまとめず分けることで、どちらか1本が
+                    # 長くなっても1行あたりの文字数を抑える(chunk_messageは
+                    # 行単位でしか分割できないため)。
+                    lines.append(f"  - 📅 [カレンダーに追加](<{calendar_url}>)")
+                    lines.append(f"  - ⏰ [終了{EVENT_REMINDER_DAYS}日前リマインダー追加](<{reminder_url}>)")
             sections.append("\n".join(lines))
 
     if not has_any_new:
