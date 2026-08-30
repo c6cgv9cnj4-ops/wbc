@@ -88,7 +88,38 @@ USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 )
-ITEMS_PER_KEYWORD = 5  # 1キーワードあたり取得する最新記事数
+ITEMS_PER_KEYWORD = 5  # 1キーワードあたり配信する最新記事数
+RAW_CANDIDATES_PER_KEYWORD = 20  # 関連性フィルタ前に取得する候補数(フィルタで
+                                  # 減る分を見込んでITEMS_PER_KEYWORDより多めに取る)
+
+# 2026-08-30: Google News RSSは、キーワードがタイトルに一切含まれない
+# 無関係な記事(検索語と関係の薄い、放送局・出版社等の一般ニュース)を
+# 返すことがあると実データで確認した。特に「水曜どうでしょう」検索では、
+# 番組を放送するHTB(北海道テレビ)の地域ニュース(わいせつ事件・強盗事件
+# 等の事件事故を含む)が多数混入し、番組と無関係な内容がそのまま配信
+# されてしまう重大な誤配信が発生していた。
+#
+# 対策として、タイトルに「キーワード自体」または下記で明示的に許可した
+# 関連語が含まれる記事だけを通す最終フィルタ(is_title_relevant)を設ける。
+# 既定(このdictに無いキーワード)は「キーワード自体がタイトルに含まれる
+# こと」を要求する、安全側に倒した厳格な条件にしている。
+OSHI_TITLE_ALLOW_EXTRA = {
+    "水曜どうでしょう": [
+        "水曜どうでしょう", "水どう", "どうでしょう班", "どうでしょうキャラバン",
+        "藤村忠寿", "藤村ディレクター", "藤村Ｄ", "藤村D",
+        "嬉野雅道", "嬉野ディレクター", "嬉野Ｄ", "嬉野D",
+        "ミスターチーフディレクター",
+    ],
+}
+
+
+def is_title_relevant(keyword, title):
+    """タイトルにキーワード自体、またはOSHI_TITLE_ALLOW_EXTRAで指定した
+    関連語のいずれかが含まれるかを判定する。番組名・人名で検索しても、
+    タイトルに一切それらが出てこない無関係な記事を弾くための最終防衛線。
+    """
+    allow_terms = OSHI_TITLE_ALLOW_EXTRA.get(keyword, [keyword])
+    return any(term in title for term in allow_terms)
 
 
 def load_seen_state():
@@ -168,10 +199,15 @@ def fetch_keyword_news(keyword, retries=3):
         return []
 
     feed = feedparser.parse(resp.content)
-    return [
+    candidates = [
         {"title": e.title, "url": e.link, "published": format_published_jst(e)}
-        for e in feed.entries[:ITEMS_PER_KEYWORD]
+        for e in feed.entries[:RAW_CANDIDATES_PER_KEYWORD]
     ]
+    relevant = [c for c in candidates if is_title_relevant(keyword, c["title"])]
+    excluded_count = len(candidates) - len(relevant)
+    if excluded_count:
+        print(f"[INFO] {keyword}: タイトルに関連語を含まない記事{excluded_count}件を除外しました。")
+    return relevant[:ITEMS_PER_KEYWORD]
 
 
 def extract_event_dates(title, now):
