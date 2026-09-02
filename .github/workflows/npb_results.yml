@@ -1,0 +1,44 @@
+name: NPB当日の試合結果(#webhook_sports_culture)
+
+on:
+  schedule:
+    # NPBのナイターは18:00開始・22時台終了。確定分を拾う本番実行と、
+    # 延長/雨天中断で遅れた試合を拾う catch-up 実行の2本立て(UTC指定)。
+    - cron: "40 13 * * *"  # 22:40 JST
+    - cron: "50 14 * * *"  # 23:50 JST(前回より確定試合が増えた時のみ再配信)
+  workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+
+permissions:
+  contents: write  # state/npb_results_seen.json(配信済み記録)のコミット用
+
+jobs:
+  fetch-npb-results:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: npb-results
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      - name: NPB当日の試合結果を取得してDiscordへ配信
+        env:
+          DISCORD_WEBHOOK_SPORTS_CULTURE: ${{ secrets.WEBHOOK_SPORTS_CULTURE }}
+        run: python scripts/fetch_npb_results.py
+
+      - name: 配信済み記録をコミット
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state/npb_results_seen.json
+          git diff --cached --quiet || git commit -m "NPB試合結果の配信済み記録を更新"
+          git pull --rebase origin main
+          git push
