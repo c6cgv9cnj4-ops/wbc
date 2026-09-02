@@ -6,7 +6,16 @@ on:
     # 延長/雨天中断で遅れた試合を拾う catch-up 実行の2本立て(UTC指定)。
     - cron: "40 13 * * *"  # 22:40 JST
     - cron: "50 14 * * *"  # 23:50 JST(前回より確定試合が増えた時のみ再配信)
-  workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+  workflow_dispatch:  # 手動実行用ボタン(Actionsタブから即時テスト/過去日の補完)
+    inputs:
+      date:
+        description: "対象日 YYYY-MM-DD (空欄で当日JST)"
+        required: false
+        default: ""
+      dry_run:
+        description: "true でDiscord送信・記録更新をスキップ(ログのみ)"
+        required: false
+        default: "false"
 
 permissions:
   contents: write  # state/npb_results_seen.json(配信済み記録)のコミット用
@@ -31,7 +40,16 @@ jobs:
       - name: NPB当日の試合結果を取得してDiscordへ配信
         env:
           DISCORD_WEBHOOK_SPORTS_CULTURE: ${{ secrets.WEBHOOK_SPORTS_CULTURE }}
-        run: python scripts/fetch_npb_results.py
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            ARGS="$ARGS --date ${{ github.event.inputs.date }}"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          echo "実行: python scripts/fetch_npb_results.py $ARGS"
+          python scripts/fetch_npb_results.py $ARGS
 
       - name: 配信済み記録をコミット
         if: always()
