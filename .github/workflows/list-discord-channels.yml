@@ -1,0 +1,27 @@
+name: Discordチャンネル一覧調査(診断用)
+
+# DISCORD_BOT_TOKEN を使い、Botが参加している全サーバーのチャンネル名・IDを
+# ログに出力する診断専用ワークフロー。DISCORD_CHANNEL_ID_HEALTH 等のチャンネルID
+# をGitHub Secretsへ登録する際に使う。schedule実行はしない(手動実行専用)。
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  list-channels:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install requests
+
+      - name: チャンネル一覧を取得
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: python scripts/list_discord_channels.py
