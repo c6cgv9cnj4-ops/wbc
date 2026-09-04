@@ -54,6 +54,10 @@
  *   POSTのみ常にHTTP 405で拒否される。実行数ログには「完了」と出るのに応答だけ
  *   405になる)を実機確認済みのため、呼び出し側(scripts/sync_weekly_sheet.py,
  *   scripts/generate_monthly_mindmap.py)はどちらもGET(doGet)経由で呼んでいる。
+ *   また、date列(C列)は setNumberFormat("@") で明示的にプレーンテキスト書式に
+ *   固定しても、実機でSheetsがDate型へ自動変換してしまう事象を確認したため、
+ *   mode=fetch が返す date は date列の生セルではなく key列("YYYY-MM-DD|type")
+ *   から復元した値を使っている(key列は"|"を含むため日付として誤認識されない)。
  */
 
 const SHEET_NAME = "ログ";
@@ -145,12 +149,17 @@ function handleFetch(params) {
   var data = sheet.getRange(2, 1, lastRow - 1, HEADERS.length).getValues();
   var items = [];
   data.forEach(function (r) {
-    var date = String(r[2]);
-    if (!month || date.indexOf(month) === 0) {
+    // date列(C列)はsetNumberFormat("@")を試みても実機でSheetsがDate型に自動変換
+    // してしまうケースを確認したため、date列の生セルは信頼しない。key列(A列)は
+    // "YYYY-MM-DD|type" 形式で "|" を含むため日付として誤認識されず、常に文字列の
+    // ままなので、こちらから日付部分を復元して使う(dateフィールドもkey由来で返す)。
+    var key = String(r[0]);
+    var dateFromKey = key.indexOf("|") >= 0 ? key.split("|")[0] : String(r[2]);
+    if (!month || dateFromKey.indexOf(month) === 0) {
       items.push({
         key: r[0],
         week: r[1],
-        date: r[2],
+        date: dateFromKey,
         type: r[3],
         text: r[4],
         synced_at: r[5],
