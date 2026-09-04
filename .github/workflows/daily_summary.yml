@@ -1,14 +1,21 @@
-name: 日刊レポート自動生成
+name: 日刊レポート自動生成(停止中)
+
+# ============================================================
+# ⚠️ 2026-09-04 停止。スケジュール実行を無効化しました。
+#   停止理由: 毎日の schedule 実行が Discord 送信ステップで必ず失敗し
+#     (Secrets の DISCORD_WEBHOOK_DAILY が "https://" から始まらず
+#      "Invalid URL: No scheme supplied")、失敗通知メールが毎日届いていたため。
+#   後継: .github/workflows/weekly-mindmap.yml(週次マインドマップ生成)。
+#   再開手順: 下の schedule ブロックのコメントを外し、Secrets の
+#     DISCORD_WEBHOOK_DAILY を "https://discord.com/api/webhooks/..." の
+#     正しい URL に更新すること。
+# ============================================================
 
 on:
-  schedule:
-    # 毎日 24:15 JST(=翌日0:15 JST) = UTC 15:15
-    # discord_logs.yml(UTC 15:00起動、logs/daily・logs/healthを収集してpush)の
-    # 直後に走らせることで、当日分のログが確実にpush済みの状態で読み込む。
-    # 同時刻(UTC 15:00)に重ねると、両ワークフローが同じログをコミット/pushしよう
-    # として競合(git push失敗)するおそれがあるため15分ずらしている。
-    - cron: "15 15 * * *"
-  workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+  # schedule:
+  #   # 毎日 24:15 JST(=翌日0:15 JST) = UTC 15:15
+  #   - cron: "15 15 * * *"
+  workflow_dispatch: {}  # 手動実行のみ(スケジュール停止中。復旧確認用に残置)
 
 permissions:
   contents: write  # reports/daily への書き込み(コミット)用
