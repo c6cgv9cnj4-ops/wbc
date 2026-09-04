@@ -24,6 +24,13 @@ secret・itemsをURLのクエリパラメータとして渡すためURL長を安
 必要があり、1リクエスト=1件(BATCH_SIZE=1)で送信する(ジャーナル本文は
 価格データより長くなりがちなため)。
 
+【リトライについて】
+実機検証で、GAS側の実行自体は成功している(スプレッドシートには正しく書き込まれる)
+のにHTTPレスポンスだけ404等で返ってくる、Google側インフラの一過性の揺れを複数回
+確認した。1回失敗しただけで exit 1(失敗通知)にすると誤検知が多くなるため、
+軽いリトライ(GAS_MAX_ATTEMPTS回、GAS_RETRY_WAIT秒間隔)を挟む。それでも失敗する
+場合のみ実際の失敗として扱う。
+
 環境変数:
   JOURNAL_GAS_WEB_APP_URL   (任意。未設定なら同期をスキップし exit 0)
   JOURNAL_GAS_SHARED_SECRET (任意。URL設定時は実質必須)
@@ -32,6 +39,7 @@ import datetime
 import json
 import os
 import sys
+import time
 import urllib.parse
 
 import requests
@@ -39,6 +47,8 @@ import requests
 JST = datetime.timezone(datetime.timedelta(hours=9))
 REQUEST_TIMEOUT = 30
 BATCH_SIZE = 1  # GET方式のためURL長を安全な範囲に収める(理由は上記docstring参照)
+GAS_MAX_ATTEMPTS = 3
+GAS_RETRY_WAIT = 3  # 秒
 
 LOG_SOURCES = [
     ("daily", "logs/daily", "#インプット(メモ)"),
@@ -76,6 +86,23 @@ def collect_week_items(today):
     return items
 
 
+def request_gas(url):
+    """GAS Web Appへ GET し、JSONを返す。GAS側は成功しているのにHTTP応答だけ
+    失敗する一過性の揺れを吸収するため、軽くリトライする。"""
+    last_err = None
+    for attempt in range(1, GAS_MAX_ATTEMPTS + 1):
+        try:
+            resp = requests.get(url, timeout=REQUEST_TIMEOUT)
+            resp.raise_for_status()
+            return resp.json(), None
+        except Exception as err:  # noqa: BLE001
+            last_err = err
+            if attempt < GAS_MAX_ATTEMPTS:
+                print(f"[WARN] リクエスト失敗(試行{attempt}/{GAS_MAX_ATTEMPTS}): {err} → {GAS_RETRY_WAIT}秒後に再試行")
+                time.sleep(GAS_RETRY_WAIT)
+    return None, last_err
+
+
 def send_upsert(gas_url, gas_secret, items):
     ok_all = True
     total_written = 0
@@ -89,12 +116,9 @@ def send_upsert(gas_url, gas_secret, items):
             }
         )
         full_url = f"{gas_url}?{query}"
-        try:
-            resp = requests.get(full_url, timeout=REQUEST_TIMEOUT)
-            resp.raise_for_status()
-            data = resp.json()
-        except Exception as err:  # noqa: BLE001
-            print(f"[ERROR] バッチ{i // BATCH_SIZE + 1}の送信に失敗しました: {err}")
+        data, err = request_gas(full_url)
+        if data is None:
+            print(f"[ERROR] バッチ{i // BATCH_SIZE + 1}の送信に失敗しました({GAS_MAX_ATTEMPTS}回試行): {err}")
             ok_all = False
             continue
         if not data.get("ok"):

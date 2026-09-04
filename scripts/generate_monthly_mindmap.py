@@ -33,6 +33,12 @@ Gemini API でキーワード抽出→3大ブランチ構造の月次マイン�
   * Gemini API 呼び出しに失敗            → 生ログを埋め込んだ雛形マップを出力
   設定不備として exit 1 にするのは GEMINI_API_KEY 未設定のときのみ。
 
+【リトライについて】
+実機検証で、GAS側の実行自体は成功しているのにHTTPレスポンスだけ失敗する
+一過性の揺れを複数回確認した(sync_weekly_sheet.py と共通の事象)。1回の
+失敗だけで「スプレッドシート未設定/取得失敗」扱いにすると誤検知が多くなる
+ため、軽いリトライ(GAS_MAX_ATTEMPTS回)を挟んでから諦める。
+
 環境変数:
   GEMINI_API_KEY             (必須)
   JOURNAL_GAS_WEB_APP_URL    (任意)
@@ -41,11 +47,14 @@ Gemini API でキーワード抽出→3大ブランチ構造の月次マイン�
 import datetime
 import os
 import sys
+import time
 
 import requests
 
 JST = datetime.timezone(datetime.timedelta(hours=9))
 REQUEST_TIMEOUT = 30
+GAS_MAX_ATTEMPTS = 3
+GAS_RETRY_WAIT = 3  # 秒
 
 # 他スクリプト(generate_weekly_mindmap.py 等)と同一の現行モデルに揃えている。
 GEMINI_MODEL_NAME = "gemini-3.6-flash"
@@ -67,16 +76,25 @@ def fetch_month_items(gas_url, gas_secret, month_label):
     """
     if not gas_url or not gas_secret:
         return None
-    try:
-        resp = requests.get(
-            gas_url,
-            params={"mode": "fetch", "secret": gas_secret, "month": month_label},
-            timeout=REQUEST_TIMEOUT,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-    except Exception as err:  # noqa: BLE001
-        print(f"[WARN] スプレッドシートからの取得に例外が発生しました: {err}")
+    data = None
+    last_err = None
+    for attempt in range(1, GAS_MAX_ATTEMPTS + 1):
+        try:
+            resp = requests.get(
+                gas_url,
+                params={"mode": "fetch", "secret": gas_secret, "month": month_label},
+                timeout=REQUEST_TIMEOUT,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            break
+        except Exception as err:  # noqa: BLE001
+            last_err = err
+            if attempt < GAS_MAX_ATTEMPTS:
+                print(f"[WARN] 取得に失敗(試行{attempt}/{GAS_MAX_ATTEMPTS}): {err} → {GAS_RETRY_WAIT}秒後に再試行")
+                time.sleep(GAS_RETRY_WAIT)
+    if data is None:
+        print(f"[WARN] スプレッドシートからの取得に{GAS_MAX_ATTEMPTS}回失敗しました: {last_err}")
         return None
     if not data.get("ok"):
         print(f"[WARN] GAS側で取得に失敗しました: {data.get('error')}")
