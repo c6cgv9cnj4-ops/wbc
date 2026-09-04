@@ -122,13 +122,16 @@ def fetch_forum_threads_today(channel_id, bot_token):
     headers = {"Authorization": f"Bot {bot_token}"}
     now_jst = datetime.datetime.now(JST)
     start_of_day_jst = now_jst.replace(hour=0, minute=0, second=0, microsecond=0)
+    print(f"[DEBUG] 現在時刻(JST)={now_jst.isoformat()} / 本日の開始境界={start_of_day_jst.isoformat()}")
 
     # チャンネル情報からguild_idを取得(アクティブスレッド一覧の取得に必要)
     resp = requests.get(
         f"{DISCORD_API_BASE}/channels/{channel_id}", headers=headers, timeout=REQUEST_TIMEOUT
     )
     resp.raise_for_status()
-    guild_id = resp.json().get("guild_id")
+    channel_info = resp.json()
+    guild_id = channel_info.get("guild_id")
+    print(f"[DEBUG] channel_id={channel_id} type={channel_info.get('type')} guild_id={guild_id}")
 
     threads = []
 
@@ -139,9 +142,12 @@ def fetch_forum_threads_today(channel_id, bot_token):
             timeout=REQUEST_TIMEOUT,
         )
         resp.raise_for_status()
-        threads.extend(
-            t for t in resp.json().get("threads", []) if t.get("parent_id") == channel_id
-        )
+        active_all = resp.json().get("threads", [])
+        active_here = [t for t in active_all if t.get("parent_id") == channel_id]
+        print(f"[DEBUG] アクティブスレッド: ギルド全体{len(active_all)}件 / 当該チャンネル{len(active_here)}件")
+        for t in active_all:
+            print(f"[DEBUG]   active: id={t.get('id')} name={t.get('name')!r} parent_id={t.get('parent_id')}")
+        threads.extend(active_here)
 
     # アーカイブ済み公開スレッド(このチャンネル配下のみ、ページングあり)。
     # 既定のフォーラム自動アーカイブ時間(最短でも1時間)を踏まえ、当日作成分が
@@ -160,6 +166,9 @@ def fetch_forum_threads_today(channel_id, bot_token):
         resp.raise_for_status()
         data = resp.json()
         batch = data.get("threads", [])
+        print(f"[DEBUG] アーカイブ済み公開スレッド: {len(batch)}件(このページ)")
+        for t in batch:
+            print(f"[DEBUG]   archived: id={t.get('id')} name={t.get('name')!r} parent_id={t.get('parent_id')}")
         threads.extend(batch)
         archive_ts = batch[-1].get("thread_metadata", {}).get("archive_timestamp") if batch else None
         if not data.get("has_more") or not batch or not archive_ts:
@@ -176,6 +185,7 @@ def fetch_forum_threads_today(channel_id, bot_token):
             continue
         seen_ids.add(thread_id)
         created_jst = snowflake_to_datetime_utc(thread_id).astimezone(JST)
+        print(f"[DEBUG] thread id={thread_id} name={t.get('name')!r} 作成日時(JST)={created_jst.isoformat()}")
         if created_jst >= start_of_day_jst:
             today_threads.append(t)
 
