@@ -1,0 +1,33 @@
+name: 週次スプレッドシート同期
+
+# 直近7日分の #インプット(メモ) / #ヘルス・日報(モーニングジャーナル)ログを、
+# ISO週タグ(例: 2026-W36)付きで Google スプレッドシートへ同期(upsert)する。
+# 「週完結」の区切り。月次マインドマップ(monthly-mindmap.yml)は本ワークフローが
+# 書き込んだスプレッドシートを月末にまとめて読み出す設計。
+# GAS側の実装: gas/journal_log_sheet.gs (新規デプロイが必要。README参照)
+
+on:
+  schedule:
+    # 毎週日曜 21:00 JST = 12:00 UTC
+    - cron: "0 12 * * 0"
+  workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+
+jobs:
+  weekly-sheet-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      - name: 週次ログをスプレッドシートへ同期
+        env:
+          JOURNAL_GAS_WEB_APP_URL: ${{ secrets.JOURNAL_GAS_WEB_APP_URL }}
+          JOURNAL_GAS_SHARED_SECRET: ${{ secrets.JOURNAL_GAS_SHARED_SECRET }}
+        run: python scripts/sync_weekly_sheet.py

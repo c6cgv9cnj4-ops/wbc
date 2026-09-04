@@ -1,0 +1,53 @@
+name: 月次統合マインドマップ生成
+
+# 月末に、週次スプレッドシート同期(weekly-sheet-sync.yml)が集約した当月分の
+# 全ログを読み出し、「事実」と「感情・思考ループ」を厳格に分離した3大ブランチの
+# 客観分析マインドマップ(Mermaid + Markdownツリー)を生成する。
+# reports/monthly/YYYY-MM_mindmap.md にコミット。
+
+on:
+  schedule:
+    # 毎月28〜31日 22:00 JST(=13:00 UTC)に判定実行。
+    # 「翌日が1日」の日=月末以外はスクリプト側で何もせずスキップする。
+    - cron: "0 13 28-31 * *"
+  workflow_dispatch: {}  # 手動実行用ボタン。月末判定を無視し常に当月分で検証生成する。
+
+permissions:
+  contents: write  # reports/monthly への書き込み(コミット)用
+
+concurrency:
+  group: monthly-mindmap
+  cancel-in-progress: false
+
+jobs:
+  monthly-mindmap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # コミット後の git pull --rebase を安全にするため全履歴を取得
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      - name: 月次統合マインドマップ生成(Gemini API)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          JOURNAL_GAS_WEB_APP_URL: ${{ secrets.JOURNAL_GAS_WEB_APP_URL }}
+          JOURNAL_GAS_SHARED_SECRET: ${{ secrets.JOURNAL_GAS_SHARED_SECRET }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: python scripts/generate_monthly_mindmap.py
+
+      - name: 生成物をコミット
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/monthly
+          git diff --cached --quiet || git commit -m "月次統合マインドマップを自動生成 ($(date -u +%Y-%m-%d))"
+          git pull --rebase origin main
+          git push
