@@ -49,7 +49,11 @@
  *     { mode, secret, month }
  *     → { ok:true, items:[{key,week,date,type,text,synced_at}, ...] }
  *   POSTは JSON ボディ、GETはクエリパラメータ(itemsはJSON文字列化して渡す)の
- *   どちらでも同じロジックで処理する。
+ *   どちらでも同じロジックで処理する(doPost/doGetともhandleRequestを呼ぶだけ)。
+ *   ただし本デプロイでは price_bot 側と同じ既知のGAS不具合(このデプロイ構成だと
+ *   POSTのみ常にHTTP 405で拒否される。実行数ログには「完了」と出るのに応答だけ
+ *   405になる)を実機確認済みのため、呼び出し側(scripts/sync_weekly_sheet.py,
+ *   scripts/generate_monthly_mindmap.py)はどちらもGET(doGet)経由で呼んでいる。
  */
 
 const SHEET_NAME = "ログ";
@@ -115,11 +119,15 @@ function handleUpsert(params) {
   items.forEach(function (item) {
     var row = [item.key, item.week, item.date, item.type, item.text, now];
     var existingRow = keyToRow[item.key];
-    if (existingRow) {
-      sheet.getRange(existingRow, 1, 1, HEADERS.length).setValues([row]);
-    } else {
-      sheet.appendRow(row);
-      keyToRow[item.key] = sheet.getLastRow();
+    var targetRow = existingRow || sheet.getLastRow() + 1;
+    var range = sheet.getRange(targetRow, 1, 1, HEADERS.length);
+    // "2026-09-04" 等の日付/日時に見える文字列をSheetsが勝手にDate型へ自動変換
+    // してしまい、月フィルタ(handleFetchの文字列前方一致)が壊れる不具合を防ぐため、
+    // 書き込み直前に対象セルをプレーンテキスト書式へ強制してから値をセットする。
+    range.setNumberFormat("@");
+    range.setValues([row]);
+    if (!existingRow) {
+      keyToRow[item.key] = targetRow;
     }
     written++;
   });

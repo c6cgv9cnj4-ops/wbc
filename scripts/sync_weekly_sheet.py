@@ -15,19 +15,30 @@
 GASとは別物)。1日1種別につき1行、key=`日付|種別` で upsert されるため、
 同じ週を何度再実行しても重複行は生まれない。
 
+【GETベースにしている理由】
+price_bot/scripts/push_to_sheets.py と同じ既知の不具合(このウェブアプリの
+デプロイでPOSTリクエストのみが常にHTTP 405で拒否される。GAS側の実行数ログには
+「完了」と記録されるのにHTTP応答だけ405になる)を本デプロイでも実機確認したため、
+確実に動作するGET(doGet)のクエリパラメータ経由で送信する方式に統一している。
+secret・itemsをURLのクエリパラメータとして渡すためURL長を安全な範囲に収める
+必要があり、1リクエスト=1件(BATCH_SIZE=1)で送信する(ジャーナル本文は
+価格データより長くなりがちなため)。
+
 環境変数:
   JOURNAL_GAS_WEB_APP_URL   (任意。未設定なら同期をスキップし exit 0)
   JOURNAL_GAS_SHARED_SECRET (任意。URL設定時は実質必須)
 """
 import datetime
+import json
 import os
 import sys
+import urllib.parse
 
 import requests
 
 JST = datetime.timezone(datetime.timedelta(hours=9))
 REQUEST_TIMEOUT = 30
-BATCH_SIZE = 10
+BATCH_SIZE = 1  # GET方式のためURL長を安全な範囲に収める(理由は上記docstring参照)
 
 LOG_SOURCES = [
     ("daily", "logs/daily", "#インプット(メモ)"),
@@ -70,12 +81,16 @@ def send_upsert(gas_url, gas_secret, items):
     total_written = 0
     for i in range(0, len(items), BATCH_SIZE):
         batch = items[i : i + BATCH_SIZE]
+        query = urllib.parse.urlencode(
+            {
+                "mode": "upsert",
+                "secret": gas_secret,
+                "items": json.dumps(batch, ensure_ascii=False),
+            }
+        )
+        full_url = f"{gas_url}?{query}"
         try:
-            resp = requests.post(
-                gas_url,
-                json={"mode": "upsert", "secret": gas_secret, "items": batch},
-                timeout=REQUEST_TIMEOUT,
-            )
+            resp = requests.get(full_url, timeout=REQUEST_TIMEOUT)
             resp.raise_for_status()
             data = resp.json()
         except Exception as err:  # noqa: BLE001
