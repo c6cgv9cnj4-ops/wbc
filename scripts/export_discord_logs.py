@@ -21,6 +21,12 @@ Discordログ収集 & Issues自動起票(Step 2)
   GITHUB_TOKEN               (必須) Issue作成用(Actions既定のGITHUB_TOKENを使う想定)
   GITHUB_REPOSITORY          (Actions実行時は自動設定される。"owner/repo"形式)
 
+【Discord Developer Portal側の必須設定】
+Bot設定の "Privileged Gateway Intents" で "MESSAGE CONTENT INTENT" を有効化
+すること。これが無効だと、メッセージ自体は取得できてもcontentフィールドが
+常に空文字列で返る(添付件数等のメタ情報は見えるのに本文だけ空、という分かり
+にくい形で失敗する)。実機調査でこれが原因だったことを確認済み。
+
 いずれかのチャンネルID未設定・取得失敗(権限不足によるDiscord APIの403等)が
 あっても、このステップ自体は失敗させない(exit 0で終える)。後続の日刊/週刊
 レポート生成ステップは、ログの有無に関わらず必ず実行されるべきため。
@@ -122,16 +128,13 @@ def fetch_forum_threads_today(channel_id, bot_token):
     headers = {"Authorization": f"Bot {bot_token}"}
     now_jst = datetime.datetime.now(JST)
     start_of_day_jst = now_jst.replace(hour=0, minute=0, second=0, microsecond=0)
-    print(f"[DEBUG] 現在時刻(JST)={now_jst.isoformat()} / 本日の開始境界={start_of_day_jst.isoformat()}")
 
     # チャンネル情報からguild_idを取得(アクティブスレッド一覧の取得に必要)
     resp = requests.get(
         f"{DISCORD_API_BASE}/channels/{channel_id}", headers=headers, timeout=REQUEST_TIMEOUT
     )
     resp.raise_for_status()
-    channel_info = resp.json()
-    guild_id = channel_info.get("guild_id")
-    print(f"[DEBUG] channel_id={channel_id} type={channel_info.get('type')} guild_id={guild_id}")
+    guild_id = resp.json().get("guild_id")
 
     threads = []
 
@@ -142,12 +145,9 @@ def fetch_forum_threads_today(channel_id, bot_token):
             timeout=REQUEST_TIMEOUT,
         )
         resp.raise_for_status()
-        active_all = resp.json().get("threads", [])
-        active_here = [t for t in active_all if t.get("parent_id") == channel_id]
-        print(f"[DEBUG] アクティブスレッド: ギルド全体{len(active_all)}件 / 当該チャンネル{len(active_here)}件")
-        for t in active_all:
-            print(f"[DEBUG]   active: id={t.get('id')} name={t.get('name')!r} parent_id={t.get('parent_id')}")
-        threads.extend(active_here)
+        threads.extend(
+            t for t in resp.json().get("threads", []) if t.get("parent_id") == channel_id
+        )
 
     # アーカイブ済み公開スレッド(このチャンネル配下のみ、ページングあり)。
     # 既定のフォーラム自動アーカイブ時間(最短でも1時間)を踏まえ、当日作成分が
@@ -166,9 +166,6 @@ def fetch_forum_threads_today(channel_id, bot_token):
         resp.raise_for_status()
         data = resp.json()
         batch = data.get("threads", [])
-        print(f"[DEBUG] アーカイブ済み公開スレッド: {len(batch)}件(このページ)")
-        for t in batch:
-            print(f"[DEBUG]   archived: id={t.get('id')} name={t.get('name')!r} parent_id={t.get('parent_id')}")
         threads.extend(batch)
         archive_ts = batch[-1].get("thread_metadata", {}).get("archive_timestamp") if batch else None
         if not data.get("has_more") or not batch or not archive_ts:
@@ -185,7 +182,6 @@ def fetch_forum_threads_today(channel_id, bot_token):
             continue
         seen_ids.add(thread_id)
         created_jst = snowflake_to_datetime_utc(thread_id).astimezone(JST)
-        print(f"[DEBUG] thread id={thread_id} name={t.get('name')!r} 作成日時(JST)={created_jst.isoformat()}")
         if created_jst >= start_of_day_jst:
             today_threads.append(t)
 
@@ -195,12 +191,6 @@ def fetch_forum_threads_today(channel_id, bot_token):
         thread_name = t.get("name", "(無題)")
         # スレッド自体が当日作成のため、日付フィルタは不要(全メッセージが対象)。
         messages = fetch_today_messages(thread_id, bot_token)
-        for m in messages:
-            print(
-                f"[DEBUG]   msg id={m.get('id')} content_len={len(m.get('content') or '')} "
-                f"attachments={len(m.get('attachments') or [])} embeds={len(m.get('embeds') or [])} "
-                f"content_repr={m.get('content')!r}"
-            )
         results.append((thread_name, messages))
 
     results.sort(key=lambda item: item[0])
@@ -358,27 +348,6 @@ def main():
 
     date_str = datetime.datetime.now(JST).strftime("%Y-%m-%d")
     issue_count = 0
-
-    # [DEBUG] 権限変更が反映されない件の切り分け: このトークンが実際にどのBotで、
-    # サーバー内でどのロールを持っているかを確認する(調査用・後で削除予定)。
-    try:
-        headers = {"Authorization": f"Bot {bot_token}"}
-        me = requests.get(f"{DISCORD_API_BASE}/users/@me", headers=headers, timeout=REQUEST_TIMEOUT).json()
-        print(f"[DEBUG] Bot自身の情報: username={me.get('username')} id={me.get('id')} bot={me.get('bot')}")
-        guilds = requests.get(f"{DISCORD_API_BASE}/users/@me/guilds", headers=headers, timeout=REQUEST_TIMEOUT).json()
-        for g in guilds:
-            gid = g.get("id")
-            print(f"[DEBUG] 参加サーバー: {g.get('name')} (id={gid})")
-            member = requests.get(
-                f"{DISCORD_API_BASE}/guilds/{gid}/members/{me.get('id')}", headers=headers, timeout=REQUEST_TIMEOUT
-            ).json()
-            role_ids = member.get("roles", [])
-            print(f"[DEBUG]   Botのロールid一覧: {role_ids}")
-            roles = requests.get(f"{DISCORD_API_BASE}/guilds/{gid}/roles", headers=headers, timeout=REQUEST_TIMEOUT).json()
-            role_names = {r["id"]: r["name"] for r in roles}
-            print(f"[DEBUG]   Botのロール名: {[role_names.get(rid, rid) for rid in role_ids]}")
-    except Exception as err:  # noqa: BLE001
-        print(f"[DEBUG] Bot自身の情報取得に失敗: {err}")
 
     for channel in CHANNELS:
         channel_id = os.environ.get(channel["env_id"])
