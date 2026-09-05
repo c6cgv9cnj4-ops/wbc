@@ -353,6 +353,27 @@ def main():
     date_str = datetime.datetime.now(JST).strftime("%Y-%m-%d")
     issue_count = 0
 
+    # [DEBUG] 権限変更が反映されない件の切り分け: このトークンが実際にどのBotで、
+    # サーバー内でどのロールを持っているかを確認する(調査用・後で削除予定)。
+    try:
+        headers = {"Authorization": f"Bot {bot_token}"}
+        me = requests.get(f"{DISCORD_API_BASE}/users/@me", headers=headers, timeout=REQUEST_TIMEOUT).json()
+        print(f"[DEBUG] Bot自身の情報: username={me.get('username')} id={me.get('id')} bot={me.get('bot')}")
+        guilds = requests.get(f"{DISCORD_API_BASE}/users/@me/guilds", headers=headers, timeout=REQUEST_TIMEOUT).json()
+        for g in guilds:
+            gid = g.get("id")
+            print(f"[DEBUG] 参加サーバー: {g.get('name')} (id={gid})")
+            member = requests.get(
+                f"{DISCORD_API_BASE}/guilds/{gid}/members/{me.get('id')}", headers=headers, timeout=REQUEST_TIMEOUT
+            ).json()
+            role_ids = member.get("roles", [])
+            print(f"[DEBUG]   Botのロールid一覧: {role_ids}")
+            roles = requests.get(f"{DISCORD_API_BASE}/guilds/{gid}/roles", headers=headers, timeout=REQUEST_TIMEOUT).json()
+            role_names = {r["id"]: r["name"] for r in roles}
+            print(f"[DEBUG]   Botのロール名: {[role_names.get(rid, rid) for rid in role_ids]}")
+    except Exception as err:  # noqa: BLE001
+        print(f"[DEBUG] Bot自身の情報取得に失敗: {err}")
+
     for channel in CHANNELS:
         channel_id = os.environ.get(channel["env_id"])
         if not channel_id:
