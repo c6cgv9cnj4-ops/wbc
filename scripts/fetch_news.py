@@ -185,10 +185,15 @@ KABUTAN_US_INDICES = [
 FUTURES_TICKERS = {
     "WTI原油先物": "CL=F",
     "金先物": "GC=F",
+    "コーヒー先物": "KC=F",  # ICE Coffee C(アラビカ種)。単位はセント/lb
     "ダウ先物": "YM=F",
     "S&P500先物": "ES=F",
     "ナスダック先物": "NQ=F",
     "日経平均先物": "NIY=F",
+}
+# yfinance上の単位が分かりにくい銘柄だけ、表示に単位を付ける。
+FUTURES_UNITS = {
+    "コーヒー先物": "セント/lb",
 }
 # 日経の取引時間中(9:00〜15:30 JST、平日)かどうかで、表示する先物・指数の
 # セットを切り替える(細川さん指定の構成)。
@@ -231,7 +236,9 @@ def format_yf_line(label, symbol):
     if not quote:
         return f"- {label}: 取得できませんでした"
     arrow = "🔺" if quote["change"] >= 0 else "🔻"
-    return (f"- {label}: **{quote['price']:,.2f}** {arrow} "
+    unit = FUTURES_UNITS.get(label, "")
+    price_text = f"{quote['price']:,.2f}{unit}"
+    return (f"- {label}: **{price_text}** {arrow} "
             f"{quote['change']:+.2f} ({quote['change_rate']:+.2f}%)")
 
 # 重複排除に使う「見た記事」の記録先。取得件数を少し多めに見ておき、
@@ -823,10 +830,11 @@ def build_market_message(state, now):
     else:
         lines.append("- ドル円: 取得できませんでした")
 
-    # コモディティ先物(WTI原油・金)は時間帯によらず常に表示。
+    # コモディティ先物(WTI原油・金・コーヒー)は時間帯によらず常に表示。
     lines.append("\n## 🛢️ コモディティ先物")
     lines.append(format_yf_line("WTI原油先物", FUTURES_TICKERS["WTI原油先物"]))
     lines.append(format_yf_line("金先物", FUTURES_TICKERS["金先物"]))
+    lines.append(format_yf_line("コーヒー先物", FUTURES_TICKERS["コーヒー先物"]))
 
     # 長期国債先物(2026-08-28、fetch_culture_news.pyから移管)。
     lines.append("\n## 📊 債券")
