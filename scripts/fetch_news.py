@@ -18,11 +18,17 @@ state/news_seen.json に記録し、そのURL/IDと重複するものはスキ�
 情報源:
   - 北本市安全安心情報: あんぜんねっと(https://anzn.net/sp/?11217F&r1=1)
     ※このページはEUC-JPエンコーディングなので明示的にデコードする
-  - 埼玉・県央ローカルニュース: Google ニュース検索RSS(個人利用目的)。
-    「埼玉県」丸ごとの検索だと県全体の広域予算ニュースや、埼玉県民が他県で
-    巻き込まれた事故・事件、ドラマのロケ地情報等のノイズが多かったため、
-    北本市・桶川市・鴻巣市・上尾市・さいたま市大宮区の市区町村名によるOR検索
-    + ノイズ除外キーワード(is_saitama_local_noise、2026-08-26追加)に変更した。
+  - 埼玉・県央ローカルニュース: Google ニュース検索RSS(個人利用目的)に加え、
+    2026-09-06から一次情報源を追加した。「埼玉県」丸ごとの検索だと県全体の
+    広域予算ニュースや、埼玉県民が他県で巻き込まれた事故・事件、ドラマの
+    ロケ地情報等のノイズが多かったため、北本市・桶川市・鴻巣市・上尾市・
+    さいたま市大宮区の市区町村名によるOR検索 + ノイズ除外キーワード
+    (is_saitama_local_noise、2026-08-26追加)に変更した。
+    2026-09-06追加(LOCAL_DIRECT_RSS_FEEDS): 北本市公式note(自治体一次情報)
+    と、地域ニュースメディア「号外NET」の上尾市・桶川市版/鴻巣市・北本市版を
+    直接RSS購読で追加した(いずれもYahoo!ニュース非経由・実データで生存確認
+    済み)。号外NETは「上尾市・桶川市」「鴻巣市・北本市」で別ドメインの
+    サイトに分かれている点に注意(統合ドメインは存在しない)。
   - 主要ニュース(2026-08-28改修): Yahoo!ニュース トップピックスRSSで見出しを
     取得し、各記事のYahoo!ニュース pickupページ(id="uamods-pickup")から
     ペイウォールの無いリード文を抽出する(読売・朝日・毎日・日経等の公式サイト
@@ -41,6 +47,10 @@ state/news_seen.json に記録し、そのURL/IDと重複するものはスキ�
     ブルームバーグはsite:指定なしの固有名詞検索)を採用している。
     さらに、site:検索だけでは除外しきれない自動車趣味記事等を弾くため、
     ECONOMY_NEWS_BLACKLISTによるタイトルベースの除外フィルタも併用する。
+    2026-09-06追加: 東洋経済オンラインの公式RSS(TOYOKEIZAI_RSS)を直接購読
+    で追加した(無料・本文リードあり、実データで生存確認済み)。site:検索と
+    同様に経済専門メディア自身のフィードのためFINANCE_REQUIRED_KEYWORDS
+    フィルタは適用せず、ECONOMY_NEWS_BLACKLISTのみ適用する。
   - 日経平均株価: Yahoo!ファイナンスの銘柄ページに埋め込まれたJSONを抽出
   - ドル円: open.er-api.com(無料・APIキー不要の為替レートAPI)
 
@@ -79,6 +89,22 @@ ANZN_URL = "https://anzn.net/sp/?11217F&r1=1"
 # 北本市を中心とした生活圏(県央エリア)の市区町村名だけをOR検索する
 # クエリに変更した(2026-08-26)。
 SAITAMA_LOCAL_AREAS = ["北本市", "桶川市", "鴻巣市", "上尾市", "大宮区"]
+
+# 2026-09-06追加: Google News検索の補完として、一次情報源・地域専門メディアの
+# RSSを直接購読する。北本市公式noteは自治体の一次情報(広報・イベント)、
+# 号外NETは地元密着の開店・イベント速報が中心で、いずれもYahoo!ニュース
+# 転載ではない。号外NETは「上尾市・桶川市」版と「鴻巣市・北本市」版で
+# ドメインが分かれている(統合ドメインは存在しないことを実データで確認済み。
+# 細川さんから提示された統合ドメイン案は404/未登録サブドメインだったため、
+# 正しい個別ドメインに差し替えている)。
+KITAMOTO_NOTE_RSS = "https://kitamoto-city.note.jp/rss"
+GOGUYNET_AGEO_OKEGAWA_RSS = "https://ageo-okegawa.goguynet.jp/feed/"
+GOGUYNET_KOUNOSU_KITAMOTO_RSS = "https://kounosu-kitamoto.goguynet.jp/feed/"
+LOCAL_DIRECT_RSS_FEEDS = [
+    KITAMOTO_NOTE_RSS,
+    GOGUYNET_AGEO_OKEGAWA_RSS,
+    GOGUYNET_KOUNOSU_KITAMOTO_RSS,
+]
 
 
 def _build_saitama_local_rss_url():
@@ -134,6 +160,10 @@ ECONOMY_NEWS_QUERIES = [
     "site:reuters.com/markets/japan",
     "ブルームバーグ 日本 経済",
 ]
+
+# 2026-09-06追加: 東洋経済オンライン公式RSS(直接購読)。無料・本文リードあり
+# であることを実データで確認済み。
+TOYOKEIZAI_RSS = "https://toyokeizai.net/list/feed/rss"
 
 # 経済ニュースのタイトルに以下が含まれる場合は、site:検索だけでは除外し
 # きれない自動車趣味記事・ライフスタイルコラム等とみなして即座に除外する。
@@ -424,9 +454,47 @@ def fetch_google_news_query(query, limit=RSS_ITEM_LIMIT, retries=2):
     return items
 
 
+def fetch_direct_rss_items(url, limit=RSS_ITEM_LIMIT, retries=2):
+    """一次情報源・専門メディア自身のRSSを直接取得する(Google News検索を
+    経由しないため、Yahoo!ニュース転載記事が混入する余地がない)。
+    一部サイトはCloudflare等でクラウド系IP(GitHub Actionsランナー含む)を
+    ブロック・タイムアウトさせる場合があり、その場合はそのフィードだけ
+    0件として扱い、処理は継続する(fetch_culture_news.pyのfetch_direct_rss
+    と同じ設計)。
+    """
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Accept": "application/rss+xml, application/xml, text/xml, */*;q=0.8",
+        "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+    }
+    resp = None
+    for attempt in range(retries):
+        try:
+            resp = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
+            resp.raise_for_status()
+            break
+        except Exception as err:  # noqa: BLE001
+            print(f"[WARN] 直接RSS取得に失敗(試行{attempt + 1}/{retries})({url}): {err}")
+            resp = None
+    if resp is None:
+        return []
+    feed = feedparser.parse(resp.content)
+    items = []
+    for entry in feed.entries[:limit]:
+        if not entry.get("link") or not entry.get("title"):
+            continue
+        items.append({
+            "title": entry.get("title", "(タイトル不明)"),
+            "url": entry.get("link", ""),
+            "published": format_published_jst(entry),
+        })
+    return items
+
+
 def fetch_economy_news_candidates():
-    """ECONOMY_NEWS_QUERIESの各クエリを取得し、URL重複除去とブラックリスト
-    フィルタを適用した候補リストを返す(この時点ではまだ既送信排除はしない)。
+    """ECONOMY_NEWS_QUERIESの各クエリ + TOYOKEIZAI_RSS(直接購読)を取得し、
+    URL重複除去とブラックリストフィルタを適用した候補リストを返す
+    (この時点ではまだ既送信排除はしない)。
     """
     candidates = []
     seen_in_batch = set()
@@ -440,6 +508,14 @@ def fetch_economy_news_candidates():
                 continue
             seen_in_batch.add(item["url"])
             candidates.append(item)
+
+    for item in fetch_direct_rss_items(TOYOKEIZAI_RSS):
+        if item["url"] in seen_in_batch:
+            continue
+        if is_economy_news_blacklisted(item["title"]):
+            continue
+        seen_in_batch.add(item["url"])
+        candidates.append(item)
     return candidates
 
 
@@ -630,6 +706,14 @@ def build_local_news_message(state, now):
     sports_items = []
 
     saitama_all = fetch_rss_items(GOOGLE_NEWS_SAITAMA_RSS)
+    seen_in_batch = {item["url"] for item in saitama_all}
+    for feed_url in LOCAL_DIRECT_RSS_FEEDS:
+        for item in fetch_direct_rss_items(feed_url):
+            if item["url"] in seen_in_batch:
+                continue
+            seen_in_batch.add(item["url"])
+            saitama_all.append(item)
+
     saitama_new = dedupe_new_items(saitama_all, "url", state, now)
     saitama_general = []
     for item in saitama_new:
