@@ -4,7 +4,16 @@
 
 情報源は2系統(2026-09-06、バド×スピを追加して二本立てに変更):
 
-1. スポ速(sposoku.com) の大会別記事から指定選手の試合結果を抽出(旧来実装)。
+0. 配信対象・除外方針(2026-09-06、細川さんの指定で確定):
+   【欲しい】インターハイ(高校総体)・全国高校選抜・全中・インカレ・全日本総合・
+   全日本ジュニア等の全国規模大会、日本代表(BIRD JAPAN)の国際大会速報。
+   【除外】S/Jリーグ(実業団リーグ)の全試合・速報・告知は完全除外する。
+   タイトル・本文のいずれかに「S/Jリーグ」「SJリーグ」「実業団」を含む記事は
+   is_league_excluded() で判定しスキップする(sposoku.com側は記事タイトル、
+   badspi.jp側はRSSのタイトル+summaryの両方をチェック)。
+
+1. スポ速(sposoku.com) の大会別記事から (a) 指定選手の試合結果、
+   (b) 全国規模大会の種目別結果サマリー(優勝/準優勝/第三位) を抽出する。
    1試合ずつ「〇選手名　2－0　×対戦相手名(国名)」の形式で1行に記載されている
    ことを、実際に取得したHTMLから正規表現で確認済み。
    対象は以下の指定選手を含む試合のみ(シングルスは完全一致、ダブルスは
@@ -24,6 +33,13 @@
    扱われない。実際に2026-09-06時点で開催中だった中国マスターズ2026
    (Super750、9/1〜9/6)の記事が掲載されておらず、直近の国際大会速報が
    拾えなくなっていたことを確認した。これが下記2.を追加した理由。
+   (b)全国大会結果サマリーについて: TARGET_PLAYERS(代表選手個人名)による
+   マッチングでは学生選手が指定リストに含まれず一切拾えなかったため、
+   選手名を問わず「■(種目名)」の直後に「優勝：」「準優勝：」「第三位：」
+   (団体戦は「第四位：」も)が続く結果サマリー行のブロックを抽出する方式を
+   追加した(extract_national_summary_results)。全試合(1大会あたり数十〜
+   150件超になることを実データで確認)ではなく種目ごと数行のサマリーのみに
+   絞ることで、Discordが荒れない粒度にしている。
 
 2. バド×スピ(BADMINTON SPIRIT、badspi.jp)の新着記事フィードをそのまま速報
    として配信(2026-09-06追加)。日本代表専門メディアで、国際大会の日次速報・
@@ -130,6 +146,7 @@ def prune_old_entries(state, now):
     cutoff = now - datetime.timedelta(days=STATE_RETENTION_DAYS)
     state["seen_matches"] = _prune_dict(state.get("seen_matches", {}), cutoff)
     state["seen_badspi_urls"] = _prune_dict(state.get("seen_badspi_urls", {}), cutoff)
+    state["seen_national_summaries"] = _prune_dict(state.get("seen_national_summaries", {}), cutoff)
     return state
 
 
@@ -177,19 +194,41 @@ def build_round_to_date_map(lines):
     return mapping
 
 
-def fetch_matches_from_article(url):
+LEAGUE_EXCLUDE_KEYWORDS = ["S/Jリーグ", "SJリーグ", "実業団"]
+
+
+def is_league_excluded(text):
+    """S/Jリーグ(実業団リーグ)関連の記事・速報を除外するための判定
+    (2026-09-06、細川さんの指定により追加)。"""
+    return any(kw in text for kw in LEAGUE_EXCLUDE_KEYWORDS)
+
+
+def fetch_article_content(url):
+    """大会記事を1回だけ取得し、(tournament_title, lines) を返す。
+    取得失敗、またはタイトルがS/Jリーグ(実業団)関連の場合は (None, None)。
+    選手名マッチング抽出・全国大会結果サマリー抽出の両方がこの結果を
+    共有することで、記事ごとのHTTPリクエストを1回に抑える。
+    """
     try:
         resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
     except Exception as err:  # noqa: BLE001
         print(f"[ERROR] 大会記事の取得に失敗しました({url}): {err}")
-        return []
+        return None, None
 
     soup = BeautifulSoup(resp.text, "html.parser")
     title_tag = soup.find("h1") or soup.find("title")
     tournament_title = title_tag.get_text(strip=True) if title_tag else url
 
+    if is_league_excluded(tournament_title):
+        print(f"[INFO] S/Jリーグ(実業団)関連記事のため除外します: {tournament_title}")
+        return None, None
+
     lines = soup.get_text("\n", strip=True).split("\n")
+    return tournament_title, lines
+
+
+def extract_target_player_matches(url, tournament_title, lines):
     round_date_map = build_round_to_date_map(lines)
 
     matches = []
@@ -241,16 +280,77 @@ def fetch_matches_from_article(url):
     return matches
 
 
+# ============================================================
+# 全国規模大会(インターハイ・全中・選抜・国スポ等)の種目別結果サマリー
+# ============================================================
+# sposoku.comの大会記事は、種目見出し「■(種目名)」の直後に「優勝：」
+# 「準優勝：」「第三位：」(団体戦は「第四位：」も)が続く結果サマリー
+# ブロックを持つ(記事冒頭に全種目分まとめて出る場合と、各種目のブラケット
+# 末尾に「■最終成績」という見出しで個別に出る場合の両方を実データで確認済み)。
+# TARGET_PLAYERS(代表選手個人名)によるマッチングでは、学生選手が指定
+# リストに含まれないため一切拾えなかった。この関数は選手名を問わず、
+# 「優勝/準優勝/第三位」という結果サマリー行のブロックだけを抽出することで、
+# 全試合(1回戦から数えると大会あたり数十〜150件超)ではなく、種目ごと数行の
+# サマリーのみを配信対象にする(2026-09-06追加)。
+#
+# 【既知の罠・実データで確認済み】各記事には今年度の結果に続けて「歴代優勝者
+# アーカイブ」が同じ「■(見出し)+優勝/準優勝/第三位」形式で掲載されている。
+# 区切り方が記事によって2パターンあることを確認した:
+#   (a) 明示的な区切り行「過去大会結果」がある(例: interhigh-badminton)。
+#       この行以降は無条件で走査を打ち切る。
+#   (b) 見出しラベル自体が西暦4桁+「年」になっている(例: zenchu-badmintonの
+#       「■2026年」「■2025年」...)。この場合は今年(now.year)以外の年度を
+#       除外する。
+# これらを無視すると、初回実行時などに何年分もの過去優勝者情報が「新着」
+# として大量配信されてしまう。
+ARCHIVE_SECTION_MARKER = "過去大会結果"
+# 「2026年」「2025年結果」「2020年度結果」等、表記ゆれを許容するため
+# 先頭一致(西暦4桁+「年」)のみで判定する(末尾は問わない)。
+YEAR_ONLY_LABEL_RE = re.compile(r"^(\d{4})年")
+FINAL_RESULT_HEADING_RE = re.compile(r"^■(.+)$")
+FINAL_RESULT_LINE_RE = re.compile(r"^(優勝|準優勝|第三位|第四位)：(.+)$")
+
+
+def extract_national_summary_results(lines, now):
+    results = []
+    i = 0
+    while i < len(lines):
+        if lines[i] == ARCHIVE_SECTION_MARKER:
+            break  # (a) これ以降は歴代優勝者アーカイブなので走査を打ち切る
+
+        heading_m = FINAL_RESULT_HEADING_RE.match(lines[i])
+        if heading_m and i + 1 < len(lines) and FINAL_RESULT_LINE_RE.match(lines[i + 1]):
+            label = heading_m.group(1)
+
+            year_m = YEAR_ONLY_LABEL_RE.match(label)
+            if year_m and int(year_m.group(1)) != now.year:
+                # (b) 見出し自体が過去年度のアーカイブブロックなのでスキップ
+                # (ただし本文行は消費して次のブロック探索へ進める)
+                j = i + 1
+                while j < len(lines) and FINAL_RESULT_LINE_RE.match(lines[j]):
+                    j += 1
+                i = j
+                continue
+
+            summary_lines = []
+            j = i + 1
+            while j < len(lines) and FINAL_RESULT_LINE_RE.match(lines[j]):
+                summary_lines.append(lines[j])
+                j += 1
+            results.append({"label": label, "summary_lines": summary_lines})
+            i = j
+            continue
+        i += 1
+    return results
+
+
 def build_badminton_embeds(matches, now):
     embeds = []
     for m in matches:
         winner_display = m["winner"] + (f"({m['winner_country']})" if m["winner_country"] else "")
         loser_display = m["loser"] + (f"({m['loser_country']})" if m["loser_country"] else "")
 
-        # 記事タイトル(例: "【バドミントンマレーシアオープン2026】日本代表の試合結果速報、組み合わせ")
-        # から、既に【】で囲まれている大会名部分だけを取り出す(無いければ記事タイトル全体を使う)。
-        tournament_m = re.match(r"【(.+?)】", m["tournament"])
-        tournament_short = tournament_m.group(1) if tournament_m else m["tournament"]
+        tournament_short = extract_tournament_short_name(m["tournament"])
 
         title_parts = [f"🏸 【{tournament_short}】"]
         if m["event"]:
@@ -271,6 +371,31 @@ def build_badminton_embeds(matches, now):
             "description": f"**{winner_display}** {m['score']} {loser_display}" +
                             f"\n[詳細を見る](<{m['url']}>)",
             "color": COLOR_BADMINTON,
+        })
+    return embeds
+
+
+def extract_tournament_short_name(tournament_title):
+    """記事タイトル(例: "【高校総体インターハイバドミントン2026】速報、結果、
+    組み合わせ、日程、ライブ配信")から【】内の大会名部分だけを取り出す
+    (無ければ記事タイトル全体を使う)。"""
+    m = re.match(r"【(.+?)】", tournament_title)
+    return m.group(1) if m else tournament_title
+
+
+def build_national_summary_embeds(summaries, now):
+    """全国規模大会(インターハイ・全中・選抜・国スポ等)の種目別結果サマリー
+    をEmbed化する。"""
+    embeds = []
+    for s in summaries:
+        tournament_short = extract_tournament_short_name(s["tournament"])
+        label = s["label"] if s["label"] != "最終成績" else "最終成績"
+        title = f"🏸 【{tournament_short}】{label}"
+        embeds.append({
+            "title": title[:256],
+            "description": "\n".join(s["summary_lines"]) + f"\n[詳細を見る](<{s['url']}>)",
+            "color": COLOR_BADMINTON,
+            "footer": {"text": f"取得: {now.strftime('%m/%d %H:%M')}"},
         })
     return embeds
 
@@ -302,7 +427,14 @@ def fetch_badspi_articles(limit=BADSPI_ITEM_LIMIT):
     for entry in feed.entries[:limit]:
         if not entry.get("link") or not entry.get("title"):
             continue
-        items.append({"title": entry.get("title", ""), "url": entry.get("link", "")})
+        title = entry.get("title", "")
+        summary = entry.get("summary", "")
+        # タイトル・本文(RSSのsummary)のどちらかにS/Jリーグ(実業団)関連の
+        # キーワードが含まれる記事は除外する(2026-09-06、細川さんの指定)。
+        if is_league_excluded(title) or is_league_excluded(summary):
+            print(f"[INFO] S/Jリーグ(実業団)関連記事のため除外します: {title}")
+            continue
+        items.append({"title": title, "url": entry.get("link", "")})
     return items
 
 
@@ -351,22 +483,44 @@ def main():
     state = prune_old_entries(state, now)
     seen = state.setdefault("seen_matches", {})
     seen_badspi = state.setdefault("seen_badspi_urls", {})
+    seen_summaries = state.setdefault("seen_national_summaries", {})
 
     article_urls = fetch_tournament_article_urls()
     print(f"=== 大会記事: {len(article_urls)}件を巡回します ===")
 
     new_matches = []
+    new_summaries = []
     for url in article_urls:
-        for match in fetch_matches_from_article(url):
+        tournament_title, lines = fetch_article_content(url)
+        if tournament_title is None:
+            continue  # 取得失敗、またはS/Jリーグ(実業団)関連記事のため除外済み
+
+        for match in extract_target_player_matches(url, tournament_title, lines):
             key = f"{match['url']}::{match['raw_line']}"
             if key in seen:
                 continue
             new_matches.append(match)
             seen[key] = now.isoformat()
 
+        for summary in extract_national_summary_results(lines, now):
+            # labelを含めないキーにする(「男子学校対抗」の冒頭サマリーと
+            # 「最終成績」の詳細ブラケット末尾サマリーが同一内容で重複する
+            # ことを実データで確認したため、内容一致で重複排除する)。
+            key = f"{url}::{''.join(summary['summary_lines'])}"
+            if key in seen_summaries:
+                continue
+            summary["tournament"] = tournament_title
+            summary["url"] = url
+            new_summaries.append(summary)
+            seen_summaries[key] = now.isoformat()
+
     print(f"=== 指定選手の新着試合結果: {len(new_matches)}件 ===")
     for m in new_matches:
         print(f"  [{m['event']}/{m['round']}] {m['tournament']}: {m['winner']} {m['score']} {m['loser']}")
+
+    print(f"=== 全国大会の新着結果サマリー: {len(new_summaries)}件 ===")
+    for s in new_summaries:
+        print(f"  [{s['tournament']}] {s['label']}: {s['summary_lines']}")
 
     badspi_articles = fetch_badspi_articles()
     new_badspi_articles = []
@@ -381,7 +535,11 @@ def main():
         print(f"  {a['title']}")
 
     had_error = False
-    embeds = build_badminton_embeds(new_matches, now) + build_badspi_embeds(new_badspi_articles)
+    embeds = (
+        build_badminton_embeds(new_matches, now)
+        + build_national_summary_embeds(new_summaries, now)
+        + build_badspi_embeds(new_badspi_articles)
+    )
     if embeds:
         if not send_embeds_to_discord(webhook, embeds):
             had_error = True
