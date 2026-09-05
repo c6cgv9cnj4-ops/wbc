@@ -195,6 +195,12 @@ def fetch_forum_threads_today(channel_id, bot_token):
         thread_name = t.get("name", "(無題)")
         # スレッド自体が当日作成のため、日付フィルタは不要(全メッセージが対象)。
         messages = fetch_today_messages(thread_id, bot_token)
+        for m in messages:
+            print(
+                f"[DEBUG]   msg id={m.get('id')} content_len={len(m.get('content') or '')} "
+                f"attachments={len(m.get('attachments') or [])} embeds={len(m.get('embeds') or [])} "
+                f"content_repr={m.get('content')!r}"
+            )
         results.append((thread_name, messages))
 
     results.sort(key=lambda item: item[0])
