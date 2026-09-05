@@ -12,13 +12,22 @@
      ※note.com/nobi は同姓同名の別人(Nobuko Masui)のアカウントであり、
        誤って使用しないよう明記しておく。
   3. Apple/シリコンバレー、珈琲(関東地方限定)
-     Google News RSS検索を情報源とし、Gemini APIで「記名記事/専門性の高い
-     読み物」かどうかを判定してノイズ(煽り見出し・中身のないコピペ記事)を除外する。
-     珈琲枠は「器・工芸」を対象外にし、関東地方(東京・埼玉・神奈川・千葉・茨城・
-     栃木・群馬)に関連する情報のみに絞り込む(2026-08-26変更。PC周辺機器・
-     ガジェット枠は同日付で完全に削除した)。関東限定の判定は記事タイトルの
-     テキストのみを根拠にGeminiが行う(Google News RSSは本文を含まないため、
-     タイトルに地域名が出てこない記事は誤って除外される可能性がある)。
+     2026-09-05変更: Yahoo!ニュース転載記事の混入を防ぐため、Google News
+     検索経由の取得をやめ、一次配信・専門メディア自身のRSSを直接購読する
+     方式に切り替えた(実データで配信元が本当にYahoo!ニュースでないこと・
+     直近数日以内に更新されていることを確認済み)。
+       - Apple/シリコンバレー: ITmedia速報(rss.itmedia.co.jp) + GIGAZINE
+         (gigazine.net)。どちらも一般テック系フィードのため、Gemini API で
+         「Apple製品/デザイン、またはシリコンバレー企業の技術戦略」に
+         直接関連する記事だけを抽出する。
+       - 珈琲(関東): コーヒーステーション(coffee-station.jp) + PostCoffee
+         マガジン(postcoffee.co/magazine)。珈琲専門メディア自身のRSSのため
+         Yahoo!転載は原理的に混入しない。「器・工芸」を対象外にし、関東地方
+         (東京・埼玉・神奈川・千葉・茨城・栃木・群馬)に関連する情報のみに
+         絞り込む方針(2026-08-26導入)は継続する。関東限定の判定は記事
+         タイトルのテキストのみを根拠にGeminiが行う(RSSは本文を含まない
+         ため、タイトルに地域名が出てこない記事は誤って除外される可能性が
+         ある)。
   4. 展覧会・美術展・写真展(関東地方限定、Googleカレンダー連携リンク付き)
      Google News RSS検索を情報源とし、Geminiで見出しから「展示名・会場・
      開始日・終了日」を構造化抽出する(会期が読み取れない記事は除外)。
@@ -61,16 +70,22 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 )
 
-TOPIC_QUERIES = {
+# 2026-09-05: Google News検索(=結果の多くがYahoo!ニュース転載やPR-TIMES系に
+# 偏る)をやめ、専門メディア自身のRSSを直接購読する方式に変更した。
+# 各URLは実データで「Yahoo!ニュースでないこと」「直近更新されていること」を
+# 個別に確認済み(コーヒーステーション/PostCoffeeマガジンは2026-09-03〜04付、
+# ITmedia/GIGAZINEは取得当日付の記事が存在することを確認)。
+TOPIC_SOURCES = {
     "🍎 Apple・シリコンバレー": [
-        "Apple デザイン思想", "シリコンバレー 新製品 考察",
+        "https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml",
+        "https://gigazine.net/news/rss_2.0/",
     ],
     # 珈琲のみに特化(器・工芸は対象外)。関東地方(東京・埼玉・神奈川・千葉・茨城・
     # 栃木・群馬)関連かどうかはGeminiによるタイトルベースの判定で絞り込む
     # (build_topic_embeds -> filter_quality_articles の extra_instruction 参照)。
     "☕ 珈琲（関東）": [
-        "スペシャルティコーヒー 新店 オープン", "コーヒー 焙煎所 オープン",
-        "コーヒースタンド オープン", "喫茶店 新規オープン",
+        "https://coffee-station.jp/feed/",
+        "https://postcoffee.co/magazine/feed/",
     ],
 }
 
@@ -80,6 +95,14 @@ KANTO_INSTRUCTION = (
     "他地域の店舗・イベント・ニュースは、たとえ記名記事で専門性が高くても除外して"
     "ください。タイトルから地域が判断できない場合は含めないでください(安全側に"
     "倒してスキップする)。"
+)
+
+APPLE_SV_INSTRUCTION = (
+    "さらに、これらの記事は「Appleの製品・デザイン思想」または「シリコンバレー"
+    "企業の技術戦略・イノベーション」に直接関連するものだけを選んでください。"
+    "配信元(ITmedia/GIGAZINE)はApple専門メディアではなく一般テック速報のため、"
+    "セール情報・一般的なガジェットレビュー・ゲーム・アプリ紹介など、Apple/"
+    "シリコンバレーと直接関係のない記事は除外してください。"
 )
 
 # 展覧会・美術展・写真展(関東地方限定)。検索クエリは既存の珈琲枠と同じ発想で、
@@ -167,7 +190,7 @@ def build_nobi_embed(articles):
 
 
 # ============================================================
-# 3. Apple/ガジェット/珈琲/器/食文化(Gemini質フィルタ付き)
+# 2(exhibition用). Google News RSS検索ヘルパー(展覧会枠が引き続き使用)
 # ============================================================
 
 def fetch_topic_rss(query, retries=2):
@@ -194,6 +217,27 @@ def fetch_topic_rss(query, retries=2):
         return []
     feed = feedparser.parse(resp.content)
     return [{"title": e.title, "url": e.link} for e in feed.entries]
+
+
+# ============================================================
+# 3. Apple/シリコンバレー/珈琲(専門メディア直接RSS + Gemini質フィルタ)
+# ============================================================
+
+def fetch_direct_rss(feed_url, limit=15):
+    """専門メディア自身のRSSフィードを直接取得する(Google News検索を
+    経由しないため、Yahoo!ニュース転載記事が混入する余地がない)。"""
+    try:
+        resp = requests.get(feed_url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] 専門メディアRSS取得に失敗しました({feed_url}): {err}")
+        return []
+    feed = feedparser.parse(resp.content)
+    return [
+        {"title": e.title, "url": e.link}
+        for e in feed.entries[:limit]
+        if e.get("link") and e.get("title")
+    ]
 
 
 def filter_quality_articles(client, candidates, max_items=3, extra_instruction=None):
@@ -233,10 +277,10 @@ def filter_quality_articles(client, candidates, max_items=3, extra_instruction=N
 
 def build_topic_embeds(client, state, now):
     embeds = []
-    for topic_label, queries in TOPIC_QUERIES.items():
+    for topic_label, feed_urls in TOPIC_SOURCES.items():
         candidates = []
-        for q in queries:
-            for item in fetch_topic_rss(q):
+        for feed_url in feed_urls:
+            for item in fetch_direct_rss(feed_url):
                 if not is_seen(state, item["url"]):
                     candidates.append(item)
         # 重複URL除去
@@ -247,7 +291,12 @@ def build_topic_embeds(client, state, now):
                 seen_in_batch.add(c["url"])
                 uniq_candidates.append(c)
 
-        extra_instruction = KANTO_INSTRUCTION if topic_label == "☕ 珈琲（関東）" else None
+        if topic_label == "☕ 珈琲（関東）":
+            extra_instruction = KANTO_INSTRUCTION
+        elif topic_label == "🍎 Apple・シリコンバレー":
+            extra_instruction = APPLE_SV_INSTRUCTION
+        else:
+            extra_instruction = None
         selected = filter_quality_articles(client, uniq_candidates, extra_instruction=extra_instruction)
         if not selected:
             continue
