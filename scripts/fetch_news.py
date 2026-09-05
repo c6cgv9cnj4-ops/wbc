@@ -48,9 +48,12 @@ state/news_seen.json に記録し、そのURL/IDと重複するものはスキ�
     さらに、site:検索だけでは除外しきれない自動車趣味記事等を弾くため、
     ECONOMY_NEWS_BLACKLISTによるタイトルベースの除外フィルタも併用する。
     2026-09-06追加: 東洋経済オンラインの公式RSS(TOYOKEIZAI_RSS)を直接購読
-    で追加した(無料・本文リードあり、実データで生存確認済み)。site:検索と
-    同様に経済専門メディア自身のフィードのためFINANCE_REQUIRED_KEYWORDS
-    フィルタは適用せず、ECONOMY_NEWS_BLACKLISTのみ適用する。
+    で追加した(無料・本文リードあり、実データで生存確認済み)。ただしこの
+    フィードは経済専門カテゴリ別ではなく東洋経済オンライン全体の最新記事
+    フィード(レシピ・高校野球・書評等を含む)であることが本番実行で判明
+    したため、site:検索を使わない緩いクエリと同じFINANCE_REQUIRED_KEYWORDS
+    必須フィルタ(is_finance_relevant)+ECONOMY_NEWS_BLACKLISTの両方を適用
+    する。
   - 日経平均株価: Yahoo!ファイナンスの銘柄ページに埋め込まれたJSONを抽出
   - ドル円: open.er-api.com(無料・APIキー不要の為替レートAPI)
 
@@ -495,6 +498,13 @@ def fetch_economy_news_candidates():
     """ECONOMY_NEWS_QUERIESの各クエリ + TOYOKEIZAI_RSS(直接購読)を取得し、
     URL重複除去とブラックリストフィルタを適用した候補リストを返す
     (この時点ではまだ既送信排除はしない)。
+
+    TOYOKEIZAI_RSSは「東洋経済オンライン」全体の最新記事フィードであり、
+    経済専門のカテゴリ別RSSではない(カテゴリ別RSSの存在は調査したが
+    見つからなかった)。実際に本番実行したところ、料理レシピ・高校野球・
+    博物館の集客記事等、経済と無関係な記事が大量に混入することを確認した
+    ため、site:検索を使わない緩いGoogle Newsクエリと同じ
+    FINANCE_REQUIRED_KEYWORDS必須フィルタ(is_finance_relevant)を適用する。
     """
     candidates = []
     seen_in_batch = set()
@@ -513,6 +523,8 @@ def fetch_economy_news_candidates():
         if item["url"] in seen_in_batch:
             continue
         if is_economy_news_blacklisted(item["title"]):
+            continue
+        if not is_finance_relevant(item["title"], "direct-rss"):
             continue
         seen_in_batch.add(item["url"])
         candidates.append(item)
