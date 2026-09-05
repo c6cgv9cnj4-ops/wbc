@@ -80,10 +80,15 @@ TOPIC_SOURCES = {
         "https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml",
         "https://gigazine.net/news/rss_2.0/",
     ],
-    # 珈琲のみに特化(器・工芸は対象外)。関東地方(東京・埼玉・神奈川・千葉・茨城・
-    # 栃木・群馬)関連かどうかはGeminiによるタイトルベースの判定で絞り込む
-    # (build_topic_embeds -> filter_quality_articles の extra_instruction 参照)。
-    "☕ 珈琲（関東）": [
+    # 珈琲のみに特化(器・工芸は対象外)。
+    # 2026-09-05: 情報源をGoogle検索(「新店オープン」等の地域名入りタイトルが
+    # 前提)から珈琲専門メディア自身のRSSに変更したことに伴い、関東地方限定の
+    # 絞り込みは廃止した。coffee-station/PostCoffeeマガジンは店舗開店の地域
+    # ニュースではなく全国向けの一般的な珈琲カルチャー記事(淹れ方・産地解説等)
+    # が中心で、タイトルに地域名が出てくること自体がほぼ無いため、関東限定
+    # フィルタを維持すると実質ほぼ0件配信になってしまうことを実データ
+    # (本番GitHub Actions実行)で確認したため。
+    "☕ 珈琲": [
         "https://coffee-station.jp/feed/",
         "https://postcoffee.co/magazine/feed/",
     ],
@@ -223,14 +228,31 @@ def fetch_topic_rss(query, retries=2):
 # 3. Apple/シリコンバレー/珈琲(専門メディア直接RSS + Gemini質フィルタ)
 # ============================================================
 
-def fetch_direct_rss(feed_url, limit=15):
+DIRECT_RSS_HEADERS = {
+    "User-Agent": USER_AGENT,
+    "Accept": "application/rss+xml, application/xml, text/xml, */*;q=0.8",
+    "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+}
+
+
+def fetch_direct_rss(feed_url, limit=15, retries=2):
     """専門メディア自身のRSSフィードを直接取得する(Google News検索を
-    経由しないため、Yahoo!ニュース転載記事が混入する余地がない)。"""
-    try:
-        resp = requests.get(feed_url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
-        resp.raise_for_status()
-    except Exception as err:  # noqa: BLE001
-        print(f"[WARN] 専門メディアRSS取得に失敗しました({feed_url}): {err}")
+    経由しないため、Yahoo!ニュース転載記事が混入する余地がない)。
+    一部サイトはCloudflare等でクラウド系IP(GitHub Actionsランナー含む)を
+    ブロックしている場合があり、その場合は403のまま失敗する(ヘッダーでは
+    回避不可。実際にGitHub Actions実行でcoffee-station.jpが403になることを
+    確認済み)。失敗時はそのフィードだけ0件として扱い、処理は継続する。
+    """
+    resp = None
+    for attempt in range(retries):
+        try:
+            resp = requests.get(feed_url, headers=DIRECT_RSS_HEADERS, timeout=REQUEST_TIMEOUT)
+            resp.raise_for_status()
+            break
+        except Exception as err:  # noqa: BLE001
+            print(f"[WARN] 専門メディアRSS取得に失敗(試行{attempt + 1}/{retries})({feed_url}): {err}")
+            resp = None
+    if resp is None:
         return []
     feed = feedparser.parse(resp.content)
     return [
@@ -291,9 +313,7 @@ def build_topic_embeds(client, state, now):
                 seen_in_batch.add(c["url"])
                 uniq_candidates.append(c)
 
-        if topic_label == "☕ 珈琲（関東）":
-            extra_instruction = KANTO_INSTRUCTION
-        elif topic_label == "🍎 Apple・シリコンバレー":
+        if topic_label == "🍎 Apple・シリコンバレー":
             extra_instruction = APPLE_SV_INSTRUCTION
         else:
             extra_instruction = None
