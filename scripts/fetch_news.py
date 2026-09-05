@@ -348,10 +348,23 @@ def dedupe_new_items(items, key_field, state, now):
 # 北本市安全安心情報(あんぜんねっと)
 # ============================================================
 
+ANZN_HEADERS = {
+    "User-Agent": USER_AGENT,
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+    "Referer": "https://anzn.net/",
+}
+
+
 def fetch_anzn_new_arrivals(limit=ANZN_ITEM_LIMIT):
-    """あんぜんねっとの新着(鴻巣市・桶川市・北本市の消防出動情報等)を取得する。"""
+    """あんぜんねっとの新着(鴻巣市・桶川市・北本市の消防出動情報等)を取得する。
+    2026-09-06: GitHub ActionsのIPから403(ローカル環境からは200)になる事象を
+    確認したため、ブラウザ相当のAccept/Accept-Language/Refererヘッダーを
+    追加して再検証した(coffee-station.jp等と同様、クラウドIP自体をブロック
+    している場合はヘッダーでは回避できない可能性が高いが、まず試す)。
+    """
     try:
-        resp = requests.get(ANZN_URL, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
+        resp = requests.get(ANZN_URL, headers=ANZN_HEADERS, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
         # ページのmeta charsetがEUC-JPなので明示的にデコードする
         html = resp.content.decode("euc-jp", errors="replace")
