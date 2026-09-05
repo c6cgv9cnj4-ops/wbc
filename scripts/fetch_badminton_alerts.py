@@ -1,27 +1,36 @@
 # -*- coding: utf-8 -*-
 """
-バドミントン注目選手の試合結果配信(シンプル版) (#webhook_sports_culture 向け)
+バドミントン速報配信(#webhook_sports_culture 向け)
 
-情報源: スポ速(sposoku.com) の大会別記事(実データで動作確認済み)。
-1試合ずつ「〇選手名　2－0　×対戦相手名(国名)」の形式で1行に記載されている
-ことを、実際に取得したHTMLから正規表現で確認済み。
+情報源は2系統(2026-09-06、バド×スピを追加して二本立てに変更):
 
-対象は以下の指定選手を含む試合のみ(シングルスは完全一致、ダブルスは
-記事側が姓のみで表記されるため、指定選手名にその表記が含まれるかで判定)。
+1. スポ速(sposoku.com) の大会別記事から指定選手の試合結果を抽出(旧来実装)。
+   1試合ずつ「〇選手名　2－0　×対戦相手名(国名)」の形式で1行に記載されている
+   ことを、実際に取得したHTMLから正規表現で確認済み。
+   対象は以下の指定選手を含む試合のみ(シングルスは完全一致、ダブルスは
+   記事側が姓のみで表記されるため、指定選手名にその表記が含まれるかで判定)。
+   【実装済み】種目(男子シングルス等)・ラウンド(1回戦〜決勝)は、記事内の
+   見出し行(「男子シングルス」「■1回戦」等)を実際に確認し、順に走査しながら
+   各試合結果に紐づける形で実装した。
+   【推定表示】試合日は、記事冒頭の日程表(例:「1月6日(火)｜1回戦 10:00～」)
+   からラウンド名で対応する日付を逆引きしている。これは「その大会の予定表」
+   からの推定であり、順延等があった場合の実際の消化日とは異なる可能性がある
+   (そのため常に「推定」であることを踏まえた表示にしている)。
+   【未実装・既知の制約】世界ランキング(BWF)・大会グレード(Super 1000等)・
+   ゲームごとの得点(21-18等)は、sposoku.com側に一切掲載されておらず、BWF公式
+   サイト(bwfbadminton.com)も403で直接アクセスできないため実装していない。
+   【既知の限界・2026-09-06確認】sposoku.comは学生スポーツ(高校総体・中体連・
+   国スポ等)がメインのメディアで、BWFワールドツアー等の国際大会は不定期にしか
+   扱われない。実際に2026-09-06時点で開催中だった中国マスターズ2026
+   (Super750、9/1〜9/6)の記事が掲載されておらず、直近の国際大会速報が
+   拾えなくなっていたことを確認した。これが下記2.を追加した理由。
 
-【実装済み】種目(男子シングルス等)・ラウンド(1回戦〜決勝)は、記事内の
-見出し行(「男子シングルス」「■1回戦」等)を実際に確認し、順に走査しながら
-各試合結果に紐づける形で実装した。
-
-【推定表示】試合日は、記事冒頭の日程表(例:「1月6日(火)｜1回戦 10:00～」)
-からラウンド名で対応する日付を逆引きしている。これは「その大会の予定表」
-からの推定であり、順延等があった場合の実際の消化日とは異なる可能性がある
-(そのため常に「推定」であることを踏まえた表示にしている)。
-
-【未実装・既知の制約】世界ランキング(BWF)・大会グレード(Super 1000等)・
-ゲームごとの得点(21-18等)は、sposoku.com側に一切掲載されておらず、BWF公式
-サイト(bwfbadminton.com)も403で直接アクセスできないため実装していない
-(実際に再確認済み。状況が変わり次第、再調査する)。
+2. バド×スピ(BADMINTON SPIRIT、badspi.jp)の新着記事フィードをそのまま速報
+   として配信(2026-09-06追加)。日本代表専門メディアで、国際大会の日次速報・
+   世界ランキング・国内大会情報を高頻度(実データで日次更新を確認)にカバー
+   しており、1.の空白を補う。記事単位でタイトル+リンクをそのままEmbed配信
+   する(1.のような選手名マッチング・スコア抽出は行わない、シンプルな
+   新着通知)。
 
 環境変数:
   DISCORD_WEBHOOK_SPORTS_CULTURE (必須)
@@ -32,12 +41,16 @@ import os
 import re
 import sys
 
+import feedparser
 import requests
 from bs4 import BeautifulSoup
 
 STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "state", "badminton_alerts_seen.json")
 STATE_RETENTION_DAYS = 30
 REQUEST_TIMEOUT = 15
+BADSPI_RSS_URL = "https://www.badspi.jp/feed/"
+BADSPI_ITEM_LIMIT = 20
+COLOR_BADSPI = 0x2B6CB0
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
@@ -101,9 +114,7 @@ def save_seen_state(state):
         json.dump(state, f, ensure_ascii=False, indent=2)
 
 
-def prune_old_entries(state, now):
-    cutoff = now - datetime.timedelta(days=STATE_RETENTION_DAYS)
-    seen = state.get("seen_matches", {})
+def _prune_dict(seen, cutoff):
     pruned = {}
     for key, iso_ts in seen.items():
         try:
@@ -112,7 +123,13 @@ def prune_old_entries(state, now):
             continue
         if ts >= cutoff:
             pruned[key] = iso_ts
-    state["seen_matches"] = pruned
+    return pruned
+
+
+def prune_old_entries(state, now):
+    cutoff = now - datetime.timedelta(days=STATE_RETENTION_DAYS)
+    state["seen_matches"] = _prune_dict(state.get("seen_matches", {}), cutoff)
+    state["seen_badspi_urls"] = _prune_dict(state.get("seen_badspi_urls", {}), cutoff)
     return state
 
 
@@ -258,6 +275,51 @@ def build_badminton_embeds(matches, now):
     return embeds
 
 
+# ============================================================
+# バド×スピ(badspi.jp)新着記事速報
+# ============================================================
+
+def fetch_badspi_articles(limit=BADSPI_ITEM_LIMIT):
+    """バド×スピの新着記事フィードを取得する。取得失敗時は空リストを返し、
+    sposoku.com側の処理には影響させない。"""
+    try:
+        resp = requests.get(
+            BADSPI_RSS_URL,
+            headers={
+                "User-Agent": USER_AGENT,
+                "Accept": "application/rss+xml, application/xml, text/xml, */*;q=0.8",
+                "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+            },
+            timeout=REQUEST_TIMEOUT,
+        )
+        resp.raise_for_status()
+    except Exception as err:  # noqa: BLE001
+        print(f"[ERROR] バド×スピRSSの取得に失敗しました: {err}")
+        return []
+
+    feed = feedparser.parse(resp.content)
+    items = []
+    for entry in feed.entries[:limit]:
+        if not entry.get("link") or not entry.get("title"):
+            continue
+        items.append({"title": entry.get("title", ""), "url": entry.get("link", "")})
+    return items
+
+
+def build_badspi_embeds(articles):
+    """記事単位でタイトル+リンクをそのままEmbed化する(選手名マッチングは
+    行わず、バド×スピが日本代表・国内大会関連の記事を書いた時点でそのまま
+    通知する新着速報)。"""
+    embeds = []
+    for a in articles:
+        embeds.append({
+            "title": f"🏸 {a['title']}"[:256],
+            "description": f"[記事を読む](<{a['url']}>)",
+            "color": COLOR_BADSPI,
+        })
+    return embeds
+
+
 def send_embeds_to_discord(webhook_url, embeds, batch_size=10):
     if not webhook_url:
         print("[ERROR] DISCORD_WEBHOOK_SPORTS_CULTURE が設定されていないため送信をスキップします。")
@@ -288,6 +350,7 @@ def main():
     state = load_seen_state()
     state = prune_old_entries(state, now)
     seen = state.setdefault("seen_matches", {})
+    seen_badspi = state.setdefault("seen_badspi_urls", {})
 
     article_urls = fetch_tournament_article_urls()
     print(f"=== 大会記事: {len(article_urls)}件を巡回します ===")
@@ -305,13 +368,25 @@ def main():
     for m in new_matches:
         print(f"  [{m['event']}/{m['round']}] {m['tournament']}: {m['winner']} {m['score']} {m['loser']}")
 
+    badspi_articles = fetch_badspi_articles()
+    new_badspi_articles = []
+    for a in badspi_articles:
+        if a["url"] in seen_badspi:
+            continue
+        new_badspi_articles.append(a)
+        seen_badspi[a["url"]] = now.isoformat()
+
+    print(f"=== バド×スピ新着記事: {len(new_badspi_articles)}件 ===")
+    for a in new_badspi_articles:
+        print(f"  {a['title']}")
+
     had_error = False
-    embeds = build_badminton_embeds(new_matches, now)
+    embeds = build_badminton_embeds(new_matches, now) + build_badspi_embeds(new_badspi_articles)
     if embeds:
         if not send_embeds_to_discord(webhook, embeds):
             had_error = True
     else:
-        print("[INFO] 配信対象の新着試合結果はありませんでした。")
+        print("[INFO] 配信対象の新着はありませんでした。")
 
     save_seen_state(state)
 

@@ -1,4 +1,4 @@
-name: バドミントン注目選手速報(#webhook_sports_culture)
+name: バドミントン速報(注目選手結果+バド×スピ新着) (#webhook_sports_culture)
 
 on:
   schedule:
