@@ -1382,9 +1382,14 @@ def main():
     # (「決勝データの有無」)で大会を再チェックする必要があるため、
     # 一度seen_nbaに登録済みの大会でも、seen_finals未登録なら
     # (=まだ決勝ダイジェストを送っていなければ)結果ページを再取得する。
-    # 導入時に既存の完了済み大会が一斉に「決勝あり」判定されてDiscordが
-    # 荒れるのを避けるため、1回の実行で送るダイジェスト数に上限を設ける
-    # (残りは次回以降の実行で少しずつ処理される)。
+    # 「決勝データが無い(大会継続中)」大会はseen_finalsに登録されないため
+    # 毎回リトライされる。もしチェック"試行"件数の方に上限を掛けると、
+    # 常に同じ先頭の未完了大会だけを消費し続けて後方の大会に到達できなく
+    # なるバグがあった(2026-09-06、本番テストで発見)ため、判定チェック
+    # 自体は毎回nba_ids全件に対して行い、実際に「配信する」件数だけを
+    # 制限する設計にした(導入時に既存の完了済み大会が一斉に「決勝あり」
+    # 判定されてDiscordが荒れるのを避けるため。残りは次回以降の実行で
+    # 少しずつ処理される)。
     seen_finals = state.setdefault("seen_finals_digest_ids", {})
     FINALS_DIGEST_PER_RUN_LIMIT = 3
 
@@ -1392,10 +1397,7 @@ def main():
     finals_digest_sent = []
     for result_id in nba_ids:
         need_japan_check = result_id not in seen_nba
-        need_finals_check = (
-            result_id not in seen_finals
-            and len(finals_digest_sent) < FINALS_DIGEST_PER_RUN_LIMIT
-        )
+        need_finals_check = result_id not in seen_finals
         if not (need_japan_check or need_finals_check):
             continue
 
@@ -1408,7 +1410,7 @@ def main():
         if need_japan_check:
             new_nba_results.append(detail)
 
-        if need_finals_check:
+        if need_finals_check and len(finals_digest_sent) < FINALS_DIGEST_PER_RUN_LIMIT:
             finals_embed = build_finals_digest_embed(detail, wr_rankings)
             if finals_embed:
                 if send_embeds_to_discord(webhook, [finals_embed]):
