@@ -48,6 +48,12 @@
    する(1.のような選手名マッチング・スコア抽出は行わない、シンプルな
    新着通知)。
 
+3. Google Newsの「バドミントン 日本代表」検索RSS(2026-09-06追加)。
+   スポーツナビ・TBS NEWS・J SPORTS等、1.2.でカバーしきれない媒体の速報を
+   補完する目的。他の媒体より雑多な内容(PR TIMES広報記事、グッズ販売等)が
+   混ざりやすいため、0.のS/Jリーグ除外フィルタに加え、記事単位でタイトル+
+   リンクをそのままEmbed配信する(2.と同じシンプルな新着通知)。
+
 環境変数:
   DISCORD_WEBHOOK_SPORTS_CULTURE (必須)
 """
@@ -56,6 +62,8 @@ import json
 import os
 import re
 import sys
+import time
+import urllib.parse
 
 import feedparser
 import requests
@@ -67,6 +75,9 @@ REQUEST_TIMEOUT = 15
 BADSPI_RSS_URL = "https://www.badspi.jp/feed/"
 BADSPI_ITEM_LIMIT = 20
 COLOR_BADSPI = 0x2B6CB0
+GOOGLE_NEWS_BADMINTON_QUERY = "バドミントン 日本代表"
+GOOGLE_NEWS_BADMINTON_ITEM_LIMIT = 20
+COLOR_GNEWS_BADMINTON = 0x718096
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
@@ -147,6 +158,7 @@ def prune_old_entries(state, now):
     state["seen_matches"] = _prune_dict(state.get("seen_matches", {}), cutoff)
     state["seen_badspi_urls"] = _prune_dict(state.get("seen_badspi_urls", {}), cutoff)
     state["seen_national_summaries"] = _prune_dict(state.get("seen_national_summaries", {}), cutoff)
+    state["seen_gnews_urls"] = _prune_dict(state.get("seen_gnews_urls", {}), cutoff)
     return state
 
 
@@ -452,6 +464,62 @@ def build_badspi_embeds(articles):
     return embeds
 
 
+# ============================================================
+# Google News「バドミントン 日本代表」検索RSS
+# ============================================================
+
+def fetch_google_news_badminton(limit=GOOGLE_NEWS_BADMINTON_ITEM_LIMIT, retries=2):
+    """Google Newsの「バドミントン 日本代表」検索RSSを取得する。短時間の
+    連続リクエストでレート制限(503)されることが他スクリプトで確認済みの
+    ため、同じ対策(間隔+リトライ)を踏襲する。"""
+    q = urllib.parse.quote(GOOGLE_NEWS_BADMINTON_QUERY)
+    url = f"https://news.google.com/rss/search?q={q}&hl=ja&gl=JP&ceid=JP:ja"
+    time.sleep(2.0)
+
+    resp = None
+    for attempt in range(retries):
+        try:
+            resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
+            resp.raise_for_status()
+            break
+        except Exception as err:  # noqa: BLE001
+            print(f"[WARN] Google News RSS取得に失敗(試行{attempt + 1}/{retries}): {err}")
+            resp = None
+            time.sleep(5.0)
+
+    if resp is None:
+        print("[ERROR] Google News RSS取得に失敗しました(バドミントン 日本代表)")
+        return []
+
+    feed = feedparser.parse(resp.content)
+    items = []
+    for entry in feed.entries[:limit]:
+        title = entry.get("title", "")
+        url_ = entry.get("link", "")
+        if not title or not url_:
+            continue
+        # S/Jリーグ(実業団)関連記事の除外(タイトルのみ。Google News検索結果
+        # の <description> は元記事の抜粋を含まないことが多いため対象外)。
+        if is_league_excluded(title):
+            print(f"[INFO] S/Jリーグ(実業団)関連記事のため除外します: {title}")
+            continue
+        items.append({"title": title, "url": url_})
+    return items
+
+
+def build_google_news_badminton_embeds(articles):
+    """記事単位でタイトル+リンクをそのままEmbed化する(badspi.jpと同じ
+    シンプルな新着通知形式)。"""
+    embeds = []
+    for a in articles:
+        embeds.append({
+            "title": f"🏸 {a['title']}"[:256],
+            "description": f"[記事を読む](<{a['url']}>)",
+            "color": COLOR_GNEWS_BADMINTON,
+        })
+    return embeds
+
+
 def send_embeds_to_discord(webhook_url, embeds, batch_size=10):
     if not webhook_url:
         print("[ERROR] DISCORD_WEBHOOK_SPORTS_CULTURE が設定されていないため送信をスキップします。")
@@ -484,6 +552,7 @@ def main():
     seen = state.setdefault("seen_matches", {})
     seen_badspi = state.setdefault("seen_badspi_urls", {})
     seen_summaries = state.setdefault("seen_national_summaries", {})
+    seen_gnews = state.setdefault("seen_gnews_urls", {})
 
     article_urls = fetch_tournament_article_urls()
     print(f"=== 大会記事: {len(article_urls)}件を巡回します ===")
@@ -534,11 +603,24 @@ def main():
     for a in new_badspi_articles:
         print(f"  {a['title']}")
 
+    gnews_articles = fetch_google_news_badminton()
+    new_gnews_articles = []
+    for a in gnews_articles:
+        if a["url"] in seen_gnews:
+            continue
+        new_gnews_articles.append(a)
+        seen_gnews[a["url"]] = now.isoformat()
+
+    print(f"=== Google News新着記事: {len(new_gnews_articles)}件 ===")
+    for a in new_gnews_articles:
+        print(f"  {a['title']}")
+
     had_error = False
     embeds = (
         build_badminton_embeds(new_matches, now)
         + build_national_summary_embeds(new_summaries, now)
         + build_badspi_embeds(new_badspi_articles)
+        + build_google_news_badminton_embeds(new_gnews_articles)
     )
     if embeds:
         if not send_embeds_to_discord(webhook, embeds):
