@@ -50,9 +50,31 @@
 
 3. Google Newsの「バドミントン 日本代表」検索RSS(2026-09-06追加)。
    スポーツナビ・TBS NEWS・J SPORTS等、1.2.でカバーしきれない媒体の速報を
-   補完する目的。他の媒体より雑多な内容(PR TIMES広報記事、グッズ販売等)が
-   混ざりやすいため、0.のS/Jリーグ除外フィルタに加え、記事単位でタイトル+
-   リンクをそのままEmbed配信する(2.と同じシンプルな新着通知)。
+   補完する目的。本番テストでPR TIMES(企業提携告知)・楽天(独占販売告知)・
+   イーファイト(ゴシップ)・スポーツナビ「究極の2択」(企画動画)が大量混入
+   することを確認したため、ドメインブラックリスト(GNEWS_DOMAIN_BLACKLIST)
+   とキーワードブラックリスト(GNEWS_KEYWORD_BLACKLIST)の二段構えで除外する
+   (is_gnews_noise)。同一記事が複数ポータルに転載され二重配信されることも
+   確認したため、タイトル単位の重複除去も行う。
+
+4. 日本バドミントン協会(NBA)公式サイトの大会結果ページ(2026-09-06追加)。
+   細川さん指定の一覧URL(/tournament/result/)自体は404で存在しないため、
+   大会トップページ(NBA_TOURNAMENT_TOP_URL)に列挙されている個別結果ページ
+   へのリンクからID一覧を収集する方式にした。個別結果ページのDOM構造
+   (li.v-tournament-info__match-item以下に選手名・所属・勝敗クラス・
+   ゲームスコアがクラス名で明確に分かれている)を実データで確認し、日本語
+   文字を含む選手名が関与する試合の勝敗概要のみを抽出する(全試合ではなく
+   日本選手関連のみに絞る設計は1.(b)と同じ考え方)。
+
+時間帯による配信方針(2026-09-06、細川さんの指定で追加):
+  ヨーロッパ開催時等、深夜(23:00〜翌05:59 JST)に試合が集中して終了し、
+  バラバラ通知されるのを避けるため、get_time_band()で以下の3帯に分ける。
+  - day(09:00〜22:59):     即時配信(15分間隔cronを想定)
+  - night(23:00〜05:59):   Discordへは配信せず、digest_poolに積むだけ
+  - morning(06:00〜08:59): 即時配信。かつプールに何か残っていれば
+    「昨夜のバドミントン結果ダイジェスト」として1通(複数Embed)にまとめて
+    先に配信してからプールを空にする(6:00ちょうどの専用cronが遅延しても、
+    次にday/morning帯で実行された時点で必ず配信される設計)。
 
 環境変数:
   DISCORD_WEBHOOK_SPORTS_CULTURE (必須)
@@ -177,6 +199,7 @@ def prune_old_entries(state, now):
     state["seen_badspi_urls"] = _prune_dict(state.get("seen_badspi_urls", {}), cutoff)
     state["seen_national_summaries"] = _prune_dict(state.get("seen_national_summaries", {}), cutoff)
     state["seen_gnews_urls"] = _prune_dict(state.get("seen_gnews_urls", {}), cutoff)
+    state["seen_nba_result_ids"] = _prune_dict(state.get("seen_nba_result_ids", {}), cutoff)
     return state
 
 
@@ -559,6 +582,151 @@ def build_google_news_badminton_embeds(articles):
     return embeds
 
 
+# ============================================================
+# 日本バドミントン協会(NBA)公式サイトの大会結果ページ(2026-09-06追加)
+# ============================================================
+# 大会トップページ(NBA_TOURNAMENT_TOP_URL)に個別大会結果ページへの
+# リンク(/tournament/result/{id})が列挙されているのを実データで確認済み
+# (細川さん指定の一覧URL "/tournament/result/" 自体は404で存在しないため、
+# 代わりにこちらから収集する)。個別結果ページのDOM構造
+# (li.v-tournament-info__match-item 以下に選手名・所属・勝敗クラス・
+# ゲームスコアがクラス名で明確に分かれている)を実データで確認し、
+# 日本語文字を含む選手名が関与する試合だけを抽出する。
+# 「すべて」タブ(#panel-1)には全種目が重複なく含まれ、種目別タブ
+# (#panel-2以降)は同じ試合の重複表示だったため、#panel-1のみを対象にする。
+NBA_TOURNAMENT_TOP_URL = "https://www.badminton.or.jp/tournament/"
+NBA_RESULT_URL_TEMPLATE = "https://www.badminton.or.jp/tournament/result/{id}"
+NBA_RESULT_ID_LIMIT = 30
+NBA_TITLE_RE = re.compile(r"^(\d{4}年\d{1,2}月\d{1,2}日)\s*\|\s*(.+?)\s*\|\s*大会結果")
+JAPANESE_CHAR_RE = re.compile(r"[ぁ-んァ-ヶ一-龠]")
+COLOR_NBA = 0x1A365D
+
+
+def fetch_nba_result_ids(limit=NBA_RESULT_ID_LIMIT):
+    """NBA公式サイトの大会トップページから、個別の大会結果ページの
+    ID一覧を収集する(トップページに掲載されている範囲のみ。過去の
+    全結果を遡るページネーションは追わない)。"""
+    try:
+        resp = requests.get(NBA_TOURNAMENT_TOP_URL, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+    except Exception as err:  # noqa: BLE001
+        print(f"[ERROR] NBA大会トップページの取得に失敗しました: {err}")
+        return []
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    ids = []
+    seen_in_batch = set()
+    for a in soup.select('a[href*="/tournament/result/"]'):
+        m = re.search(r"/tournament/result/(\d+)", a.get("href", ""))
+        if m and m.group(1) not in seen_in_batch:
+            seen_in_batch.add(m.group(1))
+            ids.append(m.group(1))
+    return ids[:limit]
+
+
+def is_japanese_name(name):
+    return bool(JAPANESE_CHAR_RE.search(name))
+
+
+def fetch_nba_result_detail(result_id):
+    """個別の大会結果ページを取得し、大会名・更新日・日本選手が関与する
+    試合の概要を抽出する。取得失敗・S/Jリーグ(実業団)関連・結果がまだ
+    1件も掲載されていない場合はNoneを返す。"""
+    url = NBA_RESULT_URL_TEMPLATE.format(id=result_id)
+    try:
+        resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+    except Exception as err:  # noqa: BLE001
+        print(f"[ERROR] NBA大会結果ページの取得に失敗しました({url}): {err}")
+        return None
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    title_tag = soup.find("title")
+    title_text = title_tag.get_text(strip=True) if title_tag else ""
+    m = NBA_TITLE_RE.match(title_text)
+    if not m:
+        print(f"[WARN] NBA大会結果ページのタイトル形式が想定外のためスキップします({url}): {title_text}")
+        return None
+    update_date, tournament_name = m.groups()
+
+    if is_league_excluded(tournament_name) or is_league_excluded(title_text):
+        print(f"[INFO] S/Jリーグ(実業団)関連大会のため除外します: {tournament_name}")
+        return None
+
+    panel1 = soup.select_one("#panel-1")
+    all_matches = panel1.select("li.v-tournament-info__match-item") if panel1 else []
+    if not all_matches:
+        return None  # まだ結果が1件も掲載されていない(大会前の告知ページ等)
+
+    japan_matches = []
+    for item in all_matches:
+        head = item.select_one(".v-tournament-info__match-head")
+        left = item.select_one(".v-tournament-info__match-left")
+        right = item.select_one(".v-tournament-info__match-right")
+        if not (head and left and right):
+            continue
+
+        # ダブルスは左右それぞれの側に選手が2人分(.v-tournament-info__match-name
+        # が2つ)入っていることを実データで確認したため、select_oneではなく
+        # select()で両者とも取得して結合する(select_oneだと1人目しか
+        # 拾えず、2人目の名前が欠落するバグがあった)。
+        left_names = [n.get_text(strip=True) for n in left.select(".v-tournament-info__match-name")]
+        right_names = [n.get_text(strip=True) for n in right.select(".v-tournament-info__match-name")]
+        if not (left_names and right_names):
+            continue
+        if not (any(is_japanese_name(n) for n in left_names) or any(is_japanese_name(n) for n in right_names)):
+            continue  # 日本選手が関与しない試合は対象外
+
+        left_player_div = left.select_one(".v-tournament-info__match-player")
+        right_player_div = right.select_one(".v-tournament-info__match-player")
+        left_win = bool(left_player_div and any("win" in c for c in left_player_div.get("class", [])))
+        right_win = bool(right_player_div and any("win" in c for c in right_player_div.get("class", [])))
+
+        left_teams = [t.get_text(strip=True) for t in left.select(".v-tournament-info__match-team")]
+        right_teams = [t.get_text(strip=True) for t in right.select(".v-tournament-info__match-team")]
+        left_team = left_teams[0] if left_teams else ""
+        right_team = right_teams[0] if right_teams else ""
+        left_display = "・".join(left_names) + left_team
+        right_display = "・".join(right_names) + right_team
+
+        japan_matches.append({
+            "round_event": head.get_text(strip=True),
+            "left": left_display,
+            "right": right_display,
+            "left_win": left_win,
+            "right_win": right_win,
+        })
+
+    return {
+        "id": result_id,
+        "tournament": tournament_name,
+        "update_date": update_date,
+        "url": url,
+        "japan_matches": japan_matches,
+    }
+
+
+def build_nba_result_embeds(results):
+    embeds = []
+    for r in results:
+        lines = []
+        for m in r["japan_matches"][:15]:  # Discord Embed description上限対策
+            if m["left_win"]:
+                lines.append(f"◯ **{m['left']}** - {m['right']} ({m['round_event']})")
+            elif m["right_win"]:
+                lines.append(f"{m['left']} - **{m['right']}** ◯ ({m['round_event']})")
+            else:
+                lines.append(f"{m['left']} - {m['right']} ({m['round_event']})")
+        if not lines:
+            lines = ["(日本選手が関与する試合結果はまだ掲載されていません)"]
+        embeds.append({
+            "title": f"🏸 【{r['tournament']}】大会結果(NBA公式・{r['update_date']}更新)"[:256],
+            "description": "\n".join(lines) + f"\n[詳細を見る](<{r['url']}>)",
+            "color": COLOR_NBA,
+        })
+    return embeds
+
+
 def send_embeds_to_discord(webhook_url, embeds, batch_size=10):
     if not webhook_url:
         print("[ERROR] DISCORD_WEBHOOK_SPORTS_CULTURE が設定されていないため送信をスキップします。")
@@ -579,6 +747,48 @@ def send_embeds_to_discord(webhook_url, embeds, batch_size=10):
     return ok
 
 
+EMPTY_DIGEST_POOL = {"matches": [], "summaries": [], "badspi": [], "gnews": [], "nba": []}
+
+
+def get_time_band(now):
+    """JST時刻から配信帯を判定する(2026-09-06、細川さんの指定により追加)。
+    - day:     09:00〜22:59 (試合が行われやすい時間帯、15分間隔cronに対応) → 即時配信
+    - night:   23:00〜05:59 (深夜〜早朝、ヨーロッパ開催時の試合終了が集中) → 配信せずプール
+    - morning: 06:00〜08:59 → 即時配信(かつ、この帯の最初の実行でプールを
+               「昨夜のダイジェスト」としてまとめて配信する)
+    dayとmorningのどちらも「即時配信モード」だが、プールの有無をチェックする
+    処理は両方に共通で入れている(6:00ちょうどの専用cronが遅延・失敗しても、
+    次の通常実行で必ずダイジェストが送られるようにするため)。
+    """
+    hour = now.hour
+    if 9 <= hour <= 22:
+        return "day"
+    if hour == 23 or hour <= 5:
+        return "night"
+    return "morning"
+
+
+def build_digest_embeds(pool, now):
+    """深夜帯(23:00〜05:59)にプールされた新着を、朝にまとめて1回で配信する
+    ためのEmbed群を組み立てる。先頭に見出しEmbedを付け、以降は通常の各
+    ビルダーを流用する(配信フォーマットの一貫性を保つため)。"""
+    body_embeds = (
+        build_badminton_embeds(pool.get("matches", []), now)
+        + build_national_summary_embeds(pool.get("summaries", []), now)
+        + build_badspi_embeds(pool.get("badspi", []))
+        + build_google_news_badminton_embeds(pool.get("gnews", []))
+        + build_nba_result_embeds(pool.get("nba", []))
+    )
+    if not body_embeds:
+        return []
+    header = {
+        "title": "🌙 昨夜のバドミントン結果ダイジェスト",
+        "description": f"23:00〜{now.strftime('%m/%d')} 05:59 JSTの間に検知した新着 {len(body_embeds)}件をまとめてお届けします。",
+        "color": 0x2D3748,
+    }
+    return [header] + body_embeds
+
+
 def main():
     webhook = os.environ.get("DISCORD_WEBHOOK_SPORTS_CULTURE")
     if not webhook:
@@ -586,12 +796,19 @@ def main():
         sys.exit(1)
 
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
+    band = get_time_band(now)
+    print(f"=== 時間帯判定: {band} ({now.strftime('%Y-%m-%d %H:%M')} JST) ===")
+
     state = load_seen_state()
     state = prune_old_entries(state, now)
     seen = state.setdefault("seen_matches", {})
     seen_badspi = state.setdefault("seen_badspi_urls", {})
     seen_summaries = state.setdefault("seen_national_summaries", {})
     seen_gnews = state.setdefault("seen_gnews_urls", {})
+    seen_nba = state.setdefault("seen_nba_result_ids", {})
+    pool = state.setdefault("digest_pool", dict(EMPTY_DIGEST_POOL))
+    for key, default in EMPTY_DIGEST_POOL.items():
+        pool.setdefault(key, list(default))
 
     article_urls = fetch_tournament_article_urls()
     print(f"=== 大会記事: {len(article_urls)}件を巡回します ===")
@@ -654,18 +871,61 @@ def main():
     for a in new_gnews_articles:
         print(f"  {a['title']}")
 
+    nba_ids = fetch_nba_result_ids()
+    new_nba_results = []
+    for result_id in nba_ids:
+        if result_id in seen_nba:
+            continue
+        detail = fetch_nba_result_detail(result_id)
+        seen_nba[result_id] = now.isoformat()  # 除外・結果無しでも再取得しないよう既読化
+        if detail is None:
+            continue
+        new_nba_results.append(detail)
+
+    print(f"=== NBA公式の新着大会結果: {len(new_nba_results)}件 ===")
+    for r in new_nba_results:
+        print(f"  [{r['tournament']}] 日本選手関連{len(r['japan_matches'])}試合")
+
     had_error = False
-    embeds = (
-        build_badminton_embeds(new_matches, now)
-        + build_national_summary_embeds(new_summaries, now)
-        + build_badspi_embeds(new_badspi_articles)
-        + build_google_news_badminton_embeds(new_gnews_articles)
-    )
-    if embeds:
-        if not send_embeds_to_discord(webhook, embeds):
-            had_error = True
+
+    if band == "night":
+        # 深夜帯: Discordへは配信せず、プールに積むだけ。
+        pool["matches"].extend(new_matches)
+        pool["summaries"].extend(new_summaries)
+        pool["badspi"].extend(new_badspi_articles)
+        pool["gnews"].extend(new_gnews_articles)
+        pool["nba"].extend(new_nba_results)
+        pooled_total = sum(len(v) for v in pool.values())
+        print(f"[INFO] 深夜帯(23:00〜05:59)のためプールに追加しました(今回追加"
+              f"{len(new_matches) + len(new_summaries) + len(new_badspi_articles) + len(new_gnews_articles) + len(new_nba_results)}"
+              f"件、プール合計{pooled_total}件)。")
     else:
-        print("[INFO] 配信対象の新着はありませんでした。")
+        # day/morning: 通常の即時配信。プールに何か残っていれば
+        # (=夜間帯からの繰り越し、または前回ダイジェスト送信の失敗分)
+        # 「昨夜のダイジェスト」として先にまとめて送り、プールを空にする。
+        pooled_total = sum(len(v) for v in pool.values())
+        if pooled_total:
+            digest_embeds = build_digest_embeds(pool, now)
+            print(f"=== 昨夜のダイジェストを配信します({pooled_total}件) ===")
+            if send_embeds_to_discord(webhook, digest_embeds):
+                for key in EMPTY_DIGEST_POOL:
+                    pool[key] = []
+            else:
+                had_error = True
+                print("[WARN] ダイジェスト送信に失敗したため、プールは保持し次回リトライします。")
+
+        embeds = (
+            build_badminton_embeds(new_matches, now)
+            + build_national_summary_embeds(new_summaries, now)
+            + build_badspi_embeds(new_badspi_articles)
+            + build_google_news_badminton_embeds(new_gnews_articles)
+            + build_nba_result_embeds(new_nba_results)
+        )
+        if embeds:
+            if not send_embeds_to_discord(webhook, embeds):
+                had_error = True
+        else:
+            print("[INFO] 配信対象の新着はありませんでした。")
 
     save_seen_state(state)
 
