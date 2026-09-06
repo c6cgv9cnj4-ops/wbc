@@ -226,6 +226,7 @@ def prune_old_entries(state, now):
     state["seen_national_summaries"] = _prune_dict(state.get("seen_national_summaries", {}), cutoff)
     state["seen_gnews_urls"] = _prune_dict(state.get("seen_gnews_urls", {}), cutoff)
     state["seen_nba_result_ids"] = _prune_dict(state.get("seen_nba_result_ids", {}), cutoff)
+    state["seen_finals_digest_ids"] = _prune_dict(state.get("seen_finals_digest_ids", {}), cutoff)
     return state
 
 
@@ -903,10 +904,61 @@ def format_match_score(games):
     return f"{left_sets}-{right_sets}（{game_scores}）"
 
 
+def _parse_nba_match_item(item, wr_rankings):
+    """1試合分のDOMを解析する共通ヘルパー(日本語フィルタなし)。
+    japan_matches(既存仕様)と決勝結果ダイジェスト(2026-09-06追加)の
+    両方がこれを共有する。解析できなければNoneを返す。"""
+    head = item.select_one(".v-tournament-info__match-head")
+    left = item.select_one(".v-tournament-info__match-left")
+    right = item.select_one(".v-tournament-info__match-right")
+    if not (head and left and right):
+        return None
+
+    # ダブルスは左右それぞれの側に選手が2人分(.v-tournament-info__match-name
+    # が2つ)入っていることを実データで確認したため、select_oneではなく
+    # select()で両者とも取得して結合する(select_oneだと1人目しか
+    # 拾えず、2人目の名前が欠落するバグがあった)。
+    left_names = [n.get_text(strip=True) for n in left.select(".v-tournament-info__match-name")]
+    right_names = [n.get_text(strip=True) for n in right.select(".v-tournament-info__match-name")]
+    if not (left_names and right_names):
+        return None
+
+    left_player_div = left.select_one(".v-tournament-info__match-player")
+    right_player_div = right.select_one(".v-tournament-info__match-player")
+    left_win = bool(left_player_div and any("win" in c for c in left_player_div.get("class", [])))
+    right_win = bool(right_player_div and any("win" in c for c in right_player_div.get("class", [])))
+
+    left_teams = [t.get_text(strip=True) for t in left.select(".v-tournament-info__match-team")]
+    right_teams = [t.get_text(strip=True) for t in right.select(".v-tournament-info__match-team")]
+    left_team = left_teams[0] if left_teams else ""
+    right_team = right_teams[0] if right_teams else ""
+
+    wr = wr_rankings or {}
+    left_display = "・".join(annotate_player_with_wr(n, wr) for n in left_names) + left_team
+    right_display = "・".join(annotate_player_with_wr(n, wr) for n in right_names) + right_team
+
+    center = item.select_one(".v-tournament-info__match-center")
+    score_text = format_match_score(extract_match_games(center))
+
+    return {
+        "round_event": head.get_text(strip=True),
+        "left_names": left_names,
+        "right_names": right_names,
+        "left_team": left_team,
+        "right_team": right_team,
+        "left_win": left_win,
+        "right_win": right_win,
+        "score_text": score_text,
+        "left": left_display,
+        "right": right_display,
+    }
+
+
 def fetch_nba_result_detail(result_id, wr_rankings=None):
     """個別の大会結果ページを取得し、大会名・更新日・日本選手が関与する
-    試合の概要を抽出する。取得失敗・S/Jリーグ(実業団)関連・結果がまだ
-    1件も掲載されていない場合はNoneを返す。"""
+    試合の概要(japan_matches)と、全試合の生データ(all_matches、決勝結果
+    ダイジェスト用、2026-09-06追加)の両方を返す。取得失敗・S/Jリーグ
+    (実業団)関連・結果がまだ1件も掲載されていない場合はNoneを返す。"""
     url = NBA_RESULT_URL_TEMPLATE.format(id=result_id)
     try:
         resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
@@ -929,53 +981,23 @@ def fetch_nba_result_detail(result_id, wr_rankings=None):
         return None
 
     panel1 = soup.select_one("#panel-1")
-    all_matches = panel1.select("li.v-tournament-info__match-item") if panel1 else []
-    if not all_matches:
+    raw_items = panel1.select("li.v-tournament-info__match-item") if panel1 else []
+    if not raw_items:
         return None  # まだ結果が1件も掲載されていない(大会前の告知ページ等)
 
+    all_matches = [m for m in (_parse_nba_match_item(item, wr_rankings) for item in raw_items) if m]
+
     japan_matches = []
-    for item in all_matches:
-        head = item.select_one(".v-tournament-info__match-head")
-        left = item.select_one(".v-tournament-info__match-left")
-        right = item.select_one(".v-tournament-info__match-right")
-        if not (head and left and right):
-            continue
-
-        # ダブルスは左右それぞれの側に選手が2人分(.v-tournament-info__match-name
-        # が2つ)入っていることを実データで確認したため、select_oneではなく
-        # select()で両者とも取得して結合する(select_oneだと1人目しか
-        # 拾えず、2人目の名前が欠落するバグがあった)。
-        left_names = [n.get_text(strip=True) for n in left.select(".v-tournament-info__match-name")]
-        right_names = [n.get_text(strip=True) for n in right.select(".v-tournament-info__match-name")]
-        if not (left_names and right_names):
-            continue
-        if not (any(is_japanese_name(n) for n in left_names) or any(is_japanese_name(n) for n in right_names)):
+    for pm in all_matches:
+        if not (any(is_japanese_name(n) for n in pm["left_names"]) or any(is_japanese_name(n) for n in pm["right_names"])):
             continue  # 日本選手が関与しない試合は対象外
-
-        left_player_div = left.select_one(".v-tournament-info__match-player")
-        right_player_div = right.select_one(".v-tournament-info__match-player")
-        left_win = bool(left_player_div and any("win" in c for c in left_player_div.get("class", [])))
-        right_win = bool(right_player_div and any("win" in c for c in right_player_div.get("class", [])))
-
-        left_teams = [t.get_text(strip=True) for t in left.select(".v-tournament-info__match-team")]
-        right_teams = [t.get_text(strip=True) for t in right.select(".v-tournament-info__match-team")]
-        left_team = left_teams[0] if left_teams else ""
-        right_team = right_teams[0] if right_teams else ""
-
-        wr = wr_rankings or {}
-        left_display = "・".join(annotate_player_with_wr(n, wr) for n in left_names) + left_team
-        right_display = "・".join(annotate_player_with_wr(n, wr) for n in right_names) + right_team
-
-        center = item.select_one(".v-tournament-info__match-center")
-        score_text = format_match_score(extract_match_games(center))
-
         japan_matches.append({
-            "round_event": head.get_text(strip=True),
-            "left": left_display,
-            "right": right_display,
-            "left_win": left_win,
-            "right_win": right_win,
-            "score_text": score_text,
+            "round_event": pm["round_event"],
+            "left": pm["left"],
+            "right": pm["right"],
+            "left_win": pm["left_win"],
+            "right_win": pm["right_win"],
+            "score_text": pm["score_text"],
         })
 
     return {
@@ -984,6 +1006,7 @@ def fetch_nba_result_detail(result_id, wr_rankings=None):
         "update_date": update_date,
         "url": url,
         "japan_matches": japan_matches,
+        "all_matches": all_matches,
     }
 
 
@@ -1007,6 +1030,163 @@ def build_nba_result_embeds(results):
             "color": COLOR_NBA,
         })
     return embeds
+
+
+# ============================================================
+# 決勝結果ダイジェスト(WR入り、注目選手結果付き)(2026-09-06追加)
+# ============================================================
+# NBA公式の結果ページに「決勝(戦)」ラウンドのデータが載った時点で、その
+# 大会は終了したとみなし、種目別の優勝/準優勝(WRランキング付き)+注目選手
+# (FAVORITE_PLAYERS)の直近結果をまとめた専用フォーマットで配信する。
+# トリガーは「決勝データを新規検出した実行タイミング」そのもの(BWFの
+# 大会日程を別途取得する手段が無い=既知の制約のため、日程判定ではなく
+# 結果データの有無で間接的に大会終了を検知する設計。多くの大会が日曜に
+# 決勝を迎えるため、実質的に月曜前後の巡回で検知されることが多い)。
+FINAL_ROUND_RE = re.compile(r"^決勝(戦)?")
+CATEGORY_EVENT_LABELS = ["男子シングルス", "女子シングルス", "男子ダブルス", "女子ダブルス", "混合ダブルス"]
+
+
+def extract_final_matches(all_matches):
+    """全試合データ(_parse_nba_match_item由来)から、種目ごとの決勝戦
+    だけを抽出する({種目名: match_dict})。"""
+    finals = {}
+    for pm in all_matches:
+        if not FINAL_ROUND_RE.match(pm["round_event"]):
+            continue
+        for event_label in CATEGORY_EVENT_LABELS:
+            if event_label in pm["round_event"]:
+                finals[event_label] = pm
+                break
+    return finals
+
+
+# NBA公式結果ページのteam欄は、海外選手の場合は国名(漢字表記を含む)で
+# 入っている実データを確認済み。中国・台湾・香港等の選手名は漢字表記のため
+# is_japanese_name(選手名の文字種判定)だけでは「中国人選手なのに国籍=日本」
+# と誤判定してしまうバグがあった(2026-09-06、決勝ダイジェスト機能の
+# テスト中に発見)。team欄の値がバドミントン強豪国としてよく登場する
+# 国名リストに一致する場合はteam欄をそのまま国籍として優先採用し、
+# 一致しない場合のみ選手名の文字種で「日本」判定する(消去法)。
+KNOWN_NON_JAPAN_TEAM_NAMES = [
+    "中国", "韓国", "インドネシア", "マレーシア", "タイ", "インド", "台湾", "チャイニーズ・タイペイ",
+    "デンマーク", "フランス", "スペイン", "ドイツ", "オランダ", "イングランド", "スコットランド",
+    "アメリカ", "カナダ", "シンガポール", "香港", "ホンコン・チャイナ", "ベトナム", "フィリピン",
+    "オーストラリア", "ニュージーランド", "ブラジル", "スイス", "スウェーデン", "ノルウェー",
+    "フィンランド", "ロシア", "ウクライナ", "ポーランド", "イタリア", "ベルギー", "エジプト",
+    "南アフリカ", "ブルガリア", "チェコ", "ハンガリー", "ラトビア", "アイルランド", "トルコ",
+]
+
+
+def player_nationality_display(names, team):
+    """選手側の国籍表記を決める。team欄が既知の海外国名と一致すれば
+    それを優先し(漢字圏の選手名を誤って「日本」と判定するのを防ぐ)、
+    一致しなければ選手名の文字種から「日本」と判定する。"""
+    team_clean = (team or "").strip("()（）")
+    if team_clean in KNOWN_NON_JAPAN_TEAM_NAMES:
+        return team_clean
+    if any(is_japanese_name(n) for n in names):
+        return "日本"
+    return team_clean or "国籍不明"
+
+
+def format_final_side(names, team, wr_rankings):
+    """決勝の片側(優勝/準優勝いずれか)を「氏名（国籍 / WR ○位）」形式で
+    整形する(ダブルスは「・」区切りで両選手分)。ランキング未掲載の選手は
+    「WR未掲載」と明記する(ペア再編等で暫定的にランク付けが無い場合の
+    注記も兼ねる)。"""
+    nationality = player_nationality_display(names, team)
+    parts = []
+    for n in names:
+        rank = wr_rankings.get(_normalize_player_key(n))
+        rank_text = f"WR {rank}位" if rank else "WR未掲載"
+        parts.append(f"{n}（{nationality} / {rank_text}）")
+    return "・".join(parts)
+
+
+def find_favorite_player_matches(all_matches, favorite_players):
+    """FAVORITE_PLAYERSの各選手について、この大会での最終戦(出場していれば
+    最も進んだラウンド=敗退or優勝したカード)を返す({氏名: match_dict})。
+    NBA結果ページはラウンド順(1回戦→…→決勝)に並んでいる実データを確認
+    済みのため、最後にマッチしたものを採用すれば最終戦になる。"""
+    results = {}
+    for fav in favorite_players:
+        name = fav["name"]
+        matched = None
+        for pm in all_matches:
+            if name in pm["left_names"] or name in pm["right_names"]:
+                matched = pm
+        results[name] = matched
+    return results
+
+
+def format_favorite_player_line(name, match, wr_rankings):
+    """注目選手1名分の直近結果を1行に整形する。大会に出場していなければ
+    Noneを返す(その選手の行自体を出力しない)。"""
+    if match is None:
+        return None
+    if name in match["left_names"]:
+        opp_names, opp_team, won = match["right_names"], match["right_team"], match["left_win"]
+    else:
+        opp_names, opp_team, won = match["left_names"], match["left_team"], match["right_win"]
+
+    opp_nationality = player_nationality_display(opp_names, opp_team)
+    opp_ranked = []
+    for n in opp_names:
+        rank = wr_rankings.get(_normalize_player_key(n))
+        opp_ranked.append(f"{n}(WR{rank})" if rank else n)
+    opp_display = "・".join(opp_ranked)
+
+    result_text = "勝利" if won else "敗退"
+    score = match["score_text"] or "スコア不明"
+    return f"・{name}：{match['round_event']} {result_text} {score} ({opp_display} / {opp_nationality})"
+
+
+def build_finals_digest_embed(result, wr_rankings):
+    """1大会分の決勝結果ダイジェストEmbedを組み立てる。決勝データが
+    1種目も無ければNoneを返す。"""
+    finals = extract_final_matches(result["all_matches"])
+    if not finals:
+        return None
+
+    lines = []
+
+    favorite_matches = find_favorite_player_matches(result["all_matches"], FAVORITE_PLAYERS)
+    favorite_lines = [
+        line for fav in FAVORITE_PLAYERS
+        if (line := format_favorite_player_line(fav["name"], favorite_matches.get(fav["name"]), wr_rankings))
+    ]
+    if favorite_lines:
+        lines.append("**【注目選手結果】**")
+        lines.extend(favorite_lines)
+        lines.append("－" * 20)
+
+    for event_label in CATEGORY_EVENT_LABELS:
+        match = finals.get(event_label)
+        if not match:
+            continue
+        if match["left_win"]:
+            winner_names, winner_team = match["left_names"], match["left_team"]
+            loser_names, loser_team = match["right_names"], match["right_team"]
+        else:
+            winner_names, winner_team = match["right_names"], match["right_team"]
+            loser_names, loser_team = match["left_names"], match["left_team"]
+
+        lines.append(f"**【{event_label}】**")
+        lines.append(f"・優勝：{format_final_side(winner_names, winner_team, wr_rankings)}")
+        lines.append(f"・スコア：{match['score_text'] or '不明'}")
+        lines.append(f"・準優勝：{format_final_side(loser_names, loser_team, wr_rankings)}")
+        if event_label in ("男子シングルス", "女子シングルス") and any(is_japanese_name(n) for n in winner_names):
+            lines.append(f"・日本勢結果：{winner_names[0]}（優勝）")
+        lines.append("")
+
+    description = "\n".join(lines).strip()
+    description += f"\n\n出典: NBA公式（{result['update_date']}更新） / [詳細を見る](<{result['url']}>)"
+
+    return {
+        "title": f"🏸 【{result['tournament']}】決勝結果"[:256],
+        "description": description[:4096],  # Discord Embed description上限
+        "color": 0x744210,
+    }
 
 
 def send_embeds_to_discord(webhook_url, embeds, batch_size=10):
@@ -1198,19 +1378,53 @@ def main():
                 if digest_embed and send_embeds_to_discord(webhook, [digest_embed]):
                     state["last_weekly_ranking_snapshot"] = new_snapshot
 
+    # 決勝結果ダイジェスト(2026-09-06追加)は、japan_matchesとは別の観点
+    # (「決勝データの有無」)で大会を再チェックする必要があるため、
+    # 一度seen_nbaに登録済みの大会でも、seen_finals未登録なら
+    # (=まだ決勝ダイジェストを送っていなければ)結果ページを再取得する。
+    # 導入時に既存の完了済み大会が一斉に「決勝あり」判定されてDiscordが
+    # 荒れるのを避けるため、1回の実行で送るダイジェスト数に上限を設ける
+    # (残りは次回以降の実行で少しずつ処理される)。
+    seen_finals = state.setdefault("seen_finals_digest_ids", {})
+    FINALS_DIGEST_PER_RUN_LIMIT = 3
+
     new_nba_results = []
+    finals_digest_sent = []
     for result_id in nba_ids:
-        if result_id in seen_nba:
+        need_japan_check = result_id not in seen_nba
+        need_finals_check = (
+            result_id not in seen_finals
+            and len(finals_digest_sent) < FINALS_DIGEST_PER_RUN_LIMIT
+        )
+        if not (need_japan_check or need_finals_check):
             continue
+
         detail = fetch_nba_result_detail(result_id, wr_rankings)
-        seen_nba[result_id] = now.isoformat()  # 除外・結果無しでも再取得しないよう既読化
+        if need_japan_check:
+            seen_nba[result_id] = now.isoformat()  # 除外・結果無しでも再取得しないよう既読化
         if detail is None:
             continue
-        new_nba_results.append(detail)
+
+        if need_japan_check:
+            new_nba_results.append(detail)
+
+        if need_finals_check:
+            finals_embed = build_finals_digest_embed(detail, wr_rankings)
+            if finals_embed:
+                if send_embeds_to_discord(webhook, [finals_embed]):
+                    seen_finals[result_id] = now.isoformat()
+                    finals_digest_sent.append(detail["tournament"])
+                    print(f"[OK] 決勝結果ダイジェストを配信しました: {detail['tournament']}")
+            # 決勝データがまだ無い(大会継続中)場合はseen_finalsに登録せず、
+            # 次回以降の実行で再度チェックする。
 
     print(f"=== NBA公式の新着大会結果: {len(new_nba_results)}件 ===")
     for r in new_nba_results:
         print(f"  [{r['tournament']}] 日本選手関連{len(r['japan_matches'])}試合")
+
+    print(f"=== 決勝結果ダイジェスト配信: {len(finals_digest_sent)}件 ===")
+    for t in finals_digest_sent:
+        print(f"  {t}")
 
     had_error = False
 
