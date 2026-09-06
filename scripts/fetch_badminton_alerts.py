@@ -583,6 +583,78 @@ def build_google_news_badminton_embeds(articles):
 
 
 # ============================================================
+# BWF世界ランキング(バドナビ経由、2026-09-06追加)
+# ============================================================
+# BWF公式サイト(bwfbadminton.com/rankings/)は既知の通り403で直接アクセス
+# 不可のため、日本語のバドミントン用具レビューサイト「バドナビ」
+# (badminton-navi.net)が掲載している世界ランキング表(男女シングルス・
+# ダブルス・混合ダブルスの5種目、各上位100件)を情報源にする。実データで
+# table.rankingTable の構造(.rankCell=順位、.nameCell .nameTxt=日本語表記、
+# .nameCell の残りテキスト=アルファベット表記)を確認済み。ダブルス種目も
+# ペア単位ではなく選手個人ごとに1行でランクインしていることを確認したため、
+# ペアの各選手をそれぞれ個別に検索する設計で問題ない。
+# 選手名の表記ゆれ(スペース有無・読み仮名括弧)を吸収するため、
+# 正規化キー(空白・括弧除去+大文字化)で照合する。
+WR_RANKING_URLS = {
+    "male_singles": "https://badminton-navi.net/player/ranking_detail/world/men/single",
+    "female_singles": "https://badminton-navi.net/player/ranking_detail/world/women/single",
+    "male_doubles": "https://badminton-navi.net/player/ranking_detail/world/men/double",
+    "female_doubles": "https://badminton-navi.net/player/ranking_detail/world/women/double",
+    "mixed_doubles": "https://badminton-navi.net/player/ranking_detail/world/mixed/double",
+}
+WR_RANKINGS_CACHE_HOURS = 24  # ランキングは頻繁に変わらないためstateにキャッシュする
+
+
+def _normalize_player_key(name):
+    name = re.sub(r"[（(].*?[）)]", "", name)  # 読み仮名括弧(例:「（シー・ユーチ）」)を除去
+    name = re.sub(r"\s+", "", name)  # 半角/全角スペースを除去
+    return name.strip().upper()
+
+
+def fetch_wr_rankings():
+    """バドナビからBWF世界ランキング5種目を取得し、選手名の正規化キー→
+    順位の辞書を返す。種目単位で取得失敗してもその種目だけスキップし、
+    処理は継続する。"""
+    rankings = {}
+    for category, url in WR_RANKING_URLS.items():
+        try:
+            resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
+            resp.raise_for_status()
+        except Exception as err:  # noqa: BLE001
+            print(f"[WARN] 世界ランキング取得に失敗しました({category}): {err}")
+            continue
+        soup = BeautifulSoup(resp.text, "html.parser")
+        count = 0
+        for tr in soup.select("table.rankingTable tr"):
+            rank_tag = tr.select_one(".rankCell b")
+            name_cell = tr.select_one(".nameCell")
+            if not (rank_tag and name_cell):
+                continue
+            try:
+                rank = int(rank_tag.get_text(strip=True))
+            except ValueError:
+                continue
+            name_txt_tag = name_cell.select_one(".nameTxt")
+            jp_name = name_txt_tag.get_text(strip=True) if name_txt_tag else ""
+            alpha_name = name_cell.get_text(" ", strip=True)
+            if jp_name:
+                alpha_name = alpha_name.replace(jp_name, "").strip()
+            for raw_name in (jp_name, alpha_name):
+                key = _normalize_player_key(raw_name) if raw_name else ""
+                if key and key not in rankings:  # 既に(より上位の)登録があれば上書きしない
+                    rankings[key] = rank
+            count += 1
+        print(f"[INFO] 世界ランキング取得({category}): {count}件")
+    return rankings
+
+
+def annotate_player_with_wr(name, wr_rankings):
+    """選手名に世界ランキング [WR◯] を付与する(見つからなければそのまま)。"""
+    rank = wr_rankings.get(_normalize_player_key(name))
+    return f"{name}[WR{rank}]" if rank else name
+
+
+# ============================================================
 # 日本バドミントン協会(NBA)公式サイトの大会結果ページ(2026-09-06追加)
 # ============================================================
 # 大会トップページ(NBA_TOURNAMENT_TOP_URL)に個別大会結果ページへの
@@ -628,7 +700,41 @@ def is_japanese_name(name):
     return bool(JAPANESE_CHAR_RE.search(name))
 
 
-def fetch_nba_result_detail(result_id):
+def extract_match_games(center_div):
+    """.v-tournament-info__match-center から各ゲームの(左スコア, 右スコア)
+    のリストを抽出する(2026-09-06追加。実データでDOM構造を確認済み:
+    .v-tournament-info__match-score 1つ=1ゲームで、中に
+    .v-tournament-info__match-score-num が2つ(左→右の順)入っている)。
+    """
+    games = []
+    if not center_div:
+        return games
+    for score_div in center_div.select(".v-tournament-info__match-score"):
+        nums = score_div.select(".v-tournament-info__match-score-num")
+        if len(nums) != 2:
+            continue
+        try:
+            left_score = int(nums[0].get_text(strip=True))
+            right_score = int(nums[1].get_text(strip=True))
+        except ValueError:
+            continue
+        games.append((left_score, right_score))
+    return games
+
+
+def format_match_score(games):
+    """ゲームリストから「セット数（ゲームごとの得点）」の表示文字列を作る。
+    例: "2-0（21-14, 21-18）"。ゲーム情報が無ければ空文字を返す。
+    """
+    if not games:
+        return ""
+    left_sets = sum(1 for l, r in games if l > r)
+    right_sets = sum(1 for l, r in games if r > l)
+    game_scores = ", ".join(f"{l}-{r}" for l, r in games)
+    return f"{left_sets}-{right_sets}（{game_scores}）"
+
+
+def fetch_nba_result_detail(result_id, wr_rankings=None):
     """個別の大会結果ページを取得し、大会名・更新日・日本選手が関与する
     試合の概要を抽出する。取得失敗・S/Jリーグ(実業団)関連・結果がまだ
     1件も掲載されていない場合はNoneを返す。"""
@@ -686,8 +792,13 @@ def fetch_nba_result_detail(result_id):
         right_teams = [t.get_text(strip=True) for t in right.select(".v-tournament-info__match-team")]
         left_team = left_teams[0] if left_teams else ""
         right_team = right_teams[0] if right_teams else ""
-        left_display = "・".join(left_names) + left_team
-        right_display = "・".join(right_names) + right_team
+
+        wr = wr_rankings or {}
+        left_display = "・".join(annotate_player_with_wr(n, wr) for n in left_names) + left_team
+        right_display = "・".join(annotate_player_with_wr(n, wr) for n in right_names) + right_team
+
+        center = item.select_one(".v-tournament-info__match-center")
+        score_text = format_match_score(extract_match_games(center))
 
         japan_matches.append({
             "round_event": head.get_text(strip=True),
@@ -695,6 +806,7 @@ def fetch_nba_result_detail(result_id):
             "right": right_display,
             "left_win": left_win,
             "right_win": right_win,
+            "score_text": score_text,
         })
 
     return {
@@ -711,12 +823,13 @@ def build_nba_result_embeds(results):
     for r in results:
         lines = []
         for m in r["japan_matches"][:15]:  # Discord Embed description上限対策
+            score = f" {m['score_text']}" if m["score_text"] else ""
             if m["left_win"]:
-                lines.append(f"◯ **{m['left']}** - {m['right']} ({m['round_event']})")
+                lines.append(f"◯ **{m['left']}**{score} {m['right']} ({m['round_event']})")
             elif m["right_win"]:
-                lines.append(f"{m['left']} - **{m['right']}** ◯ ({m['round_event']})")
+                lines.append(f"{m['left']}{score} **{m['right']}** ◯ ({m['round_event']})")
             else:
-                lines.append(f"{m['left']} - {m['right']} ({m['round_event']})")
+                lines.append(f"{m['left']}{score} {m['right']} ({m['round_event']})")
         if not lines:
             lines = ["(日本選手が関与する試合結果はまだ掲載されていません)"]
         embeds.append({
@@ -872,11 +985,34 @@ def main():
         print(f"  {a['title']}")
 
     nba_ids = fetch_nba_result_ids()
+
+    # 世界ランキングはstateにキャッシュし、WR_RANKINGS_CACHE_HOURS以内なら
+    # 再取得しない(頻繁に変わらない情報のため、実行のたびに5種目分の
+    # リクエストを送るのは無駄かつ相手サイトへの負荷になる)。
+    wr_cache = state.get("wr_rankings") or {}
+    wr_updated_at = wr_cache.get("updated_at")
+    wr_stale = True
+    if wr_updated_at:
+        try:
+            wr_stale = (now - datetime.datetime.fromisoformat(wr_updated_at)) > datetime.timedelta(hours=WR_RANKINGS_CACHE_HOURS)
+        except ValueError:
+            wr_stale = True
+    if wr_stale or not wr_cache.get("data"):
+        print("[INFO] 世界ランキングのキャッシュが無い/古いため再取得します。")
+        wr_rankings = fetch_wr_rankings()
+        if wr_rankings:
+            state["wr_rankings"] = {"updated_at": now.isoformat(), "data": wr_rankings}
+        else:
+            wr_rankings = wr_cache.get("data", {})  # 取得失敗時は古いキャッシュをそのまま使う
+    else:
+        wr_rankings = wr_cache.get("data", {})
+        print(f"[INFO] 世界ランキングのキャッシュを使用します(更新: {wr_updated_at})。")
+
     new_nba_results = []
     for result_id in nba_ids:
         if result_id in seen_nba:
             continue
-        detail = fetch_nba_result_detail(result_id)
+        detail = fetch_nba_result_detail(result_id, wr_rankings)
         seen_nba[result_id] = now.isoformat()  # 除外・結果無しでも再取得しないよう既読化
         if detail is None:
             continue
