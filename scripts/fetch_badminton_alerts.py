@@ -78,6 +78,24 @@ COLOR_BADSPI = 0x2B6CB0
 GOOGLE_NEWS_BADMINTON_QUERY = "バドミントン 日本代表"
 GOOGLE_NEWS_BADMINTON_ITEM_LIMIT = 20
 COLOR_GNEWS_BADMINTON = 0x718096
+
+# 2026-09-06、初回実装の本番テストで実際に混入したノイズを見て、細川さんの
+# 指定により追加した除外リスト(実データ: PR TIMESの企業提携告知、楽天の
+# 独占販売告知、イーファイト発のゴシップ記事等が混入することを確認済み)。
+# ドメインはGoogle News RSSのentry.source.href(配信元の実ドメイン)で判定し、
+# キーワードはタイトル全体に対して判定する(ゴシップ記事はYahoo!ニュース
+# 転載など配信元ドメインだけでは判別できないため、内容キーワードで弾く)。
+GNEWS_DOMAIN_BLACKLIST = ["prtimes.jp", "efight.jp"]
+GNEWS_KEYWORD_BLACKLIST = [
+    "パートナーシップ", "独占販売", "クラウドファンディング", "協賛",
+    "グラビア", "水着", "美ボディ", "9頭身", "温泉", "【究極の2択】",
+]
+
+
+def is_gnews_noise(title, source_domain):
+    if source_domain and any(d in source_domain for d in GNEWS_DOMAIN_BLACKLIST):
+        return True
+    return any(kw in title for kw in GNEWS_KEYWORD_BLACKLIST)
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
@@ -493,16 +511,37 @@ def fetch_google_news_badminton(limit=GOOGLE_NEWS_BADMINTON_ITEM_LIMIT, retries=
 
     feed = feedparser.parse(resp.content)
     items = []
+    seen_titles_in_batch = set()
     for entry in feed.entries[:limit]:
         title = entry.get("title", "")
         url_ = entry.get("link", "")
         if not title or not url_:
             continue
-        # S/Jリーグ(実業団)関連記事の除外(タイトルのみ。Google News検索結果
-        # の <description> は元記事の抜粋を含まないことが多いため対象外)。
+
+        source = entry.get("source") or {}
+        source_domain = source.get("href", "")
+        source_name = source.get("title", "")
+        # タイトル末尾の "... - 配信元名" は表示上冗長なので、source_nameが
+        # 一致する場合のみ取り除く(一致しない場合はタイトルをそのまま使う)。
+        if source_name and title.endswith(f" - {source_name}"):
+            title = title[: -len(f" - {source_name}")]
+
+        # S/Jリーグ(実業団)関連記事の除外。
         if is_league_excluded(title):
             print(f"[INFO] S/Jリーグ(実業団)関連記事のため除外します: {title}")
             continue
+        # PR TIMES(企業提携告知)・イーファイト(ゴシップ)等のノイズ除外
+        # (2026-09-06、本番テストで実際に混入したノイズを見て追加)。
+        if is_gnews_noise(title, source_domain):
+            print(f"[INFO] ノイズ記事のため除外します({source_domain}): {title}")
+            continue
+        # 同一記事が複数ポータル(TBS NEWS DIG / Infoseek等)に転載され、
+        # タイトルだけ実質同じで二重配信されるケースがあるため、
+        # タイトル単位でも重複除去する。
+        if title in seen_titles_in_batch:
+            continue
+        seen_titles_in_batch.add(title)
+
         items.append({"title": title, "url": url_})
     return items
 
