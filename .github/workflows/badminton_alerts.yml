@@ -12,7 +12,12 @@ on:
     - cron: "43 14-20 * * *"   # JST 23:00〜05:59(night、配信せずプールのみ): 1時間間隔
     - cron: "5 21 * * *"       # JST 6:05(morning突入直後、プールの朝ダイジェストを配信)
     - cron: "43 22-23 * * *"   # JST 7:00〜8:59(morning、即時配信): 1時間間隔
-  workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+  workflow_dispatch:  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+    inputs:
+      test_finals_digest:
+        description: "【一時的テスト用】決勝結果ダイジェストの表示フォーマットを擬似データでDiscordへ試し送信する"
+        type: boolean
+        default: false
 
 permissions:
   contents: write  # state/badminton_alerts_seen.json(既送信記録)のコミット用
@@ -37,6 +42,7 @@ jobs:
       - name: 指定選手の試合結果を取得してDiscordへ配信
         env:
           DISCORD_WEBHOOK_SPORTS_CULTURE: ${{ secrets.WEBHOOK_SPORTS_CULTURE }}
+          TEST_FINALS_DIGEST_PSEUDO: ${{ inputs.test_finals_digest && '1' || '' }}
         run: python scripts/fetch_badminton_alerts.py
 
       - name: 既送信記録をコミット
