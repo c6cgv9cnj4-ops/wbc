@@ -72,7 +72,9 @@
     "https://news.google.com/rss/articles/CBMicEFVX3lxTE5mVFhJeERXZGx0eDRRSWRNRVpnSUdMRUQtVnhzVjlIWVFwU1pfUWpZbzhkNVRpdkdGbzF6ZHo3dnlhZVdGZHd3eGZWVVBObFRXc3FuZjdWVTN4U0dqOUhVTm9FdlNucDRRUGdwNXR3R1Q?oc=5": "2026-09-06T18:01:19.557891+09:00",
     "https://news.google.com/rss/articles/CBMiXEFVX3lxTFBFTzlwanpDZS12QXcwQU1WOHBZVUxPY0RobWVWSjc0Uk91U2F4T19YX2lvNXRiNEdGU2lOSUtPSDBuOE5pTGJrWFRQd1ZBcUhvMVBNek1ZUHhBSkky?oc=5": "2026-09-06T18:01:19.557891+09:00",
     "https://news.google.com/rss/articles/CBMibkFVX3lxTE1zN3ItRFowWklxSndONFd3NWJEZkNpSkNOVGxZQ19VLVdBRGZUc1MzaGd0ckgxVlpQRjdIaWRzdDNHWmlhQll3RmVPZDVLMzQtc2RXRDI2UXkyazU5d21Ja1h4Tk5vOGM1dXF3ejR3?oc=5": "2026-09-06T18:01:19.557891+09:00",
-    "https://news.google.com/rss/articles/CBMic0FVX3lxTFBLeUxTVTNWbkE1b1FfeHNqdk9uRUM4cFNEQVY2ZnB0SkFmUGJTNDU1VE9kQjRCWWMzNjQ4R3oyZUJlV3Q2RnU2a3ZtZW9RbmNOM3dXdkJtamVDSE9YWkFYQjJJLUJQNDhWcEtiUjhHbHdEdFE?oc=5": "2026-09-06T18:01:19.557891+09:00"
+    "https://news.google.com/rss/articles/CBMic0FVX3lxTFBLeUxTVTNWbkE1b1FfeHNqdk9uRUM4cFNEQVY2ZnB0SkFmUGJTNDU1VE9kQjRCWWMzNjQ4R3oyZUJlV3Q2RnU2a3ZtZW9RbmNOM3dXdkJtamVDSE9YWkFYQjJJLUJQNDhWcEtiUjhHbHdEdFE?oc=5": "2026-09-06T18:01:19.557891+09:00",
+    "https://news.google.com/rss/articles/CBMibkFVX3lxTE15ZVBaN0NzMHZZYnRiT3ZTTXRVYTFmSWFGbGNleDYxa3dGZ3FiWV9PVjdIZ18wall4eFpKYTlvUlNxSWQwZnVBa3hsemVDcVB5czVJQWZrc1k0M1ozYno0X0ZVZ3RDQW85dHdfN3d3?oc=5": "2026-09-07T04:31:22.817810+09:00",
+    "https://news.google.com/rss/articles/CBMiXEFVX3lxTE81MzNuTWgxR05nZmktbWN1OEdGQ2ZSbUxxaFNVbnhMS1dyOWFzbGVFbHFHejZnRkR4UnRENGdzd19TVHdNYzlDS0RUeVBKS3praFpvdENFMGdkdUNI?oc=5": "2026-09-07T04:31:22.817810+09:00"
   },
   "seen_nba_result_ids": {
     "982": "2026-09-06T18:30:52.185356+09:00",
@@ -115,7 +117,16 @@
         "url": "https://www.badspi.jp/202609062321/?utm_source=rss&utm_medium=rss&utm_campaign=202609062321"
       }
     ],
-    "gnews": [],
+    "gnews": [
+      {
+        "title": "バド宮崎友花は準優勝 中国観客唸らせるショットも…世界1位＆パリ金の韓国アン・セヨンに及ばず",
+        "url": "https://news.google.com/rss/articles/CBMibkFVX3lxTE15ZVBaN0NzMHZZYnRiT3ZTTXRVYTFmSWFGbGNleDYxa3dGZ3FiWV9PVjdIZ18wall4eFpKYTlvUlNxSWQwZnVBa3hsemVDcVB5czVJQWZrc1k0M1ozYno0X0ZVZ3RDQW85dHdfN3d3?oc=5"
+      },
+      {
+        "title": "バドミントン日本代表選手に聞いてみた！ 山口茜選手・宮崎友花選手｜Part.1",
+        "url": "https://news.google.com/rss/articles/CBMiXEFVX3lxTE81MzNuTWgxR05nZmktbWN1OEdGQ2ZSbUxxaFNVbnhMS1dyOWFzbGVFbHFHejZnRkR4UnRENGdzd19TVHdNYzlDS0RUeVBKS3praFpvdENFMGdkdUNI?oc=5"
+      }
+    ],
     "nba": []
   },
   "wr_rankings": {
