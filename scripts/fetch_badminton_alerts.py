@@ -76,6 +76,18 @@
     先に配信してからプールを空にする(6:00ちょうどの専用cronが遅延しても、
     次にday/morning帯で実行された時点で必ず配信される設計)。
 
+火曜18:00 JST 日本勢ランキングダイジェスト(2026-09-06追加):
+  BWF世界ランキングは日曜の大会終了を受け毎週火曜午後に公式更新される
+  ため、is_weekly_ranking_check_time()で火曜18:00 JST台を検知する
+  (day帯の15分間隔cronが18:00ちょうども含むため専用cronは追加していない。
+  state["last_weekly_ranking_check_date"]で週1回だけに制御)。
+  日本人選手のランキング(順位+氏名、上位WEEKLY_RANKING_TOP_N人)を前回
+  配信時のスナップショットと比較し、変化が無ければ「大会が無かった週」
+  とみなして配信をスキップする(細川さん指定のフォールバック仕様)。
+  変化があれば、NBA公式のナショナルチームページ(所属)+バドナビの選手
+  詳細ページ(年齢、配信対象選手のみオンデマンド取得)を付加した
+  ダイジェストを配信する。
+
 環境変数:
   DISCORD_WEBHOOK_SPORTS_CULTURE (必須)
 """
@@ -611,11 +623,26 @@ def _normalize_player_key(name):
     return name.strip().upper()
 
 
+CATEGORY_LABELS_JA = {
+    "male_singles": "男子シングルス",
+    "female_singles": "女子シングルス",
+    "male_doubles": "男子ダブルス",
+    "female_doubles": "女子ダブルス",
+    "mixed_doubles": "混合ダブルス",
+}
+
+
 def fetch_wr_rankings():
-    """バドナビからBWF世界ランキング5種目を取得し、選手名の正規化キー→
-    順位の辞書を返す。種目単位で取得失敗してもその種目だけスキップし、
-    処理は継続する。"""
+    """バドナビからBWF世界ランキング5種目を取得する。
+    戻り値は (rankings, japan_rankings) のタプル。
+    - rankings: 選手名の正規化キー→順位の辞書(WR注釈付与に使う、既存仕様)。
+    - japan_rankings: {category: [{"rank","name_jp","name_alpha","player_id"}, ...]}
+      国旗が"JPN"の行だけを順位順に集めたもの(火曜の日本勢ランキング
+      ダイジェスト配信に使う、2026-09-06追加)。
+    種目単位で取得失敗してもその種目だけスキップし、処理は継続する。
+    """
     rankings = {}
+    japan_rankings = {}
     for category, url in WR_RANKING_URLS.items():
         try:
             resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
@@ -625,6 +652,7 @@ def fetch_wr_rankings():
             continue
         soup = BeautifulSoup(resp.text, "html.parser")
         count = 0
+        japan_list = []
         for tr in soup.select("table.rankingTable tr"):
             rank_tag = tr.select_one(".rankCell b")
             name_cell = tr.select_one(".nameCell")
@@ -636,7 +664,12 @@ def fetch_wr_rankings():
                 continue
             name_txt_tag = name_cell.select_one(".nameTxt")
             jp_name = name_txt_tag.get_text(strip=True) if name_txt_tag else ""
-            alpha_name = name_cell.get_text(" ", strip=True)
+            # nameCell内には氏名の<a>タグの他に.pointCell(獲得ポイント数)も
+            # 同居しているため、<a>タグの範囲だけからアルファベット表記を
+            # 取り出す(nameCell全体から取るとポイント数の文字列が混入する
+            # バグがあったため2026-09-06修正)。
+            name_link = name_cell.select_one("a")
+            alpha_name = name_link.get_text(" ", strip=True) if name_link else name_cell.get_text(" ", strip=True)
             if jp_name:
                 alpha_name = alpha_name.replace(jp_name, "").strip()
             for raw_name in (jp_name, alpha_name):
@@ -644,14 +677,136 @@ def fetch_wr_rankings():
                 if key and key not in rankings:  # 既に(より上位の)登録があれば上書きしない
                     rankings[key] = rank
             count += 1
-        print(f"[INFO] 世界ランキング取得({category}): {count}件")
-    return rankings
+
+            country_img = tr.select_one(".contryCell img")
+            if country_img and country_img.get("alt") == "JPN":
+                player_link = name_cell.select_one('a[href*="/player/detail/"]')
+                player_id_m = re.search(r"/player/detail/(\d+)", player_link.get("href", "")) if player_link else None
+                japan_list.append({
+                    "rank": rank,
+                    "name_jp": jp_name,
+                    "name_alpha": alpha_name,
+                    "player_id": player_id_m.group(1) if player_id_m else None,
+                })
+        japan_rankings[category] = sorted(japan_list, key=lambda p: p["rank"])
+        print(f"[INFO] 世界ランキング取得({category}): {count}件(うち日本人{len(japan_list)}人)")
+    return rankings, japan_rankings
 
 
 def annotate_player_with_wr(name, wr_rankings):
     """選手名に世界ランキング [WR◯] を付与する(見つからなければそのまま)。"""
     rank = wr_rankings.get(_normalize_player_key(name))
     return f"{name}[WR{rank}]" if rank else name
+
+
+# ============================================================
+# 火曜18:00 JST 日本勢ランキングダイジェスト(2026-09-06追加)
+# ============================================================
+# BWF世界ランキングは日曜の大会終了を受けて毎週火曜午後に公式更新される
+# ため、火曜18:00 JSTに合わせてチェックする。既存のday帯15分間隔cron
+# (JST 9:00〜22:59)が18:00ちょうども含むため、専用cronは追加せず
+# get_time_bandとは別枠でこの時刻を判定する。同じ週に何度もチェックが
+# 走らないよう、state["last_weekly_ranking_check_date"]で「その週(火曜)
+# 1回だけ」に制御する。
+# 前回配信時の日本人ランキング(順位+氏名)のスナップショットと比較し、
+# 変化が無ければ「大会が無かった週」とみなして配信をスキップする
+# (細川さん指定のフォールバック仕様)。
+WEEKLY_RANKING_TOP_N = 5  # 種目ごとに配信・年齢取得の対象にする上位人数
+NBA_NATIONAL_TEAM_URLS = [
+    "https://www.badminton.or.jp/national/player?gender=male",
+    "https://www.badminton.or.jp/national/player?gender=female",
+    "https://www.badminton.or.jp/national/player?gender=male&category[]=u24",
+    "https://www.badminton.or.jp/national/player?gender=female&category[]=u24",
+]
+
+
+def is_weekly_ranking_check_time(now, state):
+    """火曜18:00 JST台で、かつ今週まだチェックしていなければTrue。"""
+    if now.weekday() != 1 or now.hour != 18:  # weekday(): 月曜=0, 火曜=1
+        return False
+    return state.get("last_weekly_ranking_check_date") != now.strftime("%Y-%m-%d")
+
+
+def fetch_nba_team_affiliations():
+    """NBA公式のナショナルチームページ(男女+U24男女)から、選手名の正規化
+    キー→所属の辞書を構築する(実データでDOM構造
+    .p-player__item > .p-player__name / .p-player__prof を確認済み)。"""
+    affiliations = {}
+    for url in NBA_NATIONAL_TEAM_URLS:
+        try:
+            resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
+            resp.raise_for_status()
+        except Exception as err:  # noqa: BLE001
+            print(f"[WARN] NBA代表選手一覧の取得に失敗しました({url}): {err}")
+            continue
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for item in soup.select(".p-player__item"):
+            name_tag = item.select_one(".p-player__name")
+            prof_tag = item.select_one(".p-player__prof")
+            if not (name_tag and prof_tag):
+                continue
+            name = name_tag.get_text(strip=True)
+            prof_lines = prof_tag.get_text("\n", strip=True).split("\n")
+            affiliation = prof_lines[0].split("/")[0].strip() if prof_lines else ""
+            key = _normalize_player_key(name)
+            if key and affiliation:
+                affiliations[key] = affiliation
+    return affiliations
+
+
+def fetch_badnavi_player_age(player_id):
+    """バドナビの選手詳細ページから年齢を取得する(取得できなければNone)。
+    配信対象(各種目上位WEEKLY_RANKING_TOP_N人)の日本人選手のみに限定して
+    呼ぶ設計(全ランキング選手分を取得すると無駄なリクエストになるため)。
+    """
+    if not player_id:
+        return None
+    url = f"https://badminton-navi.net/player/detail/{player_id}"
+    try:
+        resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] バドナビ選手詳細の取得に失敗しました({url}): {err}")
+        return None
+    m = re.search(r"年齢\D*(\d+)歳", resp.text)
+    return int(m.group(1)) if m else None
+
+
+def build_weekly_ranking_snapshot(japan_rankings):
+    """種目ごとの上位WEEKLY_RANKING_TOP_N人の(順位, 氏名)をタプル化した
+    比較用スナップショットを作る(前回配信時との差分検知に使う)。"""
+    snapshot = {}
+    for category, players in japan_rankings.items():
+        snapshot[category] = [
+            [p["rank"], p["name_jp"] or p["name_alpha"]]
+            for p in players[:WEEKLY_RANKING_TOP_N]
+        ]
+    return snapshot
+
+
+def build_weekly_ranking_digest_embed(japan_rankings, affiliations, now):
+    """日本勢上位ランキング(年齢・所属付き)のEmbedを1つ組み立てる。"""
+    lines = []
+    for category, players in japan_rankings.items():
+        top = players[:WEEKLY_RANKING_TOP_N]
+        if not top:
+            continue
+        label = CATEGORY_LABELS_JA.get(category, category)
+        lines.append(f"**【{label}】**")
+        for p in top:
+            name = p["name_jp"] or p["name_alpha"]
+            affiliation = affiliations.get(_normalize_player_key(name), "")
+            age = fetch_badnavi_player_age(p["player_id"])
+            age_text = f"・{age}歳" if age else ""
+            affiliation_text = f"・{affiliation}" if affiliation else ""
+            lines.append(f"　{p['rank']}位 {name}{age_text}{affiliation_text}")
+    if not lines:
+        return None
+    return {
+        "title": "🏆 日本勢 世界ランキング(火曜更新ダイジェスト)",
+        "description": "\n".join(lines) + f"\n\n({now.strftime('%Y-%m-%d')} JST時点・バドナビ調べ)",
+        "color": 0xC53030,
+    }
 
 
 # ============================================================
@@ -988,7 +1143,11 @@ def main():
 
     # 世界ランキングはstateにキャッシュし、WR_RANKINGS_CACHE_HOURS以内なら
     # 再取得しない(頻繁に変わらない情報のため、実行のたびに5種目分の
-    # リクエストを送るのは無駄かつ相手サイトへの負荷になる)。
+    # リクエストを送るのは無駄かつ相手サイトへの負荷になる)。ただし
+    # 火曜18:00のチェック時は、BWF公式が火曜午後に更新したばかりの最新
+    # ランキングを反映したいため、キャッシュの新旧に関わらず必ず再取得する。
+    weekly_check_time = is_weekly_ranking_check_time(now, state)
+
     wr_cache = state.get("wr_rankings") or {}
     wr_updated_at = wr_cache.get("updated_at")
     wr_stale = True
@@ -997,9 +1156,11 @@ def main():
             wr_stale = (now - datetime.datetime.fromisoformat(wr_updated_at)) > datetime.timedelta(hours=WR_RANKINGS_CACHE_HOURS)
         except ValueError:
             wr_stale = True
-    if wr_stale or not wr_cache.get("data"):
-        print("[INFO] 世界ランキングのキャッシュが無い/古いため再取得します。")
-        wr_rankings = fetch_wr_rankings()
+    japan_rankings = {}
+    if wr_stale or weekly_check_time or not wr_cache.get("data"):
+        reason = "火曜定期更新チェック" if weekly_check_time else "キャッシュが無い/古い"
+        print(f"[INFO] 世界ランキングを再取得します({reason})。")
+        wr_rankings, japan_rankings = fetch_wr_rankings()
         if wr_rankings:
             state["wr_rankings"] = {"updated_at": now.isoformat(), "data": wr_rankings}
         else:
@@ -1007,6 +1168,21 @@ def main():
     else:
         wr_rankings = wr_cache.get("data", {})
         print(f"[INFO] 世界ランキングのキャッシュを使用します(更新: {wr_updated_at})。")
+
+    if weekly_check_time:
+        state["last_weekly_ranking_check_date"] = now.strftime("%Y-%m-%d")  # 同じ週に2回走らないよう先に記録
+        if not japan_rankings:
+            print("[WARN] 火曜定期チェックだがランキング取得に失敗したため、今週はスキップします。")
+        else:
+            new_snapshot = build_weekly_ranking_snapshot(japan_rankings)
+            if new_snapshot == state.get("last_weekly_ranking_snapshot"):
+                print("[INFO] 日本人ランキングに変化がないため(大会が無かった週)、ダイジェスト配信をスキップします。")
+            else:
+                print("[INFO] 日本人ランキングに変化を検知したため、ダイジェストを配信します。")
+                affiliations = fetch_nba_team_affiliations()
+                digest_embed = build_weekly_ranking_digest_embed(japan_rankings, affiliations, now)
+                if digest_embed and send_embeds_to_discord(webhook, [digest_embed]):
+                    state["last_weekly_ranking_snapshot"] = new_snapshot
 
     new_nba_results = []
     for result_id in nba_ids:
