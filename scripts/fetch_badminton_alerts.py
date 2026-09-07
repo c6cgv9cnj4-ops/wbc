@@ -1121,35 +1121,84 @@ def find_favorite_player_matches(all_matches, favorite_players):
     return results
 
 
-def format_favorite_player_line(name, match, wr_rankings):
-    """注目選手1名分の直近結果を1行に整形する。大会に出場していなければ
-    Noneを返す(その選手の行自体を出力しない)。"""
-    if match is None:
-        return None
-    if name in match["left_names"]:
-        opp_names, opp_team, won = match["right_names"], match["right_team"], match["left_win"]
-    else:
-        opp_names, opp_team, won = match["left_names"], match["left_team"], match["right_win"]
+# 2026-09-06追記: 当初は「ダブルスでも自分側のパートナー名は一切表示
+# しない」仕様で実装していたが、渡辺勇大・松友美佐紀のように複数の
+# FAVORITE_PLAYERSが同じペアを組むケースで「同一試合が選手ごとに重複配信
+# される」「見出しがペアなのに個人名単独になる」バグとして問題視された
+# ため、ペア単位(選手A／選手B)で1試合1ブロックにまとめる方式に修正した。
+# 以下の _match_favorite_side / collect_unique_favorite_matches が
+# 重複排除の核。
 
+
+def _match_favorite_side(match, favorite_names):
+    """試合の左右どちらに注目選手が含まれるかを返す
+    ("left" / "right" / 両方に含まれる場合は"both" / どちらにも無ければNone)。"""
+    left_has = any(n in favorite_names for n in match["left_names"])
+    right_has = any(n in favorite_names for n in match["right_names"])
+    if left_has and right_has:
+        return "both"  # 注目選手同士の対戦(稀だが理論上あり得る)
+    if left_has:
+        return "left"
+    if right_has:
+        return "right"
+    return None
+
+
+def collect_unique_favorite_matches(all_matches, favorite_players):
+    """FAVORITE_PLAYERSの誰か(1人以上)が関与する試合を、重複無しで集める。
+    ダブルスパートナー同士が両方ともFAVORITE_PLAYERSに含まれる場合でも
+    同じ試合オブジェクトは1回しか含めない(id()による同一オブジェクト判定。
+    find_favorite_player_matchesが選手ごとに同じdictを指すため機能する)。
+    戻り値は (重複排除済み試合リスト, その大会に一切エントリーが無かった
+    選手名のリスト) のタプル。
+    """
+    favorite_matches = find_favorite_player_matches(all_matches, favorite_players)
+
+    unique_matches = []
+    seen_ids = set()
+    for fav in favorite_players:
+        m = favorite_matches.get(fav["name"])
+        if m is None or id(m) in seen_ids:
+            continue
+        seen_ids.add(id(m))
+        unique_matches.append(m)
+
+    entered_names = set()
+    for m in unique_matches:
+        entered_names |= set(m["left_names"]) | set(m["right_names"])
+    not_entered = [fav["name"] for fav in favorite_players if fav["name"] not in entered_names]
+
+    return unique_matches, not_entered
+
+
+def format_favorite_match_line(match, wr_rankings, favorite_names):
+    """注目選手が関わる1試合を1行に整形する(決勝結果ダイジェストの
+    【注目選手結果】欄用)。ダブルスはペア両名を「／」区切りで表示する。"""
+    side = _match_favorite_side(match, favorite_names)
+    if side == "right":
+        own_names, opp_names, opp_team, won = match["right_names"], match["left_names"], match["left_team"], match["right_win"]
+    else:
+        own_names, opp_names, opp_team, won = match["left_names"], match["right_names"], match["right_team"], match["left_win"]
+
+    own_display = "／".join(own_names)
     opp_nationality = player_nationality_display(opp_names, opp_team)
     opp_ranked = []
     for n in opp_names:
         rank = wr_rankings.get(_normalize_player_key(n))
         opp_ranked.append(f"{n}(WR{rank})" if rank else n)
-    opp_display = "・".join(opp_ranked)
+    opp_display = "／".join(opp_ranked)
 
     result_text = "勝利" if won else "敗退"
     score = match["score_text"] or "スコア不明"
-    return f"・{name}：{match['round_event']} {result_text} {score} ({opp_display} / {opp_nationality})"
+    return f"・{own_display}：{match['round_event']} {result_text} {score} ({opp_display} / {opp_nationality})"
 
 
 # ============================================================
 # 注目選手 結果速報(専用フォーマット、2026-09-06追加)
 # ============================================================
-# 決勝結果ダイジェストの【注目選手結果】欄(1行サマリー)とは別に、細川さん
-# 指定の詳細ブロック形式(種目/ラウンド・結果・セット数・各セットの点数・
-# 対戦相手(国籍/WR)を1試合ごとに独立したブロックで表示)。ダブルスでも
-# 自分側のパートナー名は一切表示しない(相手側の名前のみ表示する)。
+# 細川さん指定の詳細ブロック形式(種目/ラウンド・結果・セット数・各セットの
+# 点数・対戦相手(国籍/WR)を1試合ごとに独立したブロックで表示)。
+# ダブルスはペア両名を見出し・対戦相手表記の両方で「／」区切り表示する。
 
 
 def split_round_event(round_event):
@@ -1179,19 +1228,17 @@ def format_score_from_perspective(games, is_left):
     return f"{own_sets}-{opp_sets}", game_scores
 
 
-def format_favorite_player_block(name, match, wr_rankings):
-    """注目選手1名分の結果を、細川さん指定の詳細ブロック形式(種目/ラウンド・
-    結果・スコア・対戦相手)で整形する。大会にエントリーしていなければ
-    「今大会エントリーなし」の1行にする。パートナー名(自分側のダブルス
-    相方)は一切表示しない。"""
-    if match is None:
-        return f"**【{name}】**\n・今大会エントリーなし"
-
-    is_left = name in match["left_names"]
+def format_favorite_match_block(match, wr_rankings, favorite_names):
+    """注目選手が関わる1試合を、細川さん指定の詳細ブロック形式(種目/
+    ラウンド・結果・スコア・対戦相手)で整形する。ダブルスは見出し・
+    対戦相手表記の両方でペア両名を「／」区切り表示する
+    (2026-09-06、個人名単独見出し+重複配信のバグを修正)。"""
+    side = _match_favorite_side(match, favorite_names)
+    is_left = side != "right"  # "left"または"both"は暫定的に左側を自分側として扱う
     if is_left:
-        opp_names, opp_team, won = match["right_names"], match["right_team"], match["left_win"]
+        own_names, opp_names, opp_team, won = match["left_names"], match["right_names"], match["right_team"], match["left_win"]
     else:
-        opp_names, opp_team, won = match["left_names"], match["left_team"], match["right_win"]
+        own_names, opp_names, opp_team, won = match["right_names"], match["left_names"], match["left_team"], match["right_win"]
 
     event_label, round_label = split_round_event(match["round_event"])
     set_score, game_scores = format_score_from_perspective(match.get("games", []), is_left)
@@ -1206,29 +1253,32 @@ def format_favorite_player_block(name, match, wr_rankings):
     for n in opp_names:
         rank = wr_rankings.get(_normalize_player_key(n))
         opp_parts.append(f"{n}（WR {rank}位）" if rank else f"{n}（WR未掲載）")
-    opp_display = "・".join(opp_parts)
+    opp_display = "／".join(opp_parts) + f"（{opp_nationality}）"
 
+    header = "／".join(own_names)
     return (
-        f"**【{name}】**\n"
+        f"**【{header}】**\n"
         f"・種目 / ラウンド：{event_label}（{round_label}）\n"
         f"・結果：{result_line}\n"
         f"・スコア：{score_line}\n"
-        f"・対戦相手：{opp_display}（{opp_nationality}）"
+        f"・対戦相手：{opp_display}"
     )
 
 
 def build_favorite_players_report_embed(all_matches, wr_rankings):
-    """FAVORITE_PLAYERS全員分の結果速報を1つのEmbedにまとめる。
+    """FAVORITE_PLAYERS全員分の結果速報を1つのEmbedにまとめる。ダブルスで
+    ペア両名がFAVORITE_PLAYERSに含まれる場合も、同じ試合は1ブロックだけ
+    (ペア表記)で出す(2026-09-06、選手ごとの重複配信バグを修正)。
     誰も出場していなければNoneを返す(全員「エントリーなし」の空更新を
     送らないため)。"""
-    favorite_matches = find_favorite_player_matches(all_matches, FAVORITE_PLAYERS)
-    if not any(favorite_matches.values()):
+    favorite_names = {fav["name"] for fav in FAVORITE_PLAYERS}
+    unique_matches, not_entered = collect_unique_favorite_matches(all_matches, FAVORITE_PLAYERS)
+    if not unique_matches:
         return None
 
-    blocks = [
-        format_favorite_player_block(fav["name"], favorite_matches.get(fav["name"]), wr_rankings)
-        for fav in FAVORITE_PLAYERS
-    ]
+    blocks = [format_favorite_match_block(m, wr_rankings, favorite_names) for m in unique_matches]
+    blocks.extend(f"**【{name}】**\n・今大会エントリーなし" for name in not_entered)
+
     separator = "━" * 24
     description = separator + "\n" + "\n\n".join(blocks) + "\n" + separator
     return {
@@ -1247,10 +1297,10 @@ def build_finals_digest_embed(result, wr_rankings):
 
     lines = []
 
-    favorite_matches = find_favorite_player_matches(result["all_matches"], FAVORITE_PLAYERS)
+    favorite_names = {fav["name"] for fav in FAVORITE_PLAYERS}
+    unique_favorite_matches, _ = collect_unique_favorite_matches(result["all_matches"], FAVORITE_PLAYERS)
     favorite_lines = [
-        line for fav in FAVORITE_PLAYERS
-        if (line := format_favorite_player_line(fav["name"], favorite_matches.get(fav["name"]), wr_rankings))
+        format_favorite_match_line(m, wr_rankings, favorite_names) for m in unique_favorite_matches
     ]
     if favorite_lines:
         lines.append("**【注目選手結果】**")
