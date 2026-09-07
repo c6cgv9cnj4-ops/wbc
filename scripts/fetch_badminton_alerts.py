@@ -938,12 +938,14 @@ def _parse_nba_match_item(item, wr_rankings):
     right_display = "・".join(annotate_player_with_wr(n, wr) for n in right_names) + right_team
 
     center = item.select_one(".v-tournament-info__match-center")
-    score_text = format_match_score(extract_match_games(center))
+    games = extract_match_games(center)
+    score_text = format_match_score(games)
 
     return {
         "round_event": head.get_text(strip=True),
         "left_names": left_names,
         "right_names": right_names,
+        "games": games,  # (左スコア, 右スコア)のリスト。視点を変えた再フォーマット用(2026-09-06追加)
         "left_team": left_team,
         "right_team": right_team,
         "left_win": left_win,
@@ -1139,6 +1141,101 @@ def format_favorite_player_line(name, match, wr_rankings):
     result_text = "勝利" if won else "敗退"
     score = match["score_text"] or "スコア不明"
     return f"・{name}：{match['round_event']} {result_text} {score} ({opp_display} / {opp_nationality})"
+
+
+# ============================================================
+# 注目選手 結果速報(専用フォーマット、2026-09-06追加)
+# ============================================================
+# 決勝結果ダイジェストの【注目選手結果】欄(1行サマリー)とは別に、細川さん
+# 指定の詳細ブロック形式(種目/ラウンド・結果・セット数・各セットの点数・
+# 対戦相手(国籍/WR)を1試合ごとに独立したブロックで表示)。ダブルスでも
+# 自分側のパートナー名は一切表示しない(相手側の名前のみ表示する)。
+
+
+def split_round_event(round_event):
+    """"1回戦 男子シングルス" のような文字列を (種目, ラウンド) に分割する。
+    種目名がCATEGORY_EVENT_LABELSに一致しない場合はラウンド側を空にする。"""
+    for label in CATEGORY_EVENT_LABELS:
+        if round_event.endswith(label):
+            round_part = round_event[: -len(label)].strip()
+            return label, (round_part or round_event)
+    return round_event, ""
+
+
+def format_score_from_perspective(games, is_left):
+    """ゲームリストを、自分側(is_left)から見た視点で
+    (セット数文字列, ゲームごとの得点文字列) に整形する。
+    例: is_left=Falseなら左右を入れ替えて「自分-相手」の順にする。"""
+    if not games:
+        return None, None
+    if is_left:
+        own_sets = sum(1 for l, r in games if l > r)
+        opp_sets = sum(1 for l, r in games if r > l)
+        game_scores = ", ".join(f"{l}-{r}" for l, r in games)
+    else:
+        own_sets = sum(1 for l, r in games if r > l)
+        opp_sets = sum(1 for l, r in games if l > r)
+        game_scores = ", ".join(f"{r}-{l}" for l, r in games)
+    return f"{own_sets}-{opp_sets}", game_scores
+
+
+def format_favorite_player_block(name, match, wr_rankings):
+    """注目選手1名分の結果を、細川さん指定の詳細ブロック形式(種目/ラウンド・
+    結果・スコア・対戦相手)で整形する。大会にエントリーしていなければ
+    「今大会エントリーなし」の1行にする。パートナー名(自分側のダブルス
+    相方)は一切表示しない。"""
+    if match is None:
+        return f"**【{name}】**\n・今大会エントリーなし"
+
+    is_left = name in match["left_names"]
+    if is_left:
+        opp_names, opp_team, won = match["right_names"], match["right_team"], match["left_win"]
+    else:
+        opp_names, opp_team, won = match["left_names"], match["left_team"], match["right_win"]
+
+    event_label, round_label = split_round_event(match["round_event"])
+    set_score, game_scores = format_score_from_perspective(match.get("games", []), is_left)
+
+    result_mark = "○" if won else "●"
+    result_text = "勝利" if won else "敗退"
+    result_line = f"{result_mark} {result_text}" + (f"（{set_score}）" if set_score else "")
+    score_line = game_scores if game_scores else "不明"
+
+    opp_nationality = player_nationality_display(opp_names, opp_team)
+    opp_parts = []
+    for n in opp_names:
+        rank = wr_rankings.get(_normalize_player_key(n))
+        opp_parts.append(f"{n}（WR {rank}位）" if rank else f"{n}（WR未掲載）")
+    opp_display = "・".join(opp_parts)
+
+    return (
+        f"**【{name}】**\n"
+        f"・種目 / ラウンド：{event_label}（{round_label}）\n"
+        f"・結果：{result_line}\n"
+        f"・スコア：{score_line}\n"
+        f"・対戦相手：{opp_display}（{opp_nationality}）"
+    )
+
+
+def build_favorite_players_report_embed(all_matches, wr_rankings):
+    """FAVORITE_PLAYERS全員分の結果速報を1つのEmbedにまとめる。
+    誰も出場していなければNoneを返す(全員「エントリーなし」の空更新を
+    送らないため)。"""
+    favorite_matches = find_favorite_player_matches(all_matches, FAVORITE_PLAYERS)
+    if not any(favorite_matches.values()):
+        return None
+
+    blocks = [
+        format_favorite_player_block(fav["name"], favorite_matches.get(fav["name"]), wr_rankings)
+        for fav in FAVORITE_PLAYERS
+    ]
+    separator = "━" * 24
+    description = separator + "\n" + "\n\n".join(blocks) + "\n" + separator
+    return {
+        "title": "🏸 【バドミントン 注目選手 結果速報】",
+        "description": description[:4096],
+        "color": 0x2C5282,
+    }
 
 
 def build_finals_digest_embed(result, wr_rankings):
