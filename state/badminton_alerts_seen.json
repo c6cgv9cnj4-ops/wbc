@@ -86,7 +86,8 @@
     "https://news.google.com/rss/articles/CBMie0FVX3lxTE9KMFA4dkJtbW5FM0didWRZOFFxdUJCc2NmazNxZmRldkxvTFJMOXlZZjlQTENEMTBDX3N2cFk1NGJtdkN6aG9rdXVZbTJ6YlRxbzdBZ3c2ZkxsMG1aVWo5cnMyeWxyLWdIRFJ4LW1hZkk5cmtJWXlBMFRrcw?oc=5": "2026-09-08T12:09:48.139662+09:00",
     "https://news.google.com/rss/articles/CBMif0FVX3lxTFBlVkluLUd0SWhhNXhaNXRPVGRSNV9jUGNfYURmVWtDaG5HdzkxczZsTXY5dkp3QzBwWEVXWmZsNnJ3eUNnZlFRc3RnazVwVk8zUGlTOVNvRzlqeXF6b3VDSXh3NDFJOG5KVW9Qc0hrRlh1MjdrOTZhSWpGRFNEYVE?oc=5": "2026-09-08T12:09:48.139662+09:00",
     "https://news.google.com/rss/articles/CBMiW0FVX3lxTE45YWFMYWNnc24wRXJxN0lrbWZucnVuX05WQzBjVGJOLUJBc2V3MzlWUzdtNXZRa3BQaWtvQWR4N0hxMUJ5TURtVG1HbWk3aXFPbVQ1UnhLLW1HX0k?oc=5": "2026-09-08T17:04:46.934983+09:00",
-    "https://news.google.com/rss/articles/CBMiXEFVX3lxTE5IRXhDT1BKNjJZa1lXOWI4WVB6cVJzY0ZYaXo4OVFTWU5rWFpsa1hPZUN3cUNHTjVLYVl4cWhQTE1pUHYxN2xNczJ6cDVvZ1paTTFQZjVFOXM2NjlC?oc=5": "2026-09-08T17:04:46.934983+09:00"
+    "https://news.google.com/rss/articles/CBMiXEFVX3lxTE5IRXhDT1BKNjJZa1lXOWI4WVB6cVJzY0ZYaXo4OVFTWU5rWFpsa1hPZUN3cUNHTjVLYVl4cWhQTE1pUHYxN2xNczJ6cDVvZ1paTTFQZjVFOXM2NjlC?oc=5": "2026-09-08T17:04:46.934983+09:00",
+    "https://news.google.com/rss/articles/CBMiVEFVX3lxTE9NYm5OdE5DMnQ0N19TZ2NqUVZtczRIR1JaYUZQb28wSXlQT0NYcEd6TWVnTEw5YlpqMFluaEh6d2ZpTlIxMGxQazBRQ3dha2k2MEhuQg?oc=5": "2026-09-09T02:05:04.039054+09:00"
   },
   "seen_nba_result_ids": {
     "982": "2026-09-06T18:30:52.185356+09:00",
@@ -124,11 +125,16 @@
     "matches": [],
     "summaries": [],
     "badspi": [],
-    "gnews": [],
+    "gnews": [
+      {
+        "title": "「毎日私がトスをあげて…」元日本代表・潮田玲子、10歳長男への熱血すぎる自宅練習に藤本美貴ら驚愕「コーチじゃん！」",
+        "url": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE9NYm5OdE5DMnQ0N19TZ2NqUVZtczRIR1JaYUZQb28wSXlQT0NYcEd6TWVnTEw5YlpqMFluaEh6d2ZpTlIxMGxQazBRQ3dha2k2MEhuQg?oc=5"
+      }
+    ],
     "nba": []
   },
   "wr_rankings": {
-    "updated_at": "2026-09-07T23:15:55.144762+09:00",
+    "updated_at": "2026-09-09T02:05:04.039054+09:00",
     "data": {
       "石宇奇": 1,
       "SHIYUQI": 1,
