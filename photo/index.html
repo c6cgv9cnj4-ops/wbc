@@ -90,7 +90,7 @@
                     <i data-lucide="building-2" class="w-4 h-4"></i> 団地＆B級グルメ
                 </button>
                 <button id="tabBtnHealth" class="tab-btn flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white" data-tab="health" onclick="switchTab('health')">
-                    <span class="text-sm leading-none">🚗</span> 健康食ランチ
+                    <span class="text-sm leading-none">🥗</span> 健康食ランチ
                 </button>
             </div>
         </div>
@@ -329,7 +329,7 @@
     <main id="tabContentHealth" class="max-w-7xl mx-auto px-3 sm:px-4 mt-4 hidden">
         <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-4 space-y-2 text-xs sm:text-sm">
             <div class="flex items-start gap-1.5 text-slate-300">
-                <span class="text-base leading-none shrink-0">🚗</span>
+                <span class="text-base leading-none shrink-0">🥗</span>
                 <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong> ／ <strong class="text-white">半径15km圏内</strong>の、車で行けて胃腸を休められる健康食ランチ。中華粥・十割そば・直火焼き魚・きのこ出汁うどんなど、揚げ物に頼らない滋養食を厳選。営業時間・定休は参考値のため訪問前に公式で最新を確認すること。</span>
             </div>
         </div>
@@ -2354,7 +2354,7 @@
                     hours: '11:30〜14:30',
                     closed: '火曜日',
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=九龍酒家+上尾市大谷本町',
-                    features: '干し貝柱と鶏出汁で炊き上げた本格中華粥。油分ゼロで胃腸を徹底的に休める滋養食。'
+                    features: '干し貝柱と鶏出汁で炊き上げた本格中華粥。油分ゼロで胃腸を休める滋養食。'
                 },
                 {
                     id: 'manoya-kitamoto',
@@ -2367,7 +2367,7 @@
                     hours: '11:30〜14:30',
                     closed: '水曜日',
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+満乃舎+北本市荒井',
-                    features: '北本団地至近。ルチン・食物繊維が豊富で脂質ほぼゼロの純手打ち蕎麦と天然出汁。'
+                    features: 'ルチン・食物繊維が豊富で脂質ほぼゼロの純手打ち蕎麦と天然出汁。'
                 },
                 {
                     id: 'wakiya-yoshimi',
@@ -2380,7 +2380,7 @@
                     hours: '11:00〜14:30',
                     closed: '木曜日',
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=生蕎麦+わきや+吉見町',
-                    features: '荒川を渡った吉見の街道沿い。大根おろしの消化酵素と低GI手打ち蕎麦で体を整える。'
+                    features: '荒川を渡った吉見の街道沿い。大根おろしの消化酵素と低GI手打ち蕎麦。'
                 },
                 {
                     id: 'uogashi-ageo',
@@ -2393,7 +2393,7 @@
                     hours: '11:30〜14:00',
                     closed: '水曜日',
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=魚河岸+上尾市小敷谷',
-                    features: '揚げ物に頼らず炭火・直火の焼き魚定食を提供。良質な魚油（EPA・DHA）と高タンパク補給。'
+                    features: '炭火・直火の焼き魚定食。良質な魚油（EPA・DHA）と高タンパク補給。'
                 },
                 {
                     id: 'inakappe-kitamoto',
@@ -2406,7 +2406,7 @@
                     hours: '10:00〜15:00',
                     closed: '日曜日',
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=元祖田舎っぺうどん+北本店',
-                    features: '脂質わずか約3g。山盛りのきのことネギが入った温汁で、豊富な食物繊維を摂取。'
+                    features: '脂質わずか約3g。山盛りのきのことネギが入った温汁で食物繊維を補給。'
                 }
             ];
 
@@ -2463,7 +2463,9 @@
                     ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(spot.name + ' ' + (spot.address || '')));
             }
 
-            // 視認性統一ルール（選択肢2）に厳密準拠。features 解説・詳細地番はポップアップに出さない。
+            // 統一ポップアップ（散歩ルート／団地タブと同構造）。仕様の並び順に厳密準拠：
+            // 店名 → 薄青カテゴリバッジ → 黄色のGoogle評価行 → 🅿️駐車場 → 💡特徴・健康要素(1行) →
+            // 🕒営業時間/📅定休日 → 全幅の緑ボタン。
             function hlPopupHtml(spot) {
                 const ratingRow = (spot.ratingLive && spot.googleRatingNum)
                     ? '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 ★' + hlEsc(spot.googleRatingNum) +
@@ -2471,21 +2473,23 @@
                     : '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 <span class="font-semibold text-amber-500/80">未取得（下のボタンでクチコミを確認）</span></div>';
 
                 return '<div class="text-xs font-sans" style="min-width:210px;max-width:250px;">' +
-                    // 最上段: 店舗名
+                    // 1. 店舗名（最上部・太字）
                     '<strong class="text-sm font-bold block mb-1 text-neutral-900">' + hlEsc(spot.name) + '</strong>' +
-                    // 2段目: カテゴリバッジ
+                    // 2. カテゴリバッジ（薄青背景＋濃青文字）
                     '<span class="inline-block bg-sky-100 text-sky-800 font-semibold px-1.5 py-0.5 rounded text-[10px] mb-1">' + hlEsc(spot.category) + '</span>' +
-                    // 3段目: 駐車場情報
-                    '<div class="text-neutral-700 text-[10px] mt-0.5">🅿️ ' + hlEsc(spot.parking) + '</div>' +
-                    // 4段目: Google評価・クチコミ
+                    // 3. Google評価・投稿数（text-amber-500 font-bold）
                     ratingRow +
-                    // 5段目: 営業時間・定休日
-                    '<div class="text-neutral-600 font-semibold text-[11px] mt-1">🕒 営業時間: ' + hlEsc(spot.hours || '要確認') +
+                    // 4. 駐車場情報
+                    '<div class="text-neutral-700 text-[10px] mt-1">🅿️ ' + hlEsc(spot.parking) + '</div>' +
+                    // 5. 特徴・健康要素（1行）
+                    (spot.features ? '<div class="text-emerald-700 text-[10px] mt-0.5">💡 ' + hlEsc(spot.features) + '</div>' : '') +
+                    // 6. 営業時間・定休日（エメラルド＋絵文字）
+                    '<div class="text-emerald-600 font-semibold text-[11px] mt-1">🕒 営業時間: ' + hlEsc(spot.hours || '要確認') +
                         '<br>📅 定休日: ' + hlEsc(spot.closed || '要確認') + '</div>' +
-                    // 最下段: 全幅の緑ボタン
+                    // 7. 全幅の緑ボタン（Googleマップ）
                     '<a href="' + hlMapsUrl(spot) + '" target="_blank" rel="noopener noreferrer" ' +
                         'class="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs mt-2" ' +
-                        'style="padding:6px 0;text-decoration:none;">Googleマップを開く</a>' +
+                        'style="padding:6px 0;text-decoration:none;">Googleマップで開く（公式リンク）</a>' +
                     '</div>';
             }
 
@@ -2538,7 +2542,8 @@
                         '</span>' +
                         '<span class="mt-1 block"><span class="inline-block bg-sky-100 text-sky-800 font-semibold px-1.5 py-0.5 rounded text-[10px]">' + hlEsc(spot.category) + '</span></span>' +
                         '<span class="mt-1 flex items-start gap-1 text-[10px] text-slate-400"><span class="shrink-0">🅿️</span><span>' + hlEsc(spot.parking) + '</span></span>' +
-                        '<span class="mt-0.5 flex items-center gap-2 text-[10px] text-slate-400"><span>🕒 ' + hlEsc(spot.hours) + '</span><span>📅 ' + hlEsc(spot.closed) + '</span></span>';
+                        '<span class="mt-0.5 flex items-center gap-2 text-[10px] text-slate-400"><span>🕒 ' + hlEsc(spot.hours) + '</span><span>📅 ' + hlEsc(spot.closed) + '</span></span>' +
+                        '<span class="mt-0.5 flex items-start gap-1 text-[10px] text-emerald-400/90"><span class="shrink-0">💡</span><span>' + hlEsc(spot.features) + '</span></span>';
                     card.addEventListener('click', function () { hlFocus(spot.id); });
                     box.appendChild(card);
                 });
