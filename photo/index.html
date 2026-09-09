@@ -30,6 +30,7 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
         #map { height: 480px; z-index: 10; border-radius: 0.75rem; width: 100%; }
         #danchiMap { height: 520px; z-index: 10; border-radius: 0.75rem; width: 100%; }
+        #healthMap { height: 520px; z-index: 10; border-radius: 0.75rem; width: 100%; }
         .danchi-emoji-pin { background: transparent; border: 0; }
         .danchi-emoji-pin > span {
             display: flex; align-items: center; justify-content: center;
@@ -87,6 +88,9 @@
                 </button>
                 <button id="tabBtnDanchi" class="tab-btn flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white" data-tab="danchi" onclick="switchTab('danchi')">
                     <i data-lucide="building-2" class="w-4 h-4"></i> 団地＆B級グルメ
+                </button>
+                <button id="tabBtnHealth" class="tab-btn flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white" data-tab="health" onclick="switchTab('health')">
+                    <span class="text-sm leading-none">🚗</span> 健康食ランチ
                 </button>
             </div>
         </div>
@@ -318,6 +322,40 @@
                 <i data-lucide="book-open" class="w-4 h-4 text-emerald-400"></i> 団地別 詳細ガイド（🏛️配棟・建築の見どころ／⭐スターハウス／推奨レンズ／🚗駐車ガイド／車アクセス／安心はしご）
             </h2>
             <div id="danchiList" class="space-y-5"></div>
+        </div>
+    </main>
+
+    <!-- TAB 4: 健康食ランチ（北本団地起点 半径15km圏内・胃腸を休める滋養ランチ） -->
+    <main id="tabContentHealth" class="max-w-7xl mx-auto px-3 sm:px-4 mt-4 hidden">
+        <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-4 space-y-2 text-xs sm:text-sm">
+            <div class="flex items-start gap-1.5 text-slate-300">
+                <span class="text-base leading-none shrink-0">🚗</span>
+                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong> ／ <strong class="text-white">半径15km圏内</strong>の、車で行けて胃腸を休められる健康食ランチ。中華粥・十割そば・直火焼き魚・きのこ出汁うどんなど、揚げ物に頼らない滋養食を厳選。営業時間・定休は参考値のため訪問前に公式で最新を確認すること。</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div class="space-y-4">
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                    <h2 class="font-bold text-white text-sm flex items-center gap-2 mb-1">
+                        <i data-lucide="salad" class="w-4 h-4 text-emerald-400"></i> 健康食ランチ（北本から近い順）
+                    </h2>
+                    <p class="text-[11px] text-slate-400 mb-3">カードをタップすると地図がそのピンへ寄ります。各店に 🅿️ 駐車場情報を併記。</p>
+                    <div id="healthList" class="space-y-1.5 max-h-[560px] overflow-y-auto custom-scrollbar"></div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 space-y-3">
+                <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-lg relative">
+                    <div id="healthMap"></div>
+                </div>
+                <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-slate-300">
+                    <span class="font-bold text-slate-400 uppercase tracking-wider">凡例</span>
+                    <span class="flex items-center gap-1"><span class="inline-flex w-4 h-4 rounded-full items-center justify-center border border-white" style="background:#475569">📷</span> 北本団地（起点）</span>
+                    <span class="flex items-center gap-1"><span class="inline-flex w-4 h-4 rounded-full items-center justify-center border border-white" style="background:#059669">🥗</span> 健康食ランチ</span>
+                    <span class="flex items-center gap-1"><span class="inline-block w-4 h-0 border-t-2 border-dashed" style="border-color:#10b981"></span> 半径15km</span>
+                </div>
+            </div>
         </div>
     </main>
 
@@ -781,7 +819,8 @@
                 const tabs = {
                     spot:   { btn: document.getElementById('tabBtnSpot'),   content: document.getElementById('tabContentSpot') },
                     route:  { btn: document.getElementById('tabBtnRoute'),  content: document.getElementById('tabContentRoute') },
-                    danchi: { btn: document.getElementById('tabBtnDanchi'), content: document.getElementById('tabContentDanchi') }
+                    danchi: { btn: document.getElementById('tabBtnDanchi'), content: document.getElementById('tabContentDanchi') },
+                    health: { btn: document.getElementById('tabBtnHealth'), content: document.getElementById('tabContentHealth') }
                 };
 
                 if (!tabs[tab] || !tabs[tab].btn || !tabs[tab].content) return;
@@ -817,6 +856,10 @@
                             }
                         }
                     }, 220);
+                }
+
+                if (tab === 'health' && typeof window.initHealthLunch === 'function') {
+                    window.initHealthLunch();
                 }
 
                 safeCreateIcons();
@@ -2287,6 +2330,302 @@
                 console.error('deleteSavedRoute error:', e);
             }
         }
+
+        // ===================================================================
+        // TAB 4: 健康食ランチ（独立スコープ / 既存の spot・route・danchi と非干渉）
+        // 北本団地起点・半径15km圏内。専用 Leaflet 地図に健康食ピンのみを描画し、
+        // ポップアップは視認性統一ルール（sky バッジ / amber-500 / 全幅の緑ボタン）に準拠。
+        // 冗長な features 解説・詳細地番はポップアップから除外してカードをコンパクトに保つ。
+        // window.initHealthLunch() だけを外部公開し、switchTab('health') から呼ぶ。
+        // ===================================================================
+        (function () {
+            'use strict';
+
+            // --- 実装用データ（指定配列をそのまま定義） -------------------
+            const healthLunchSpots = [
+                {
+                    id: 'kuroon-ageo',
+                    name: '台湾料理 九龍酒家',
+                    category: '本格中華粥・点心',
+                    parking: '専用あり（店舗前・約10台）',
+                    address: '埼玉県上尾市大谷本町1-1-38',
+                    lat: 35.9682,
+                    lng: 139.5821,
+                    hours: '11:30〜14:30',
+                    closed: '火曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=九龍酒家+上尾市大谷本町',
+                    features: '干し貝柱と鶏出汁で炊き上げた本格中華粥。油分ゼロで胃腸を徹底的に休める滋養食。'
+                },
+                {
+                    id: 'manoya-kitamoto',
+                    name: '手打ちそば 満乃舎',
+                    category: '出汁・手打ち十割蕎麦',
+                    parking: '専用あり（敷地内・約8台）',
+                    address: '埼玉県北本市荒井2-28',
+                    lat: 36.0275,
+                    lng: 139.5180,
+                    hours: '11:30〜14:30',
+                    closed: '水曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+満乃舎+北本市荒井',
+                    features: '北本団地至近。ルチン・食物繊維が豊富で脂質ほぼゼロの純手打ち蕎麦と天然出汁。'
+                },
+                {
+                    id: 'wakiya-yoshimi',
+                    name: '生蕎麦 わきや',
+                    category: '出汁・辛味おろし蕎麦',
+                    parking: '専用あり（広大・約15台）',
+                    address: '埼玉県比企郡吉見町江和井327',
+                    lat: 36.0298,
+                    lng: 139.4795,
+                    hours: '11:00〜14:30',
+                    closed: '木曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=生蕎麦+わきや+吉見町',
+                    features: '荒川を渡った吉見の街道沿い。大根おろしの消化酵素と低GI手打ち蕎麦で体を整える。'
+                },
+                {
+                    id: 'uogashi-ageo',
+                    name: '魚河岸（うおがし）',
+                    category: '直火焼き魚・鮮魚定食',
+                    parking: '専用あり（敷地内・約10台）',
+                    address: '埼玉県上尾市小敷谷854-1',
+                    lat: 35.9648,
+                    lng: 139.5532,
+                    hours: '11:30〜14:00',
+                    closed: '水曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=魚河岸+上尾市小敷谷',
+                    features: '揚げ物に頼らず炭火・直火の焼き魚定食を提供。良質な魚油（EPA・DHA）と高タンパク補給。'
+                },
+                {
+                    id: 'inakappe-kitamoto',
+                    name: '元祖田舎っぺうどん 北本店',
+                    category: 'きのこ出汁・武蔵野うどん',
+                    parking: '専用あり（約20台）',
+                    address: '埼玉県北本市深井1-73',
+                    lat: 36.0352,
+                    lng: 139.5385,
+                    hours: '10:00〜15:00',
+                    closed: '日曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=元祖田舎っぺうどん+北本店',
+                    features: '脂質わずか約3g。山盛りのきのことネギが入った温汁で、豊富な食物繊維を摂取。'
+                }
+            ];
+
+            const HL_ORIGIN = [36.0260, 139.5180];   // 北本団地
+            const HL_RADIUS_M = 15000;               // 半径15km
+            const HL_PLACES_KEY = (typeof GOOGLE_PLACES_API_KEY === 'string') ? GOOGLE_PLACES_API_KEY : '';
+
+            let hlMap = null;
+            let hlOriginMarker = null;
+            let hlCircle = null;
+            let hlMarkers = [];   // { id, spot, marker }
+            let hlBuilt = false;
+
+            function hlDist(spot) {
+                try {
+                    if (typeof calcDist === 'function') return calcDist(HL_ORIGIN[0], HL_ORIGIN[1], spot.lat, spot.lng);
+                } catch (e) {}
+                const R = 6371;
+                const dLat = (spot.lat - HL_ORIGIN[0]) * Math.PI / 180;
+                const dLon = (spot.lng - HL_ORIGIN[1]) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) ** 2 + Math.cos(HL_ORIGIN[0] * Math.PI / 180) * Math.cos(spot.lat * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            }
+
+            function hlSortedSpots() {
+                return healthLunchSpots.slice().sort((a, b) => hlDist(a) - hlDist(b));
+            }
+
+            function hlEmoji(spot) {
+                const t = (spot.category || '') + (spot.name || '');
+                if (/粥|点心|中華/.test(t)) return '🥣';
+                if (/そば|蕎麦/.test(t)) return '🥢';
+                if (/魚|鮮魚/.test(t)) return '🐟';
+                if (/うどん/.test(t)) return '🍲';
+                return '🥗';
+            }
+
+            function hlIcon(spot) {
+                return L.divIcon({
+                    className: 'danchi-emoji-pin',
+                    html: '<span style="background:#059669">' + hlEmoji(spot) + '</span>',
+                    iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -14]
+                });
+            }
+
+            function hlEsc(s) {
+                return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+                });
+            }
+
+            function hlMapsUrl(spot) {
+                return spot.gmapUri || spot.mapUrl ||
+                    ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(spot.name + ' ' + (spot.address || '')));
+            }
+
+            // 視認性統一ルール（選択肢2）に厳密準拠。features 解説・詳細地番はポップアップに出さない。
+            function hlPopupHtml(spot) {
+                const ratingRow = (spot.ratingLive && spot.googleRatingNum)
+                    ? '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 ★' + hlEsc(spot.googleRatingNum) +
+                      ' / 投稿数 ' + hlEsc(spot.reviewCountNum != null ? String(spot.reviewCountNum) : '0') + '件</div>'
+                    : '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 <span class="font-semibold text-amber-500/80">未取得（下のボタンでクチコミを確認）</span></div>';
+
+                return '<div class="text-xs font-sans" style="min-width:210px;max-width:250px;">' +
+                    // 最上段: 店舗名
+                    '<strong class="text-sm font-bold block mb-1 text-neutral-900">' + hlEsc(spot.name) + '</strong>' +
+                    // 2段目: カテゴリバッジ
+                    '<span class="inline-block bg-sky-100 text-sky-800 font-semibold px-1.5 py-0.5 rounded text-[10px] mb-1">' + hlEsc(spot.category) + '</span>' +
+                    // 3段目: 駐車場情報
+                    '<div class="text-neutral-700 text-[10px] mt-0.5">🅿️ ' + hlEsc(spot.parking) + '</div>' +
+                    // 4段目: Google評価・クチコミ
+                    ratingRow +
+                    // 5段目: 営業時間・定休日
+                    '<div class="text-neutral-600 font-semibold text-[11px] mt-1">🕒 営業時間: ' + hlEsc(spot.hours || '要確認') +
+                        '<br>📅 定休日: ' + hlEsc(spot.closed || '要確認') + '</div>' +
+                    // 最下段: 全幅の緑ボタン
+                    '<a href="' + hlMapsUrl(spot) + '" target="_blank" rel="noopener noreferrer" ' +
+                        'class="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs mt-2" ' +
+                        'style="padding:6px 0;text-decoration:none;">Googleマップを開く</a>' +
+                    '</div>';
+            }
+
+            function hlClearMarkers() {
+                hlMarkers.forEach(function (mm) { try { hlMap.removeLayer(mm.marker); } catch (e) {} });
+                hlMarkers = [];
+            }
+
+            function hlDrawMarkers() {
+                if (!hlMap) return;
+                hlClearMarkers();
+                const latlngs = [HL_ORIGIN.slice()];
+                hlSortedSpots().forEach(function (spot) {
+                    const la = parseFloat(spot.lat), lo = parseFloat(spot.lng);
+                    if (isNaN(la) || isNaN(lo)) return;
+                    const m = L.marker([la, lo], { icon: hlIcon(spot) }).addTo(hlMap);
+                    m.bindPopup(hlPopupHtml(spot));
+                    m.bindTooltip(spot.name, { className: 'custom-hover-tooltip', direction: 'top', offset: [0, -12] });
+                    hlMarkers.push({ id: spot.id, spot: spot, marker: m });
+                    latlngs.push([la, lo]);
+                });
+                try { hlMap.fitBounds(latlngs, { padding: [40, 40], maxZoom: 13 }); } catch (e) {}
+            }
+
+            function hlFocus(id) {
+                const mm = hlMarkers.find(function (x) { return x.id === id; });
+                if (!mm || !hlMap) return;
+                hlMap.setView(mm.marker.getLatLng(), 15, { animate: true });
+                mm.marker.openPopup();
+            }
+
+            function renderHealthList() {
+                const box = document.getElementById('healthList');
+                if (!box) return;
+                box.innerHTML = '';
+                hlSortedSpots().forEach(function (spot) {
+                    const km = hlDist(spot);
+                    const card = document.createElement('button');
+                    card.type = 'button';
+                    card.className = 'w-full text-left px-3 py-2 rounded-lg border transition text-xs bg-slate-900/70 border-slate-700 text-slate-300 hover:border-emerald-600 hover:text-white';
+                    const ratingBit = (spot.ratingLive && spot.googleRatingNum)
+                        ? '<span class="text-amber-400 font-bold shrink-0">★' + hlEsc(spot.googleRatingNum) + '</span>'
+                        : '';
+                    card.innerHTML =
+                        '<span class="flex items-center justify-between gap-2">' +
+                            '<span class="flex items-center gap-1.5 font-bold text-white">' + hlEmoji(spot) + ' ' + hlEsc(spot.name) + '</span>' +
+                            '<span class="flex items-center gap-1.5">' + ratingBit +
+                                '<span class="text-[10px] text-slate-500 shrink-0">北本から約' + (isNaN(km) ? '—' : km.toFixed(1)) + 'km</span>' +
+                            '</span>' +
+                        '</span>' +
+                        '<span class="mt-1 block"><span class="inline-block bg-sky-100 text-sky-800 font-semibold px-1.5 py-0.5 rounded text-[10px]">' + hlEsc(spot.category) + '</span></span>' +
+                        '<span class="mt-1 flex items-start gap-1 text-[10px] text-slate-400"><span class="shrink-0">🅿️</span><span>' + hlEsc(spot.parking) + '</span></span>' +
+                        '<span class="mt-0.5 flex items-center gap-2 text-[10px] text-slate-400"><span>🕒 ' + hlEsc(spot.hours) + '</span><span>📅 ' + hlEsc(spot.closed) + '</span></span>';
+                    card.addEventListener('click', function () { hlFocus(spot.id); });
+                    box.appendChild(card);
+                });
+            }
+
+            // Places API (New) キーがあれば評価・件数・公式リンクを実測値へ。無ければ何もしない。
+            async function hydrateHealthRatings() {
+                if (!HL_PLACES_KEY) return;
+                try {
+                    for (const spot of healthLunchSpots) {
+                        try {
+                            const ck = 'hlgpr:' + (spot.address || spot.name);
+                            let data = null;
+                            try { data = JSON.parse(sessionStorage.getItem(ck) || 'null'); } catch (e) {}
+                            if (!data) {
+                                const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-Goog-Api-Key': HL_PLACES_KEY,
+                                        'X-Goog-FieldMask': 'places.rating,places.userRatingCount,places.location,places.googleMapsUri'
+                                    },
+                                    body: JSON.stringify({ textQuery: spot.name + ' ' + (spot.address || ''), languageCode: 'ja', maxResultCount: 1 })
+                                });
+                                if (!res.ok) continue;
+                                const j = await res.json();
+                                const p = j.places && j.places[0];
+                                if (!p) continue;
+                                data = {
+                                    rating: p.rating || null,
+                                    count: (typeof p.userRatingCount === 'number') ? p.userRatingCount : null,
+                                    lat: p.location && p.location.latitude, lng: p.location && p.location.longitude,
+                                    uri: p.googleMapsUri || null
+                                };
+                                try { sessionStorage.setItem(ck, JSON.stringify(data)); } catch (e) {}
+                            }
+                            if (data.rating) { spot.googleRatingNum = Number(data.rating).toFixed(1); spot.ratingLive = true; }
+                            if (data.count != null) spot.reviewCountNum = Number(data.count);
+                            if (data.uri) spot.gmapUri = data.uri;
+                            if (data.lat && data.lng) { spot.lat = data.lat; spot.lng = data.lng; }
+                        } catch (e) { console.warn('health places hydrate item', e); }
+                    }
+                    hlDrawMarkers();
+                    renderHealthList();
+                } catch (e) { console.warn('hydrateHealthRatings error', e); }
+            }
+
+            // switchTab('health') から呼ばれる公開エントリ。初回のみ地図・リストを構築。
+            window.initHealthLunch = function () {
+                try {
+                    const el = document.getElementById('healthMap');
+                    if (!el || typeof L === 'undefined') return;
+
+                    if (!hlBuilt) {
+                        hlMap = L.map('healthMap', { scrollWheelZoom: true }).setView(HL_ORIGIN, 11);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
+                        }).addTo(hlMap);
+
+                        hlOriginMarker = L.marker(HL_ORIGIN, {
+                            icon: L.divIcon({
+                                className: 'danchi-emoji-pin',
+                                html: '<span style="background:#475569;font-size:12px;">📷</span>',
+                                iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -12]
+                            })
+                        }).addTo(hlMap).bindPopup('<div class="text-neutral-900 text-xs"><b>北本団地（起点）</b><br>36.0260, 139.5180</div>');
+
+                        hlCircle = L.circle(HL_ORIGIN, {
+                            radius: HL_RADIUS_M, color: '#10b981', weight: 1.5, dashArray: '5,6',
+                            fillColor: '#10b981', fillOpacity: 0.05
+                        }).addTo(hlMap);
+
+                        hlDrawMarkers();
+                        renderHealthList();
+                        hydrateHealthRatings();
+                        hlBuilt = true;
+                    } else {
+                        // 再表示時は既存ピンをクリアして描き直し（他タブのピンとは別インスタンスで非干渉）
+                        hlDrawMarkers();
+                        renderHealthList();
+                    }
+                    setTimeout(function () { try { hlMap.invalidateSize(); } catch (e) {} }, 200);
+                } catch (e) {
+                    console.error('initHealthLunch error:', e);
+                }
+            };
+        })();
 
         // イベントリスナー設定
         const searchInput = document.getElementById('searchInput');
