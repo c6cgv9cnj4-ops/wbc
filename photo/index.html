@@ -1094,9 +1094,14 @@
         };
 
         // 星評価・レビュー数はコードに一切ハードコードしない（推測値の直書き禁止）。
-        // Google Places API (New) のキーを入れると hydrateDanchiRatings が実測値を取得して
-        // ピン/リスト/カードに反映する。キー未設定・取得前は星/件数を非表示にし、
-        // 「Googleマップで最新クチコミ・評価を見る」リンクのみ出す。
+        // ↓ に Google Places API (New) のキーを入れると、団地タブ（hydrateDanchiRatings）と
+        //    健康食ランチタブ（hydrateHealthRatings / hydrateOneSpot）の両方が実測値を取得し、
+        //    ポップアップ／リストの amber 表示「Google評価 ★X.X / 投稿数 ○○件」を更新する。
+        //    取得結果は sessionStorage にキャッシュ（同一セッション内は再リクエストしない）。
+        //    ※ 公開リポジトリにキーを直書きするので、必ず Google Cloud 側で
+        //      「アプリケーションの制限＝HTTPリファラー: https://c6cgv9cnj4-ops.github.io/*」
+        //      と「API の制限＝Places API (New) のみ」を設定してから投入すること。
+        //    例: const GOOGLE_PLACES_API_KEY = 'AIzaSy...';
         const GOOGLE_PLACES_API_KEY = '';
 
         // 外部（車）で来る人向けの駐車ガイド。団地IDで参照（左パネル・詳細カード・地図ポップアップ共通）。
@@ -3077,8 +3082,9 @@
             //     （504等で失敗しても 1) が残るのでピンは消えない）
             // 手動キュレーション（埼玉全域）とは hlAllSpots() で名称重複除去して合算。
             // ============================================================
-            const OSM_CACHE_KEY = 'osm_healthy_spots_cache';
+            const OSM_CACHE_KEY = 'osm_healthy_spots_cache_v2';   // v2: 静的JSON基準・件数キャップ導入（旧キャッシュは破棄）
             const OSM_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;  // 7日
+            const OSM_MAX = 220;   // OSM合算スポットの上限（北本から近い順に残す。肥大キャッシュ対策）
             // 取得リージョン。都内＝駅近(🚉)、埼玉秩父路＝沿道/専用P想定(🅿️)。
             const OSM_REGIONS = [
                 {
@@ -3225,6 +3231,13 @@
                 return out;
             }
 
+            // 重複除去 → 北本から近い順 → OSM_MAX 件に制限（肥大キャッシュ/広域取得のガード）
+            function normalizeOsmSpots(arr) {
+                const uniq = dedupeByName(arr);
+                uniq.sort(function (a, b) { return hlDist(a) - hlDist(b); });
+                return uniq.slice(0, OSM_MAX);
+            }
+
             // リポジトリ同梱の静的JSON（一度 Overpass で取得済みの結果）。
             // これがあるので Overpass が落ちていても地図のピンは絶対に消えない。
             async function loadStaticOsmSpots() {
@@ -3238,15 +3251,18 @@
             }
 
             async function fetchOsmHealthySpots(force) {
-                // 1) 静的JSONを最優先で読み込み即描画（0秒・ほぼ確実）
+                // 1) 静的JSON（リポジトリ同梱）を基準として即描画（0秒・ほぼ確実）
+                let base = [];
                 if (!osmSpots.length) {
                     const stat = await loadStaticOsmSpots();
-                    if (stat && stat.length) { osmSpots = stat; refreshHealthAll(); }
+                    if (stat && stat.length) { base = stat.slice(); osmSpots = normalizeOsmSpots(base); refreshHealthAll(); }
+                } else {
+                    base = osmSpots.slice();
                 }
-                // 2) localStorage キャッシュがあれば合算（静的JSONより新しい可能性）
+                // 2) localStorage キャッシュがあれば「静的JSONに無いものだけ」追加（キャッシュに乗っ取らせない）
                 const cache = readOsmCache();
                 if (cache && cache.spots.length) {
-                    osmSpots = dedupeByName(osmSpots.concat(cache.spots));
+                    osmSpots = normalizeOsmSpots(base.concat(cache.spots));
                     refreshHealthAll();
                     if (!force && !cache.stale) return;   // 新鮮ならライブ取得はしない
                 }
@@ -3265,7 +3281,7 @@
                         }
                     });
                     if (!live.length) throw new Error('overpass: 有効なライブ結果なし');
-                    const merged = dedupeByName(live.concat(osmSpots));   // ライブを優先
+                    const merged = normalizeOsmSpots(live.concat(base));   // ライブ優先＋近い順で OSM_MAX 件
                     osmSpots = merged;
                     osmFetchFailedAt = 0;
                     writeOsmCache(merged);
@@ -3359,6 +3375,16 @@
                     const m = L.marker([la, lo], { icon: hlIcon(spot) }).addTo(hlMap);
                     m.bindPopup(hlPopupHtml(spot));
                     m.bindTooltip(spot.name, { className: 'custom-hover-tooltip', direction: 'top', offset: [0, -12] });
+                    // ピンを開いた時点で未取得なら Places API で1件だけ取得し、そのポップアップを更新
+                    m.on('popupopen', function () {
+                        if (spot.ratingLive) return;
+                        hydrateOneSpot(spot).then(function (changed) {
+                            if (changed) {
+                                try { m.setPopupContent(hlPopupHtml(spot)); } catch (e) {}
+                                try { renderHealthList(); } catch (e) {}
+                            }
+                        });
+                    });
                     hlMarkers.push({ id: spot.id, spot: spot, marker: m });
                     latlngs.push([la, lo]);
                 });
@@ -3403,45 +3429,62 @@
                 });
             }
 
-            // Places API (New) キーがあれば評価・件数・公式リンクを実測値へ。無ければ何もしない。
+            // Places API (New) 呼び出しは1店1リクエスト。sessionStorage キャッシュで
+            // 同一セッション内の重複を抑止。座標は上書きせず rating/count/uri のみ採用。
+            const HL_HYDRATE_EAGER = 30;   // 起動時にまとめて取得する上位件数（コスト抑制）
+            const hlInflight = Object.create(null);
+
+            async function hydrateOneSpot(spot) {
+                if (!HL_PLACES_KEY || !spot || spot.ratingLive) return false;
+                const ck = 'hlgpr:' + (spot.address || spot.name);
+                let data = null;
+                try { data = JSON.parse(sessionStorage.getItem(ck) || 'null'); } catch (e) {}
+                if (!data) {
+                    if (hlInflight[ck]) { try { data = await hlInflight[ck]; } catch (e) { return false; } }
+                    else {
+                        hlInflight[ck] = (async function () {
+                            const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-Goog-Api-Key': HL_PLACES_KEY,
+                                    'X-Goog-FieldMask': 'places.rating,places.userRatingCount,places.googleMapsUri'
+                                },
+                                body: JSON.stringify({ textQuery: spot.name + ' ' + (spot.address || ''), languageCode: 'ja', maxResultCount: 1 })
+                            });
+                            if (!res.ok) throw new Error('places HTTP ' + res.status);
+                            const j = await res.json();
+                            const p = j.places && j.places[0];
+                            const d = p ? {
+                                rating: p.rating || null,
+                                count: (typeof p.userRatingCount === 'number') ? p.userRatingCount : null,
+                                uri: p.googleMapsUri || null
+                            } : { rating: null, count: null, uri: null };
+                            try { sessionStorage.setItem(ck, JSON.stringify(d)); } catch (e) {}
+                            return d;
+                        })();
+                        try { data = await hlInflight[ck]; } catch (e) { delete hlInflight[ck]; return false; }
+                        delete hlInflight[ck];
+                    }
+                }
+                if (!data) return false;
+                let changed = false;
+                if (data.rating != null) { spot.googleRatingNum = Number(data.rating).toFixed(1); spot.ratingLive = true; changed = true; }
+                if (data.count != null) { spot.reviewCountNum = Number(data.count); changed = true; }
+                if (data.uri) { spot.gmapUri = data.uri; changed = true; }
+                return changed;
+            }
+
+            // 起動時: 距離順の上位 HL_HYDRATE_EAGER 件だけ先読み
             async function hydrateHealthRatings() {
                 if (!HL_PLACES_KEY) return;
                 try {
-                    for (const spot of hlAllSpots()) {
-                        try {
-                            const ck = 'hlgpr:' + (spot.address || spot.name);
-                            let data = null;
-                            try { data = JSON.parse(sessionStorage.getItem(ck) || 'null'); } catch (e) {}
-                            if (!data) {
-                                const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'X-Goog-Api-Key': HL_PLACES_KEY,
-                                        'X-Goog-FieldMask': 'places.rating,places.userRatingCount,places.location,places.googleMapsUri'
-                                    },
-                                    body: JSON.stringify({ textQuery: spot.name + ' ' + (spot.address || ''), languageCode: 'ja', maxResultCount: 1 })
-                                });
-                                if (!res.ok) continue;
-                                const j = await res.json();
-                                const p = j.places && j.places[0];
-                                if (!p) continue;
-                                data = {
-                                    rating: p.rating || null,
-                                    count: (typeof p.userRatingCount === 'number') ? p.userRatingCount : null,
-                                    lat: p.location && p.location.latitude, lng: p.location && p.location.longitude,
-                                    uri: p.googleMapsUri || null
-                                };
-                                try { sessionStorage.setItem(ck, JSON.stringify(data)); } catch (e) {}
-                            }
-                            if (data.rating) { spot.googleRatingNum = Number(data.rating).toFixed(1); spot.ratingLive = true; }
-                            if (data.count != null) spot.reviewCountNum = Number(data.count);
-                            if (data.uri) spot.gmapUri = data.uri;
-                            if (data.lat && data.lng) { spot.lat = data.lat; spot.lng = data.lng; }
-                        } catch (e) { console.warn('health places hydrate item', e); }
+                    const top = hlSortedSpots().slice(0, HL_HYDRATE_EAGER);
+                    let any = false;
+                    for (const spot of top) {
+                        try { if (await hydrateOneSpot(spot)) any = true; } catch (e) {}
                     }
-                    hlDrawMarkers();
-                    renderHealthList();
+                    if (any) { hlDrawMarkers(); renderHealthList(); }
                 } catch (e) { console.warn('hydrateHealthRatings error', e); }
             }
 
