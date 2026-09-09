@@ -330,7 +330,7 @@
         <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-4 space-y-2 text-xs sm:text-sm">
             <div class="flex items-start gap-1.5 text-slate-300">
                 <span class="text-base leading-none shrink-0">🥗</span>
-                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong>。<strong class="text-white">キュレーション（車・埼玉全域）</strong>＋<strong class="text-white">OpenStreetMap / Overpass API 自動取得（都内=山手線圏／埼玉=秩父路・比企〜大里〜坂戸）</strong>の、胃腸を休められる健康食ランチ。十割そば・直火焼き魚・名水豆腐・きのこ出汁うどんなど揚げ物に頼らない滋養食を、北本から近い順に表示。破線は半径15km。都内OSMピンは 🚉（駅近）、埼玉秩父路OSMピンは 🅿️（沿道・専用P想定）。OSM由来は名称・座標のみ確定で営業時間等は「要確認」（ボタンから公式・クチコミを確認）。取得結果は端末に7日キャッシュ。</span>
+                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong>。<strong class="text-white">キュレーション（車・埼玉全域）</strong>＋<strong class="text-white">OpenStreetMap / Overpass API 自動取得（都内=山手線圏／埼玉=秩父路・比企〜大里〜坂戸）</strong>の、胃腸を休められる健康食ランチ。十割そば・直火焼き魚・名水豆腐・きのこ出汁うどんなど揚げ物に頼らない滋養食を、北本から近い順に表示。破線は半径15km。都内OSMピンは 🚉（駅近）、埼玉秩父路OSMピンは 🅿️（沿道・専用P想定）。OSM由来は名称・座標のみ確定で営業時間等は「要確認」（ボタンから公式・クチコミを確認）。OSMデータはリポジトリ同梱の静的JSONを即時読込（Overpass障害時もピンは消えない）＋端末に7日キャッシュ、期限切れ時のみ裏でライブ更新。</span>
             </div>
         </div>
 
@@ -3088,9 +3088,12 @@
             }
 
             // ============================================================
-            // Overpass API（OpenStreetMap 無料API）— 山手線通過区＋隣接区の
-            // 健康食ノードを自動フェッチ。手動キュレーション（埼玉近郊）と合算し、
-            // 結果は localStorage にキャッシュ（2回目以降は即描画→裏で再取得）。
+            // OSM（OpenStreetMap）健康食スポット取得。3段構え:
+            //  1) リポジトリ同梱の静的JSON data/osm_healthy_spots.json を即読込（0秒・確実）
+            //  2) localStorage キャッシュがあれば合算
+            //  3) 期限切れ時のみ Overpass ライブAPIをリージョン別分割クエリで裏更新
+            //     （504等で失敗しても 1) が残るのでピンは消えない）
+            // 手動キュレーション（埼玉全域）とは hlAllSpots() で名称重複除去して合算。
             // ============================================================
             const OSM_CACHE_KEY = 'osm_healthy_spots_cache';
             const OSM_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;  // 7日
@@ -3134,8 +3137,10 @@
 
             function osmToSpot(el) {
                 const t = (el && el.tags) || {};
-                if (!t.name || el.lat == null || el.lon == null) return null;
-                const region = osmRegionOf(el.lat, el.lon);
+                const lat = (el.lat != null) ? el.lat : (el.center && el.center.lat);
+                const lon = (el.lon != null) ? el.lon : (el.center && el.center.lon);
+                if (!t.name || lat == null || lon == null) return null;
+                const region = osmRegionOf(lat, lon);
                 if (!region) return null;   // 対象外エリアは捨てる
                 const street = t['addr:street'] || t['addr:full'] || '';
                 const cityPart = [t['addr:city'], t['addr:street'], t['addr:housenumber']].filter(Boolean).join(' ');
@@ -3146,7 +3151,7 @@
                     // 都内→「なし（駅近）」で 🚉／埼玉秩父路→「沿道・専用P想定」で 🅿️（判定は先頭の「なし」有無）
                     parking: region.parking,
                     address: cityPart || region.fallbackAddr,
-                    lat: el.lat, lng: el.lon,
+                    lat: lat, lng: lon,
                     hours: t.opening_hours || '要確認',
                     closed: '要確認',
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=' +
@@ -3156,16 +3161,14 @@
                 };
             }
 
-            function buildOverpassQuery() {
-                let body = '';
-                OSM_REGIONS.forEach(function (r) {
-                    const b = r.bbox.join(',');
-                    body +=
-                        'node["amenity"="restaurant"]["cuisine"~"soba|noodle|japanese|seafood|tofu|vegetarian"]["name"](' + b + ');' +
-                        'node["amenity"~"restaurant|cafe|fast_food"]["cuisine"~"tofu|seafood|vegetarian|organic|tea"]["name"](' + b + ');' +
-                        'node["amenity"="fast_food"]["cuisine"="soba"]["name"](' + b + ');';
-                });
-                return '[out:json][timeout:30];(' + body + ');out body 700;';
+            // 504 対策: 1リージョン1クエリに分割し、cuisine を最ヒットの soba|japanese に絞り、
+            // out center qt;（quadtile ソート）でサーバ負荷を最小化。
+            function regionOverpassQuery(region) {
+                const b = region.bbox.join(',');
+                return '[out:json][timeout:25];(' +
+                    'node["amenity"="restaurant"]["cuisine"~"soba|japanese"]["name"](' + b + ');' +
+                    'node["amenity"="fast_food"]["cuisine"="soba"]["name"](' + b + ');' +
+                    ');out center qt;';
             }
 
             function readOsmCache() {
@@ -3229,39 +3232,66 @@
                 return null;
             }
 
-            async function fetchOsmHealthySpots(force) {
-                // まずキャッシュで即描画
-                const cache = readOsmCache();
-                if (cache && cache.spots.length && !force) {
-                    osmSpots = cache.spots;
-                    refreshHealthAll();
-                    if (!cache.stale) return;   // 新鮮ならここで終了
-                }
-                // 直近で失敗しているなら 10 分は再試行しない（Overpass 混雑時の 504 連打を防ぐ）
-                if (!force && osmFetchFailedAt && (Date.now() - osmFetchFailedAt) < 10 * 60 * 1000) return;
+            function dedupeByName(arr) {
+                const seen = Object.create(null); const out = [];
+                (arr || []).forEach(function (s) {
+                    if (!s || !s.name) return;
+                    const k = String(s.name).replace(/\s+/g, '');
+                    if (seen[k]) return;
+                    seen[k] = 1; out.push(s);
+                });
+                return out;
+            }
+
+            // リポジトリ同梱の静的JSON（一度 Overpass で取得済みの結果）。
+            // これがあるので Overpass が落ちていても地図のピンは絶対に消えない。
+            async function loadStaticOsmSpots() {
                 try {
-                    const j = await overpassRequest(buildOverpassQuery());
-                    if (!j) throw new Error('overpass: 全エンドポイントが JSON を返しませんでした');
-                    const list = (j.elements || []).map(osmToSpot).filter(Boolean);
-                    // 同名の重複を除去
-                    const seen = Object.create(null);
-                    const uniq = [];
-                    list.forEach(function (s) {
-                        const k = String(s.name).replace(/\s+/g, '');
-                        if (seen[k]) return;
-                        seen[k] = 1; uniq.push(s);
+                    const res = await fetch('data/osm_healthy_spots.json', { cache: 'default' });
+                    if (!res.ok) return null;
+                    const doc = await res.json();
+                    if (doc && Array.isArray(doc.spots)) return doc.spots;
+                } catch (e) { /* 無ければ null */ }
+                return null;
+            }
+
+            async function fetchOsmHealthySpots(force) {
+                // 1) 静的JSONを最優先で読み込み即描画（0秒・ほぼ確実）
+                if (!osmSpots.length) {
+                    const stat = await loadStaticOsmSpots();
+                    if (stat && stat.length) { osmSpots = stat; refreshHealthAll(); }
+                }
+                // 2) localStorage キャッシュがあれば合算（静的JSONより新しい可能性）
+                const cache = readOsmCache();
+                if (cache && cache.spots.length) {
+                    osmSpots = dedupeByName(osmSpots.concat(cache.spots));
+                    refreshHealthAll();
+                    if (!force && !cache.stale) return;   // 新鮮ならライブ取得はしない
+                }
+                // 直近失敗から10分はライブ再試行しない（504 連打防止）
+                if (!force && osmFetchFailedAt && (Date.now() - osmFetchFailedAt) < 10 * 60 * 1000) return;
+
+                // 3) バックグラウンドでライブ更新（リージョンごとに分割・並列、失敗しても静的JSONが残る）
+                try {
+                    const settled = await Promise.allSettled(
+                        OSM_REGIONS.map(function (r) { return overpassRequest(regionOverpassQuery(r)); })
+                    );
+                    let live = [];
+                    settled.forEach(function (res) {
+                        if (res.status === 'fulfilled' && res.value && Array.isArray(res.value.elements)) {
+                            live = live.concat(res.value.elements.map(osmToSpot).filter(Boolean));
+                        }
                     });
-                    osmSpots = uniq;
+                    if (!live.length) throw new Error('overpass: 有効なライブ結果なし');
+                    const merged = dedupeByName(live.concat(osmSpots));   // ライブを優先
+                    osmSpots = merged;
                     osmFetchFailedAt = 0;
-                    writeOsmCache(uniq);
+                    writeOsmCache(merged);
                     refreshHealthAll();
                 } catch (e) {
                     osmFetchFailedAt = Date.now();
-                    console.warn('fetchOsmHealthySpots failed → キャッシュ/キュレーションのみ表示:', e);
-                    if (!osmSpots.length && cache && cache.spots.length) {
-                        osmSpots = cache.spots;
-                        refreshHealthAll();
-                    }
+                    console.warn('Overpass ライブ更新に失敗 → 静的JSON/キャッシュを継続表示:', e);
+                    // osmSpots には静的JSONが入っているのでピンは消えない
                 }
             }
 
