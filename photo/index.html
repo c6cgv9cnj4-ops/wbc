@@ -330,7 +330,7 @@
         <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-4 space-y-2 text-xs sm:text-sm">
             <div class="flex items-start gap-1.5 text-slate-300">
                 <span class="text-base leading-none shrink-0">🥗</span>
-                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong> ／ <strong class="text-white">半径15km圏内</strong>の、車で行けて胃腸を休められる健康食ランチ。中華粥・十割そば・直火焼き魚・きのこ出汁うどんなど、揚げ物に頼らない滋養食を厳選。営業時間・定休は参考値のため訪問前に公式で最新を確認すること。</span>
+                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong>。<strong class="text-white">近郊（車・半径15km圏）</strong>と<strong class="text-white">都内（電車・駅近徒歩5分以内）</strong>の、胃腸を休められる健康食ランチ。中華粥・十割そば・直火焼き魚・きのこ出汁うどんなど揚げ物に頼らない滋養食を、北本から近い順に厳選。地図の破線は半径15km（この外＝電車アクセス推奨）。営業時間・定休は参考値のため訪問前に公式で最新を確認すること。</span>
             </div>
         </div>
 
@@ -340,7 +340,7 @@
                     <h2 class="font-bold text-white text-sm flex items-center gap-2 mb-1">
                         <i data-lucide="salad" class="w-4 h-4 text-emerald-400"></i> 健康食ランチ（北本から近い順）
                     </h2>
-                    <p class="text-[11px] text-slate-400 mb-3">カードをタップすると地図がそのピンへ寄ります。各店に 🅿️ 駐車場情報を併記。</p>
+                    <p class="text-[11px] text-slate-400 mb-3">カードをタップすると地図がそのピンへ寄ります。🅿️＝専用駐車場あり／🚉＝駐車場なし（駅近）。</p>
                     <div id="healthList" class="space-y-1.5 max-h-[560px] overflow-y-auto custom-scrollbar"></div>
                 </div>
             </div>
@@ -2407,6 +2407,72 @@
                     closed: '日曜日',
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=元祖田舎っぺうどん+北本店',
                     features: '脂質わずか約3g。山盛りのきのことネギが入った温汁で食物繊維を補給。'
+                },
+                // --- 都内アクセス良好（北本から1時間半圏内・駅近徒歩5分以内。半径15km円の外） ---
+                {
+                    id: 'kayusanchin-ueno',
+                    name: '粥餐庁 上野マルイ店',
+                    category: '本格中華粥・滋養食',
+                    parking: 'なし（上野駅徒歩1分）',
+                    address: '東京都台東区上野6丁目15-1 上野マルイB1F',
+                    lat: 35.7112,
+                    lng: 139.7745,
+                    hours: '11:00〜21:00',
+                    closed: '施設休館日に準ずる',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=粥餐庁+上野マルイ店',
+                    features: '干し貝柱と昆布出汁の本格粥。脂質ほぼゼロで胃腸を完全に休めるリセット食。'
+                },
+                {
+                    id: 'yabusoba-kanda',
+                    name: 'かんだやぶそば',
+                    category: '出汁・伝統江戸前蕎麦',
+                    parking: 'なし（神田・秋葉原駅徒歩5分）',
+                    address: '東京都千代田区神田淡路町2丁目10',
+                    lat: 35.6968,
+                    lng: 139.7692,
+                    hours: '11:30〜20:30',
+                    closed: '水曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=かんだやぶそば',
+                    features: '濃口天然出汁で啜る伝統の江戸前蕎麦。余分な脂質ゼロでシンプルに消化を促す。'
+                },
+                {
+                    id: 'kayuya-sato-shinjuku',
+                    name: '粥や 佐藤',
+                    category: '和風出汁粥・滋養食',
+                    parking: 'なし（新宿駅徒歩5分）',
+                    address: '東京都新宿区新宿3丁目35-13',
+                    lat: 35.6898,
+                    lng: 139.7035,
+                    hours: '11:30〜15:00',
+                    closed: '不定休',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=粥や+佐藤+新宿',
+                    features: '天然和出汁でじっくり炊くお粥。油分と塩分を抑えた胃に優しいカウンター粥処。'
+                },
+                {
+                    id: 'genchan-ikebukuro',
+                    name: '築地食堂 源ちゃん 池袋東口店',
+                    category: '直火焼き魚・鮮魚定食',
+                    parking: 'なし（池袋駅東口徒歩3分）',
+                    address: '東京都豊島区南池袋1丁目26-2',
+                    lat: 35.7298,
+                    lng: 139.7128,
+                    hours: '11:00〜23:00',
+                    closed: '無休',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=築地食堂+源ちゃん+池袋東口店',
+                    features: '直火の焼き魚定食や刺身。揚げ物を排除し、良質な魚油（EPA/DHA）を補給。'
+                },
+                {
+                    id: 'senjinan-yanaka',
+                    name: '手打ちそば 千尋庵',
+                    category: '出汁・手打ち十割蕎麦',
+                    parking: 'なし（日暮里駅徒歩4分）',
+                    address: '東京都台東区谷中7丁目18-12',
+                    lat: 35.7275,
+                    lng: 139.7685,
+                    hours: '11:30〜14:30',
+                    closed: '火曜日・水曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+千尋庵+谷中',
+                    features: '谷中銀座近く。十割蕎麦と辛味大根おろしで消化酵素を補給し血糖値をコントロール。'
                 }
             ];
 
@@ -2480,7 +2546,7 @@
                     // 3. Google評価・投稿数（text-amber-500 font-bold）
                     ratingRow +
                     // 4. 駐車場情報
-                    '<div class="text-neutral-700 text-[10px] mt-1">🅿️ ' + hlEsc(spot.parking) + '</div>' +
+                    '<div class="text-neutral-700 text-[10px] mt-1">' + (/^なし/.test(spot.parking || '') ? '🚉 ' : '🅿️ ') + hlEsc(spot.parking) + '</div>' +
                     // 5. 特徴・健康要素（1行）
                     (spot.features ? '<div class="text-emerald-700 text-[10px] mt-0.5">💡 ' + hlEsc(spot.features) + '</div>' : '') +
                     // 6. 営業時間・定休日（エメラルド＋絵文字）
@@ -2541,7 +2607,7 @@
                             '</span>' +
                         '</span>' +
                         '<span class="mt-1 block"><span class="inline-block bg-sky-100 text-sky-800 font-semibold px-1.5 py-0.5 rounded text-[10px]">' + hlEsc(spot.category) + '</span></span>' +
-                        '<span class="mt-1 flex items-start gap-1 text-[10px] text-slate-400"><span class="shrink-0">🅿️</span><span>' + hlEsc(spot.parking) + '</span></span>' +
+                        '<span class="mt-1 flex items-start gap-1 text-[10px] text-slate-400"><span class="shrink-0">' + (/^なし/.test(spot.parking || '') ? '🚉' : '🅿️') + '</span><span>' + hlEsc(spot.parking) + '</span></span>' +
                         '<span class="mt-0.5 flex items-center gap-2 text-[10px] text-slate-400"><span>🕒 ' + hlEsc(spot.hours) + '</span><span>📅 ' + hlEsc(spot.closed) + '</span></span>' +
                         '<span class="mt-0.5 flex items-start gap-1 text-[10px] text-emerald-400/90"><span class="shrink-0">💡</span><span>' + hlEsc(spot.features) + '</span></span>';
                     card.addEventListener('click', function () { hlFocus(spot.id); });
