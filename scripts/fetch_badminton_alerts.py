@@ -1398,11 +1398,46 @@ def build_digest_embeds(pool, now):
     return [header] + body_embeds
 
 
+def _run_test_favorite_report_pseudo(webhook):
+    """【一時的なテスト専用フック】ダブルス重複配信バグ修正後の表示を
+    実際のDiscordチャンネルで確認するための擬似データ送信。
+    TEST_FAVORITE_REPORT_PSEUDO=1のときのみ実行。確認完了後は削除する
+    前提の使い捨てコード(2026-09-06)。"""
+    wr_rankings = {
+        _normalize_player_key("黄東萍"): 2,
+        _normalize_player_key("アン・セヨン"): 1,
+    }
+    all_matches = [
+        # 渡辺勇大・松友美佐紀ペア(両方ともFAVORITE_PLAYERS)→ペア1ブロックのみになるはず
+        {"round_event": "準々決勝 混合ダブルス",
+         "left_names": ["馮彦哲", "黄東萍"], "right_names": ["渡辺勇大", "松友美佐紀"],
+         "left_team": "(中国)", "right_team": "(NTT東日本)",
+         "left_win": False, "right_win": True,
+         "games": [(18, 21), (21, 15), (16, 21)]},
+        {"round_event": "1回戦 女子シングルス",
+         "left_names": ["奥原希望"], "right_names": ["アン・セヨン"],
+         "left_team": "(再春館製薬所)", "right_team": "(韓国)",
+         "left_win": True, "right_win": False,
+         "games": [(21, 12), (21, 14)]},
+    ]
+    embed = build_favorite_players_report_embed(all_matches, wr_rankings)
+    if not embed:
+        print("[ERROR] テスト用Embedの生成に失敗しました。")
+        sys.exit(1)
+    ok = send_embeds_to_discord(webhook, [embed])
+    print("[OK] テスト送信成功" if ok else "[ERROR] テスト送信失敗")
+    sys.exit(0 if ok else 1)
+
+
 def main():
     webhook = os.environ.get("DISCORD_WEBHOOK_SPORTS_CULTURE")
     if not webhook:
         print("[ERROR] 環境変数 DISCORD_WEBHOOK_SPORTS_CULTURE が設定されていません。")
         sys.exit(1)
+
+    if os.environ.get("TEST_FAVORITE_REPORT_PSEUDO") == "1":
+        _run_test_favorite_report_pseudo(webhook)
+        return  # 上でsys.exit()するため実際には到達しない
 
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
     band = get_time_band(now)

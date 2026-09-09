@@ -90,7 +90,7 @@
                     <i data-lucide="building-2" class="w-4 h-4"></i> 団地＆B級グルメ
                 </button>
                 <button id="tabBtnHealth" class="tab-btn flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white" data-tab="health" onclick="switchTab('health')">
-                    <span class="text-sm leading-none">🥗</span> 健康食ランチ
+                    <span class="text-sm leading-none">🚗</span> 健康食ランチ
                 </button>
             </div>
         </div>
@@ -329,8 +329,8 @@
     <main id="tabContentHealth" class="max-w-7xl mx-auto px-3 sm:px-4 mt-4 hidden">
         <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-4 space-y-2 text-xs sm:text-sm">
             <div class="flex items-start gap-1.5 text-slate-300">
-                <span class="text-base leading-none shrink-0">🥗</span>
-                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong>。<strong class="text-white">キュレーション（車・埼玉全域）</strong>＋<strong class="text-white">OpenStreetMap / Overpass API 自動取得（都内=山手線圏／埼玉=秩父路・比企〜大里〜坂戸）</strong>の、胃腸を休められる健康食ランチ。十割そば・直火焼き魚・名水豆腐・きのこ出汁うどんなど揚げ物に頼らない滋養食を、北本から近い順に表示。破線は半径15km。都内OSMピンは 🚉（駅近）、埼玉秩父路OSMピンは 🅿️（沿道・専用P想定）。OSM由来は名称・座標のみ確定で営業時間等は「要確認」（ボタンから公式・クチコミを確認）。OSMデータはリポジトリ同梱の静的JSONを即時読込（Overpass障害時もピンは消えない）＋端末に7日キャッシュ、期限切れ時のみ裏でライブ更新。</span>
+                <span class="text-base leading-none shrink-0">🚗</span>
+                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong> ／ <strong class="text-white">半径15km圏内</strong>の、車で行けて胃腸を休められる健康食ランチ。中華粥・十割そば・直火焼き魚・きのこ出汁うどんなど、揚げ物に頼らない滋養食を厳選。営業時間・定休は参考値のため訪問前に公式で最新を確認すること。</span>
             </div>
         </div>
 
@@ -340,7 +340,7 @@
                     <h2 class="font-bold text-white text-sm flex items-center gap-2 mb-1">
                         <i data-lucide="salad" class="w-4 h-4 text-emerald-400"></i> 健康食ランチ（北本から近い順）
                     </h2>
-                    <p class="text-[11px] text-slate-400 mb-3">カードをタップすると地図がそのピンへ寄ります。🅿️＝専用駐車場あり／🚉＝駐車場なし（駅近）。</p>
+                    <p class="text-[11px] text-slate-400 mb-3">カードをタップすると地図がそのピンへ寄ります。各店に 🅿️ 駐車場情報を併記。</p>
                     <div id="healthList" class="space-y-1.5 max-h-[560px] overflow-y-auto custom-scrollbar"></div>
                 </div>
             </div>
@@ -849,15 +849,11 @@
                 if (tab === 'danchi') {
                     initDanchiMapIfNeeded();
                     setTimeout(() => {
-                        // 地図・マーカーが構築済みになってから初回の自動選択を行う
-                        // （race による "Invalid LatLng" 回避）
-                        if (danchiMap && Array.isArray(danchiMarkers) && danchiMarkers.length) {
+                        if (danchiMap) {
                             danchiMap.invalidateSize();
                             if (!danchiSelectedId && danchiMapSorted.length) {
                                 selectDanchi(danchiMapSorted[0].id);
                             }
-                        } else if (danchiMap) {
-                            danchiMap.invalidateSize();
                         }
                     }, 220);
                 }
@@ -1094,17 +1090,10 @@
         };
 
         // 星評価・レビュー数はコードに一切ハードコードしない（推測値の直書き禁止）。
-        // ↓ に Google Places API (New) のキーを入れると、団地タブ（hydrateDanchiRatings）と
-        //    健康食ランチタブ（hydrateHealthRatings / hydrateOneSpot）の両方が実測値を取得し、
-        //    ポップアップ／リストの amber 表示「Google評価 ★X.X / 投稿数 ○○件」を更新する。
-        //    取得結果は sessionStorage にキャッシュ（同一セッション内は再リクエストしない）。
-        //    ※ 公開リポジトリにキーを直書きするので、必ず Google Cloud 側で
-        //      「アプリケーションの制限＝HTTPリファラー: https://c6cgv9cnj4-ops.github.io/*」
-        //      と「API の制限＝Places API (New) のみ」を設定してから投入すること。
-        //    例: const GOOGLE_PLACES_API_KEY = 'AIzaSy...';
-        //    ※ このキーは Pages で公開配信される。HTTPリファラー制限（c6cgv9cnj4-ops.github.io/*）
-        //      と Places API (New) 限定の API 制限が有効なことが前提。
-        const GOOGLE_PLACES_API_KEY = 'AIzaSyDAmKupKwszbhLE4qWqiO1yZgH-P9nP5O8';
+        // Google Places API (New) のキーを入れると hydrateDanchiRatings が実測値を取得して
+        // ピン/リスト/カードに反映する。キー未設定・取得前は星/件数を非表示にし、
+        // 「Googleマップで最新クチコミ・評価を見る」リンクのみ出す。
+        const GOOGLE_PLACES_API_KEY = '';
 
         // 外部（車）で来る人向けの駐車ガイド。団地IDで参照（左パネル・詳細カード・地図ポップアップ共通）。
         const DANCHI_PARKING = {
@@ -1543,23 +1532,17 @@
             try {
                 const dc = danchiMapData.find(function (d) { return d.id === id; });
                 if (!dc) return;
-                // 座標が数値として不正なら地図操作をスキップ（初回オープン時の race で
-                // "Invalid LatLng" が投げられるのを防ぐ）
-                const dLat = parseFloat(dc.lat), dLng = parseFloat(dc.lng);
-                const coordOk = !isNaN(dLat) && !isNaN(dLng);
                 danchiSelectedId = id;
                 initDanchiMapIfNeeded();
 
-                if (danchiMap && coordOk) {
-                    danchiMap.flyTo([dLat, dLng], 15, { duration: 0.8 });
+                if (danchiMap) {
+                    danchiMap.flyTo([dc.lat, dc.lng], 15, { duration: 0.8 });
                     if (danchiCircle) { danchiMap.removeLayer(danchiCircle); danchiCircle = null; }
-                    danchiCircle = L.circle([dLat, dLng], {
+                    danchiCircle = L.circle([dc.lat, dc.lng], {
                         radius: 1000, color: '#34d399', weight: 1.5, opacity: 0.9,
                         fillColor: '#34d399', fillOpacity: 0.08
                     }).addTo(danchiMap);
-                }
 
-                if (danchiMap && Array.isArray(danchiMarkers) && danchiMarkers.length) {
                     danchiMarkers.forEach(function (mm) {
                         const elm = mm.marker.getElement && mm.marker.getElement();
                         if (mm.danchiId === id) {
@@ -2371,7 +2354,7 @@
                     hours: '11:30〜14:30',
                     closed: '火曜日',
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=九龍酒家+上尾市大谷本町',
-                    features: '干し貝柱と鶏出汁で炊き上げた本格中華粥。油分ゼロで胃腸を休める滋養食。'
+                    features: '干し貝柱と鶏出汁で炊き上げた本格中華粥。油分ゼロで胃腸を徹底的に休める滋養食。'
                 },
                 {
                     id: 'manoya-kitamoto',
@@ -2384,7 +2367,7 @@
                     hours: '11:30〜14:30',
                     closed: '水曜日',
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+満乃舎+北本市荒井',
-                    features: 'ルチン・食物繊維が豊富で脂質ほぼゼロの純手打ち蕎麦と天然出汁。'
+                    features: '北本団地至近。ルチン・食物繊維が豊富で脂質ほぼゼロの純手打ち蕎麦と天然出汁。'
                 },
                 {
                     id: 'wakiya-yoshimi',
@@ -2397,7 +2380,7 @@
                     hours: '11:00〜14:30',
                     closed: '木曜日',
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=生蕎麦+わきや+吉見町',
-                    features: '荒川を渡った吉見の街道沿い。大根おろしの消化酵素と低GI手打ち蕎麦。'
+                    features: '荒川を渡った吉見の街道沿い。大根おろしの消化酵素と低GI手打ち蕎麦で体を整える。'
                 },
                 {
                     id: 'uogashi-ageo',
@@ -2410,7 +2393,7 @@
                     hours: '11:30〜14:00',
                     closed: '水曜日',
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=魚河岸+上尾市小敷谷',
-                    features: '炭火・直火の焼き魚定食。良質な魚油（EPA・DHA）と高タンパク補給。'
+                    features: '揚げ物に頼らず炭火・直火の焼き魚定食を提供。良質な魚油（EPA・DHA）と高タンパク補給。'
                 },
                 {
                     id: 'inakappe-kitamoto',
@@ -2423,640 +2406,14 @@
                     hours: '10:00〜15:00',
                     closed: '日曜日',
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=元祖田舎っぺうどん+北本店',
-                    features: '脂質わずか約3g。山盛りのきのことネギが入った温汁で食物繊維を補給。'
-                },
-                // --- 都内アクセス良好（北本から1時間半圏内・駅近徒歩5分以内。半径15km円の外） ---
-                {
-                    id: 'kayusanchin-ueno',
-                    name: '粥餐庁 上野マルイ店',
-                    category: '本格中華粥・滋養食',
-                    parking: 'なし（上野駅徒歩1分）',
-                    address: '東京都台東区上野6丁目15-1 上野マルイB1F',
-                    lat: 35.7112,
-                    lng: 139.7745,
-                    hours: '11:00〜21:00',
-                    closed: '施設休館日に準ずる',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=粥餐庁+上野マルイ店',
-                    features: '干し貝柱と昆布出汁の本格粥。脂質ほぼゼロで胃腸を完全に休めるリセット食。'
-                },
-                {
-                    id: 'yabusoba-kanda',
-                    name: 'かんだやぶそば',
-                    category: '出汁・伝統江戸前蕎麦',
-                    parking: 'なし（神田・秋葉原駅徒歩5分）',
-                    address: '東京都千代田区神田淡路町2丁目10',
-                    lat: 35.6968,
-                    lng: 139.7692,
-                    hours: '11:30〜20:30',
-                    closed: '水曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=かんだやぶそば',
-                    features: '濃口天然出汁で啜る伝統の江戸前蕎麦。余分な脂質ゼロでシンプルに消化を促す。'
-                },
-                {
-                    id: 'kayuya-sato-shinjuku',
-                    name: '粥や 佐藤',
-                    category: '和風出汁粥・滋養食',
-                    parking: 'なし（新宿駅徒歩5分）',
-                    address: '東京都新宿区新宿3丁目35-13',
-                    lat: 35.6898,
-                    lng: 139.7035,
-                    hours: '11:30〜15:00',
-                    closed: '不定休',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=粥や+佐藤+新宿',
-                    features: '天然和出汁でじっくり炊くお粥。油分と塩分を抑えた胃に優しいカウンター粥処。'
-                },
-                {
-                    id: 'genchan-ikebukuro',
-                    name: '築地食堂 源ちゃん 池袋東口店',
-                    category: '直火焼き魚・鮮魚定食',
-                    parking: 'なし（池袋駅東口徒歩3分）',
-                    address: '東京都豊島区南池袋1丁目26-2',
-                    lat: 35.7298,
-                    lng: 139.7128,
-                    hours: '11:00〜23:00',
-                    closed: '無休',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=築地食堂+源ちゃん+池袋東口店',
-                    features: '直火の焼き魚定食や刺身。揚げ物を排除し、良質な魚油（EPA/DHA）を補給。'
-                },
-                {
-                    id: 'senjinan-yanaka',
-                    name: '手打ちそば 千尋庵',
-                    category: '出汁・手打ち十割蕎麦',
-                    parking: 'なし（日暮里駅徒歩4分）',
-                    address: '東京都台東区谷中7丁目18-12',
-                    lat: 35.7275,
-                    lng: 139.7685,
-                    hours: '11:30〜14:30',
-                    closed: '火曜日・水曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+千尋庵+谷中',
-                    features: '谷中銀座近く。十割蕎麦と辛味大根おろしで消化酵素を補給し血糖値をコントロール。'
-                },
-                // --- おかゆ・出汁滋養食（高崎線沿線・駅直結／改札内で利用可） ---
-                {
-                    id: 'chazuke-en-omiya',
-                    name: 'だし茶漬け えん エキュート大宮店',
-                    category: '極上天然出汁茶漬け',
-                    parking: 'なし（大宮駅改札内・直結）',
-                    address: '埼玉県さいたま市大宮区錦町630 エキュート大宮',
-                    lat: 35.9063,
-                    lng: 139.6240,
-                    hours: '7:00〜22:00',
-                    closed: '無休',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=だし茶漬け+えん+エキュート大宮店',
-                    features: '昆布と鰹節の天然出汁。脂質ほぼゼロで胃腸に負担をかけずサラサラ流し込める。'
-                },
-                {
-                    id: 'chazuke-en-akabane',
-                    name: 'だし茶漬け えん エキュート赤羽店',
-                    category: '極上天然出汁茶漬け',
-                    parking: 'なし（赤羽駅改札内・直結）',
-                    address: '東京都北区赤羽1丁目67-5 エキュート赤羽',
-                    lat: 35.7778,
-                    lng: 139.7212,
-                    hours: '9:30〜22:00',
-                    closed: '無休',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=だし茶漬け+えん+エキュート赤羽店',
-                    features: '高崎線途中下車で改札を出ずに利用可能。出汁で体を温め胃腸を完全休養。'
-                },
-                // --- 空白地帯（埼玉〜都心の中間）を埋める新ジャンル：出汁茶漬け／豆腐・湯葉／せいろ蒸し／市場食堂 ---
-                {
-                    id: 'chazuke-komeraku-omiya',
-                    name: 'こめらく お茶漬け日和。 ルミネ大宮店',
-                    category: '出汁茶漬け・鯛茶漬け',
-                    parking: 'なし（大宮駅直結ルミネ）',
-                    address: '埼玉県さいたま市大宮区錦町630 ルミネ大宮 ルミネ2 4F',
-                    lat: 35.9058,
-                    lng: 139.6235,
-                    hours: '11:00〜21:00',
-                    closed: '施設休館日に準ずる',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=こめらく+お茶漬け日和+ルミネ大宮',
-                    features: '特製鰹出汁を注いで食べるお茶漬け。脂質を徹底して抑え、消化酵素とともに胃を休める。'
-                },
-                {
-                    id: 'toka-chazuke-omiya',
-                    name: '鯛塩そば 灯花 エキュート大宮店',
-                    category: '真鯛出汁茶漬け・滋養食',
-                    parking: 'なし（大宮駅改札内直結）',
-                    address: '埼玉県さいたま市大宮区錦町630 エキュート大宮（改札内）',
-                    lat: 35.9065,
-                    lng: 139.6242,
-                    hours: '7:00〜22:00',
-                    closed: '無休',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=鯛塩そば+灯花+エキュート大宮店',
-                    features: '宇和島産真鯛の出汁茶漬けセット。高タンパク・低脂質な鯛の身と天然出汁で胃腸を休養。'
-                },
-                // 除外: 三代目 茂蔵（篠崎屋）は工場直売の豆腐物販店。イートイン・定食提供なし → 掲載基準外。
-                {
-                    id: 'umenohana-omiya',
-                    name: '梅の花 大宮店',
-                    category: '湯葉・手作り豆腐和定食',
-                    parking: '提携あり（近隣特約駐車場完備）',
-                    address: '埼玉県さいたま市大宮区桜木町1丁目10-17',
-                    lat: 35.9048,
-                    lng: 139.6198,
-                    hours: '11:00〜15:00',
-                    closed: '無休',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=梅の花+大宮店',
-                    features: '油を使わない名物の引き上げ湯葉と蒸し豆腐。消化器系に極めて優しい伝統和食。'
-                },
-                {
-                    id: 'seiro-urawa',
-                    name: '蒸し料理処 浦和',
-                    category: 'せいろ蒸し・温野菜定食',
-                    parking: '提携・近隣あり',
-                    address: '埼玉県さいたま市浦和区高砂2丁目',
-                    lat: 35.8592,
-                    lng: 139.6540,
-                    hours: '11:30〜14:30',
-                    closed: '月曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=せいろ蒸し+浦和区',
-                    features: '炒め油を一切使わず蒸気で脂を落とした豚肉と山盛り温野菜。余分な塩分も排除。'
-                },
-                {
-                    id: 'seiro-kawagoe',
-                    name: '温野菜せいろ膳 川越',
-                    category: 'せいろ蒸し・地場野菜',
-                    parking: '専用あり（敷地内・約8台）',
-                    address: '埼玉県川越市脇田本町',
-                    lat: 35.9085,
-                    lng: 139.4810,
-                    hours: '11:30〜14:30',
-                    closed: '火曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=せいろ蒸し+川越市',
-                    features: '川越街道・西口エリア。蒸篭（せいろ）仕立てで野菜のビタミンと食物繊維をまるごと摂取。'
-                },
-                {
-                    id: 'oumiya-kawagoemarket',
-                    name: '川越市場食堂 近江屋',
-                    category: '市場直営・直火焼き魚定食',
-                    parking: '専用あり（川越市場共用・広大無料P）',
-                    address: '埼玉県川越市大字大袋650 川越総合卸売市場内',
-                    lat: 35.8820,
-                    lng: 139.4625,
-                    hours: '10:00〜14:00',
-                    closed: '水曜日・日曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=川越市場+近江屋',
-                    features: '市場直営の焼き魚定食。フライを避け、炭火直火の鯖や鮭で良質なEPA/DHAを高密度補給。'
-                },
-                {
-                    id: 'uogashi-urawamarket',
-                    name: '海鮮食堂 魚がし 浦和市場店',
-                    category: '市場直営・刺身・煮魚定食',
-                    parking: '専用あり（浦和市場共用・広大無料P）',
-                    address: '埼玉県さいたま市桜区桜田3丁目3-1 浦和地方卸売市場内',
-                    lat: 35.8450,
-                    lng: 139.6120,
-                    hours: '10:00〜14:00',
-                    closed: '水曜日・日曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=浦和市場+魚がし',
-                    features: '17号新大宮バイパス至近。揚げ物を使わない新鮮な刺身とあら炊きで高タンパク・低脂質。'
-                },
-                // --- 埼玉近郊ドライブ（川島・吉見・東松山・上尾・桶川・西大宮バイパス・川越）。全店 専用P・予約不要・油分控えめ ---
-                {
-                    id: 'shoji-kawajima',
-                    name: '手打ちうどん 庄司',
-                    category: 'きのこ出汁・武蔵野うどん',
-                    parking: '専用あり（敷地内・約20台）',
-                    address: '埼玉県比企郡川島町上伊草743-9',
-                    lat: 35.9922, lng: 139.4688,
-                    hours: '10:30〜14:30', closed: '不定休',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちうどん+庄司+川島町',
-                    features: '山盛りきのこの温汁うどん。化学調味料を抑えた天然出汁で脂質ほぼゼロ。'
-                },
-                {
-                    id: 'motoyoshi-kawajima',
-                    name: '本手打ちうどん 本吉',
-                    category: '出汁・すったてうどん',
-                    parking: '専用あり（店舗前・約12台）',
-                    address: '埼玉県比企郡川島町上小見野444-1',
-                    lat: 35.9752, lng: 139.4890,
-                    hours: '11:00〜14:30', closed: '火曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちうどん+本吉+川島町',
-                    features: '川島伝統のすったて（胡麻・大葉・味噌）。良質な植物性タンパク質と香味野菜で胃腸を活性化。'
-                },
-                {
-                    id: 'iori-yoshimi',
-                    name: '武蔵野うどん 庵（いおり）',
-                    category: '出汁・地場野菜うどん',
-                    parking: '専用あり（敷地内・約15台）',
-                    address: '埼玉県比企郡吉見町御所名398-1',
-                    lat: 36.0350, lng: 139.4580,
-                    hours: '11:00〜14:30', closed: '月曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=うどん+庵+吉見町',
-                    features: '吉見の田園地帯。地場産根菜ときのこの出汁でいただく胃に優しい手打ち麺。'
-                },
-                {
-                    id: 'motoike-higashimatsuyama',
-                    name: '手打ちそば 本池',
-                    category: '出汁・十割生粉打ち蕎麦',
-                    parking: '専用あり（敷地内・約10台）',
-                    address: '埼玉県東松山市石橋',
-                    lat: 36.0285, lng: 139.3980,
-                    hours: '11:30〜14:00', closed: '月曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+本池+東松山市',
-                    features: '十割生粉打ちの粗挽き蕎麦。雑味のない鰹昆布出汁で油分ゼロ、胃をスッキリ整える。'
-                },
-                {
-                    id: 'haruki-higashimatsuyama',
-                    name: 'そば処 はる喜',
-                    category: '出汁・手打ち蕎麦',
-                    parking: '専用あり（店舗横・約12台）',
-                    address: '埼玉県東松山市下野本1352-1',
-                    lat: 36.0125, lng: 139.4180,
-                    hours: '11:30〜14:30', closed: '水曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=そば処+はる喜+東松山市',
-                    features: '国道254号近く。自家製粉蕎麦を辛味大根おろしでいただく消化酵素たっぷりランチ。'
-                },
-                {
-                    id: 'fukuya-higashimatsuyama',
-                    name: '富久屋 春秋庵',
-                    category: '和粥・滋養和食',
-                    parking: '専用あり（敷地内・約15台）',
-                    address: '埼玉県東松山市松葉町2丁目11-15',
-                    lat: 36.0420, lng: 139.4050,
-                    hours: '10:30〜15:30', closed: '不定休',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=富久屋+春秋庵+東松山市',
-                    features: '季節の和粥膳やおこわ。油を徹底して抑え、胃腸を休める滋味深い和食ランチ。'
-                },
-                {
-                    id: 'wakao-ageo',
-                    name: '手打ち蕎麦 わかお',
-                    category: '出汁・本格手打ち蕎麦',
-                    parking: '専用あり（店舗前・約8台）',
-                    address: '埼玉県上尾市小敷谷386-1',
-                    lat: 35.9620, lng: 139.5490,
-                    hours: '11:30〜14:30', closed: '火曜日・第3水曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ち蕎麦+わかお+上尾市',
-                    features: '上質な蕎麦粉の香り立つせいろ蕎麦。天然出汁でいただく低GI・高ルチン食。'
-                },
-                {
-                    id: 'gorou-ageo',
-                    name: '武蔵野うどん 五六',
-                    category: 'きのこ出汁・手打ちうどん',
-                    parking: '専用あり（店舗前・約10台）',
-                    address: '埼玉県上尾市平方1622-1',
-                    lat: 35.9550, lng: 139.5320,
-                    hours: '11:00〜14:30', closed: '日曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=武蔵野うどん+五六+上尾市',
-                    features: '荒川サイクリングロード近接。きのこ汁と噛みごたえのある麺で満腹感と食物繊維を両立。'
-                },
-                {
-                    id: 'takagi-okegawa',
-                    name: '和食・魚料理 たかぎ',
-                    category: '鮮魚卸直営・焼き魚定食',
-                    parking: '専用あり（店舗前・約8台）',
-                    address: '埼玉県桶川市坂田1532-1',
-                    lat: 36.0080, lng: 139.5780,
-                    hours: '11:30〜14:00', closed: '日曜日・祝日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=和食+たかぎ+桶川市',
-                    features: '直火焼きの焼き魚定食や刺身。揚げ物を使わず、良質な魚油（EPA/DHA）を効率摂取。'
-                },
-                {
-                    id: 'uogashi-omiyamarket',
-                    name: '市場食堂 魚がし（大宮市場）',
-                    category: '鮮魚卸直営・焼き魚定食',
-                    parking: '専用あり（大宮市場共用・広大無料P）',
-                    address: '埼玉県さいたま市北区吉野町2-226-1 大宮総合食品地方卸売市場内',
-                    lat: 35.9525, lng: 139.6050,
-                    hours: '10:00〜14:30', closed: '日曜日・祝日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=市場食堂+魚がし+さいたま市北区吉野町',
-                    features: '市場直営の刺身・焼き魚定食。揚げ物を避けて純粋な魚タンパク質とEPA/DHAを摂取。'
-                },
-                {
-                    id: 'sunaba-nishiomiya',
-                    name: '手打ちそば 砂場 西大宮店',
-                    category: '出汁・手打ち蕎麦',
-                    parking: '専用あり（敷地内・約12台）',
-                    address: '埼玉県さいたま市西区西大宮1丁目',
-                    lat: 35.9220, lng: 139.5855,
-                    hours: '11:00〜15:00', closed: '木曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+砂場+西大宮',
-                    features: 'バイパス近接の蕎麦処。辛味大根おろしや自然薯と天然出汁で胃腸を活性化。'
-                },
-                {
-                    id: 'fujidana-nishiomiya',
-                    name: '手打ちうどん 藤店うどん',
-                    category: '具だくさん天然出汁うどん',
-                    parking: '専用あり（敷地内・約30台）',
-                    address: '埼玉県さいたま市西区西大宮3丁目61-1',
-                    lat: 35.9170, lng: 139.5780,
-                    hours: '10:00〜15:00', closed: '日曜日・祝日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=藤店うどん+西大宮',
-                    features: 'きのこ汁・ごま汁うどんが名物。油分を抑えた煮干し・鰹節の濃厚天然出汁。'
-                },
-                {
-                    id: 'kamakura-kawagoe',
-                    name: '手打ちそば 鎌倉',
-                    category: '出汁・十割生粉打ち蕎麦',
-                    parking: '専用・提携Pあり',
-                    address: '埼玉県川越市元町2丁目1-40',
-                    lat: 35.9248, lng: 139.4832,
-                    hours: '11:30〜14:30', closed: '水曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+鎌倉+川越市',
-                    features: 'つなぎを一切使わない生粉打ち。雑味のない辛口出汁で胃腸の負担を最小限に。'
-                },
-                {
-                    id: 'tofu-unohana-kawagoe',
-                    name: '小江戸川越 豆腐懐石 うの花',
-                    category: '自家製豆腐・湯葉和定食',
-                    parking: '提携・専用Pあり',
-                    address: '埼玉県川越市元町2丁目1-3',
-                    lat: 35.9235, lng: 139.4825,
-                    hours: '11:00〜14:30', closed: '火曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=豆腐料理+うの花+川越市',
-                    features: '国産大豆の豆腐・湯葉料理。植物性タンパク質が豊富で脂質を徹底抑制した和定食。'
-                },
-                // ※ 川越市場食堂 近江屋（id: oumiya-kawagoemarket）は既存データに登録済みのため重複追加せず
-                // --- 埼玉県西部ドライブ（秩父・長瀞・飯能・日高・所沢・入間）。全店 専用無料P・予約不要・油分控えめ ---
-                {
-                    id: 'wahei-chichibu',
-                    name: '名代 蕎麦処 わへいそば',
-                    category: '出汁・くるみ蕎麦',
-                    parking: '専用あり（店舗前・第二P計15台）',
-                    address: '埼玉県秩父市野坂町1丁目1-35',
-                    lat: 35.9902, lng: 139.0811,
-                    hours: '11:00〜15:00', closed: '木曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=わへいそば+秩父市',
-                    features: '秩父伝統の粗挽き蕎麦と天然くるみ汁。良質な植物性脂質と出汁で胃腸を活性化。'
-                },
-                {
-                    id: 'uchida-nagatoro',
-                    name: '郷土料理 うちだ',
-                    category: '天然川魚・直火塩焼き定食',
-                    parking: '専用あり（店舗前・約8台）',
-                    address: '埼玉県秩父郡長瀞町長瀞',
-                    lat: 36.0965, lng: 139.1122,
-                    hours: '11:00〜15:00', closed: '不定休',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=郷土料理+うちだ+長瀞町',
-                    features: '鮎や岩魚の炭火塩焼き定食。揚げ物を避けた純粋な高タンパク・低脂質な川魚料理。'
-                },
-                {
-                    id: 'kunugi-hanno',
-                    name: '和食処 椚（くぬぎ）',
-                    category: '発酵・地場野菜和定食',
-                    parking: '専用あり（敷地内・約10台）',
-                    address: '埼玉県飯能市双柳',
-                    lat: 35.8521, lng: 139.3325,
-                    hours: '11:30〜14:00', closed: '日曜日・月曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=和食+椚+飯能市',
-                    features: '油分を抑えた地場野菜の小鉢と味噌漬け焼き定食。滋味深い日常の健康食。'
-                },
-                {
-                    id: 'komaji-hidaka',
-                    name: '手打ちそば 高麗路（こまじ）',
-                    category: '出汁・十割手打ち蕎麦',
-                    parking: '専用あり（敷地内・約15台）',
-                    address: '埼玉県日高市栗坪',
-                    lat: 35.8850, lng: 139.3110,
-                    hours: '11:30〜14:30', closed: '火曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+高麗路+日高市',
-                    features: '巾着田近くの街道沿い。つなぎ無しの十割蕎麦と辛口天然出汁で脂質ほぼゼロ。'
-                },
-                {
-                    id: 'suzuki-tokorozawa',
-                    name: '手打ちそば 涼太郎',
-                    category: '出汁・武蔵野手打ち蕎麦',
-                    parking: '専用あり（店舗横・約6台）',
-                    address: '埼玉県所沢市くすのき台3丁目',
-                    lat: 35.7865, lng: 139.4750,
-                    hours: '11:00〜14:30', closed: '月曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+涼太郎+所沢市',
-                    features: '石臼挽き自家製粉の蕎麦。辛味大根おろしで消化酵素を補給し血糖値を安定させる。'
-                },
-                {
-                    id: 'sayama-iruma',
-                    name: '手打ちうどん さやま',
-                    category: '出汁・地場根菜うどん',
-                    parking: '専用あり（敷地内・約12台）',
-                    address: '埼玉県入間市小谷田',
-                    lat: 35.8280, lng: 139.3880,
-                    hours: '11:00〜14:30', closed: '水曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちうどん+さやま+入間市',
-                    features: '国道16号至近。油を使わない鰹と昆布の合わせ出汁に地場産きのこ・野菜を合わせた一杯。'
-                },
-                // --- 埼玉 未網羅エリア（蓮田・白岡・久喜／狭山／越生・毛呂山）。全店 専用P・予約不要・油分控えめ ---
-                {
-                    id: 'saito-hasuda',
-                    name: '蕎麦きり さいとう',
-                    category: '出汁・手打ち生粉打ち蕎麦',
-                    parking: '専用あり（店舗敷地内・約6台）',
-                    address: '埼玉県蓮田市潤井戸',
-                    lat: 36.0020, lng: 139.6380,
-                    hours: '11:30〜14:30', closed: '火曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=蕎麦きり+さいとう+蓮田市',
-                    features: '蓮田の住宅・田園地帯。石臼挽き自家製粉の十割蕎麦と辛口天然出汁で脂質ほぼゼロ。'
-                },
-                {
-                    id: 'ittoko-shiraoka',
-                    name: 'いっとこ茶屋（しらおか味彩センター内）',
-                    category: '出汁・地場産手打ち蕎麦',
-                    parking: '専用あり（味彩センター共用・広大無料P）',
-                    address: '埼玉県白岡市千駄野398',
-                    lat: 36.0150, lng: 139.6720,
-                    hours: '11:00〜14:00', closed: '月曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=いっとこ茶屋+白岡市',
-                    features: '白岡市産そば粉100%の手打ち。農産物直売所併設で新鮮な地場野菜と天然出汁を補給。'
-                },
-                {
-                    id: 'sunaba-kuki',
-                    name: '手打ちそば 砂場 東鷲宮店',
-                    category: '出汁・伝統江戸前蕎麦',
-                    parking: '専用あり（店舗前・約8台）',
-                    address: '埼玉県久喜市西大輪',
-                    lat: 36.0780, lng: 139.6890,
-                    hours: '11:00〜15:00', closed: '木曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+砂場+東鷲宮',
-                    features: '喉越しの良い二八手打ちと伝統出汁。とろろや大根おろしで消化を促す胃腸リセット食。'
-                },
-                {
-                    id: 'sarashina-sayama',
-                    name: 'そば処 更科 狭山',
-                    category: '狭山茶そば・本格手打ち蕎麦',
-                    parking: '専用あり（店舗敷地内・約10台）',
-                    address: '埼玉県狭山市広瀬',
-                    lat: 35.8610, lng: 139.3950,
-                    hours: '11:00〜14:30', closed: '水曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=そば処+更科+狭山市広瀬',
-                    features: '特産狭山茶を練り込んだ茶そば。カテキン・ルチンが豊富で、油分ゼロの天然鰹出汁と相性抜群。'
-                },
-                // 除外: 越生こだわりとうふ 藤屋 は1933年創業の豆腐製造直売所。小さなイートインコーナーはあるが
-                // 定食・麺類を注文して座って食べる飲食店ではない → 掲載基準外。
-                {
-                    id: 'sumiya-moroyama',
-                    name: '蕎麦料理 すみや',
-                    category: '出汁・石臼挽き手打ち蕎麦',
-                    parking: '専用あり（店舗敷地内・約10台）',
-                    address: '埼玉県入間郡毛呂山町岩井西',
-                    lat: 35.9380, lng: 139.3120,
-                    hours: '11:30〜14:30', closed: '月曜日・第3火曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=蕎麦料理+すみや+毛呂山町',
-                    features: '越生・毛呂山街道沿い。粗挽き十割と辛口天然出汁。胃腸に優しくドライブ途中に立ち寄れる名店。'
-                },
-                // --- 新ジャンル：薬膳スープ・一人鍋／発酵・粕漬け焼き魚／鶏水炊き・鶏スープ／具だくさん根菜汁 ---
-                // 埼玉（専用/提携P → 🅿️）
-                {
-                    id: 'tonjiru-tachibana-kawagoe',
-                    name: 'ごちそう豚汁・和食処（川越街道）',
-                    category: '食物繊維・具だくさん根菜汁',
-                    parking: '専用あり（店舗敷地内・約12台）',
-                    address: '埼玉県川越市小室',
-                    lat: 35.9350, lng: 139.4650,
-                    hours: '11:00〜15:00', closed: '水曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=豚汁+定食+川越市',
-                    features: 'ごぼう・大根・人参・こんにゃくが山盛り。炒め油を使わず根菜の食物繊維を大量補給。'
-                },
-                {
-                    id: 'uokoji-ageo',
-                    name: '魚料理・粕漬け定食処（上尾）',
-                    category: '発酵・麹漬け直火焼き魚',
-                    parking: '専用あり（店舗前・約8台）',
-                    address: '埼玉県上尾市上町2丁目',
-                    lat: 35.9790, lng: 139.5910,
-                    hours: '11:30〜14:00', closed: '日曜日・祝日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=焼き魚+粕漬け+定食+上尾市',
-                    features: '麹と酒粕でじっくり漬け込んだ銀鱈や鮭。酵素分解された良質な魚タンパク質で消化抜群。'
-                },
-                {
-                    id: 'torisoup-omiya',
-                    name: '博多水炊き・鶏出汁和食（さいたま新都心・大宮）',
-                    category: '高タンパク・鶏水炊き御膳',
-                    parking: '提携あり（契約駐車場完備）',
-                    address: '埼玉県さいたま市大宮区大門町2丁目',
-                    lat: 35.9060, lng: 139.6290,
-                    hours: '11:30〜14:30', closed: '月曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=博多水炊き+ランチ+大宮',
-                    features: '余分な脂を落とした鶏むね肉・もも肉と澄んだ鶏出汁。油分ゼロ・高純度コラーゲン補給。'
-                },
-                {
-                    id: 'yakuzen-omiya',
-                    name: '薬膳火鍋・滋養スープ処（大宮）',
-                    category: '薬膳スープ・滋養一人鍋',
-                    parking: '専用あり（近隣提携P）',
-                    address: '埼玉県さいたま市大宮区仲町1丁目',
-                    lat: 35.9035, lng: 139.6265,
-                    hours: '11:30〜15:00', closed: '無休',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=薬膳火鍋+ランチ+大宮',
-                    features: 'クコの実、ナツメ、生姜を煮出した澄ましスープ。内臓を芯から温めて代謝を促進。'
-                },
-                // 都内（なし・駅徒歩 → 🚉）
-                {
-                    id: 'tonjiru-shinjuku',
-                    name: 'ごちそう豚汁専門店（新宿南口）',
-                    category: '食物繊維・具だくさん根菜汁',
-                    parking: 'なし（JR新宿駅南口徒歩3分）',
-                    address: '東京都新宿区西新宿1丁目18-2',
-                    lat: 35.6885, lng: 139.6990,
-                    hours: '11:00〜22:00', closed: '無休',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=ごちそう豚汁+新宿',
-                    features: '大きく乱切りにした根菜類を天然出汁と白味噌で煮込んだ主役級汁物。腸内環境リセット。'
-                },
-                {
-                    id: 'kasuzuke-shinbashi',
-                    name: '京粕漬 魚久 新橋店',
-                    category: '発酵・京粕漬け焼き魚定食',
-                    parking: 'なし（JR新橋駅烏森口徒歩2分）',
-                    address: '東京都港区新橋2丁目16-1 ニュー新橋ビルB1F',
-                    lat: 35.6668, lng: 139.7580,
-                    hours: '11:15〜14:30', closed: '土曜日・日曜日・祝日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=魚久+新橋店',
-                    features: '酒粕に漬け込んだ極上の直火焼き魚。新橋駅前直結でアミノ酸と良質タンパクを効率補給。'
-                },
-                {
-                    id: 'torisoup-ikebukuro',
-                    name: '水炊き・鶏出汁御膳（池袋東口）',
-                    category: '高タンパク・鶏水炊き御膳',
-                    parking: 'なし（JR池袋駅東口徒歩3分）',
-                    address: '東京都豊島区南池袋1丁目28-2',
-                    lat: 35.7295, lng: 139.7120,
-                    hours: '11:30〜15:00', closed: '施設休館日に準ずる',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=水炊き+ランチ+池袋',
-                    features: '余分な脂を丁寧に取り除いた澄ましスープ仕立て。油分ゼロ・高タンパクな胃腸休養食。'
-                },
-                {
-                    id: 'yakuzen-kanda',
-                    name: '薬膳スープ・一人鍋処（神田）',
-                    category: '薬膳スープ・滋養一人鍋',
-                    parking: 'なし（JR神田駅北口徒歩2分・秋葉原駅徒歩5分）',
-                    address: '東京都千代田区神田鍛冶町3丁目',
-                    lat: 35.6930, lng: 139.7710,
-                    hours: '11:30〜14:30', closed: '日曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=薬膳スープ+ランチ+神田',
-                    features: '生薬と地鶏ガラを煮出した澄まし薬膳スープ。油を使わず内臓から代謝を促進。'
-                },
-                // --- 秩父街道ルート（嵐山・小川町・ときがわ・寄居・皆野・横瀬）。全店 専用無料P・予約不要・油分極小 ---
-                {
-                    id: 'kitaro-ranzan',
-                    name: '嵐山うどん処 喜太郎',
-                    category: '地場小麦・きのこ手打ちうどん',
-                    parking: '専用あり（店舗敷地内・約15台）',
-                    address: '埼玉県比企郡嵐山町志賀1109-1',
-                    lat: 36.0380, lng: 139.3120,
-                    hours: '11:00〜14:30', closed: '火曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=喜太郎+うどん+嵐山町',
-                    features: '嵐山渓谷近くの街道沿い。きのこや地場根菜の天然温出汁で、低脂質・食物繊維をしっかり補給。'
-                },
-                {
-                    // 差し替え: とうふ工房わたなべ は物販・直売所のためイートイン基準に不適格 → 除外。
-                    // 代替は同町内の手打ち蕎麦・和食処。rating/reviews は利用者提供の参考値（Places API 未連携時の表示用）。
-                    id: 'tokian-tokigawa',
-                    name: '手打ちそば とき庵',
-                    category: '出汁・手打ち生粉打ち蕎麦',
-                    rating: 4.2, reviews: 320,
-                    parking: '専用あり（店舗敷地内・約15台）',
-                    address: '埼玉県比企郡ときがわ町大乗54',
-                    lat: 36.0045, lng: 139.2620,
-                    hours: '11:30〜14:30', closed: '火曜日・水曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+とき庵+ときがわ町',
-                    features: '都幾川の清流沿い。自家製粉の十割粗挽き蕎麦と辛口天然鰹出汁。油分を使わず胃腸を休める絶品ランチ。'
-                },
-                {
-                    id: 'fukusuke-ogawa',
-                    name: '手打ちそば 福助',
-                    category: '出汁・手打ち十割生粉打ち蕎麦',
-                    parking: '専用あり（店舗前・約10台）',
-                    address: '埼玉県比企郡小川町青山138-1',
-                    lat: 36.0520, lng: 139.2550,
-                    hours: '11:30〜14:30', closed: '月曜日・第3火曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+福助+小川町',
-                    features: '有機の町・小川町の十割粗挽き手打ち。雑味のない天然鰹昆布出汁と辛味大根で胃腸をスッキリ整える。'
-                },
-                {
-                    id: 'kyousen-yorii',
-                    name: '京亭（きょうてい）',
-                    category: '天然鮎・荒川清流和定食',
-                    parking: '専用あり（敷地内・約12台）',
-                    address: '埼玉県大里郡寄居町寄居548',
-                    lat: 36.1180, lng: 139.1920,
-                    hours: '11:30〜14:30', closed: '不定休',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=京亭+寄居町',
-                    features: '荒川の玉淀河原を臨む料亭・食堂。直火塩焼きの鮎定食で、揚げ油を使わず高純度な川魚タンパクを摂取。'
-                },
-                {
-                    id: 'uchida-minano',
-                    name: '手打ちそば はんば亭',
-                    category: '出汁・地場産手打ち粗挽き蕎麦',
-                    parking: '専用あり（美の山公園入口・約15台）',
-                    address: '埼玉県秩父郡皆野町皆野3262-1',
-                    lat: 36.0750, lng: 139.1220,
-                    hours: '11:00〜14:00', closed: '月曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=はんば亭+皆野町',
-                    features: '美の山山麓の農村レストラン。地元産そば粉を石臼挽きした香り高い田舎蕎麦。余分な脂質ゼロ。'
-                },
-                {
-                    id: 'buko-yokoze',
-                    name: '道の駅 果樹公園あしがくぼ 郷土水車うどん',
-                    category: '出汁・手打ちうどん・地場野菜',
-                    parking: '専用あり（道の駅共用・広大無料P）',
-                    address: '埼玉県秩父郡横瀬町芦ヶ久保1915-6',
-                    lat: 35.9820, lng: 139.1410,
-                    hours: '10:30〜16:00', closed: '無休',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=道の駅果樹公園あしがくぼ+うどん',
-                    features: '国道299号の休憩拠点。水車で挽いた地場小麦の温汁うどん。天然出汁と根菜でドライブの胃腸を休養。'
+                    features: '脂質わずか約3g。山盛りのきのことネギが入った温汁で、豊富な食物繊維を摂取。'
                 }
             ];
 
-            const HL_ORIGIN = [36.0260, 139.5180];   // 北本団地
-            const HL_RADIUS_M = 15000;               // 半径15km
+            const HL_ORIGIN = [36.0260, 139.5180];   // 北本団地（起点マーカー・近い順ソートの基準。変更しない）
+            const HL_RADIUS_M = 15000;               // 参考: 北本近郊15km円（対象エリアは埼玉県全域へ拡張済み）
+            const HL_SAITAMA_VIEW = [35.95, 139.45]; // 埼玉県全域を見渡す初期中心
+            const HL_SAITAMA_ZOOM = 10;              // 〃 ズーム（fitBounds 前の初期表示・フォールバック）
             const HL_PLACES_KEY = (typeof GOOGLE_PLACES_API_KEY === 'string') ? GOOGLE_PLACES_API_KEY : '';
 
             let hlMap = null;
@@ -3076,238 +2433,12 @@
                 return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             }
 
-            // ============================================================
-            // OSM（OpenStreetMap）健康食スポット取得。3段構え:
-            //  1) リポジトリ同梱の静的JSON data/osm_healthy_spots.json を即読込（0秒・確実）
-            //  2) localStorage キャッシュがあれば合算
-            //  3) 期限切れ時のみ Overpass ライブAPIをリージョン別分割クエリで裏更新
-            //     （504等で失敗しても 1) が残るのでピンは消えない）
-            // 手動キュレーション（埼玉全域）とは hlAllSpots() で名称重複除去して合算。
-            // ============================================================
-            const OSM_CACHE_KEY = 'osm_healthy_spots_cache_v2';   // v2: 静的JSON基準・件数キャップ導入（旧キャッシュは破棄）
-            const OSM_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;  // 7日
-            const OSM_MAX = 170;   // OSM合算スポットの上限（静的JSON=153件＋ライブ差分の余地。肥大化対策）
-            // ライブ Overpass での「新規スポット追加」は既定オフ。静的JSON（健康食スコアで選別済み）を
-            // OSM の情報源とし、評価は Places API が担う。true にすると cuisine=japanese 等の
-            // 未選別ノード（とんかつ店など）も入り込むため注意。
-            const OSM_LIVE_ENABLED = false;
-            // 取得リージョン。都内＝駅近(🚉)、埼玉秩父路＝沿道/専用P想定(🅿️)。
-            const OSM_REGIONS = [
-                {
-                    key: 'tokyo',
-                    bbox: [35.60, 139.60, 35.78, 139.82],   // 山手線通過区＋隣接区
-                    parking: 'なし（駅近・徒歩圏内）',
-                    fallbackAddr: '東京都（山手線圏）'
-                },
-                {
-                    key: 'saitama-chichibu',
-                    bbox: [35.85, 139.05, 36.15, 139.42],   // 嵐山・小川・ときがわ・寄居・皆野・横瀬・坂戸・鳩山・鶴ヶ島
-                    parking: '沿道・専用P想定（現地要確認）',
-                    fallbackAddr: '埼玉県（秩父路・比企〜大里）'
-                }
-            ];
-            let osmSpots = [];   // 正規化済み OSM スポット
-            let osmFetchFailedAt = 0;   // 直近の失敗時刻（10分は再試行しない＝504 の連打防止）
-
-            function osmRegionOf(lat, lon) {
-                for (let i = 0; i < OSM_REGIONS.length; i++) {
-                    const b = OSM_REGIONS[i].bbox;   // [s, w, n, e]
-                    if (lat >= b[0] && lat <= b[2] && lon >= b[1] && lon <= b[3]) return OSM_REGIONS[i];
-                }
-                return null;
-            }
-
-            function osmCategory(tags) {
-                const c = String(tags.cuisine || '').toLowerCase();
-                const n = String(tags.name || '');
-                if (/soba/.test(c) || /蕎麦|そば/.test(n)) return '手打ち蕎麦・出汁';
-                if (/seafood/.test(c) || /魚|鮮魚|海鮮|寿司|鮨/.test(n)) return '鮮魚・海鮮';
-                if (/tofu/.test(c) || /豆腐|湯葉/.test(n)) return '豆腐・自然食';
-                if (/vegetarian|organic/.test(c) || /自然食|オーガニック|玄米|野菜/.test(n)) return '自然食・野菜';
-                if (/tea/.test(c) || /茶|甘味/.test(n)) return '日本茶・甘味処';
-                if (/japanese/.test(c)) return '出汁・和食';
-                return '和食・滋養食';
-            }
-
-            function osmToSpot(el) {
-                const t = (el && el.tags) || {};
-                const lat = (el.lat != null) ? el.lat : (el.center && el.center.lat);
-                const lon = (el.lon != null) ? el.lon : (el.center && el.center.lon);
-                if (!t.name || lat == null || lon == null) return null;
-                const region = osmRegionOf(lat, lon);
-                if (!region) return null;   // 対象外エリアは捨てる
-                const street = t['addr:street'] || t['addr:full'] || '';
-                const cityPart = [t['addr:city'], t['addr:street'], t['addr:housenumber']].filter(Boolean).join(' ');
-                return {
-                    id: 'osm-' + el.id,
-                    name: t.name,
-                    category: osmCategory(t),
-                    // 都内→「なし（駅近）」で 🚉／埼玉秩父路→「沿道・専用P想定」で 🅿️（判定は先頭の「なし」有無）
-                    parking: region.parking,
-                    address: cityPart || region.fallbackAddr,
-                    lat: lat, lng: lon,
-                    hours: t.opening_hours || '要確認',
-                    closed: '要確認',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=' +
-                        encodeURIComponent(t.name + ' ' + (street || t['addr:city'] || '')),
-                    features: '',        // OSMに健康要素の記述は無い（推測で埋めない）
-                    source: 'osm'
-                };
-            }
-
-            // 504 対策: 1リージョン1クエリに分割し、cuisine を最ヒットの soba|japanese に絞り、
-            // out center qt;（quadtile ソート）でサーバ負荷を最小化。
-            function regionOverpassQuery(region) {
-                const b = region.bbox.join(',');
-                return '[out:json][timeout:25];(' +
-                    'node["amenity"="restaurant"]["cuisine"~"soba|japanese"]["name"](' + b + ');' +
-                    'node["amenity"="fast_food"]["cuisine"="soba"]["name"](' + b + ');' +
-                    ');out center qt;';
-            }
-
-            function readOsmCache() {
-                try {
-                    const raw = localStorage.getItem(OSM_CACHE_KEY);
-                    if (!raw) return null;
-                    const o = JSON.parse(raw);
-                    if (!o || !Array.isArray(o.spots)) return null;
-                    return { spots: o.spots, stale: (Date.now() - (o.ts || 0)) > OSM_CACHE_TTL_MS };
-                } catch (e) { return null; }
-            }
-            function writeOsmCache(spots) {
-                try { localStorage.setItem(OSM_CACHE_KEY, JSON.stringify({ ts: Date.now(), spots: spots })); } catch (e) {}
-            }
-
-            // キュレーション（埼玉近郊など手動）＋ OSM（都内）を合算。
-            // OSM 側で名称がキュレーションと一致するものは重複として除外。
-            function hlAllSpots() {
-                const curated = new Set(healthLunchSpots.map(function (s) { return String(s.name).replace(/\s+/g, ''); }));
-                const osm = osmSpots.filter(function (s) { return !curated.has(String(s.name).replace(/\s+/g, '')); });
-                return healthLunchSpots.concat(osm);
-            }
-
-            function refreshHealthAll() {
-                try { hlDrawMarkers(); renderHealthList(); } catch (e) { console.warn('refreshHealthAll', e); }
-            }
-
-            // Overpass はレート制限/混雑時に JSON でなく XML/HTML のエラーを返すため、
-            // 公式→ミラーの順で試し、最初に有効な JSON を返した所を採用する。
-            const OVERPASS_ENDPOINTS = [
-                'https://overpass-api.de/api/interpreter',
-                'https://overpass.kumi.systems/api/interpreter',
-                'https://overpass.private.coffee/api/interpreter'
-            ];
-
-            async function overpassRequest(query) {
-                for (let i = 0; i < OVERPASS_ENDPOINTS.length; i++) {
-                    let timer = null;
-                    try {
-                        // ハングしたミラーで待ち続けないよう 20 秒で中断
-                        const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-                        if (ctrl) timer = setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, 20000);
-                        const res = await fetch(OVERPASS_ENDPOINTS[i], {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                            body: 'data=' + encodeURIComponent(query),
-                            signal: ctrl ? ctrl.signal : undefined
-                        });
-                        if (timer) { clearTimeout(timer); timer = null; }
-                        if (!res.ok) continue;
-                        const text = await res.text();
-                        if (!text || text.charAt(0) === '<') continue;   // XML/HTML エラー応答
-                        const j = JSON.parse(text);
-                        if (j && Array.isArray(j.elements)) return j;
-                    } catch (e) {
-                        /* タイムアウト/CORS/JSON 不正 → 次のミラーへ */
-                    } finally {
-                        if (timer) clearTimeout(timer);
-                    }
-                }
-                return null;
-            }
-
-            function dedupeByName(arr) {
-                const seen = Object.create(null); const out = [];
-                (arr || []).forEach(function (s) {
-                    if (!s || !s.name) return;
-                    const k = String(s.name).replace(/\s+/g, '');
-                    if (seen[k]) return;
-                    seen[k] = 1; out.push(s);
-                });
-                return out;
-            }
-
-            // 重複除去 → 北本から近い順 → OSM_MAX 件に制限（肥大キャッシュ/広域取得のガード）
-            function normalizeOsmSpots(arr) {
-                const uniq = dedupeByName(arr);
-                uniq.sort(function (a, b) { return hlDist(a) - hlDist(b); });
-                return uniq.slice(0, OSM_MAX);
-            }
-
-            // リポジトリ同梱の静的JSON（一度 Overpass で取得済みの結果）。
-            // これがあるので Overpass が落ちていても地図のピンは絶対に消えない。
-            async function loadStaticOsmSpots() {
-                try {
-                    const res = await fetch('data/osm_healthy_spots.json', { cache: 'default' });
-                    if (!res.ok) return null;
-                    const doc = await res.json();
-                    if (doc && Array.isArray(doc.spots)) return doc.spots;
-                } catch (e) { /* 無ければ null */ }
-                return null;
-            }
-
-            async function fetchOsmHealthySpots(force) {
-                // 1) 静的JSON（リポジトリ同梱）を基準として即描画（0秒・ほぼ確実）
-                let base = [];
-                if (!osmSpots.length) {
-                    const stat = await loadStaticOsmSpots();
-                    if (stat && stat.length) { base = stat.slice(); osmSpots = normalizeOsmSpots(base); refreshHealthAll(); }
-                } else {
-                    base = osmSpots.slice();
-                }
-                // 2) localStorage キャッシュがあれば「静的JSONに無いものだけ」追加（キャッシュに乗っ取らせない）
-                const cache = readOsmCache();
-                if (cache && cache.spots.length) {
-                    osmSpots = normalizeOsmSpots(base.concat(cache.spots));
-                    refreshHealthAll();
-                    if (!force && !cache.stale) return;   // 新鮮ならライブ取得はしない
-                }
-                // 3) ライブ Overpass での新規スポット追加（既定オフ。静的JSON＋Places API で完結させる）
-                if (!OSM_LIVE_ENABLED) return;
-                // 直近失敗から10分はライブ再試行しない（504 連打防止）
-                if (!force && osmFetchFailedAt && (Date.now() - osmFetchFailedAt) < 10 * 60 * 1000) return;
-
-                try {
-                    const settled = await Promise.allSettled(
-                        OSM_REGIONS.map(function (r) { return overpassRequest(regionOverpassQuery(r)); })
-                    );
-                    let live = [];
-                    settled.forEach(function (res) {
-                        if (res.status === 'fulfilled' && res.value && Array.isArray(res.value.elements)) {
-                            live = live.concat(res.value.elements.map(osmToSpot).filter(Boolean));
-                        }
-                    });
-                    if (!live.length) throw new Error('overpass: 有効なライブ結果なし');
-                    // 静的JSON（健康食スコアで選別済み）を優先、ライブは新規名のみ追加 → 近い順 OSM_MAX 件
-                    const merged = normalizeOsmSpots(base.concat(live));
-                    osmSpots = merged;
-                    osmFetchFailedAt = 0;
-                    writeOsmCache(merged);
-                    refreshHealthAll();
-                } catch (e) {
-                    osmFetchFailedAt = Date.now();
-                    console.warn('Overpass ライブ更新に失敗 → 静的JSON/キャッシュを継続表示:', e);
-                    // osmSpots には静的JSONが入っているのでピンは消えない
-                }
-            }
-
             function hlSortedSpots() {
-                return hlAllSpots().slice().sort(function (a, b) { return hlDist(a) - hlDist(b); });
+                return healthLunchSpots.slice().sort((a, b) => hlDist(a) - hlDist(b));
             }
 
             function hlEmoji(spot) {
                 const t = (spot.category || '') + (spot.name || '');
-                if (/茶漬け|茶づけ|お茶漬/.test(t)) return '🍵';
                 if (/粥|点心|中華/.test(t)) return '🥣';
                 if (/そば|蕎麦/.test(t)) return '🥢';
                 if (/魚|鮮魚/.test(t)) return '🐟';
@@ -3334,37 +2465,29 @@
                     ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(spot.name + ' ' + (spot.address || '')));
             }
 
-            // 統一ポップアップ（散歩ルート／団地タブと同構造）。仕様の並び順に厳密準拠：
-            // 店名 → 薄青カテゴリバッジ → 黄色のGoogle評価行 → 🅿️駐車場 → 💡特徴・健康要素(1行) →
-            // 🕒営業時間/📅定休日 → 全幅の緑ボタン。
+            // 視認性統一ルール（選択肢2）に厳密準拠。features 解説・詳細地番はポップアップに出さない。
             function hlPopupHtml(spot) {
-                // ①Places API 実測値 ②データに定義済みの参考値(spot.rating) ③未取得 の順
                 const ratingRow = (spot.ratingLive && spot.googleRatingNum)
-                    ? '<div class="text-[11px] mt-1"><span class="text-amber-500 font-semibold">Google評価 ★' + hlEsc(spot.googleRatingNum) +
-                      ' / 投稿数 ' + hlEsc(spot.reviewCountNum != null ? String(spot.reviewCountNum) : '0') + '件</span></div>'
-                    : (spot.rating != null
-                        ? '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 ★' + hlEsc(Number(spot.rating).toFixed(1)) +
-                          ' / 投稿数 ' + hlEsc(spot.reviews != null ? String(spot.reviews) : '—') + '件 <span class="font-normal text-amber-500/70">（参考）</span></div>'
-                        : '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 <span class="font-semibold text-amber-500/80">未取得（下のボタンでクチコミを確認）</span></div>');
+                    ? '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 ★' + hlEsc(spot.googleRatingNum) +
+                      ' / 投稿数 ' + hlEsc(spot.reviewCountNum != null ? String(spot.reviewCountNum) : '0') + '件</div>'
+                    : '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 <span class="font-semibold text-amber-500/80">未取得（下のボタンでクチコミを確認）</span></div>';
 
                 return '<div class="text-xs font-sans" style="min-width:210px;max-width:250px;">' +
-                    // 1. 店舗名（最上部・太字）
+                    // 最上段: 店舗名
                     '<strong class="text-sm font-bold block mb-1 text-neutral-900">' + hlEsc(spot.name) + '</strong>' +
-                    // 2. カテゴリバッジ（薄青背景＋濃青文字）
+                    // 2段目: カテゴリバッジ
                     '<span class="inline-block bg-sky-100 text-sky-800 font-semibold px-1.5 py-0.5 rounded text-[10px] mb-1">' + hlEsc(spot.category) + '</span>' +
-                    // 3. Google評価・投稿数（text-amber-500 font-bold）
+                    // 3段目: 駐車場情報
+                    '<div class="text-neutral-700 text-[10px] mt-0.5">🅿️ ' + hlEsc(spot.parking) + '</div>' +
+                    // 4段目: Google評価・クチコミ
                     ratingRow +
-                    // 4. 駐車場情報
-                    '<div class="text-neutral-700 text-[10px] mt-1">' + (/^なし/.test(spot.parking || '') ? '🚉 ' : '🅿️ ') + hlEsc(spot.parking) + '</div>' +
-                    // 5. 特徴・健康要素（1行）
-                    (spot.features ? '<div class="text-emerald-700 text-[10px] mt-0.5">💡 ' + hlEsc(spot.features) + '</div>' : '') +
-                    // 6. 営業時間・定休日（エメラルド＋絵文字）
-                    '<div class="text-emerald-600 font-semibold text-[11px] mt-1">🕒 営業時間: ' + hlEsc(spot.hours || '要確認') +
+                    // 5段目: 営業時間・定休日
+                    '<div class="text-neutral-600 font-semibold text-[11px] mt-1">🕒 営業時間: ' + hlEsc(spot.hours || '要確認') +
                         '<br>📅 定休日: ' + hlEsc(spot.closed || '要確認') + '</div>' +
-                    // 7. 全幅の緑ボタン（Googleマップ）
+                    // 最下段: 全幅の緑ボタン
                     '<a href="' + hlMapsUrl(spot) + '" target="_blank" rel="noopener noreferrer" ' +
                         'class="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs mt-2" ' +
-                        'style="padding:6px 0;text-decoration:none;">Googleマップで開く（公式リンク）</a>' +
+                        'style="padding:6px 0;text-decoration:none;">Googleマップを開く</a>' +
                     '</div>';
             }
 
@@ -3383,21 +2506,16 @@
                     const m = L.marker([la, lo], { icon: hlIcon(spot) }).addTo(hlMap);
                     m.bindPopup(hlPopupHtml(spot));
                     m.bindTooltip(spot.name, { className: 'custom-hover-tooltip', direction: 'top', offset: [0, -12] });
-                    // ピンを開いた時点で未取得なら Places API で1件だけ取得し、そのポップアップを更新
-                    m.on('popupopen', function () {
-                        if (spot.ratingLive) return;
-                        hydrateOneSpot(spot).then(function (changed) {
-                            if (changed) {
-                                try { m.setPopupContent(hlPopupHtml(spot)); } catch (e) {}
-                                try { renderHealthList(); } catch (e) {}
-                            }
-                        });
-                    });
                     hlMarkers.push({ id: spot.id, spot: spot, marker: m });
                     latlngs.push([la, lo]);
                 });
-                // 東松山〜川越〜大宮〜都内まで広がった全ピン＋起点を収める自動 fitBounds
-                try { hlMap.fitBounds(L.latLngBounds(latlngs), { padding: [30, 30], maxZoom: 12 }); } catch (e) {}
+                // 埼玉県全域に分散するため全ピン（起点＋全店舗）が収まるよう自動フィット。
+                // クラスタ時に寄り過ぎないよう maxZoom を抑える。失敗時は埼玉全域ビューへ。
+                try {
+                    hlMap.fitBounds(latlngs, { padding: [40, 40], maxZoom: 11 });
+                } catch (e) {
+                    try { hlMap.setView(HL_SAITAMA_VIEW, HL_SAITAMA_ZOOM); } catch (e2) {}
+                }
             }
 
             function hlFocus(id) {
@@ -3418,9 +2536,7 @@
                     card.className = 'w-full text-left px-3 py-2 rounded-lg border transition text-xs bg-slate-900/70 border-slate-700 text-slate-300 hover:border-emerald-600 hover:text-white';
                     const ratingBit = (spot.ratingLive && spot.googleRatingNum)
                         ? '<span class="text-amber-400 font-bold shrink-0">★' + hlEsc(spot.googleRatingNum) + '</span>'
-                        : (spot.rating != null
-                            ? '<span class="text-amber-400 font-bold shrink-0">★' + hlEsc(Number(spot.rating).toFixed(1)) + '<span class="font-normal text-amber-400/60 text-[9px]">(参考)</span></span>'
-                            : '');
+                        : '';
                     card.innerHTML =
                         '<span class="flex items-center justify-between gap-2">' +
                             '<span class="flex items-center gap-1.5 font-bold text-white">' + hlEmoji(spot) + ' ' + hlEsc(spot.name) + '</span>' +
@@ -3429,70 +2545,52 @@
                             '</span>' +
                         '</span>' +
                         '<span class="mt-1 block"><span class="inline-block bg-sky-100 text-sky-800 font-semibold px-1.5 py-0.5 rounded text-[10px]">' + hlEsc(spot.category) + '</span></span>' +
-                        '<span class="mt-1 flex items-start gap-1 text-[10px] text-slate-400"><span class="shrink-0">' + (/^なし/.test(spot.parking || '') ? '🚉' : '🅿️') + '</span><span>' + hlEsc(spot.parking) + '</span></span>' +
-                        '<span class="mt-0.5 flex items-center gap-2 text-[10px] text-slate-400"><span>🕒 ' + hlEsc(spot.hours) + '</span><span>📅 ' + hlEsc(spot.closed) + '</span></span>' +
-                        '<span class="mt-0.5 flex items-start gap-1 text-[10px] text-emerald-400/90"><span class="shrink-0">💡</span><span>' + hlEsc(spot.features) + '</span></span>';
+                        '<span class="mt-1 flex items-start gap-1 text-[10px] text-slate-400"><span class="shrink-0">🅿️</span><span>' + hlEsc(spot.parking) + '</span></span>' +
+                        '<span class="mt-0.5 flex items-center gap-2 text-[10px] text-slate-400"><span>🕒 ' + hlEsc(spot.hours) + '</span><span>📅 ' + hlEsc(spot.closed) + '</span></span>';
                     card.addEventListener('click', function () { hlFocus(spot.id); });
                     box.appendChild(card);
                 });
             }
 
-            // Places API (New) 呼び出しは1店1リクエスト。sessionStorage キャッシュで
-            // 同一セッション内の重複を抑止。座標は上書きせず rating/count/uri のみ採用。
-            const HL_HYDRATE_EAGER = 30;   // 起動時にまとめて取得する上位件数（コスト抑制）
-            const hlInflight = Object.create(null);
-
-            async function hydrateOneSpot(spot) {
-                if (!HL_PLACES_KEY || !spot || spot.ratingLive) return false;
-                const ck = 'hlgpr:' + (spot.address || spot.name);
-                let data = null;
-                try { data = JSON.parse(sessionStorage.getItem(ck) || 'null'); } catch (e) {}
-                if (!data) {
-                    if (hlInflight[ck]) { try { data = await hlInflight[ck]; } catch (e) { return false; } }
-                    else {
-                        hlInflight[ck] = (async function () {
-                            const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-Goog-Api-Key': HL_PLACES_KEY,
-                                    'X-Goog-FieldMask': 'places.rating,places.userRatingCount,places.googleMapsUri'
-                                },
-                                body: JSON.stringify({ textQuery: spot.name + ' ' + (spot.address || ''), languageCode: 'ja', maxResultCount: 1 })
-                            });
-                            if (!res.ok) throw new Error('places HTTP ' + res.status);
-                            const j = await res.json();
-                            const p = j.places && j.places[0];
-                            const d = p ? {
-                                rating: p.rating || null,
-                                count: (typeof p.userRatingCount === 'number') ? p.userRatingCount : null,
-                                uri: p.googleMapsUri || null
-                            } : { rating: null, count: null, uri: null };
-                            try { sessionStorage.setItem(ck, JSON.stringify(d)); } catch (e) {}
-                            return d;
-                        })();
-                        try { data = await hlInflight[ck]; } catch (e) { delete hlInflight[ck]; return false; }
-                        delete hlInflight[ck];
-                    }
-                }
-                if (!data) return false;
-                let changed = false;
-                if (data.rating != null) { spot.googleRatingNum = Number(data.rating).toFixed(1); spot.ratingLive = true; changed = true; }
-                if (data.count != null) { spot.reviewCountNum = Number(data.count); changed = true; }
-                if (data.uri) { spot.gmapUri = data.uri; changed = true; }
-                return changed;
-            }
-
-            // 起動時: 距離順の上位 HL_HYDRATE_EAGER 件だけ先読み
+            // Places API (New) キーがあれば評価・件数・公式リンクを実測値へ。無ければ何もしない。
             async function hydrateHealthRatings() {
                 if (!HL_PLACES_KEY) return;
                 try {
-                    const top = hlSortedSpots().slice(0, HL_HYDRATE_EAGER);
-                    let any = false;
-                    for (const spot of top) {
-                        try { if (await hydrateOneSpot(spot)) any = true; } catch (e) {}
+                    for (const spot of healthLunchSpots) {
+                        try {
+                            const ck = 'hlgpr:' + (spot.address || spot.name);
+                            let data = null;
+                            try { data = JSON.parse(sessionStorage.getItem(ck) || 'null'); } catch (e) {}
+                            if (!data) {
+                                const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-Goog-Api-Key': HL_PLACES_KEY,
+                                        'X-Goog-FieldMask': 'places.rating,places.userRatingCount,places.location,places.googleMapsUri'
+                                    },
+                                    body: JSON.stringify({ textQuery: spot.name + ' ' + (spot.address || ''), languageCode: 'ja', maxResultCount: 1 })
+                                });
+                                if (!res.ok) continue;
+                                const j = await res.json();
+                                const p = j.places && j.places[0];
+                                if (!p) continue;
+                                data = {
+                                    rating: p.rating || null,
+                                    count: (typeof p.userRatingCount === 'number') ? p.userRatingCount : null,
+                                    lat: p.location && p.location.latitude, lng: p.location && p.location.longitude,
+                                    uri: p.googleMapsUri || null
+                                };
+                                try { sessionStorage.setItem(ck, JSON.stringify(data)); } catch (e) {}
+                            }
+                            if (data.rating) { spot.googleRatingNum = Number(data.rating).toFixed(1); spot.ratingLive = true; }
+                            if (data.count != null) spot.reviewCountNum = Number(data.count);
+                            if (data.uri) spot.gmapUri = data.uri;
+                            if (data.lat && data.lng) { spot.lat = data.lat; spot.lng = data.lng; }
+                        } catch (e) { console.warn('health places hydrate item', e); }
                     }
-                    if (any) { hlDrawMarkers(); renderHealthList(); }
+                    hlDrawMarkers();
+                    renderHealthList();
                 } catch (e) { console.warn('hydrateHealthRatings error', e); }
             }
 
@@ -3503,8 +2601,7 @@
                     if (!el || typeof L === 'undefined') return;
 
                     if (!hlBuilt) {
-                        // 初期中心は埼玉〜都内をまたぐ広域ビュー（この直後の hlDrawMarkers→fitBounds で最終調整）
-                        hlMap = L.map('healthMap', { scrollWheelZoom: true }).setView([35.92, 139.58], 10);
+                        hlMap = L.map('healthMap', { scrollWheelZoom: true }).setView(HL_SAITAMA_VIEW, HL_SAITAMA_ZOOM);
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                             maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
                         }).addTo(hlMap);
@@ -3525,13 +2622,11 @@
                         hlDrawMarkers();
                         renderHealthList();
                         hydrateHealthRatings();
-                        fetchOsmHealthySpots();   // Overpass 都内ノードを取得→合算→再描画
                         hlBuilt = true;
                     } else {
                         // 再表示時は既存ピンをクリアして描き直し（他タブのピンとは別インスタンスで非干渉）
                         hlDrawMarkers();
                         renderHealthList();
-                        if (!osmSpots.length) fetchOsmHealthySpots();   // 未取得なら再試行
                     }
                     setTimeout(function () { try { hlMap.invalidateSize(); } catch (e) {} }, 200);
                 } catch (e) {
