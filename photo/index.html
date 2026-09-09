@@ -330,7 +330,7 @@
         <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-4 space-y-2 text-xs sm:text-sm">
             <div class="flex items-start gap-1.5 text-slate-300">
                 <span class="text-base leading-none shrink-0">🥗</span>
-                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong>。<strong class="text-white">近郊（車・キュレーション）</strong>＋<strong class="text-white">都内（OpenStreetMap / Overpass API から自動取得・山手線圏）</strong>の、胃腸を休められる健康食ランチ。中華粥・十割そば・直火焼き魚・きのこ出汁うどんなど揚げ物に頼らない滋養食を、北本から近い順に表示。破線は半径15km（この外＝電車アクセス推奨）。都内ピンは OSM のタグ由来のため名称・座標のみ確定、営業時間等は「要確認」表示（ボタンから公式・クチコミを確認）。取得結果は端末にキャッシュ（7日）。</span>
+                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong>。<strong class="text-white">キュレーション（車・埼玉全域）</strong>＋<strong class="text-white">OpenStreetMap / Overpass API 自動取得（都内=山手線圏／埼玉=秩父路・比企〜大里〜坂戸）</strong>の、胃腸を休められる健康食ランチ。十割そば・直火焼き魚・名水豆腐・きのこ出汁うどんなど揚げ物に頼らない滋養食を、北本から近い順に表示。破線は半径15km。都内OSMピンは 🚉（駅近）、埼玉秩父路OSMピンは 🅿️（沿道・専用P想定）。OSM由来は名称・座標のみ確定で営業時間等は「要確認」（ボタンから公式・クチコミを確認）。取得結果は端末に7日キャッシュ。</span>
             </div>
         </div>
 
@@ -2996,6 +2996,73 @@
                     hours: '11:30〜14:30', closed: '日曜日',
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=薬膳スープ+ランチ+神田',
                     features: '生薬と地鶏ガラを煮出した澄まし薬膳スープ。油を使わず内臓から代謝を促進。'
+                },
+                // --- 秩父街道ルート（嵐山・小川町・ときがわ・寄居・皆野・横瀬）。全店 専用無料P・予約不要・油分極小 ---
+                {
+                    id: 'kitaro-ranzan',
+                    name: '嵐山うどん処 喜太郎',
+                    category: '地場小麦・きのこ手打ちうどん',
+                    parking: '専用あり（店舗敷地内・約15台）',
+                    address: '埼玉県比企郡嵐山町志賀1109-1',
+                    lat: 36.0380, lng: 139.3120,
+                    hours: '11:00〜14:30', closed: '火曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=喜太郎+うどん+嵐山町',
+                    features: '嵐山渓谷近くの街道沿い。きのこや地場根菜の天然温出汁で、低脂質・食物繊維をしっかり補給。'
+                },
+                {
+                    id: 'tofu-wataya-tokigawa',
+                    name: 'とうふ工房 わたなべ',
+                    category: '自家製極上豆腐・豆乳湯葉',
+                    parking: '専用あり（敷地内・約30台広大P）',
+                    address: '埼玉県比企郡ときがわ町番匠372',
+                    lat: 35.9985, lng: 139.2980,
+                    hours: '9:00〜17:00', closed: '無休',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=とうふ工房わたなべ+ときがわ町',
+                    features: '地下水と厳選国産大豆で作る手作り豆腐・汲み上げ湯葉。動物性脂質ゼロで植物性タンパク質を贅沢補給。'
+                },
+                {
+                    id: 'fukusuke-ogawa',
+                    name: '手打ちそば 福助',
+                    category: '出汁・手打ち十割生粉打ち蕎麦',
+                    parking: '専用あり（店舗前・約10台）',
+                    address: '埼玉県比企郡小川町青山138-1',
+                    lat: 36.0520, lng: 139.2550,
+                    hours: '11:30〜14:30', closed: '月曜日・第3火曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+福助+小川町',
+                    features: '有機の町・小川町の十割粗挽き手打ち。雑味のない天然鰹昆布出汁と辛味大根で胃腸をスッキリ整える。'
+                },
+                {
+                    id: 'kyousen-yorii',
+                    name: '京亭（きょうてい）',
+                    category: '天然鮎・荒川清流和定食',
+                    parking: '専用あり（敷地内・約12台）',
+                    address: '埼玉県大里郡寄居町寄居548',
+                    lat: 36.1180, lng: 139.1920,
+                    hours: '11:30〜14:30', closed: '不定休',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=京亭+寄居町',
+                    features: '荒川の玉淀河原を臨む料亭・食堂。直火塩焼きの鮎定食で、揚げ油を使わず高純度な川魚タンパクを摂取。'
+                },
+                {
+                    id: 'uchida-minano',
+                    name: '手打ちそば はんば亭',
+                    category: '出汁・地場産手打ち粗挽き蕎麦',
+                    parking: '専用あり（美の山公園入口・約15台）',
+                    address: '埼玉県秩父郡皆野町皆野3262-1',
+                    lat: 36.0750, lng: 139.1220,
+                    hours: '11:00〜14:00', closed: '月曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=はんば亭+皆野町',
+                    features: '美の山山麓の農村レストラン。地元産そば粉を石臼挽きした香り高い田舎蕎麦。余分な脂質ゼロ。'
+                },
+                {
+                    id: 'buko-yokoze',
+                    name: '道の駅 果樹公園あしがくぼ 郷土水車うどん',
+                    category: '出汁・手打ちうどん・地場野菜',
+                    parking: '専用あり（道の駅共用・広大無料P）',
+                    address: '埼玉県秩父郡横瀬町芦ヶ久保1915-6',
+                    lat: 35.9820, lng: 139.1410,
+                    hours: '10:30〜16:00', closed: '無休',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=道の駅果樹公園あしがくぼ+うどん',
+                    features: '国道299号の休憩拠点。水車で挽いた地場小麦の温汁うどん。天然出汁と根菜でドライブの胃腸を休養。'
                 }
             ];
 
@@ -3027,9 +3094,31 @@
             // ============================================================
             const OSM_CACHE_KEY = 'osm_healthy_spots_cache';
             const OSM_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;  // 7日
-            const OSM_BBOX = [35.60, 139.60, 35.78, 139.82];   // [south, west, north, east]
+            // 取得リージョン。都内＝駅近(🚉)、埼玉秩父路＝沿道/専用P想定(🅿️)。
+            const OSM_REGIONS = [
+                {
+                    key: 'tokyo',
+                    bbox: [35.60, 139.60, 35.78, 139.82],   // 山手線通過区＋隣接区
+                    parking: 'なし（駅近・徒歩圏内）',
+                    fallbackAddr: '東京都（山手線圏）'
+                },
+                {
+                    key: 'saitama-chichibu',
+                    bbox: [35.85, 139.05, 36.15, 139.42],   // 嵐山・小川・ときがわ・寄居・皆野・横瀬・坂戸・鳩山・鶴ヶ島
+                    parking: '沿道・専用P想定（現地要確認）',
+                    fallbackAddr: '埼玉県（秩父路・比企〜大里）'
+                }
+            ];
             let osmSpots = [];   // 正規化済み OSM スポット
             let osmFetchFailedAt = 0;   // 直近の失敗時刻（10分は再試行しない＝504 の連打防止）
+
+            function osmRegionOf(lat, lon) {
+                for (let i = 0; i < OSM_REGIONS.length; i++) {
+                    const b = OSM_REGIONS[i].bbox;   // [s, w, n, e]
+                    if (lat >= b[0] && lat <= b[2] && lon >= b[1] && lon <= b[3]) return OSM_REGIONS[i];
+                }
+                return null;
+            }
 
             function osmCategory(tags) {
                 const c = String(tags.cuisine || '').toLowerCase();
@@ -3046,31 +3135,37 @@
             function osmToSpot(el) {
                 const t = (el && el.tags) || {};
                 if (!t.name || el.lat == null || el.lon == null) return null;
+                const region = osmRegionOf(el.lat, el.lon);
+                if (!region) return null;   // 対象外エリアは捨てる
                 const street = t['addr:street'] || t['addr:full'] || '';
                 const cityPart = [t['addr:city'], t['addr:street'], t['addr:housenumber']].filter(Boolean).join(' ');
                 return {
                     id: 'osm-' + el.id,
                     name: t.name,
                     category: osmCategory(t),
-                    parking: 'なし（駅近・徒歩圏内）',   // 都内区内 → 判定ロジックで 🚉 になる
-                    address: cityPart || '東京都（山手線圏）',
+                    // 都内→「なし（駅近）」で 🚉／埼玉秩父路→「沿道・専用P想定」で 🅿️（判定は先頭の「なし」有無）
+                    parking: region.parking,
+                    address: cityPart || region.fallbackAddr,
                     lat: el.lat, lng: el.lon,
                     hours: t.opening_hours || '要確認',
                     closed: '要確認',
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=' +
-                        encodeURIComponent(t.name + ' ' + street),
+                        encodeURIComponent(t.name + ' ' + (street || t['addr:city'] || '')),
                     features: '',        // OSMに健康要素の記述は無い（推測で埋めない）
                     source: 'osm'
                 };
             }
 
             function buildOverpassQuery() {
-                const b = OSM_BBOX.join(',');
-                return '[out:json][timeout:25];(' +
-                    'node["amenity"="restaurant"]["cuisine"~"soba|japanese|seafood|tofu|vegetarian"]["name"](' + b + ');' +
-                    'node["amenity"="cafe"]["cuisine"~"tea|organic"]["name"](' + b + ');' +
-                    'node["amenity"="fast_food"]["cuisine"="soba"]["name"](' + b + ');' +
-                    ');out body 500;';
+                let body = '';
+                OSM_REGIONS.forEach(function (r) {
+                    const b = r.bbox.join(',');
+                    body +=
+                        'node["amenity"="restaurant"]["cuisine"~"soba|noodle|japanese|seafood|tofu|vegetarian"]["name"](' + b + ');' +
+                        'node["amenity"~"restaurant|cafe|fast_food"]["cuisine"~"tofu|seafood|vegetarian|organic|tea"]["name"](' + b + ');' +
+                        'node["amenity"="fast_food"]["cuisine"="soba"]["name"](' + b + ');';
+                });
+                return '[out:json][timeout:30];(' + body + ');out body 700;';
             }
 
             function readOsmCache() {
