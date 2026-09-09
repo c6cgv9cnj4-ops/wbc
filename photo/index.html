@@ -330,7 +330,7 @@
         <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-4 space-y-2 text-xs sm:text-sm">
             <div class="flex items-start gap-1.5 text-slate-300">
                 <span class="text-base leading-none shrink-0">🥗</span>
-                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong>。<strong class="text-white">近郊（車・半径15km圏）</strong>と<strong class="text-white">都内（電車・駅近徒歩5分以内）</strong>の、胃腸を休められる健康食ランチ。中華粥・十割そば・直火焼き魚・きのこ出汁うどんなど揚げ物に頼らない滋養食を、北本から近い順に厳選。地図の破線は半径15km（この外＝電車アクセス推奨）。営業時間・定休は参考値のため訪問前に公式で最新を確認すること。</span>
+                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong>。<strong class="text-white">近郊（車・キュレーション）</strong>＋<strong class="text-white">都内（OpenStreetMap / Overpass API から自動取得・山手線圏）</strong>の、胃腸を休められる健康食ランチ。中華粥・十割そば・直火焼き魚・きのこ出汁うどんなど揚げ物に頼らない滋養食を、北本から近い順に表示。破線は半径15km（この外＝電車アクセス推奨）。都内ピンは OSM のタグ由来のため名称・座標のみ確定、営業時間等は「要確認」表示（ボタンから公式・クチコミを確認）。取得結果は端末にキャッシュ（7日）。</span>
             </div>
         </div>
 
@@ -2770,8 +2770,75 @@
                     hours: '11:00〜14:30', closed: '火曜日',
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=豆腐料理+うの花+川越市',
                     features: '国産大豆の豆腐・湯葉料理。植物性タンパク質が豊富で脂質を徹底抑制した和定食。'
-                }
+                },
                 // ※ 川越市場食堂 近江屋（id: oumiya-kawagoemarket）は既存データに登録済みのため重複追加せず
+                // --- 埼玉県西部ドライブ（秩父・長瀞・飯能・日高・所沢・入間）。全店 専用無料P・予約不要・油分控えめ ---
+                {
+                    id: 'wahei-chichibu',
+                    name: '名代 蕎麦処 わへいそば',
+                    category: '出汁・くるみ蕎麦',
+                    parking: '専用あり（店舗前・第二P計15台）',
+                    address: '埼玉県秩父市野坂町1丁目1-35',
+                    lat: 35.9902, lng: 139.0811,
+                    hours: '11:00〜15:00', closed: '木曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=わへいそば+秩父市',
+                    features: '秩父伝統の粗挽き蕎麦と天然くるみ汁。良質な植物性脂質と出汁で胃腸を活性化。'
+                },
+                {
+                    id: 'uchida-nagatoro',
+                    name: '郷土料理 うちだ',
+                    category: '天然川魚・直火塩焼き定食',
+                    parking: '専用あり（店舗前・約8台）',
+                    address: '埼玉県秩父郡長瀞町長瀞',
+                    lat: 36.0965, lng: 139.1122,
+                    hours: '11:00〜15:00', closed: '不定休',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=郷土料理+うちだ+長瀞町',
+                    features: '鮎や岩魚の炭火塩焼き定食。揚げ物を避けた純粋な高タンパク・低脂質な川魚料理。'
+                },
+                {
+                    id: 'kunugi-hanno',
+                    name: '和食処 椚（くぬぎ）',
+                    category: '発酵・地場野菜和定食',
+                    parking: '専用あり（敷地内・約10台）',
+                    address: '埼玉県飯能市双柳',
+                    lat: 35.8521, lng: 139.3325,
+                    hours: '11:30〜14:00', closed: '日曜日・月曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=和食+椚+飯能市',
+                    features: '油分を抑えた地場野菜の小鉢と味噌漬け焼き定食。滋味深い日常の健康食。'
+                },
+                {
+                    id: 'komaji-hidaka',
+                    name: '手打ちそば 高麗路（こまじ）',
+                    category: '出汁・十割手打ち蕎麦',
+                    parking: '専用あり（敷地内・約15台）',
+                    address: '埼玉県日高市栗坪',
+                    lat: 35.8850, lng: 139.3110,
+                    hours: '11:30〜14:30', closed: '火曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+高麗路+日高市',
+                    features: '巾着田近くの街道沿い。つなぎ無しの十割蕎麦と辛口天然出汁で脂質ほぼゼロ。'
+                },
+                {
+                    id: 'suzuki-tokorozawa',
+                    name: '手打ちそば 涼太郎',
+                    category: '出汁・武蔵野手打ち蕎麦',
+                    parking: '専用あり（店舗横・約6台）',
+                    address: '埼玉県所沢市くすのき台3丁目',
+                    lat: 35.7865, lng: 139.4750,
+                    hours: '11:00〜14:30', closed: '月曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+涼太郎+所沢市',
+                    features: '石臼挽き自家製粉の蕎麦。辛味大根おろしで消化酵素を補給し血糖値を安定させる。'
+                },
+                {
+                    id: 'sayama-iruma',
+                    name: '手打ちうどん さやま',
+                    category: '出汁・地場根菜うどん',
+                    parking: '専用あり（敷地内・約12台）',
+                    address: '埼玉県入間市小谷田',
+                    lat: 35.8280, lng: 139.3880,
+                    hours: '11:00〜14:30', closed: '水曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちうどん+さやま+入間市',
+                    features: '国道16号至近。油を使わない鰹と昆布の合わせ出汁に地場産きのこ・野菜を合わせた一杯。'
+                }
             ];
 
             const HL_ORIGIN = [36.0260, 139.5180];   // 北本団地
@@ -2795,8 +2862,158 @@
                 return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             }
 
+            // ============================================================
+            // Overpass API（OpenStreetMap 無料API）— 山手線通過区＋隣接区の
+            // 健康食ノードを自動フェッチ。手動キュレーション（埼玉近郊）と合算し、
+            // 結果は localStorage にキャッシュ（2回目以降は即描画→裏で再取得）。
+            // ============================================================
+            const OSM_CACHE_KEY = 'osm_healthy_spots_cache';
+            const OSM_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;  // 7日
+            const OSM_BBOX = [35.60, 139.60, 35.78, 139.82];   // [south, west, north, east]
+            let osmSpots = [];   // 正規化済み OSM スポット
+            let osmFetchFailedAt = 0;   // 直近の失敗時刻（10分は再試行しない＝504 の連打防止）
+
+            function osmCategory(tags) {
+                const c = String(tags.cuisine || '').toLowerCase();
+                const n = String(tags.name || '');
+                if (/soba/.test(c) || /蕎麦|そば/.test(n)) return '手打ち蕎麦・出汁';
+                if (/seafood/.test(c) || /魚|鮮魚|海鮮|寿司|鮨/.test(n)) return '鮮魚・海鮮';
+                if (/tofu/.test(c) || /豆腐|湯葉/.test(n)) return '豆腐・自然食';
+                if (/vegetarian|organic/.test(c) || /自然食|オーガニック|玄米|野菜/.test(n)) return '自然食・野菜';
+                if (/tea/.test(c) || /茶|甘味/.test(n)) return '日本茶・甘味処';
+                if (/japanese/.test(c)) return '出汁・和食';
+                return '和食・滋養食';
+            }
+
+            function osmToSpot(el) {
+                const t = (el && el.tags) || {};
+                if (!t.name || el.lat == null || el.lon == null) return null;
+                const street = t['addr:street'] || t['addr:full'] || '';
+                const cityPart = [t['addr:city'], t['addr:street'], t['addr:housenumber']].filter(Boolean).join(' ');
+                return {
+                    id: 'osm-' + el.id,
+                    name: t.name,
+                    category: osmCategory(t),
+                    parking: 'なし（駅近・徒歩圏内）',   // 都内区内 → 判定ロジックで 🚉 になる
+                    address: cityPart || '東京都（山手線圏）',
+                    lat: el.lat, lng: el.lon,
+                    hours: t.opening_hours || '要確認',
+                    closed: '要確認',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=' +
+                        encodeURIComponent(t.name + ' ' + street),
+                    features: '',        // OSMに健康要素の記述は無い（推測で埋めない）
+                    source: 'osm'
+                };
+            }
+
+            function buildOverpassQuery() {
+                const b = OSM_BBOX.join(',');
+                return '[out:json][timeout:25];(' +
+                    'node["amenity"="restaurant"]["cuisine"~"soba|japanese|seafood|tofu|vegetarian"]["name"](' + b + ');' +
+                    'node["amenity"="cafe"]["cuisine"~"tea|organic"]["name"](' + b + ');' +
+                    'node["amenity"="fast_food"]["cuisine"="soba"]["name"](' + b + ');' +
+                    ');out body 500;';
+            }
+
+            function readOsmCache() {
+                try {
+                    const raw = localStorage.getItem(OSM_CACHE_KEY);
+                    if (!raw) return null;
+                    const o = JSON.parse(raw);
+                    if (!o || !Array.isArray(o.spots)) return null;
+                    return { spots: o.spots, stale: (Date.now() - (o.ts || 0)) > OSM_CACHE_TTL_MS };
+                } catch (e) { return null; }
+            }
+            function writeOsmCache(spots) {
+                try { localStorage.setItem(OSM_CACHE_KEY, JSON.stringify({ ts: Date.now(), spots: spots })); } catch (e) {}
+            }
+
+            // キュレーション（埼玉近郊など手動）＋ OSM（都内）を合算。
+            // OSM 側で名称がキュレーションと一致するものは重複として除外。
+            function hlAllSpots() {
+                const curated = new Set(healthLunchSpots.map(function (s) { return String(s.name).replace(/\s+/g, ''); }));
+                const osm = osmSpots.filter(function (s) { return !curated.has(String(s.name).replace(/\s+/g, '')); });
+                return healthLunchSpots.concat(osm);
+            }
+
+            function refreshHealthAll() {
+                try { hlDrawMarkers(); renderHealthList(); } catch (e) { console.warn('refreshHealthAll', e); }
+            }
+
+            // Overpass はレート制限/混雑時に JSON でなく XML/HTML のエラーを返すため、
+            // 公式→ミラーの順で試し、最初に有効な JSON を返した所を採用する。
+            const OVERPASS_ENDPOINTS = [
+                'https://overpass-api.de/api/interpreter',
+                'https://overpass.kumi.systems/api/interpreter',
+                'https://overpass.private.coffee/api/interpreter'
+            ];
+
+            async function overpassRequest(query) {
+                for (let i = 0; i < OVERPASS_ENDPOINTS.length; i++) {
+                    let timer = null;
+                    try {
+                        // ハングしたミラーで待ち続けないよう 20 秒で中断
+                        const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+                        if (ctrl) timer = setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, 20000);
+                        const res = await fetch(OVERPASS_ENDPOINTS[i], {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: 'data=' + encodeURIComponent(query),
+                            signal: ctrl ? ctrl.signal : undefined
+                        });
+                        if (timer) { clearTimeout(timer); timer = null; }
+                        if (!res.ok) continue;
+                        const text = await res.text();
+                        if (!text || text.charAt(0) === '<') continue;   // XML/HTML エラー応答
+                        const j = JSON.parse(text);
+                        if (j && Array.isArray(j.elements)) return j;
+                    } catch (e) {
+                        /* タイムアウト/CORS/JSON 不正 → 次のミラーへ */
+                    } finally {
+                        if (timer) clearTimeout(timer);
+                    }
+                }
+                return null;
+            }
+
+            async function fetchOsmHealthySpots(force) {
+                // まずキャッシュで即描画
+                const cache = readOsmCache();
+                if (cache && cache.spots.length && !force) {
+                    osmSpots = cache.spots;
+                    refreshHealthAll();
+                    if (!cache.stale) return;   // 新鮮ならここで終了
+                }
+                // 直近で失敗しているなら 10 分は再試行しない（Overpass 混雑時の 504 連打を防ぐ）
+                if (!force && osmFetchFailedAt && (Date.now() - osmFetchFailedAt) < 10 * 60 * 1000) return;
+                try {
+                    const j = await overpassRequest(buildOverpassQuery());
+                    if (!j) throw new Error('overpass: 全エンドポイントが JSON を返しませんでした');
+                    const list = (j.elements || []).map(osmToSpot).filter(Boolean);
+                    // 同名の重複を除去
+                    const seen = Object.create(null);
+                    const uniq = [];
+                    list.forEach(function (s) {
+                        const k = String(s.name).replace(/\s+/g, '');
+                        if (seen[k]) return;
+                        seen[k] = 1; uniq.push(s);
+                    });
+                    osmSpots = uniq;
+                    osmFetchFailedAt = 0;
+                    writeOsmCache(uniq);
+                    refreshHealthAll();
+                } catch (e) {
+                    osmFetchFailedAt = Date.now();
+                    console.warn('fetchOsmHealthySpots failed → キャッシュ/キュレーションのみ表示:', e);
+                    if (!osmSpots.length && cache && cache.spots.length) {
+                        osmSpots = cache.spots;
+                        refreshHealthAll();
+                    }
+                }
+            }
+
             function hlSortedSpots() {
-                return healthLunchSpots.slice().sort((a, b) => hlDist(a) - hlDist(b));
+                return hlAllSpots().slice().sort(function (a, b) { return hlDist(a) - hlDist(b); });
             }
 
             function hlEmoji(spot) {
@@ -2919,7 +3136,7 @@
             async function hydrateHealthRatings() {
                 if (!HL_PLACES_KEY) return;
                 try {
-                    for (const spot of healthLunchSpots) {
+                    for (const spot of hlAllSpots()) {
                         try {
                             const ck = 'hlgpr:' + (spot.address || spot.name);
                             let data = null;
@@ -2986,11 +3203,13 @@
                         hlDrawMarkers();
                         renderHealthList();
                         hydrateHealthRatings();
+                        fetchOsmHealthySpots();   // Overpass 都内ノードを取得→合算→再描画
                         hlBuilt = true;
                     } else {
                         // 再表示時は既存ピンをクリアして描き直し（他タブのピンとは別インスタンスで非干渉）
                         hlDrawMarkers();
                         renderHealthList();
+                        if (!osmSpots.length) fetchOsmHealthySpots();   // 未取得なら再試行
                     }
                     setTimeout(function () { try { hlMap.invalidateSize(); } catch (e) {} }, 200);
                 } catch (e) {
