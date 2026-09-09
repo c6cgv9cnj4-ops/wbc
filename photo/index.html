@@ -2473,6 +2473,33 @@
                     closed: '火曜日・水曜日',
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+千尋庵+谷中',
                     features: '谷中銀座近く。十割蕎麦と辛味大根おろしで消化酵素を補給し血糖値をコントロール。'
+                },
+                // --- おかゆ・出汁滋養食（高崎線沿線・駅直結／改札内で利用可） ---
+                {
+                    id: 'chazuke-en-omiya',
+                    name: 'だし茶漬け えん エキュート大宮店',
+                    category: '極上天然出汁茶漬け',
+                    parking: 'なし（大宮駅改札内・直結）',
+                    address: '埼玉県さいたま市大宮区錦町630 エキュート大宮',
+                    lat: 35.9063,
+                    lng: 139.6240,
+                    hours: '7:00〜22:00',
+                    closed: '無休',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=だし茶漬け+えん+エキュート大宮店',
+                    features: '昆布と鰹節の天然出汁。脂質ほぼゼロで胃腸に負担をかけずサラサラ流し込める。'
+                },
+                {
+                    id: 'chazuke-en-akabane',
+                    name: 'だし茶漬け えん エキュート赤羽店',
+                    category: '極上天然出汁茶漬け',
+                    parking: 'なし（赤羽駅改札内・直結）',
+                    address: '東京都北区赤羽1丁目67-5 エキュート赤羽',
+                    lat: 35.7778,
+                    lng: 139.7212,
+                    hours: '9:30〜22:00',
+                    closed: '無休',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=だし茶漬け+えん+エキュート赤羽店',
+                    features: '高崎線途中下車で改札を出ずに利用可能。出汁で体を温め胃腸を完全休養。'
                 }
             ];
 
@@ -2503,6 +2530,7 @@
 
             function hlEmoji(spot) {
                 const t = (spot.category || '') + (spot.name || '');
+                if (/茶漬け|茶づけ|お茶漬/.test(t)) return '🍵';
                 if (/粥|点心|中華/.test(t)) return '🥣';
                 if (/そば|蕎麦/.test(t)) return '🥢';
                 if (/魚|鮮魚/.test(t)) return '🐟';
