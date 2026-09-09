@@ -1245,24 +1245,23 @@
             const approxLine = spot.approx
                 ? '<div class="text-[10px] text-amber-700 mt-0.5">位置目安（住所未確定・エリア中心に概算）</div>'
                 : '';
-            const safetyLine = spot.safetyComment
-                ? '<div class="text-[10px] text-emerald-700 mt-0.5">🟢 ' + escapeHtml(spot.safetyComment) + '</div>'
-                : '';
 
+            // 散歩ルート作成タブのポップアップと同一フォーマット:
+            //   店名 → カテゴリバッジ → Google評価/投稿数(黄) → 🕒営業時間 → 📅定休日 → 全幅の緑ボタン
+            // 旧仕様の長文メモ(safetyComment / menu・price の泉質等)と住所行はポップアップから除外。
+            // 住所は表示せず、最下段ボタンから直接 Google マップで開く。
             return '<div class="text-slate-900 text-xs font-sans" style="min-width:210px;max-width:250px;">' +
                 // 1. 店名：太字・黒系・最上部
                 '<strong class="text-sm font-bold block mb-1">' + escapeHtml(spot.name) + '</strong>' +
                 // 2. カテゴリバッジ：薄青背景＋濃青文字の角丸
                 '<span class="inline-block bg-sky-100 text-sky-800 font-semibold px-1.5 py-0.5 rounded text-[10px] mb-1">' + escapeHtml(c.label) + '</span>' +
-                (spot.addr ? '<div class="text-slate-500 text-[10px]">' + escapeHtml(spot.addr) + '</div>' : '') +
                 approxLine +
+                // 3. Google評価・投稿数：黄色（text-amber-500）太字
                 ratingRow +
-                safetyLine +
-                (spot.menu ? '<div class="text-slate-700 text-[10px] mt-1">' + escapeHtml(spot.menu) + (spot.price ? '（' + escapeHtml(spot.price) + '）' : '') + '</div>' : '') +
                 // 4. 営業時間・定休日：エメラルドグリーン＋絵文字
                 '<div class="text-emerald-600 font-semibold text-[11px] mt-1">🕒 営業時間: ' + escapeHtml(spot.hours || '要確認') +
                     '<br>📅 定休日: ' + escapeHtml(spot.closed || '要確認') + '</div>' +
-                // 5. 最下部アクション：全幅の緑ボタン
+                // 5. 最下部アクション：全幅の緑ボタン（住所非表示。ここから Google マップで開く）
                 '<a href="' + mapsUrl + '" target="_blank" rel="noopener noreferrer" ' +
                     'class="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs mt-2" ' +
                     'style="padding:6px 0;text-decoration:none;">Googleマップで開く（公式リンク）</a>' +
@@ -1703,9 +1702,10 @@
                             });
                         }
 
-                        const infoBadge = safeInfo ? '<div class="text-amber-300 font-bold mt-1 text-[11px]">' + escapeHtml(safeInfo) + '</div>' : '';
+                        // 団地タブのポップアップと配色を統一（白背景で読みやすい濃いめの黄・緑、薄青バッジ）
+                        const infoBadge = safeInfo ? '<div class="text-amber-500 font-bold text-[11px] mt-1">' + escapeHtml(safeInfo) + '</div>' : '';
                         const addressLine = safeAddress ? '<div class="text-slate-500 text-[10px] mt-0.5">' + escapeHtml(safeAddress) + '</div>' : '';
-                        const hoursPopup = (safeHours && safeHoliday) ? '<div class="text-emerald-400 font-semibold text-[11px] mt-1">🕒 営業時間: ' + escapeHtml(safeHours) + '<br>📅 定休日: ' + escapeHtml(safeHoliday) + '</div>' : '';
+                        const hoursPopup = (safeHours && safeHoliday) ? '<div class="text-emerald-600 font-semibold text-[11px] mt-1">🕒 営業時間: ' + escapeHtml(safeHours) + '<br>📅 定休日: ' + escapeHtml(safeHoliday) + '</div>' : '';
 
                         // 店名などをそのままonclick属性へ文字列展開すると、引用符・特殊文字を含む
                         // 名称でSyntaxErrorになり得るため、inline onclickは使わずボタンだけ用意し、
@@ -1713,7 +1713,7 @@
                         marker.bindPopup(
                             '<div class="text-slate-900 text-xs font-sans">' +
                             '<strong class="text-sm font-bold block mb-1">' + escapeHtml(safeName) + '</strong>' +
-                            '<span class="inline-block bg-slate-200 px-1.5 py-0.5 rounded text-[10px] mb-1">' + escapeHtml(safeCat) + '</span>' +
+                            '<span class="inline-block bg-sky-100 text-sky-800 font-semibold px-1.5 py-0.5 rounded text-[10px] mb-1">' + escapeHtml(safeCat) + '</span>' +
                             addressLine +
                             infoBadge +
                             hoursPopup +
