@@ -1229,33 +1229,43 @@
             return 'https://www.google.com/maps/search/?api=1&query=' + q;
         }
 
+        // 「散歩ルート作成」タブのポップアップUIに完全準拠（店名→薄青カテゴリバッジ→
+        //  黄色太字のGoogle評価行→エメラルドの営業時間/定休→全幅の緑ボタン）。
+        // 星・投稿数は Places API 実測値（spot.ratingLive）が無い限り数値を出さない。
         function danchiSpotPopupHtml(spot, danchi) {
             const c = DANCHI_CATS[spot.cat] || DANCHI_CATS.gourmet;
-            const badge = danchiRatingBadge(spot); // Places API 取得後のみ非空
-            // 星・件数はAPI実測値が無い限り一切表示しない（推測値のハードコード禁止）
-            const ratingLine = badge
-                ? '<div style="margin-top:3px;"><b>Google評価</b>：<span style="color:#b45309;font-weight:700;">' + escapeHtml(badge) + '</span>' + (spot.ratingLive ? ' <span style="color:#059669;font-size:10px;">実測</span>' : '') + '</div>'
+            const mapsUrl = danchiSpotMapsUrl(spot, danchi); // Places の googleMapsUri があれば公式リンク
+
+            // 3. Google評価・投稿数（最重要）：text-amber-500 font-bold
+            const ratingRow = (spot.ratingLive && spot.googleRatingNum)
+                ? '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 ★' + escapeHtml(spot.googleRatingNum) +
+                  ' / 投稿数 ' + escapeHtml(spot.reviewCountNum != null ? String(spot.reviewCountNum) : '0') + '件</div>'
+                : '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 <span class="font-semibold text-amber-500/80">未取得（下のボタンで公式ページを確認）</span></div>';
+
+            const approxLine = spot.approx
+                ? '<div class="text-[10px] text-amber-700 mt-0.5">位置目安（住所未確定・エリア中心に概算）</div>'
                 : '';
             const safetyLine = spot.safetyComment
-                ? '<div style="margin-top:3px;color:#047857;">🟢 ' + escapeHtml(spot.safetyComment) + '</div>'
+                ? '<div class="text-[10px] text-emerald-700 mt-0.5">🟢 ' + escapeHtml(spot.safetyComment) + '</div>'
                 : '';
-            const approxLine = spot.approx
-                ? '<div style="margin-top:2px;"><span style="background:#b45309;color:#fff;border-radius:4px;padding:0 4px;font-size:10px;">位置目安</span> <span style="color:#94a3b8;">住所未確定・エリア中心に概算プロット</span></div>'
-                : '';
-            const mapsUrl = danchiSpotMapsUrl(spot, danchi);
-            return '<div class="text-slate-900 text-xs font-sans" style="min-width:220px;max-width:262px;line-height:1.5;">' +
-                '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">' +
-                    '<span style="display:inline-flex;width:20px;height:20px;border-radius:9999px;align-items:center;justify-content:center;border:1px solid #fff;background:' + c.bg + ';font-size:11px;">' + c.emoji + '</span>' +
-                    '<strong class="text-sm font-bold">' + escapeHtml(spot.name) + '</strong>' +
-                '</div>' +
-                '<span class="inline-block bg-slate-200 px-1.5 py-0.5 rounded text-[10px]">' + escapeHtml(c.label) + '</span>' +
-                (spot.addr ? '<div style="color:#475569;margin-top:2px;">📍 ' + escapeHtml(spot.addr) + '</div>' : '') +
+
+            return '<div class="text-slate-900 text-xs font-sans" style="min-width:210px;max-width:250px;">' +
+                // 1. 店名：太字・黒系・最上部
+                '<strong class="text-sm font-bold block mb-1">' + escapeHtml(spot.name) + '</strong>' +
+                // 2. カテゴリバッジ：薄青背景＋濃青文字の角丸
+                '<span class="inline-block bg-sky-100 text-sky-800 font-semibold px-1.5 py-0.5 rounded text-[10px] mb-1">' + escapeHtml(c.label) + '</span>' +
+                (spot.addr ? '<div class="text-slate-500 text-[10px]">' + escapeHtml(spot.addr) + '</div>' : '') +
                 approxLine +
-                ratingLine +
+                ratingRow +
                 safetyLine +
-                '<div style="margin-top:2px;"><b>おすすめ</b>：' + escapeHtml(spot.menu || '—') + '（' + escapeHtml(spot.price || '価格要確認') + '）</div>' +
-                '<div><b>営業時間</b>：' + escapeHtml(spot.hours || '要確認') + '（定休 ' + escapeHtml(spot.closed || '要確認') + '）</div>' +
-                '<a href="' + mapsUrl + '" target="_blank" rel="noopener noreferrer" style="display:block;margin-top:6px;background:#059669;color:#fff;text-align:center;font-weight:bold;padding:6px 0;border-radius:6px;text-decoration:none;">Googleマップで最新クチコミ・評価を見る</a>' +
+                (spot.menu ? '<div class="text-slate-700 text-[10px] mt-1">' + escapeHtml(spot.menu) + (spot.price ? '（' + escapeHtml(spot.price) + '）' : '') + '</div>' : '') +
+                // 4. 営業時間・定休日：エメラルドグリーン＋絵文字
+                '<div class="text-emerald-600 font-semibold text-[11px] mt-1">🕒 営業時間: ' + escapeHtml(spot.hours || '要確認') +
+                    '<br>📅 定休日: ' + escapeHtml(spot.closed || '要確認') + '</div>' +
+                // 5. 最下部アクション：全幅の緑ボタン
+                '<a href="' + mapsUrl + '" target="_blank" rel="noopener noreferrer" ' +
+                    'class="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs mt-2" ' +
+                    'style="padding:6px 0;text-decoration:none;">Googleマップで開く（公式リンク）</a>' +
                 '</div>';
         }
 
@@ -1358,9 +1368,16 @@
                                 };
                                 try { sessionStorage.setItem(ck, JSON.stringify(data)); } catch (e) {}
                             }
-                            if (data.rating) { sp.googleRating = '★' + Number(data.rating).toFixed(1); sp.ratingLive = true; }
-                            if (data.count != null) sp.reviewCount = '（' + Number(data.count).toLocaleString() + '件）';
-                            if (data.uri) sp.gmapUri = data.uri;
+                            if (data.rating) {
+                                sp.googleRatingNum = Number(data.rating).toFixed(1);   // "4.0"（数値のみ）
+                                sp.googleRating = '★' + sp.googleRatingNum;             // バッジ用
+                                sp.ratingLive = true;
+                            }
+                            if (data.count != null) {
+                                sp.reviewCountNum = Number(data.count);                 // 150（生の投稿件数）
+                                sp.reviewCount = '（' + sp.reviewCountNum.toLocaleString() + '件）';
+                            }
+                            if (data.uri) sp.gmapUri = data.uri;                        // Places 公式リンク
                             if (data.lat && data.lng) { sp.lat = data.lat; sp.lng = data.lng; }
                         } catch (e) { console.warn('places hydrate item', e); }
                     }
