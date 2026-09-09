@@ -1102,7 +1102,9 @@
         //      「アプリケーションの制限＝HTTPリファラー: https://c6cgv9cnj4-ops.github.io/*」
         //      と「API の制限＝Places API (New) のみ」を設定してから投入すること。
         //    例: const GOOGLE_PLACES_API_KEY = 'AIzaSy...';
-        const GOOGLE_PLACES_API_KEY = '';
+        //    ※ このキーは Pages で公開配信される。HTTPリファラー制限（c6cgv9cnj4-ops.github.io/*）
+        //      と Places API (New) 限定の API 制限が有効なことが前提。
+        const GOOGLE_PLACES_API_KEY = 'AIzaSyDAmKupKwszbhLE4qWqiO1yZgH-P9nP5O8';
 
         // 外部（車）で来る人向けの駐車ガイド。団地IDで参照（左パネル・詳細カード・地図ポップアップ共通）。
         const DANCHI_PARKING = {
@@ -3084,7 +3086,11 @@
             // ============================================================
             const OSM_CACHE_KEY = 'osm_healthy_spots_cache_v2';   // v2: 静的JSON基準・件数キャップ導入（旧キャッシュは破棄）
             const OSM_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;  // 7日
-            const OSM_MAX = 220;   // OSM合算スポットの上限（北本から近い順に残す。肥大キャッシュ対策）
+            const OSM_MAX = 170;   // OSM合算スポットの上限（静的JSON=153件＋ライブ差分の余地。肥大化対策）
+            // ライブ Overpass での「新規スポット追加」は既定オフ。静的JSON（健康食スコアで選別済み）を
+            // OSM の情報源とし、評価は Places API が担う。true にすると cuisine=japanese 等の
+            // 未選別ノード（とんかつ店など）も入り込むため注意。
+            const OSM_LIVE_ENABLED = false;
             // 取得リージョン。都内＝駅近(🚉)、埼玉秩父路＝沿道/専用P想定(🅿️)。
             const OSM_REGIONS = [
                 {
@@ -3266,10 +3272,11 @@
                     refreshHealthAll();
                     if (!force && !cache.stale) return;   // 新鮮ならライブ取得はしない
                 }
+                // 3) ライブ Overpass での新規スポット追加（既定オフ。静的JSON＋Places API で完結させる）
+                if (!OSM_LIVE_ENABLED) return;
                 // 直近失敗から10分はライブ再試行しない（504 連打防止）
                 if (!force && osmFetchFailedAt && (Date.now() - osmFetchFailedAt) < 10 * 60 * 1000) return;
 
-                // 3) バックグラウンドでライブ更新（リージョンごとに分割・並列、失敗しても静的JSONが残る）
                 try {
                     const settled = await Promise.allSettled(
                         OSM_REGIONS.map(function (r) { return overpassRequest(regionOverpassQuery(r)); })
@@ -3281,7 +3288,8 @@
                         }
                     });
                     if (!live.length) throw new Error('overpass: 有効なライブ結果なし');
-                    const merged = normalizeOsmSpots(live.concat(base));   // ライブ優先＋近い順で OSM_MAX 件
+                    // 静的JSON（健康食スコアで選別済み）を優先、ライブは新規名のみ追加 → 近い順 OSM_MAX 件
+                    const merged = normalizeOsmSpots(base.concat(live));
                     osmSpots = merged;
                     osmFetchFailedAt = 0;
                     writeOsmCache(merged);
@@ -3332,8 +3340,8 @@
             function hlPopupHtml(spot) {
                 // ①Places API 実測値 ②データに定義済みの参考値(spot.rating) ③未取得 の順
                 const ratingRow = (spot.ratingLive && spot.googleRatingNum)
-                    ? '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 ★' + hlEsc(spot.googleRatingNum) +
-                      ' / 投稿数 ' + hlEsc(spot.reviewCountNum != null ? String(spot.reviewCountNum) : '0') + '件</div>'
+                    ? '<div class="text-[11px] mt-1"><span class="text-amber-500 font-semibold">Google評価 ★' + hlEsc(spot.googleRatingNum) +
+                      ' / 投稿数 ' + hlEsc(spot.reviewCountNum != null ? String(spot.reviewCountNum) : '0') + '件</span></div>'
                     : (spot.rating != null
                         ? '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 ★' + hlEsc(Number(spot.rating).toFixed(1)) +
                           ' / 投稿数 ' + hlEsc(spot.reviews != null ? String(spot.reviews) : '—') + '件 <span class="font-normal text-amber-500/70">（参考）</span></div>'
