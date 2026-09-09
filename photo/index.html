@@ -262,35 +262,36 @@
         </div>
     </main>
 
-    <!-- TAB 3: 歴史的名作団地7選 撮影＆はしごガイド -->
+    <!-- TAB 3: 歴史的名作団地マスターガイド（スターハウス・駐車ガイド・厳選はしご） -->
     <main id="tabContentDanchi" class="max-w-7xl mx-auto px-3 sm:px-4 mt-4 hidden">
         <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-4 space-y-2 text-xs sm:text-sm">
             <div class="flex items-start gap-1.5 text-slate-300">
                 <i data-lucide="building-2" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"></i>
-                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong> ／ 日本住宅史に残る<strong class="text-white">歴史的名作団地7選</strong>を北本から近い順に回遊。左で団地を選ぶと地図が寄って<strong class="text-slate-100">半径1km圏</strong>を表示し、はしご候補（グルメ・珈琲・立ち食いそば・温泉）を強調します。</span>
+                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong> ／ 北本から近い順の<strong class="text-white">名作団地8スポット</strong>。公団初期の配棟計画・給水塔・歩車分離と、現存する<strong class="text-amber-300">スターハウス（前川第2＝現役／赤羽台＝保存棟）</strong>を鑑賞し、帰りに<strong class="text-slate-100">一人でも入れる安心店（町中華・大衆食堂／立ち食いそば／昔ながらの純喫茶）</strong>とニフティ温泉上位の日帰り湯をはしご。</span>
             </div>
             <p class="text-[11px] text-slate-400 leading-relaxed">
-                車移動コストは実燃費 <strong class="text-slate-200">11km/L</strong>・ガソリン <strong class="text-slate-200">165円/L</strong>（＝<strong class="text-slate-200">15円/km</strong>）で概算。スポットの座標・営業時間・メニューは参考値（<span class="text-amber-300/90">「位置目安」バッジ付きは駅周辺への概算プロット</span>）。Google評価は数値を持たないためポップアップからマップ検索で確認。訪問前に公式で最新を確認し、撮影は公共スペースから・住民のプライバシーに配慮すること。
+                左で団地を選ぶと地図がズーム15で寄り、<strong class="text-slate-200">半径1kmの円</strong>を描画して圏内の厳選ピンを強調。飲食は「独自ルール店・行列店・気取った店」を除外し、実在確認できた<strong class="text-slate-200">ハズレなしの安心店のみ</strong>を各団地2〜6軒（水増しなし）。座標・営業時間・料金は参考値で、<span class="text-amber-300/90">「位置目安」バッジ</span>は住所未確定のため駅・エリア中心へ概算プロット。Google評価は数値を持たないためポップアップのマップ検索で確認。麺や司（上尾）等の閉店店は除外済み。訪問前に公式で最新を確認し、現役棟では住民のプライバシーに配慮して公道から撮影すること。
             </p>
         </div>
 
-        <!-- 2カラム: 左=団地セレクター＆スポットリスト / 右=Leaflet回遊マップ -->
+        <!-- 2カラム: 左=団地セレクター＆駐車ガイド＆スポットリスト / 右=Leaflet回遊マップ -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
             <div class="space-y-4">
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
                     <h2 class="font-bold text-white text-sm flex items-center gap-2 mb-1">
                         <i data-lucide="map-pinned" class="w-4 h-4 text-emerald-400"></i> 団地セレクター（北本から近い順）
                     </h2>
-                    <p class="text-[11px] text-slate-400 mb-3">タップで地図がズーム15で寄り、半径1kmの円を描画します。</p>
+                    <p class="text-[11px] text-slate-400 mb-3">タップで地図がズーム15で寄り、半径1kmの円を描画します。各カードに 🚗 駐車ガイドを併記。</p>
                     <div id="danchiSelector" class="space-y-1.5"></div>
                 </div>
 
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
                     <h3 class="font-bold text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
-                        <span class="flex items-center gap-1.5"><i data-lucide="list" class="w-3.5 h-3.5 text-emerald-400"></i> 半径1km圏のはしご候補</span>
+                        <span class="flex items-center gap-1.5"><i data-lucide="list" class="w-3.5 h-3.5 text-emerald-400"></i> 半径1km圏の安心はしご候補</span>
                         <span id="danchiSelectedName" class="text-emerald-400 font-bold normal-case tracking-normal">未選択</span>
                     </h3>
-                    <div id="danchiSpotList" class="space-y-1.5 max-h-[440px] overflow-y-auto custom-scrollbar text-xs text-slate-300">
+                    <div id="danchiParkingPanel" class="bg-slate-900/60 border border-amber-800/50 rounded-lg p-2.5 mb-2.5" hidden></div>
+                    <div id="danchiSpotList" class="space-y-1.5 max-h-[420px] overflow-y-auto custom-scrollbar text-xs text-slate-300">
                         <div class="text-slate-500 text-center py-4">左の団地を選択してください</div>
                     </div>
                 </div>
@@ -303,18 +304,18 @@
                 <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-slate-300">
                     <span class="font-bold text-slate-400 uppercase tracking-wider">凡例</span>
                     <span class="flex items-center gap-1"><span class="inline-flex w-4 h-4 rounded-full items-center justify-center border border-white" style="background:#2563eb">🏢</span> 団地</span>
-                    <span class="flex items-center gap-1"><span class="inline-flex w-4 h-4 rounded-full items-center justify-center border border-white" style="background:#ea580c">🍜</span> グルメ上位5</span>
-                    <span class="flex items-center gap-1"><span class="inline-flex w-4 h-4 rounded-full items-center justify-center border border-white" style="background:#78350f">☕</span> 珈琲上位3</span>
-                    <span class="flex items-center gap-1"><span class="inline-flex w-4 h-4 rounded-full items-center justify-center border border-white" style="background:#dc2626">🥢</span> 立ち食いそば</span>
-                    <span class="flex items-center gap-1"><span class="inline-flex w-4 h-4 rounded-full items-center justify-center border border-white" style="background:#059669">♨️</span> 温泉</span>
+                    <span class="flex items-center gap-1"><span class="inline-flex w-4 h-4 rounded-full items-center justify-center border border-white" style="background:#ea580c">🍜</span> 大衆食堂・町中華</span>
+                    <span class="flex items-center gap-1"><span class="inline-flex w-4 h-4 rounded-full items-center justify-center border border-white" style="background:#dc2626">🥢</span> 立ち食い・大衆そば</span>
+                    <span class="flex items-center gap-1"><span class="inline-flex w-4 h-4 rounded-full items-center justify-center border border-white" style="background:#78350f">☕</span> 純喫茶</span>
+                    <span class="flex items-center gap-1"><span class="inline-flex w-4 h-4 rounded-full items-center justify-center border border-white" style="background:#059669">♨️</span> 天然温泉</span>
                 </div>
             </div>
         </div>
 
-        <!-- 詳細カード（歴史的価値・撮影・車アクセス・はしご詳細） -->
+        <!-- 詳細カード（見どころ・スターハウス・レンズ・駐車ガイド・車アクセス・はしご） -->
         <div class="mt-8">
             <h2 class="text-sm font-bold text-white flex items-center gap-2 mb-3 border-b border-slate-700 pb-2">
-                <i data-lucide="book-open" class="w-4 h-4 text-emerald-400"></i> 団地別 詳細ガイド（歴史的価値・撮影・車アクセス・はしご4種）
+                <i data-lucide="book-open" class="w-4 h-4 text-emerald-400"></i> 団地別 詳細ガイド（🏛️配棟・建築の見どころ／⭐スターハウス／推奨レンズ／🚗駐車ガイド／車アクセス／安心はしご）
             </h2>
             <div id="danchiList" class="space-y-5"></div>
         </div>
@@ -1026,266 +1027,10 @@
             }
         }
 
-        // [id, 団地名, エリア, lat, lng, tollPrefIdx, 歴史的価値, 撮影スポット, 推奨レンズ(重量考慮),
-        //  団地公式出典URL,
-        //  { soba, coffee, gourmet, onsen } はしご4種]
-        // ※ addr が空文字の店は住所未確定。renderで「各店公式で要確認」＋Googleマップ検索リンクを表示。
-        const rawDanchi = [
-            [
-                'd_akabanedai', '赤羽台団地', '東京都北区赤羽台1', 35.7830, 139.7180, 1,
-                '1962年入居開始。公団住宅として当時23区内最大級（約3,373戸）の「都市部モデル団地」。Y字型「スターハウス」を含む住棟が2019年に団地として全国初の国登録有形文化財に。2023年、敷地内に「URまちとくらしのミュージアム」開館（事前予約制・入場無料、同潤会アパートや晴海高層アパートの復元展示）。',
-                '地上から見上げるスターハウスの星形の陰影、白黒写真の解析で再現した当時の外壁色、ミュージアム前の並木。JR赤羽駅からミュージアムまで徒歩6〜11分。',
-                '星形住棟の全景〜細部を1本で追う EF24-105mm F4L IS II（約795g）を軸に、棟の反復圧縮と遠景の切り取りは EF70-200mm F4L IS（約780g／F2.8比で大幅軽量）。夕方の生活感スナップは SIGMA 35mm F1.4 DG（約665g）。3本で計約2.2kgに収まる構成。',
-                'https://www.ur-net.go.jp/aboutus/publication/web-urpress75/museum.html',
-                {
-                    soba: { name: 'そばいち エキュート赤羽店', addr: 'JR赤羽駅構内 エキュート赤羽', hours: '6:30〜23:00（L.O.22:30）', closed: '無休', menu: 'かけそば＋名物「まいたけ天」。出典: Retty / 赤羽新聞', q: 'そばいち エキュート赤羽' },
-                    coffee: { name: '純喫茶 梅の木（新館）', addr: '東京都北区赤羽1-2-3 2F', hours: '8:30〜21:00', closed: '日曜', menu: '1983年創業・自家焙煎ブレンド（アメリカンおかわり半額）。出典: さんたつ', q: '純喫茶 梅の木 赤羽' },
-                    gourmet: { name: '丸健水産（立ち飲みおでん）', addr: '東京都北区赤羽1-22-8 シルクロード商店街内', hours: '10:30〜20:30', closed: '月・水', menu: '創業約70年。名物「だし割」、ふわとろ白はんぺん。出典: さんたつ', q: '丸健水産 赤羽' },
-                    onsen: { name: '前野原温泉 さやの湯処', addr: '東京都板橋区前野町3-41-1', hours: '9:00〜24:00（受付23:00）', closed: '年中無休', priceWeekday: '930円', priceWeekend: '1,250円', spring: 'ナトリウム-塩化物強塩温泉。ウグイス色の源泉かけ流し、枯山水庭園。赤羽台から車約20分。ニフティ温泉 東京上位常連', q: '前野原温泉 さやの湯処' }
-                }
-            ],
-            [
-                'd_takashimadaira', '高島平団地', '東京都板橋区高島平2', 35.7930, 139.6640, 1,
-                '1972〜73年管理開始。管理戸数約8,287戸でUR最大級。高度成長期の大量供給を象徴する高層スラブ団地で、1970年代の「団地」イメージそのものの原点。都営三田線 高島平駅 徒歩2〜11分。',
-                '団地を貫くケヤキ並木（UR公式も推す眺め）、高層スラブ棟の反復と見上げ、歩行者デッキ、レトロ商店街の看板。',
-                'ケヤキ並木のトンネルと棟の見上げは EF24-105mm F4L の24mm側（約795g）。棟列の圧縮は EF70-200mm F4L（約780g）。木漏れ日スナップは SIGMA 35mm F1.4（約665g）開放。',
-                'https://www.ur-net.go.jp/chintai/kanto/tokyo/20_2250.html',
-                {
-                    soba: { name: '高島平駅前の路麺（駅そば系）', addr: '', hours: '要確認', closed: '要確認', menu: 'かけ・天玉そば 参考400〜550円。店舗・営業時間は下のマップ検索で確認', q: '高島平駅 立ち食いそば' },
-                    coffee: { name: '高島平の自家焙煎珈琲店', addr: '', hours: '要確認', closed: '要確認', menu: '店舗は下のマップ検索で確認（高島平〜西台エリアに自家焙煎数軒）', q: '高島平 自家焙煎 珈琲' },
-                    gourmet: { name: '高島平駅周辺の町中華・定食', addr: '', hours: '要確認', closed: '要確認', menu: 'ラム炒め定食 参考850円、ラーメン＋半チャーハン 参考850円。出典: Retty', q: '高島平 町中華 定食' },
-                    onsen: { name: '前野原温泉 さやの湯処', addr: '東京都板橋区前野町3-41-1', hours: '9:00〜24:00（受付23:00）', closed: '年中無休', priceWeekday: '930円', priceWeekend: '1,250円', spring: 'ナトリウム-塩化物強塩温泉。源泉かけ流しの黄褐色にごり湯、枯山水庭園。高島平団地から車約10分', q: '前野原温泉 さやの湯処' }
-                }
-            ],
-            [
-                'd_hibarigaoka', 'ひばりが丘団地', '東京都西東京市・東久留米市 ひばりが丘', 35.7480, 139.5460, 1,
-                '1959年、日本住宅公団が中島航空金属田無製造所跡地に造成。竣工時180棟2,714戸の「日本初のマンモス団地」。1960年に皇太子ご夫妻（現・上皇上皇后両陛下）が視察し、団地生活が国民の憧れの象徴に。現在は一部が「ひばりが丘パークヒルズ」へ建替え、スターハウス等を保存展示。',
-                '保存されたスターハウス、旧公団の低層テラスハウス、建替え新棟との新旧コントラスト、団地中央の広場と並木。',
-                '保存住棟の全景＋新旧対比は EF24-105mm F4L（約795g）。並木・遠景圧縮は EF70-200mm F4L（約780g）。スナップは SIGMA 35mm F1.4（約665g）。',
-                'https://ja.wikipedia.org/wiki/%E3%81%B2%E3%81%B0%E3%82%8A%E3%81%8C%E4%B8%98%E5%9B%A3%E5%9C%B0',
-                {
-                    soba: { name: 'ひばりヶ丘駅の手打ちそば店（大勝軒系で修行の店主）', addr: '', hours: '要確認', closed: '要確認', menu: 'そば定食（ご飯・サラダ付）参考920円。出典: Retty。店舗詳細は下のマップ検索で確認', q: 'ひばりヶ丘駅 そば' },
-                    coffee: { name: 'ひばりヶ丘駅周辺の喫茶', addr: '', hours: '要確認', closed: '要確認', menu: '駅北口商店街に昭和からの喫茶が点在。下のマップ検索で確認', q: 'ひばりヶ丘 自家焙煎 珈琲' },
-                    gourmet: { name: 'ひばりヶ丘駅周辺のB級（町中華・洋食・駅そば）', addr: '', hours: '要確認', closed: '要確認', menu: '下のマップ検索で確認', q: 'ひばりヶ丘 グルメ B級' },
-                    onsen: { name: '名水天然温泉 スパジアムジャポン（スパジャポ）', addr: '東京都東久留米市上の原2-7-7', hours: '月〜木 9:00〜翌1:00 ／ 金・祝前 〜翌2:00 ／ 土 8:00〜翌2:00 ／ 日 8:00〜翌1:00', closed: '不定（公式で確認）', priceWeekday: '850円（岩盤浴+850円）', priceWeekend: '950円（岩盤浴+950円）', spring: '地下1,500m・37.8℃の無色透明「武蔵野温泉」。高濃度炭酸泉。関東最大級。ひばりが丘から車約10分', q: 'スパジアムジャポン 東久留米' }
-                }
-            ],
-            [
-                'd_shibazono', '芝園団地（川口芝園団地）', '埼玉県川口市芝園町', 35.8280, 139.6870, 0,
-                '1978年入居のUR大規模団地（約2,400戸）。住民の約半数が外国籍（大半が中国系）で「新中華街」と呼ばれ、日本の団地の多国籍化を象徴する現場。JR蕨駅 徒歩7分。',
-                '中央ペデストリアンデッキと中国語看板が並ぶ軒先、ショッピングモールの雑多なディテール、URスラブ棟の反復ファサード。住民の顔が特定できる撮影・公開は避ける。',
-                '空気ごと切り取る SIGMA 35mm F1.4 DG（約665g）が主役。看板ディテールと引きの棟並びは EF24-105mm F4L（約795g）。望遠圧縮を効かせるなら EF70-200mm F4L（約780g）。三脚は使わず手持ち機動優先。',
-                'https://cuisine-kingdom.com/neo-chinatown03/',
-                {
-                    soba: { name: '蕨駅周辺の路麺／駅そば', addr: '', hours: '要確認', closed: '要確認', menu: '下のマップ検索で確認', q: '蕨駅 立ち食いそば' },
-                    coffee: { name: '蕨・西川口の自家焙煎珈琲店', addr: '', hours: '要確認', closed: '要確認', menu: '下のマップ検索で確認', q: '西川口 自家焙煎 珈琲' },
-                    gourmet: { name: '芝園ショッピングモール内 中国東北料理・蘭州ラーメン', addr: '埼玉県川口市芝園町2-1 芝園ハイツ1号棟1F ほか（「酸辣粉」など）', hours: '要確認', closed: '要確認', menu: 'ラーメン＋炒飯 参考900円前後、定食 参考600円前後。出典: 料理王国 / 食べログ', q: '芝園団地 中華' },
-                    onsen: { name: '天然温泉 スパロイヤル川口', addr: '埼玉県川口市朝日3-13-27', hours: '9:00〜翌1:00（受付24:00）', closed: '年中無休', priceWeekday: '900円', priceWeekend: '1,050円', spring: '黒湯の天然温泉＋ナノ炭酸泉。バリリゾート調の休憩処。芝園団地から車約15分（料金は利用者提供の参考値）', q: '天然温泉 スパロイヤル川口' }
-                }
-            ],
-            [
-                'd_mogusa', '百草団地', '東京都日野市百草', 35.6560, 139.4490, 1,
-                '1969年11月入居開始（1970年前後竣工）の日本住宅公団団地。多摩丘陵の高台に地形なりに配棟され、適度な高低差の遊歩道と抜群の見晴らしが特徴。京王線 高幡不動駅からバス約10分の丘の上。',
-                '高台からの街の抜け・遠景、丘陵地形に沿う階段状の棟配置、アポロ広場のレトロなショッピングセンター、七生丘陵の緑と団地。',
-                '高台の抜けと丘の稜線に沿う棟列は EF70-200mm F4L（約780g）の圧縮が効く。全景と広場は EF24-105mm F4L（約795g）。夕景スナップは SIGMA 35mm F1.4（約665g）。',
-                'https://www.ur-net.go.jp/chintai/kanto/tokyo/20_1870_report.html',
-                {
-                    soba: { name: '高幡そば 高幡不動駅店', addr: '京王線 高幡不動駅コンコース（動物園線階段横）', hours: '要確認', closed: '要確認', menu: '名物「鳥中華」（そば出汁のあっさりラーメン）、明日葉天。食券制。出典: ホットペッパー / ぐるなび', q: '高幡そば 高幡不動駅' },
-                    coffee: { name: '百草団地〜高幡不動の喫茶', addr: '', hours: '要確認', closed: '要確認', menu: '下のマップ検索で確認', q: '高幡不動 自家焙煎 珈琲' },
-                    gourmet: { name: '百草団地ショッピングセンター（アポロ広場）の食堂・ラーメン', addr: '東京都日野市百草999 ほか 百草団地SC内', hours: '要確認', closed: '要確認', menu: '「らーめん 治 らいおん 百草店」など。下のマップ検索で確認', q: '百草団地 ショッピングセンター ラーメン' },
-                    onsen: { name: '稲城天然温泉 季乃彩（ときのいろどり）', addr: '東京都稲城市向陽台6-13', hours: '平日 9:00〜25:00 ／ 土日祝 7:00〜25:00', closed: '3・6・9・12月 第3火曜', priceWeekday: '1,000円', priceWeekend: '1,200円', spring: 'ナトリウム-炭酸水素塩・塩化物温泉（弱アルカリ性）。地下1,700m源泉かけ流し。百草から車約15分', q: '稲城天然温泉 季乃彩' }
-                }
-            ],
-            [
-                'd_tokiwadaira', '常盤平団地', '千葉県松戸市常盤平', 35.7920, 139.9260, 3,
-                '1960年4月入居開始、約5,000戸の「衛星都市」型モデル団地。記録映画『団地への招待』の舞台。Y字型スターハウス、けやき通り（約1km・181本・新日本街路樹100景）、さくら通り（約3.1km・約625本・日本の道100選）を擁し、2020年で60周年。松戸市立博物館に当時の復元住戸。',
-                'けやき通りの並木トンネル（新緑・紅葉）、さくら通りの桜、スターハウスのY字シルエット、博物館隣接の復元住戸。',
-                '並木のトンネルは EF24-105mm F4L の広角側（約795g）、桜・紅葉の圧縮は EF70-200mm F4L（約780g）、木漏れ日の人物スナップは SIGMA 35mm F1.4（約665g）。',
-                'https://ja.wikipedia.org/wiki/%E5%B8%B8%E7%9B%A4%E5%B9%B3%E5%9B%A3%E5%9C%B0',
-                {
-                    soba: { name: '常盤平・五香駅周辺の路麺', addr: '', hours: '要確認', closed: '要確認', menu: '下のマップ検索で確認', q: '常盤平駅 立ち食いそば' },
-                    coffee: { name: '常盤平駅前の純喫茶', addr: '', hours: '要確認', closed: '要確認', menu: '駅前に昭和からの喫茶が現存。下のマップ検索で確認', q: '常盤平 純喫茶' },
-                    gourmet: { name: '松戸のB級（ホワイト餃子系・松戸中華そば）', addr: '', hours: '要確認', closed: '要確認', menu: 'ホワイト餃子の系譜が松戸に多い。下のマップ検索で確認', q: '松戸 ホワイト餃子' },
-                    onsen: { name: '湯楽の里 松戸店', addr: '千葉県松戸市和名ヶ谷947-3', hours: '9:00〜翌1:00（受付0:30）', closed: '年中無休', priceWeekday: '710円', priceWeekend: '810円', spring: '天然温泉＋露天の高濃度炭酸泉、全10種の湯。無料大型駐車場。常盤平から車約15分', q: '湯楽の里 松戸店' }
-                }
-            ],
-            [
-                'd_tama_suwa_nagayama', '多摩ニュータウン 諏訪・永山', '東京都多摩市諏訪・永山', 35.6300, 139.4340, 1,
-                '多摩ニュータウン第1期入居地区。1971年3月26日、諏訪・永山地区で最初の街びらき（日本最大のニュータウン）。諏訪2丁目住宅は2013年に日本初の大規模団地一括建替え（分譲マンション化）で全国的に注目。永山団地は約3,302戸、駅直結の名店街を持つ。',
-                '建替え前後の対比（残る低層板状棟 vs 高層新棟）、諏訪・永山の歩車分離ペデストリアンデッキ、丘陵の造成地形、永山名店街のレトロ看板。',
-                '造成地形と棟群の広がりは EF24-105mm F4L（約795g）。丘越しの棟の重なり圧縮は EF70-200mm F4L（約780g）。デッキのスナップは SIGMA 35mm F1.4（約665g）。',
-                'https://www.ur-net.go.jp/chintai/kanto/tokyo/20_2070.html',
-                {
-                    soba: { name: '箱根そば 永山店', addr: '小田急永山駅 改札外横（京王永山駅からすぐ）', hours: '要確認', closed: '要確認', menu: '券売機セルフ、立ち食い＋奥にテーブル席。春菊天そばなど。出典: Retty', q: '箱根そば 永山' },
-                    coffee: { name: '永山名店街の喫茶店', addr: '東京都多摩市永山1丁目 永山名店街内', hours: '要確認', closed: '要確認', menu: '名店街に昔ながらの喫茶が現存。下のマップ検索で確認', q: '京王永山 名店街 喫茶' },
-                    gourmet: { name: '永山名店街・グリナード永山周辺のB級', addr: '', hours: '要確認', closed: '要確認', menu: '下のマップ検索で確認', q: '永山駅 グルメ' },
-                    onsen: { name: '多摩境天然温泉 森乃彩（もりのいろどり）', addr: '東京都町田市小山ヶ丘1-11-5', hours: '9:00〜24:00（受付23:00）', closed: '3・6・9・12月 第2火曜', priceWeekday: '880円', priceWeekend: '980円', spring: 'ナトリウム-炭酸水素塩・塩化物泉（弱アルカリ性）。露天4種かけ流し。諏訪・永山から車約20分（稲城の季乃彩も選択肢）', q: '多摩境天然温泉 森乃彩' }
-                }
-            ]
-        ];
-
-        const danchiData = rawDanchi.map(function (d) {
-            const distLin = calcDist(KITAMOTO_LAT, KITAMOTO_LNG, d[3], d[4]);
-            const distRoad = distLin * 1.3;
-            const carAcc = calcCarAccess(distLin, distRoad, d[5]);
-            const fuel = calcFuelCost(distRoad);
-            const dest = d[3] + ',' + d[4];
-            return {
-                id: d[0],
-                name: d[1],
-                area: d[2],
-                lat: d[3],
-                lng: d[4],
-                history: d[6],
-                shootPoint: d[7],
-                lens: d[8],
-                sourceUrl: d[9],
-                hashigo: d[10],
-                distanceLinear: distLin,
-                distanceRoad: distRoad,
-                carAcc: carAcc,
-                carVerdict: buildCarVerdict(carAcc),
-                fuel: fuel,
-                gmapPinUrl: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(d[2] + ' ' + d[1]),
-                gmapLocalUrl: 'https://www.google.com/maps/dir/?api=1&origin=' + KITAMOTO_LAT + ',' + KITAMOTO_LNG + '&destination=' + dest + '&dirflg=d&avoid=highways',
-                gmapExpressUrl: 'https://www.google.com/maps/dir/?api=1&origin=' + KITAMOTO_LAT + ',' + KITAMOTO_LNG + '&destination=' + dest
-            };
-        }).sort(function (a, b) { return a.distanceLinear - b.distanceLinear; });
-
-        // はしごスポット1件分（そば/珈琲/B級）のHTMLを生成
-        function danchiHashigoItemHtml(item, iconName, label, accent) {
-            try {
-                if (!item) return '';
-                const mapUrl = item.addr
-                    ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(item.addr)
-                    : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(item.q || item.name);
-                const addrLine = item.addr
-                    ? '<div class="text-slate-300 flex items-start gap-1"><i data-lucide="map-pin" class="w-3 h-3 mt-0.5 shrink-0"></i> ' + item.addr + '</div>'
-                    : '<div class="text-amber-300/90 flex items-start gap-1"><i data-lucide="map-pin" class="w-3 h-3 mt-0.5 shrink-0"></i> 住所未確定 — 右のGoogleマップ検索で確認</div>';
-                return '' +
-                    '<div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/80 text-xs space-y-1">' +
-                        '<div class="flex items-center justify-between gap-2">' +
-                            '<span class="font-bold ' + accent + ' flex items-center gap-1"><i data-lucide="' + iconName + '" class="w-3.5 h-3.5"></i> ' + label + '</span>' +
-                            '<a href="' + mapUrl + '" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline font-semibold flex items-center gap-1 shrink-0">Googleマップ <i data-lucide="external-link" class="w-3 h-3"></i></a>' +
-                        '</div>' +
-                        '<div class="text-white font-semibold">' + item.name + '</div>' +
-                        addrLine +
-                        '<div class="text-slate-300"><strong class="text-slate-400">営業:</strong> ' + item.hours + ' ／ <strong class="text-slate-400">定休:</strong> ' + item.closed + '</div>' +
-                        '<div class="text-slate-200">' + item.menu + '</div>' +
-                    '</div>';
-            } catch (e) {
-                return '';
-            }
-        }
-
-        function renderDanchi() {
-            try {
-                const container = document.getElementById('danchiList');
-                if (!container) return;
-                container.innerHTML = '';
-
-                danchiData.forEach(function (dc, index) {
-                    try {
-                        const o = dc.hashigo.onsen;
-                        const onsenMapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(o.addr || o.q || o.name);
-
-                        const onsenHtml = '' +
-                            '<div class="bg-slate-900/60 p-2.5 rounded-lg border border-sky-800/60 text-xs space-y-1">' +
-                                '<div class="flex items-center justify-between gap-2">' +
-                                    '<span class="font-bold text-sky-300 flex items-center gap-1"><i data-lucide="waves" class="w-3.5 h-3.5"></i> ④ ニフティ温泉上位・日帰り天然温泉</span>' +
-                                    '<a href="' + onsenMapUrl + '" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline font-semibold flex items-center gap-1 shrink-0">Googleマップ <i data-lucide="external-link" class="w-3 h-3"></i></a>' +
-                                '</div>' +
-                                '<div class="text-white font-semibold">' + o.name + '</div>' +
-                                '<div class="text-slate-300 flex items-start gap-1"><i data-lucide="map-pin" class="w-3 h-3 mt-0.5 shrink-0"></i> ' + o.addr + '</div>' +
-                                '<div class="text-slate-300"><strong class="text-slate-400">営業:</strong> ' + o.hours + ' ／ <strong class="text-slate-400">定休:</strong> ' + o.closed + '</div>' +
-                                '<div class="text-slate-300"><strong class="text-slate-400">入館料:</strong> 平日 <span class="text-emerald-300 font-semibold">' + o.priceWeekday + '</span> ／ 土日祝 <span class="text-emerald-300 font-semibold">' + o.priceWeekend + '</span></div>' +
-                                '<div class="text-slate-200"><strong class="text-slate-400">泉質・特徴:</strong> ' + o.spring + '</div>' +
-                            '</div>';
-
-                        const card = document.createElement('div');
-                        card.className = "bg-slate-800 rounded-xl border border-slate-700 shadow-lg overflow-hidden transition hover:border-slate-600 p-4 sm:p-5 flex flex-col justify-between space-y-4";
-                        card.innerHTML =
-                            '<div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b border-slate-700/80 pb-3">' +
-                                '<div class="space-y-1">' +
-                                    '<div class="flex flex-wrap items-center gap-1.5">' +
-                                        '<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[11px] px-2.5 py-0.5 rounded-full font-bold">北本団地から #' + (index + 1) + '</span>' +
-                                        '<span class="bg-slate-700 text-slate-300 text-[11px] px-2 py-0.5 rounded-full">歴史的名作団地</span>' +
-                                        '<span class="text-xs text-slate-400 ml-1">直線: 約<strong class="text-white">' + dc.distanceLinear.toFixed(1) + '</strong>km / 道路: 約<strong class="text-emerald-300">' + dc.distanceRoad.toFixed(1) + '</strong>km</span>' +
-                                    '</div>' +
-                                    '<h2 class="text-lg sm:text-xl font-bold text-white">' + dc.name + '</h2>' +
-                                    '<p class="text-xs text-slate-400 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> ' + dc.area + '</p>' +
-                                '</div>' +
-                                '<div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full lg:w-auto">' +
-                                    '<a href="' + dc.gmapPinUrl + '" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-sky-900/80 hover:bg-sky-800 text-sky-200 font-medium px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-center gap-1 border border-sky-700/80">' +
-                                        '<i data-lucide="map" class="w-3.5 h-3.5 text-sky-300"></i> 団地の地図</a>' +
-                                    '<a href="' + dc.gmapLocalUrl + '" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-amber-600 hover:bg-amber-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow flex items-center justify-center gap-1">' +
-                                        '<i data-lucide="car" class="w-3.5 h-3.5"></i> 車（一般道）</a>' +
-                                    '<a href="' + dc.gmapExpressUrl + '" target="_blank" rel="noopener noreferrer" class="flex-1 lg:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow flex items-center justify-center gap-1">' +
-                                        '<i data-lucide="navigation" class="w-3.5 h-3.5"></i> 車（高速優先）</a>' +
-                                '</div>' +
-                            '</div>' +
-
-                            '<div class="text-xs sm:text-sm space-y-2">' +
-                                '<div><strong class="text-emerald-400 flex items-center gap-1"><i data-lucide="landmark" class="w-3.5 h-3.5"></i> 歴史的価値</strong><p class="text-slate-200 mt-0.5 leading-relaxed">' + dc.history + '</p></div>' +
-                                '<div><strong class="text-emerald-400 flex items-center gap-1"><i data-lucide="camera" class="w-3.5 h-3.5"></i> 撮影スポット</strong><p class="text-slate-200 mt-0.5 leading-relaxed">' + dc.shootPoint + '</p></div>' +
-                                '<div><strong class="text-amber-400 flex items-center gap-1"><i data-lucide="aperture" class="w-3.5 h-3.5"></i> 推奨レンズ（重量考慮）</strong><p class="text-slate-200 mt-0.5 leading-relaxed">' + dc.lens + '</p></div>' +
-                            '</div>' +
-
-                            '<div class="bg-slate-900/80 p-3 rounded-lg border border-slate-700/80 space-y-2 text-xs">' +
-                                '<div class="grid grid-cols-1 sm:grid-cols-3 gap-2">' +
-                                    '<div class="flex items-center gap-2">' +
-                                        '<i data-lucide="car" class="w-4 h-4 text-amber-400 shrink-0"></i>' +
-                                        '<div><div class="text-slate-400 text-[10px]">一般道のみ（有料回避）</div>' +
-                                        '<div class="text-slate-200 font-semibold">約 <strong class="text-amber-300 text-sm">' + dc.carAcc.minutesLocal + '</strong> 分</div></div>' +
-                                    '</div>' +
-                                    '<div class="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-700/80 pt-2 sm:pt-0 sm:pl-3">' +
-                                        '<i data-lucide="gauge" class="w-4 h-4 text-emerald-400 shrink-0"></i>' +
-                                        '<div><div class="text-slate-400 text-[10px]">高速優先</div>' +
-                                        '<div class="text-slate-200 font-semibold">約 <strong class="text-emerald-300 text-sm">' + dc.carAcc.minutesExpress + '</strong> 分 <span class="text-slate-400 text-[11px]">(高速代 約' + dc.carAcc.tollExpress.toLocaleString() + '円)</span></div></div>' +
-                                    '</div>' +
-                                    '<div class="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-700/80 pt-2 sm:pt-0 sm:pl-3">' +
-                                        '<i data-lucide="fuel" class="w-4 h-4 text-emerald-400 shrink-0"></i>' +
-                                        '<div><div class="text-slate-400 text-[10px]">ガソリン代（15円/km）</div>' +
-                                        '<div class="text-slate-200 font-semibold">片道 約<strong class="text-emerald-300 text-sm">' + dc.fuel.oneWay.toLocaleString() + '</strong>円 <span class="text-slate-400 text-[11px]">/ 往復 約' + dc.fuel.roundTrip.toLocaleString() + '円</span></div></div>' +
-                                    '</div>' +
-                                '</div>' +
-                                '<div class="flex items-start gap-1.5 border-t border-slate-700/80 pt-2 text-slate-300">' +
-                                    '<i data-lucide="route" class="w-3.5 h-3.5 text-sky-400 shrink-0 mt-0.5"></i>' +
-                                    '<span><strong class="text-sky-300">判断:</strong> ' + dc.carVerdict + '（燃料費は高速でも一般道でもほぼ同額。差は時間と高速代）</span>' +
-                                '</div>' +
-                            '</div>' +
-
-                            '<div>' +
-                                '<h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1"><i data-lucide="footprints" class="w-3.5 h-3.5 text-rose-400"></i> 撮影帰りのはしご4種</h3>' +
-                                '<div class="grid grid-cols-1 md:grid-cols-2 gap-2">' +
-                                    danchiHashigoItemHtml(dc.hashigo.soba, 'soup', '① 立ち食いそば（路麺）', 'text-orange-300') +
-                                    danchiHashigoItemHtml(dc.hashigo.coffee, 'coffee', '② 自家焙煎・純喫茶', 'text-amber-300') +
-                                    danchiHashigoItemHtml(dc.hashigo.gourmet, 'utensils', '③ 名物B級グルメ', 'text-rose-300') +
-                                    onsenHtml +
-                                '</div>' +
-                            '</div>' +
-
-                            '<div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/80 flex flex-wrap items-center justify-between gap-2 text-xs">' +
-                                '<div class="flex items-center gap-2 text-slate-300"><i data-lucide="info" class="w-4 h-4 text-sky-400"></i><span>団地の歴史・公式情報の出典</span></div>' +
-                                '<a href="' + dc.sourceUrl + '" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline font-semibold flex items-center gap-1">出典ページを開く <i data-lucide="external-link" class="w-3 h-3"></i></a>' +
-                            '</div>';
-
-                        container.appendChild(card);
-                    } catch (cardErr) {
-                        console.error("Danchi card render error:", cardErr);
-                    }
-                });
-
-                safeCreateIcons();
-            } catch (err) {
-                console.error("renderDanchi error:", err);
-            }
-        }
-
         // ===================================================================
-        // TAB 3: 歴史的名作団地 回遊マップ（Leaflet・2カラム）
+        // TAB 3: 歴史的名作団地マスターガイド（Leaflet 2カラム回遊マップ）
         // 北本から近い順のセレクター＋半径1km円＋カテゴリ別カスタムピン。
-        // 座標は住所/ランドマークからの実測、または駅周辺への概算（approx:true）。
+        // 配棟の見どころ／スターハウス／駐車ガイドを左パネル・詳細カード・ポップアップに統合。
         // Google評価の数値は保持しないため、ポップアップからマップ検索で確認させる。
         // ===================================================================
         let danchiMap = null;
@@ -1295,84 +1040,158 @@
 
         const DANCHI_CATS = {
             danchi:  { emoji: '🏢', bg: '#2563eb', label: '団地' },
-            gourmet: { emoji: '🍜', bg: '#ea580c', label: 'グルメ' },
-            coffee:  { emoji: '☕', bg: '#78350f', label: '珈琲専門店' },
-            soba:    { emoji: '🥢', bg: '#dc2626', label: '立ち食いそば' },
-            onsen:   { emoji: '♨️', bg: '#059669', label: '温泉' }
+            gourmet: { emoji: '🍜', bg: '#ea580c', label: '大衆食堂・町中華' },
+            coffee:  { emoji: '☕', bg: '#78350f', label: '純喫茶' },
+            soba:    { emoji: '🥢', bg: '#dc2626', label: '立ち食い・大衆そば' },
+            onsen:   { emoji: '♨️', bg: '#059669', label: '天然温泉' }
         };
 
-        // distKm は「北本市から近い順」の仕様指定値（地図の並び・寄り先ラベルに使用）
+        // 外部（車）で来る人向けの駐車ガイド。団地IDで参照（左パネル・詳細カード・地図ポップアップ共通）。
+        const DANCHI_PARKING = {
+            d_nishiageo: {
+                summary: '団地センター（商店街）脇の来客用P／近隣大型商業施設P',
+                detail: '団地センター（商店街）脇の来客用駐車スペース、または近隣の大型商業施設（アリオ上尾 等）の駐車場。',
+                tip: '団地の外周道路からアクセスすると入りやすい。住民用の月極区画には進入しない。'
+            },
+            d_shibazono: {
+                summary: '商店街裏手の時間貸しタイムズ／スーパー・ドラッグ提携コインP',
+                detail: '芝園ショッピングモール裏手の時間貸しタイムズ、近隣スーパー・ドラッグストアの提携コインP（買い物で割引あり）。',
+                tip: '住民用の月極区画へ誤って進入しないよう注意。'
+            },
+            d_maekawa2: {
+                summary: 'コモディイイダ／イオンモール川口前川 等の提携・大型P、周辺の民間コインP',
+                detail: 'コモディイイダ前川店・イオンモール川口前川 等の提携／大型駐車場、周辺の民間コインパーキング。',
+                tip: '現役の住宅団地。敷地内には停めず、必ず周辺のコインP・商業施設Pへ。'
+            },
+            d_akabanedai: {
+                summary: '商業施設（マルエツ等）併設のゲート式コインP',
+                detail: 'マルエツ等が入る商業施設併設のゲート式コインパーキング。',
+                tip: '駅側の狭隘路を避け、外周道路から入庫する。'
+            },
+            d_takashimadaira: {
+                summary: '東急ストア・アコレ提携P／駅〜団地のコインP多数',
+                detail: '東急ストア・アコレの提携駐車場、駅〜団地周辺のコインパーキング多数。',
+                tip: '路上駐車の取締りが厳格なエリア。必ずコインP・提携Pへ収容する。'
+            },
+            d_hibarigaoka: {
+                summary: 'フレスポひばりが丘 等の大型提携コインP／ひばりテラス118周辺',
+                detail: 'フレスポひばりが丘 等の大型提携コインパーキング、ひばりテラス118周辺の駐車場。',
+                tip: '提携店での買い物で駐車割引が利く。'
+            },
+            d_tokiwadaira: {
+                summary: '西友常盤平店・商店街提携の大規模コインP',
+                detail: '西友常盤平店・商店街提携の大規模コインパーキング。',
+                tip: '買い物割引が使いやすい構造。まず提携Pへ入れる。'
+            },
+            d_mogusa_tama: {
+                summary: '百草団地SC 来客用P／グリナード永山 立体P（提携割引）',
+                detail: '百草団地ショッピングセンターの来客用駐車場、多摩側はグリナード永山の立体駐車場（提携店で割引あり）。',
+                tip: '百草SCが満車なら外周のコインP、多摩側は駅直結のグリナードが最も確実。'
+            }
+        };
+
+        // distKm は「北本市から近い順」の仕様指定値。spots は実在確認できた
+        // 「一人で気兼ねなく入れる安心店」のみ（独自ルール店・行列店・気取った店は除外、水増しなし）。
+        // approx:true は住所未確定でエリア/駅中心へ概算プロットしたもの。
         const danchiMapData = [
             {
-                id: 'd_shibazono', name: '芝園団地（川口芝園団地）', distKm: 28,
-                lat: 35.8276, lng: 139.6875,
+                id: 'd_nishiageo', name: '西上尾第一・第二団地', area: '埼玉県上尾市小敷谷', distKm: 9.2,
+                lat: 35.9760, lng: 139.5620, tollPrefIdx: 0,
+                mikodokoro: '「へ」の字型の配棟で芝生広場を囲い込む初期公団の設計思想。中央のバスターミナルへ商店・郵便局などサービス施設を集約し、コンクリート打ち放しの給水塔がランドマーク。第一（1968年・約3,202戸）と第二が小敷谷に連続する。',
+                starhouse: null,
+                lens: 'EF24-105mm F4L（給水塔・全景）、SIGMA 35mm F1.4（商店街スナップ）。「へ」の字配棟の広場の抜けは EF24-105 の広角側、棟列の圧縮は EF70-200mm F4L。',
                 spots: [
-                    { cat:'gourmet', name:'芝園ショッピングモール 中国東北料理（酸辣粉ほか）', lat:35.8270, lng:139.6881, approx:false, hours:'店舗により異なる（11:00〜21:00目安）', closed:'無休の店が多い', menu:'酸辣粉／ラーメン＋炒飯 参考900円前後・定食 参考600円前後' },
-                    { cat:'gourmet', name:'蘭州ラーメン系（芝園モール内）', lat:35.8273, lng:139.6885, approx:true, hours:'要確認', closed:'要確認', menu:'手延べ牛肉麺 参考900円前後' },
-                    { cat:'coffee', name:'蕨・西川口の自家焙煎珈琲店', lat:35.8261, lng:139.6805, approx:true, hours:'要確認', closed:'要確認', menu:'自家焙煎ブレンド 参考450〜600円' },
-                    { cat:'soba', name:'蕨駅 駅そば／路麺', lat:35.8258, lng:139.6801, approx:true, hours:'早朝〜夜（駅そば標準）', closed:'無休目安', menu:'かけ・天玉そば 参考350〜500円' },
-                    { cat:'onsen', name:'天然温泉 スパロイヤル川口', lat:35.7958, lng:139.7360, approx:false, hours:'9:00〜翌1:00（受付24:00）', closed:'年中無休', menu:'黒湯天然温泉＋ナノ炭酸泉／平日900円・土日祝1,050円（料金は参考値）' }
+                    { cat:'gourmet', name:'アリオ上尾 レストラン街／フードコート', lat:35.9858, lng:139.5952, approx:true, hours:'10:00〜21:00（館に準ずる）', closed:'不定（館に準ずる）', menu:'定食・麺・丼を一人でも気兼ねなく。大型Pで車も安心', price:'参考800〜1,200円', addr:'埼玉県上尾市壱丁目367' },
+                    { cat:'onsen', name:'天然温泉 花咲の湯（HANASAKI SPA）', lat:35.9930, lng:139.6050, approx:true, hours:'8:00〜24:00', closed:'年中無休（メンテ休あり）', menu:'鉄分を含み空気で茶褐色に変わる天然温泉。露天・岩盤房、駐車約250台', price:'大人1,200円（平日・土日祝）／泉質: 含鉄ナトリウム-塩化物泉', addr:'埼玉県上尾市原市570' }
                 ]
             },
             {
-                id: 'd_akabanedai', name: '赤羽台団地', distKm: 32,
-                lat: 35.7846, lng: 139.7169,
+                id: 'd_shibazono', name: '芝園団地（川口芝園団地）', area: '埼玉県川口市芝園町', distKm: 28,
+                lat: 35.8276, lng: 139.6875, tollPrefIdx: 0,
+                mikodokoro: '巨大なグリッド構造の板状棟が中庭（コモンスペース）広場を囲む。1階に連なる中華系の看板街。1978年入居、住民の約半数が外国籍で「新中華街」とも呼ばれる。',
+                starhouse: null,
+                lens: 'グリッドの反復は EF70-200mm F4L の圧縮、看板街のスナップは SIGMA 35mm F1.4、中庭の全景は EF24-105mm F4L。',
                 spots: [
-                    { cat:'gourmet', name:'丸健水産（立ち飲みおでん）', lat:35.7788, lng:139.7203, approx:false, hours:'10:30〜20:30', closed:'月・水', menu:'名物「だし割」・白はんぺん。おでん1品 約100〜200円' },
-                    { cat:'gourmet', name:'まるます家 総本店（赤羽せんべろの代表格）', lat:35.7791, lng:139.7199, approx:false, hours:'9:00〜21:00頃', closed:'不定', menu:'鯉あらい・うなぎ・ジャン酎。鯉こく 参考600円前後' },
-                    { cat:'coffee', name:'純喫茶 梅の木（新館）', lat:35.7773, lng:139.7216, approx:false, hours:'8:30〜21:00', closed:'日曜', menu:'1983年創業・自家焙煎ブレンド（アメリカンおかわり半額）' },
-                    { cat:'soba', name:'そばいち エキュート赤羽店', lat:35.7779, lng:139.7211, approx:false, hours:'6:30〜23:00（L.O.22:30）', closed:'無休', menu:'かけそば＋名物「まいたけ天」' },
-                    { cat:'onsen', name:'前野原温泉 さやの湯処', lat:35.7772, lng:139.6790, approx:false, hours:'9:00〜24:00（受付23:00）', closed:'年中無休', menu:'ナトリウム-塩化物強塩温泉 源泉かけ流し／平日930円・土日祝1,250円' }
+                    { cat:'gourmet', name:'芝園ショッピングモール 中国東北料理（酸辣粉ほか）', lat:35.8270, lng:139.6881, approx:false, hours:'店舗により異なる（11:00〜21:00目安）', closed:'無休の店が多い', menu:'酸辣粉・牛肉麺・炒飯', price:'ラーメン＋炒飯 参考900円前後／定食 参考600円前後' },
+                    { cat:'soba', name:'立ち食いそば・うどん 山竹', lat:35.8258, lng:139.6795, approx:false, hours:'朝〜夜（駅そば標準）', closed:'不定（要確認）', menu:'かき揚げそば。食券制でサッと', price:'かけ 参考350〜450円／かき揚げ 参考450〜550円', addr:'埼玉県蕨市中央1-2-7（蕨駅西口）' },
+                    { cat:'onsen', name:'天然温泉 スパロイヤル川口', lat:35.7958, lng:139.7360, approx:false, hours:'9:00〜翌1:00（受付24:00）', closed:'年中無休', menu:'黒湯天然温泉＋ナノ炭酸泉', price:'平日900円／土日祝1,050円（参考値）／泉質: 含ヨウ素ナトリウム-塩化物泉（黒湯）' }
                 ]
             },
             {
-                id: 'd_takashimadaira', name: '高島平団地', distKm: 33,
-                lat: 35.7920, lng: 139.6647,
+                id: 'd_maekawa2', name: '前川第2団地【現役スターハウス】', area: '埼玉県川口市前川', distKm: 30,
+                lat: 35.8130, lng: 139.7080, tollPrefIdx: 0,
+                mikodokoro: '昭和30年代からの豊かな緑地に囲まれた低層団地。均質なスラブ棟の合間に、埼玉県内で現存が極めて貴重な「現役の公団スターハウス（星型住棟）」が残る。',
+                starhouse: '現役の公団スターハウス（星型住棟）。Y字型ファサードと3方向へ開く独特の平面。居住が続く現役棟のため敷地内へ立ち入らず、公道から静かに撮影する。',
+                lens: 'Y字ファサードは EF24-105mm F4L の広角〜標準、陰影のディテールは SIGMA 35mm F1.4、棟越しの緑の抜きは EF70-200mm F4L。',
                 spots: [
-                    { cat:'gourmet', name:'高島平駅前の町中華・定食', lat:35.7907, lng:139.6626, approx:true, hours:'要確認', closed:'要確認', menu:'ラム炒め定食 参考850円／ラーメン＋半チャーハン 参考850円' },
-                    { cat:'coffee', name:'高島平〜西台の自家焙煎珈琲店', lat:35.7901, lng:139.6631, approx:true, hours:'要確認', closed:'要確認', menu:'自家焙煎ブレンド 参考450〜600円' },
-                    { cat:'soba', name:'高島平駅 駅そば／路麺', lat:35.7906, lng:139.6620, approx:true, hours:'早朝〜夜（駅そば標準）', closed:'無休目安', menu:'かけ・天玉そば 参考400〜550円' },
-                    { cat:'onsen', name:'前野原温泉 さやの湯処', lat:35.7772, lng:139.6790, approx:false, hours:'9:00〜24:00（受付23:00）', closed:'年中無休', menu:'源泉かけ流しの黄褐色にごり湯・枯山水庭園／平日930円・土日祝1,250円' }
+                    { cat:'gourmet', name:'町中華 石川屋', lat:35.8120, lng:139.7040, approx:true, hours:'要確認', closed:'要確認', menu:'チャーハン・餃子。「ザ・町中華」の一杯', price:'チャーハン 参考700〜900円', addr:'埼玉県川口市前川4-41-15' },
+                    { cat:'gourmet', name:'イオンモール川口前川 フードコート', lat:35.8090, lng:139.7050, approx:true, hours:'10:00〜21:00（館に準ずる）', closed:'不定（館に準ずる）', menu:'一人でも入りやすい麺・丼・定食。大型Pで車も安心', price:'参考700〜1,200円', addr:'埼玉県川口市前川' },
+                    { cat:'onsen', name:'天然温泉 スパロイヤル川口', lat:35.7958, lng:139.7360, approx:false, hours:'9:00〜翌1:00（受付24:00）', closed:'年中無休', menu:'黒湯天然温泉＋ナノ炭酸泉。前川から車約10分', price:'平日900円／土日祝1,050円（参考値）／泉質: 含ヨウ素ナトリウム-塩化物泉（黒湯）' }
                 ]
             },
             {
-                id: 'd_hibarigaoka', name: 'ひばりが丘団地', distKm: 36,
-                lat: 35.7490, lng: 139.5445,
+                id: 'd_akabanedai', name: '赤羽台団地（ヌーヴェル赤羽台）', area: '東京都北区赤羽台', distKm: 32,
+                lat: 35.7846, lng: 139.7169, tollPrefIdx: 1,
+                mikodokoro: '台地の地形を活かした初期公団の配棟計画。国登録有形文化財として保存・展示される初期スターハウスと、隣接する「ヌーヴェル赤羽台」の最新都市再生との対比が撮れる。',
+                starhouse: '国登録有形文化財として保存・展示される初期スターハウス（44号棟・45号棟ほか）。「URまちとくらしのミュージアム」（事前予約制・入場無料）で外観を鑑賞できる。',
+                lens: '星形住棟の全景〜細部は EF24-105mm F4L、棟の反復と遠景は EF70-200mm F4L、生活感スナップは SIGMA 35mm F1.4。',
                 spots: [
-                    { cat:'gourmet', name:'ひばりヶ丘駅前のB級（町中華・洋食）', lat:35.7478, lng:139.5468, approx:true, hours:'要確認', closed:'要確認', menu:'町中華セット 参考800〜1,000円' },
-                    { cat:'coffee', name:'ひばりヶ丘北口商店街の喫茶', lat:35.7486, lng:139.5476, approx:true, hours:'要確認', closed:'要確認', menu:'ブレンド 参考400〜550円' },
-                    { cat:'soba', name:'ひばりヶ丘駅の手打ちそば店（大勝軒系で修行）', lat:35.7481, lng:139.5471, approx:true, hours:'要確認', closed:'要確認', menu:'そば定食（ご飯・サラダ付）参考920円' },
-                    { cat:'onsen', name:'名水天然温泉 スパジアムジャポン', lat:35.7590, lng:139.5460, approx:false, hours:'月〜木 9:00〜翌1:00 ほか', closed:'不定（公式で確認）', menu:'無色透明「武蔵野温泉」＋高濃度炭酸泉／平日850円・土日祝950円（岩盤浴別）' }
+                    { cat:'gourmet', name:'丸健水産（立ち飲みおでん・大衆）', lat:35.7788, lng:139.7203, approx:false, hours:'10:30〜20:30', closed:'月・水', menu:'おでん各種・名物「だし割」・白はんぺん。一人でサッと', price:'おでん1品 約100〜200円', addr:'東京都北区赤羽1-22-8 シルクロード商店街内' },
+                    { cat:'soba', name:'そばいち エキュート赤羽店', lat:35.7779, lng:139.7211, approx:false, hours:'6:30〜23:00（L.O.22:30）', closed:'無休', menu:'かけそば＋名物「まいたけ天」。食券制', price:'参考400〜600円', addr:'JR赤羽駅構内 エキュート赤羽' },
+                    { cat:'coffee', name:'純喫茶 梅の木（新館）', lat:35.7773, lng:139.7216, approx:false, hours:'8:30〜21:00', closed:'日曜', menu:'1983年創業。自家焙煎ブレンド（アメリカンおかわり半額）、トースト。静かに座れる', price:'コーヒー 参考450〜550円', addr:'東京都北区赤羽1-2-3 2F' },
+                    { cat:'onsen', name:'前野原温泉 さやの湯処', lat:35.7772, lng:139.6790, approx:false, hours:'9:00〜24:00（受付23:00）', closed:'年中無休', menu:'源泉かけ流し・枯山水庭園。赤羽台から車約20分', price:'平日930円／土日祝1,250円／泉質: ナトリウム-塩化物強塩温泉' }
                 ]
             },
             {
-                id: 'd_tokiwadaira', name: '常盤平団地', distKm: 52,
-                lat: 35.7935, lng: 139.9245,
+                id: 'd_takashimadaira', name: '高島平団地', area: '東京都板橋区高島平', distKm: 33,
+                lat: 35.7920, lng: 139.6647, tollPrefIdx: 1,
+                mikodokoro: '1万戸を超える板状メガ団地。直線が生む幾何学美、外付け非常階段が刻むリズム、団地を貫く広大な緑道（ケヤキ並木）。1970年代の大量供給を象徴する。',
+                starhouse: null,
+                lens: '直線の反復と非常階段のラインは EF70-200mm F4L の圧縮、並木トンネルは EF24-105mm F4L の広角、木漏れ日スナップは SIGMA 35mm F1.4。',
                 spots: [
-                    { cat:'gourmet', name:'松戸のB級（ホワイト餃子系・松戸中華そば）', lat:35.7925, lng:139.9226, approx:true, hours:'要確認', closed:'要確認', menu:'焼餃子・中華そば 参考600〜900円' },
-                    { cat:'coffee', name:'常盤平駅前の純喫茶', lat:35.7928, lng:139.9232, approx:true, hours:'要確認', closed:'要確認', menu:'ブレンド 参考400〜550円' },
-                    { cat:'soba', name:'常盤平・五香駅周辺の路麺', lat:35.7930, lng:139.9230, approx:true, hours:'要確認', closed:'要確認', menu:'かけ・天玉そば 参考350〜500円' },
-                    { cat:'onsen', name:'湯楽の里 松戸店', lat:35.7748, lng:139.9165, approx:false, hours:'9:00〜翌1:00（受付0:30）', closed:'年中無休', menu:'天然温泉＋露天の高濃度炭酸泉／平日710円・土日祝810円' }
+                    { cat:'gourmet', name:'町中華 華丸', lat:35.7960, lng:139.6600, approx:false, hours:'〜22:00頃', closed:'不定（要確認）', menu:'チャーハン・餃子・タンメン。カウンター有で一人可', price:'チャーハン 参考700〜850円', addr:'東京都板橋区高島平8-14-5' },
+                    { cat:'soba', name:'立ち食いそば TGS622', lat:35.7876, lng:139.6660, approx:false, hours:'朝〜夜（要確認）', closed:'不定（要確認）', menu:'かけそば・かけうどん、汁なし「あえSOBA」。タッチパネル食券制', price:'かけ420円〜／あえSOBA 550円', addr:'東京都板橋区高島平6-2-2（新高島平駅・高島平通り沿い）' },
+                    { cat:'coffee', name:'珈琲館イヴ', lat:35.7930, lng:139.6612, approx:false, hours:'10:00〜18:00', closed:'木曜', menu:'高島平団地ファミリー名店街の53年続く純喫茶。深めの焙煎、静かに座れる', price:'コーヒー 参考450〜550円', addr:'東京都板橋区高島平3-10-1-128 高島平団地ファミリー名店街内' },
+                    { cat:'onsen', name:'前野原温泉 さやの湯処', lat:35.7772, lng:139.6790, approx:false, hours:'9:00〜24:00（受付23:00）', closed:'年中無休', menu:'源泉かけ流しの黄褐色にごり湯・枯山水庭園。団地から車約10分', price:'平日930円／土日祝1,250円／泉質: ナトリウム-塩化物強塩温泉' }
                 ]
             },
             {
-                id: 'd_mogusa', name: '百草団地', distKm: 58,
-                lat: 35.6540, lng: 139.4470,
+                id: 'd_hibarigaoka', name: 'ひばりが丘団地', area: '東京都西東京市・東久留米市', distKm: 36,
+                lat: 35.7490, lng: 139.5445, tollPrefIdx: 1,
+                mikodokoro: '公団初期の「DK（ダイニングキッチン）」様式発祥の地（1959年、日本初のマンモス団地）。保存されたテラスハウス棟、ひばりテラス118、広大な芝生広場。1960年に皇太子ご夫妻が視察。',
+                starhouse: null,
+                lens: '保存テラスハウスと広場は EF24-105mm F4L、並木・遠景の圧縮は EF70-200mm F4L、スナップは SIGMA 35mm F1.4。',
                 spots: [
-                    { cat:'gourmet', name:'百草団地SC アポロ広場の食堂・ラーメン', lat:35.6545, lng:139.4476, approx:true, hours:'要確認', closed:'要確認', menu:'「らーめん 治 らいおん 百草店」など。ラーメン 参考750〜950円' },
-                    { cat:'coffee', name:'高幡不動駅周辺の喫茶', lat:35.6568, lng:139.4129, approx:true, hours:'要確認', closed:'要確認', menu:'ブレンド 参考400〜550円（団地から約3km）' },
-                    { cat:'soba', name:'高幡そば 高幡不動駅店', lat:35.6567, lng:139.4128, approx:false, hours:'早朝〜夜（駅そば標準）', closed:'無休目安', menu:'名物「鳥中華」・明日葉天。食券制（団地から約3km）' },
-                    { cat:'onsen', name:'稲城天然温泉 季乃彩', lat:35.6432, lng:139.4930, approx:false, hours:'平日 9:00〜25:00／土日祝 7:00〜25:00', closed:'3・6・9・12月 第3火曜', menu:'ナトリウム-炭酸水素塩・塩化物温泉 かけ流し／平日1,000円・土日祝1,200円' }
+                    { cat:'gourmet', name:'町中華 松華苑', lat:35.7455, lng:139.5460, approx:true, hours:'要確認', closed:'要確認', menu:'五目ラーメン・炒飯・餃子。目立たない住宅街で地元民に愛される一軒', price:'ラーメン 参考700〜900円', addr:'西東京市 ひばりヶ丘駅 徒歩約10分（住宅街／要確認）' },
+                    { cat:'coffee', name:'松尾珈琲', lat:35.7500, lng:139.5455, approx:false, hours:'11:30〜20:00（L.O.19:30）', closed:'要確認', menu:'静かに座れる駅近の喫茶。深煎りコーヒー', price:'コーヒー 参考500〜650円', addr:'東京都西東京市ひばりが丘北3-4-1 みらいビル1F' },
+                    { cat:'onsen', name:'名水天然温泉 スパジアムジャポン', lat:35.7590, lng:139.5460, approx:false, hours:'月〜木 9:00〜翌1:00 ほか', closed:'不定（公式で確認）', menu:'関東最大級。ひばりが丘から車約10分', price:'平日850円／土日祝950円（岩盤浴別）／泉質: 無色透明「武蔵野温泉」＋高濃度炭酸泉', addr:'東京都東久留米市上の原2-7-7' }
                 ]
             },
             {
-                id: 'd_tama_suwa_nagayama', name: '多摩ニュータウン 諏訪・永山', distKm: 60,
-                lat: 35.6318, lng: 139.4340,
+                id: 'd_tokiwadaira', name: '常盤平団地', area: '千葉県松戸市常盤平', distKm: 52,
+                lat: 35.7935, lng: 139.9245, tollPrefIdx: 3,
+                mikodokoro: '日本の道100選「常盤平さくら通り」（約3.1km・約625本）と、新日本街路樹100景のケヤキ並木「けやき通り」（約1km・181本）。最高峰の公園型ランドスケープ。1960年入居、約5,000戸。',
+                starhouse: 'Y字型スターハウスが現存。松戸市立博物館の隣接地で当時の住戸も復元展示されている。',
+                lens: '並木のトンネルは EF24-105mm F4L の広角、桜・紅葉の圧縮は EF70-200mm F4L、人物スナップは SIGMA 35mm F1.4。',
                 spots: [
-                    { cat:'gourmet', name:'グリナード永山・永山名店街周辺のB級', lat:35.6332, lng:139.4384, approx:true, hours:'要確認', closed:'要確認', menu:'町中華・定食 参考800〜1,000円' },
-                    { cat:'coffee', name:'永山名店街の喫茶店', lat:35.6330, lng:139.4379, approx:true, hours:'要確認', closed:'要確認', menu:'昔ながらの喫茶。ブレンド 参考400〜550円' },
-                    { cat:'soba', name:'箱根そば 永山店', lat:35.6329, lng:139.4382, approx:false, hours:'早朝〜夜（箱根そば標準）', closed:'無休目安', menu:'券売機セルフ。春菊天そばなど 参考400〜550円' },
-                    { cat:'onsen', name:'多摩境天然温泉 森乃彩', lat:35.6110, lng:139.3720, approx:false, hours:'9:00〜24:00（受付23:00）', closed:'3・6・9・12月 第2火曜', menu:'ナトリウム-炭酸水素塩・塩化物泉 露天かけ流し／平日880円・土日祝980円（団地から約7km。稲城の季乃彩も可）' }
+                    { cat:'gourmet', name:'中華 辣碗（ラーワン）', lat:35.7930, lng:139.9250, approx:true, hours:'要確認（昼／夜）', closed:'要確認', menu:'町中華〜四川。一人で入りやすいカウンター中心', price:'ランチ 参考800〜1,100円', addr:'松戸市 常盤平駅 南口 徒歩1分' },
+                    { cat:'soba', name:'そば処 そば福', lat:35.7938, lng:139.9235, approx:true, hours:'11:00〜21:00（L.O.20:00）', closed:'要確認', menu:'常盤平の大衆そば処。ざる・かけ・丼物', price:'もり・かけ 参考500〜700円', addr:'千葉県松戸市常盤平（住所は要確認）' },
+                    { cat:'onsen', name:'湯楽の里 松戸店', lat:35.7748, lng:139.9165, approx:false, hours:'9:00〜翌1:00（受付0:30）', closed:'年中無休', menu:'天然温泉＋露天の高濃度炭酸泉、全10種の湯。無料大型駐車場。常盤平から車約15分', price:'平日710円／土日祝810円／泉質: ナトリウム-塩化物泉' }
+                ]
+            },
+            {
+                id: 'd_mogusa_tama', name: '百草団地／多摩ニュータウン 諏訪・永山', area: '東京都日野市・多摩市', distKm: 58,
+                lat: 35.6540, lng: 139.4470, tollPrefIdx: 1,
+                mikodokoro: '丘陵の急斜面を活かした立体段丘配置と、歩車分離（ラドバーン方式）の空中歩道デッキ。百草団地（1969年・多摩丘陵の高台）と、多摩ニュータウン第1期の諏訪・永山（1971年街びらき、日本最大のNT）。',
+                starhouse: null,
+                lens: '立体段丘と棟の重なりは EF70-200mm F4L の圧縮、空中歩道デッキと全景は EF24-105mm F4L、スナップは SIGMA 35mm F1.4。',
+                spots: [
+                    { cat:'gourmet', name:'百草団地SC内の食堂・ラーメン（アポロ広場）', lat:35.6545, lng:139.4476, approx:true, hours:'要確認', closed:'要確認', menu:'団地SC内の気取らない一杯。ラーメン・定食', price:'ラーメン 参考750〜950円', addr:'東京都日野市百草 百草団地SC内' },
+                    { cat:'soba', name:'高幡そば 高幡不動駅店', lat:35.6567, lng:139.4128, approx:false, hours:'朝〜夜（駅そば標準）', closed:'不定（要確認）', menu:'名物「鳥中華」、明日葉天。食券制（百草から約3km）', price:'かけ 参考350〜450円／鳥中華 参考550円', addr:'京王線 高幡不動駅コンコース' },
+                    { cat:'coffee', name:'珈琲はうす あんず村', lat:35.6560, lng:139.4133, approx:false, hours:'10:00〜20:00（L.O.19:30）', closed:'毎月第1月曜・毎週火曜', menu:'1980年創業の老舗喫茶。深煎り、トースト、国産食材の軽食。静かに座れる', price:'コーヒー 参考500〜650円', addr:'東京都日野市高幡3-23 YSビル2F' },
+                    { cat:'soba', name:'箱根そば 永山店', lat:35.6331, lng:139.4386, approx:false, hours:'朝〜夜（箱根そば標準）', closed:'不定（要確認）', menu:'券売機セルフの大衆そば。春菊天そばなど（多摩・永山側）', price:'かけ 参考350〜450円', addr:'京王・小田急 永山駅すぐ' },
+                    { cat:'gourmet', name:'グリナード永山 レストラン街／グルメパーク', lat:35.6329, lng:139.4382, approx:false, hours:'10:00〜20:00（館に準ずる）', closed:'不定（館に準ずる）', menu:'駅直結で一人でも入りやすい定食・麺・洋食（多摩・永山側）', price:'参考800〜1,200円', addr:'東京都多摩市永山1-4 グリナード永山' },
+                    { cat:'onsen', name:'稲城天然温泉 季乃彩（ときのいろどり）', lat:35.6432, lng:139.4930, approx:false, hours:'平日 9:00〜25:00／土日祝 7:00〜25:00', closed:'3・6・9・12月 第3火曜', menu:'地下1,700m源泉かけ流し（多摩側は多摩境「森乃彩」も可）', price:'平日1,000円／土日祝1,200円／泉質: ナトリウム-炭酸水素塩・塩化物温泉', addr:'東京都稲城市向陽台6-13' }
                 ]
             }
         ];
@@ -1392,29 +1211,44 @@
 
         function danchiSpotPopupHtml(spot, danchi) {
             const catLabel = (DANCHI_CATS[spot.cat] || {}).label || '';
-            const q = encodeURIComponent(spot.name + ' ' + (danchi ? danchi.name : ''));
+            const q = encodeURIComponent((spot.addr && spot.addr.indexOf('要確認') < 0 ? spot.addr : spot.name + ' ' + (danchi ? danchi.name : '')));
             const gmapSearch = 'https://www.google.com/maps/search/?api=1&query=' + q;
             const gmapDir = 'https://www.google.com/maps/dir/?api=1&destination=' + spot.lat + ',' + spot.lng + '&travelmode=driving';
             const approxBadge = spot.approx
                 ? '<span style="background:#b45309;color:#fff;border-radius:4px;padding:0 4px;font-size:10px;margin-left:4px;">位置目安</span>'
                 : '';
-            return '<div class="text-slate-900 text-xs font-sans" style="min-width:210px;max-width:250px;">' +
+            const addrLine = spot.addr ? '<div style="color:#475569;">📍 ' + escapeHtml(spot.addr) + '</div>' : '';
+            return '<div class="text-slate-900 text-xs font-sans" style="min-width:214px;max-width:256px;">' +
                 '<strong class="text-sm font-bold block mb-1">' + escapeHtml(spot.name) + '</strong>' +
                 '<span class="inline-block bg-slate-200 px-1.5 py-0.5 rounded text-[10px] mb-1">' + escapeHtml(catLabel) + '</span>' + approxBadge +
+                addrLine +
                 '<div style="margin-top:2px;"><b>Google評価:</b> <a href="' + gmapSearch + '" target="_blank" rel="noopener noreferrer" style="color:#0284c7;text-decoration:underline;">マップで確認</a></div>' +
                 '<div><b>営業時間:</b> ' + escapeHtml(spot.hours || '要確認') + '</div>' +
                 '<div><b>定休日:</b> ' + escapeHtml(spot.closed || '要確認') + '</div>' +
-                '<div style="margin-top:2px;"><b>名物メニュー:</b> ' + escapeHtml(spot.menu || '—') + '</div>' +
+                '<div style="margin-top:2px;"><b>看板メニュー:</b> ' + escapeHtml(spot.menu || '—') + '</div>' +
+                '<div><b>価格:</b> ' + escapeHtml(spot.price || '—') + '</div>' +
                 '<a href="' + gmapDir + '" target="_blank" rel="noopener noreferrer" style="display:block;margin-top:6px;background:#059669;color:#fff;text-align:center;font-weight:bold;padding:5px 0;border-radius:6px;text-decoration:none;">Googleマップで経路案内</a>' +
                 '</div>';
         }
 
         function danchiPinPopupHtml(danchi) {
             const q = encodeURIComponent(danchi.name);
-            return '<div class="text-slate-900 text-xs font-sans" style="min-width:200px;">' +
+            const pk = DANCHI_PARKING[danchi.id];
+            const starLine = danchi.starhouse
+                ? '<div style="margin-top:4px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:4px 6px;"><b>⭐ スターハウス</b><br>' + escapeHtml(danchi.starhouse) + '</div>'
+                : '';
+            const pkLine = pk
+                ? '<div style="margin-top:4px;background:#fff7ed;border:1px solid #fdba74;border-radius:6px;padding:4px 6px;">' +
+                    '<b>🚗 外部向け駐車ガイド</b><br>' + escapeHtml(pk.summary) +
+                    '<br><span style="color:#9a3412;">' + escapeHtml(pk.tip) + '</span></div>'
+                : '';
+            return '<div class="text-slate-900 text-xs font-sans" style="min-width:214px;max-width:266px;">' +
                 '<strong class="text-sm font-bold block mb-1">🏢 ' + escapeHtml(danchi.name) + '</strong>' +
                 '<div><b>北本から:</b> 約' + danchi.distKm + ' km</div>' +
-                '<div><b>半径1km圏:</b> はしご候補 ' + danchi.spots.length + ' 件</div>' +
+                '<div style="margin-top:2px;"><b>🏛️ 見どころ:</b> ' + escapeHtml(danchi.mikodokoro) + '</div>' +
+                starLine +
+                pkLine +
+                '<div style="margin-top:4px;"><b>半径1km圏:</b> 安心はしご候補 ' + danchi.spots.length + ' 軒（水増しなし）</div>' +
                 '<a href="https://www.google.com/maps/search/?api=1&query=' + q + '" target="_blank" rel="noopener noreferrer" style="display:block;margin-top:6px;background:#2563eb;color:#fff;text-align:center;font-weight:bold;padding:5px 0;border-radius:6px;text-decoration:none;">団地をGoogleマップで見る</a>' +
                 '</div>';
         }
@@ -1425,7 +1259,7 @@
                 const el = document.getElementById('danchiMap');
                 if (!el || typeof L === 'undefined') return;
 
-                danchiMap = L.map('danchiMap', { scrollWheelZoom: true }).setView([35.75, 139.62], 10);
+                danchiMap = L.map('danchiMap', { scrollWheelZoom: true }).setView([35.80, 139.62], 10);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     attribution: '&copy; OpenStreetMap contributors'
@@ -1475,21 +1309,49 @@
                 box.innerHTML = '';
                 danchiMapSorted.forEach(function (dc) {
                     const active = dc.id === danchiSelectedId;
+                    const pk = DANCHI_PARKING[dc.id];
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.dataset.danchiId = dc.id;
-                    btn.className = 'w-full text-left px-3 py-2 rounded-lg border transition text-xs flex items-center justify-between gap-2 ' +
+                    btn.className = 'w-full text-left px-3 py-2 rounded-lg border transition text-xs ' +
                         (active
-                            ? 'bg-emerald-600 border-emerald-500 text-white font-bold shadow'
+                            ? 'bg-emerald-600 border-emerald-500 text-white shadow'
                             : 'bg-slate-900/70 border-slate-700 text-slate-300 hover:border-emerald-600 hover:text-white');
                     btn.innerHTML =
-                        '<span class="flex items-center gap-1.5"><span>🏢</span> ' + dc.name + '</span>' +
-                        '<span class="text-[10px] ' + (active ? 'text-emerald-100' : 'text-slate-500') + ' shrink-0">北本から約' + dc.distKm + 'km</span>';
+                        '<span class="flex items-center justify-between gap-2">' +
+                            '<span class="flex items-center gap-1.5 font-bold"><span>🏢</span> ' + dc.name + '</span>' +
+                            '<span class="text-[10px] ' + (active ? 'text-emerald-100' : 'text-slate-500') + ' shrink-0">北本から約' + dc.distKm + 'km</span>' +
+                        '</span>' +
+                        (dc.starhouse ? '<span class="mt-1 flex items-center gap-1 text-[10px] ' + (active ? 'text-amber-100' : 'text-amber-300/80') + '"><span>⭐</span><span>スターハウス鑑賞スポット</span></span>' : '') +
+                        (pk ? '<span class="mt-0.5 flex items-start gap-1 text-[10px] ' + (active ? 'text-emerald-50' : 'text-slate-400') + '"><span class="shrink-0">🚗</span><span>' + pk.summary + '</span></span>' : '');
                     btn.addEventListener('click', function () { selectDanchi(dc.id); });
                     box.appendChild(btn);
                 });
             } catch (e) {
                 console.error('renderDanchiSelector error:', e);
+            }
+        }
+
+        function renderDanchiParkingPanel(dc) {
+            try {
+                const box = document.getElementById('danchiParkingPanel');
+                if (!box) return;
+                const pk = dc ? DANCHI_PARKING[dc.id] : null;
+                if (!pk) { box.innerHTML = ''; box.hidden = true; return; }
+                box.hidden = false;
+                const star = (dc && dc.starhouse)
+                    ? '<div class="mt-1.5 text-[11px] text-amber-200 leading-snug"><span class="bg-amber-600 text-slate-900 text-[10px] font-bold px-1.5 py-0.5 rounded">⭐ スターハウス</span> ' + dc.starhouse + '</div>'
+                    : '';
+                box.innerHTML =
+                    '<div class="flex items-center gap-1.5 mb-1">' +
+                        '<span class="bg-amber-500 text-slate-900 text-[10px] font-bold px-1.5 py-0.5 rounded">🚗 外部向け駐車ガイド</span>' +
+                        '<span class="text-[10px] text-slate-400">部外者でも安心して停められる場所</span>' +
+                    '</div>' +
+                    '<div class="text-[11px] text-slate-200 leading-snug">' + pk.detail + '</div>' +
+                    '<div class="text-[11px] text-amber-300/90 leading-snug mt-0.5">⚠ ' + pk.tip + '</div>' +
+                    star;
+            } catch (e) {
+                console.error('renderDanchiParkingPanel error:', e);
             }
         }
 
@@ -1508,13 +1370,15 @@
                     row.type = 'button';
                     row.className = 'w-full text-left bg-slate-900/60 hover:bg-slate-900 border border-slate-700/80 hover:border-emerald-600 rounded-lg p-2 transition';
                     row.innerHTML =
-                        '<div class="flex items-center gap-1.5">' +
+                        '<div class="flex items-center gap-1.5 flex-wrap">' +
                             '<span class="inline-flex w-5 h-5 rounded-full items-center justify-center text-[11px] border border-white shrink-0" style="background:' + c.bg + '">' + c.emoji + '</span>' +
                             '<span class="text-white font-semibold text-[11px] leading-tight">' + sp.name + '</span>' +
+                            '<span class="text-[9px] bg-slate-700 text-slate-300 rounded px-1">' + c.label + '</span>' +
                             (sp.approx ? '<span class="text-[9px] bg-amber-700 text-white rounded px-1 ml-auto shrink-0">位置目安</span>' : '') +
                         '</div>' +
+                        (sp.addr ? '<div class="text-slate-500 text-[10px] mt-0.5">📍 ' + sp.addr + '</div>' : '') +
                         '<div class="text-slate-400 text-[10px] mt-1 leading-snug">🕒 ' + (sp.hours || '要確認') + ' ／ 休 ' + (sp.closed || '要確認') + '</div>' +
-                        '<div class="text-slate-300 text-[10px] mt-0.5 leading-snug">' + (sp.menu || '') + '</div>';
+                        '<div class="text-slate-300 text-[10px] mt-0.5 leading-snug">' + (sp.menu || '') + (sp.price ? '<span class="text-emerald-300"> ／ ' + sp.price + '</span>' : '') + '</div>';
                     row.addEventListener('click', function () {
                         const hit = danchiMarkers.find(function (mm) { return mm.spot === sp && mm.danchiId === dc.id; });
                         if (hit && danchiMap) {
@@ -1547,7 +1411,6 @@
                         fillColor: '#34d399', fillOpacity: 0.08
                     }).addTo(danchiMap);
 
-                    // 選択団地のピンだけ強調、他団地はディム表示
                     danchiMarkers.forEach(function (mm) {
                         const elm = mm.marker.getElement && mm.marker.getElement();
                         if (mm.danchiId === id) {
@@ -1563,11 +1426,116 @@
                 const nameEl = document.getElementById('danchiSelectedName');
                 if (nameEl) nameEl.textContent = dc.name;
                 renderDanchiSelector();
+                renderDanchiParkingPanel(dc);
                 renderDanchiSpotList(dc);
             } catch (e) {
                 console.error('selectDanchi error:', e);
             }
         }
+
+        // 詳細カード（danchiMapData 単一ソースから生成）
+        function renderDanchi() {
+            try {
+                const container = document.getElementById('danchiList');
+                if (!container) return;
+                container.innerHTML = '';
+
+                danchiMapData.forEach(function (dc, index) {
+                    try {
+                        const distLin = (typeof calcDist === 'function') ? calcDist(KITAMOTO_LAT, KITAMOTO_LNG, dc.lat, dc.lng) : dc.distKm;
+                        const distRoad = distLin * 1.3;
+                        const carAcc = (typeof calcCarAccess === 'function') ? calcCarAccess(distLin, distRoad, dc.tollPrefIdx) : null;
+                        const fuel = calcFuelCost(distRoad);
+                        const pk = DANCHI_PARKING[dc.id];
+
+                        let spotsHtml = '';
+                        (dc.spots || []).forEach(function (sp) {
+                            const c = DANCHI_CATS[sp.cat] || DANCHI_CATS.gourmet;
+                            const q = encodeURIComponent((sp.addr && sp.addr.indexOf('要確認') < 0) ? sp.addr : sp.name + ' ' + dc.name);
+                            const dir = 'https://www.google.com/maps/dir/?api=1&destination=' + sp.lat + ',' + sp.lng + '&travelmode=driving';
+                            spotsHtml +=
+                                '<li class="bg-slate-900/60 border border-slate-700/80 rounded-lg p-2">' +
+                                    '<div class="flex items-center gap-1.5 flex-wrap">' +
+                                        '<span class="inline-flex w-5 h-5 rounded-full items-center justify-center text-[11px] border border-white shrink-0" style="background:' + c.bg + '">' + c.emoji + '</span>' +
+                                        '<span class="text-white font-semibold text-[11px]">' + sp.name + '</span>' +
+                                        '<span class="text-[9px] bg-slate-700 text-slate-300 rounded px-1">' + c.label + '</span>' +
+                                        (sp.approx ? '<span class="text-[9px] bg-amber-700 text-white rounded px-1">位置目安</span>' : '') +
+                                    '</div>' +
+                                    (sp.addr ? '<div class="text-slate-500 text-[10px] mt-0.5">📍 ' + sp.addr + '</div>' : '') +
+                                    '<div class="text-slate-400 text-[10px] mt-0.5">🕒 ' + (sp.hours || '要確認') + ' ／ 休 ' + (sp.closed || '要確認') + '</div>' +
+                                    '<div class="text-slate-300 text-[10px] mt-0.5">' + (sp.menu || '') + (sp.price ? '<span class="text-emerald-300"> ／ ' + sp.price + '</span>' : '') + '</div>' +
+                                    '<div class="mt-0.5 flex gap-3">' +
+                                        '<a href="https://www.google.com/maps/search/?api=1&query=' + q + '" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline text-[10px]">評価/地図で確認</a>' +
+                                        '<a href="' + dir + '" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:underline text-[10px]">経路案内</a>' +
+                                    '</div>' +
+                                '</li>';
+                        });
+
+                        const carHtml = carAcc
+                            ? '<div class="bg-slate-900/80 p-3 rounded-lg border border-slate-700/80 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">' +
+                                '<div><div class="text-slate-400 text-[10px]">一般道のみ</div><div class="text-amber-300 font-semibold">約' + carAcc.minutesLocal + '分</div></div>' +
+                                '<div class="border-t sm:border-t-0 sm:border-l border-slate-700/80 pt-2 sm:pt-0 sm:pl-3"><div class="text-slate-400 text-[10px]">高速優先</div><div class="text-emerald-300 font-semibold">約' + carAcc.minutesExpress + '分 <span class="text-slate-400 text-[11px]">(約' + carAcc.tollExpress.toLocaleString() + '円)</span></div></div>' +
+                                '<div class="border-t sm:border-t-0 sm:border-l border-slate-700/80 pt-2 sm:pt-0 sm:pl-3"><div class="text-slate-400 text-[10px]">ガソリン代(15円/km)</div><div class="text-emerald-300 font-semibold">片道約' + fuel.oneWay.toLocaleString() + '円 / 往復約' + fuel.roundTrip.toLocaleString() + '円</div></div>' +
+                              '</div>'
+                            : '';
+
+                        const starHtml = dc.starhouse
+                            ? '<div class="bg-amber-950/40 border border-amber-800/60 rounded-lg p-2.5 text-xs">' +
+                                '<strong class="text-amber-300 flex items-center gap-1"><i data-lucide="star" class="w-3.5 h-3.5"></i> ⭐ スターハウス（星型住棟）鑑賞</strong>' +
+                                '<p class="text-slate-200 mt-0.5 leading-relaxed">' + dc.starhouse + '</p>' +
+                              '</div>'
+                            : '';
+
+                        const pkHtml = pk
+                            ? '<div class="bg-amber-950/30 border border-amber-800/50 rounded-lg p-2.5 text-xs">' +
+                                '<strong class="text-amber-300 flex items-center gap-1"><i data-lucide="square-parking" class="w-3.5 h-3.5"></i> 🚗 外部向け駐車ガイド</strong>' +
+                                '<p class="text-slate-200 mt-0.5 leading-relaxed">' + pk.detail + '</p>' +
+                                '<p class="text-amber-300/90 mt-0.5 leading-relaxed">⚠ ' + pk.tip + '</p>' +
+                              '</div>'
+                            : '';
+
+                        const card = document.createElement('div');
+                        card.className = "bg-slate-800 rounded-xl border border-slate-700 shadow-lg overflow-hidden transition hover:border-slate-600 p-4 sm:p-5 flex flex-col justify-between space-y-3";
+                        card.innerHTML =
+                            '<div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b border-slate-700/80 pb-3">' +
+                                '<div class="space-y-1">' +
+                                    '<div class="flex flex-wrap items-center gap-1.5">' +
+                                        '<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[11px] px-2.5 py-0.5 rounded-full font-bold">北本から #' + (index + 1) + '</span>' +
+                                        '<span class="bg-slate-700 text-slate-300 text-[11px] px-2 py-0.5 rounded-full">北本から約' + dc.distKm + 'km</span>' +
+                                        (dc.starhouse ? '<span class="bg-amber-900/60 text-amber-300 border border-amber-700 text-[11px] px-2 py-0.5 rounded-full">⭐ スターハウス</span>' : '') +
+                                    '</div>' +
+                                    '<h2 class="text-lg sm:text-xl font-bold text-white">' + dc.name + '</h2>' +
+                                    '<p class="text-xs text-slate-400 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> ' + dc.area + '</p>' +
+                                '</div>' +
+                                '<a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(dc.name) + '" target="_blank" rel="noopener noreferrer" class="bg-sky-900/80 hover:bg-sky-800 text-sky-200 font-medium px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 border border-sky-700/80"><i data-lucide="map" class="w-3.5 h-3.5"></i> 団地の地図</a>' +
+                            '</div>' +
+
+                            '<div class="bg-slate-900/60 border border-slate-700/80 rounded-lg p-2.5 text-xs">' +
+                                '<strong class="text-emerald-400 flex items-center gap-1"><i data-lucide="landmark" class="w-3.5 h-3.5"></i> 🏛️ 配棟・建築の見どころ</strong>' +
+                                '<p class="text-slate-200 mt-0.5 leading-relaxed">' + dc.mikodokoro + '</p>' +
+                            '</div>' +
+                            starHtml +
+                            '<div class="text-xs"><strong class="text-amber-400 flex items-center gap-1"><i data-lucide="aperture" class="w-3.5 h-3.5"></i> 推奨レンズ</strong><p class="text-slate-200 mt-0.5 leading-relaxed">' + dc.lens + '</p></div>' +
+                            pkHtml +
+                            carHtml +
+
+                            '<div>' +
+                                '<h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1"><i data-lucide="footprints" class="w-3.5 h-3.5 text-rose-400"></i> 半径1km圏の安心はしごスポット（' + (dc.spots || []).length + '軒）</h3>' +
+                                '<ul class="space-y-1.5">' + spotsHtml + '</ul>' +
+                            '</div>';
+
+                        container.appendChild(card);
+                    } catch (cardErr) {
+                        console.error("Danchi card render error:", cardErr);
+                    }
+                });
+
+                safeCreateIcons();
+            } catch (err) {
+                console.error("renderDanchi error:", err);
+            }
+        }
+
 
 
         // --- TAB 2: MAP & 3-COLOR PINS ENGINE ---
