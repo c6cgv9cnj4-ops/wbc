@@ -849,11 +849,15 @@
                 if (tab === 'danchi') {
                     initDanchiMapIfNeeded();
                     setTimeout(() => {
-                        if (danchiMap) {
+                        // 地図・マーカーが構築済みになってから初回の自動選択を行う
+                        // （race による "Invalid LatLng" 回避）
+                        if (danchiMap && Array.isArray(danchiMarkers) && danchiMarkers.length) {
                             danchiMap.invalidateSize();
                             if (!danchiSelectedId && danchiMapSorted.length) {
                                 selectDanchi(danchiMapSorted[0].id);
                             }
+                        } else if (danchiMap) {
+                            danchiMap.invalidateSize();
                         }
                     }, 220);
                 }
@@ -1532,17 +1536,23 @@
             try {
                 const dc = danchiMapData.find(function (d) { return d.id === id; });
                 if (!dc) return;
+                // 座標が数値として不正なら地図操作をスキップ（初回オープン時の race で
+                // "Invalid LatLng" が投げられるのを防ぐ）
+                const dLat = parseFloat(dc.lat), dLng = parseFloat(dc.lng);
+                const coordOk = !isNaN(dLat) && !isNaN(dLng);
                 danchiSelectedId = id;
                 initDanchiMapIfNeeded();
 
-                if (danchiMap) {
-                    danchiMap.flyTo([dc.lat, dc.lng], 15, { duration: 0.8 });
+                if (danchiMap && coordOk) {
+                    danchiMap.flyTo([dLat, dLng], 15, { duration: 0.8 });
                     if (danchiCircle) { danchiMap.removeLayer(danchiCircle); danchiCircle = null; }
-                    danchiCircle = L.circle([dc.lat, dc.lng], {
+                    danchiCircle = L.circle([dLat, dLng], {
                         radius: 1000, color: '#34d399', weight: 1.5, opacity: 0.9,
                         fillColor: '#34d399', fillOpacity: 0.08
                     }).addTo(danchiMap);
+                }
 
+                if (danchiMap && Array.isArray(danchiMarkers) && danchiMarkers.length) {
                     danchiMarkers.forEach(function (mm) {
                         const elm = mm.marker.getElement && mm.marker.getElement();
                         if (mm.danchiId === id) {
@@ -2605,7 +2615,163 @@
                     closed: '水曜日・日曜日',
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=浦和市場+魚がし',
                     features: '17号新大宮バイパス至近。揚げ物を使わない新鮮な刺身とあら炊きで高タンパク・低脂質。'
+                },
+                // --- 埼玉近郊ドライブ（川島・吉見・東松山・上尾・桶川・西大宮バイパス・川越）。全店 専用P・予約不要・油分控えめ ---
+                {
+                    id: 'shoji-kawajima',
+                    name: '手打ちうどん 庄司',
+                    category: 'きのこ出汁・武蔵野うどん',
+                    parking: '専用あり（敷地内・約20台）',
+                    address: '埼玉県比企郡川島町上伊草743-9',
+                    lat: 35.9922, lng: 139.4688,
+                    hours: '10:30〜14:30', closed: '不定休',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちうどん+庄司+川島町',
+                    features: '山盛りきのこの温汁うどん。化学調味料を抑えた天然出汁で脂質ほぼゼロ。'
+                },
+                {
+                    id: 'motoyoshi-kawajima',
+                    name: '本手打ちうどん 本吉',
+                    category: '出汁・すったてうどん',
+                    parking: '専用あり（店舗前・約12台）',
+                    address: '埼玉県比企郡川島町上小見野444-1',
+                    lat: 35.9752, lng: 139.4890,
+                    hours: '11:00〜14:30', closed: '火曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちうどん+本吉+川島町',
+                    features: '川島伝統のすったて（胡麻・大葉・味噌）。良質な植物性タンパク質と香味野菜で胃腸を活性化。'
+                },
+                {
+                    id: 'iori-yoshimi',
+                    name: '武蔵野うどん 庵（いおり）',
+                    category: '出汁・地場野菜うどん',
+                    parking: '専用あり（敷地内・約15台）',
+                    address: '埼玉県比企郡吉見町御所名398-1',
+                    lat: 36.0350, lng: 139.4580,
+                    hours: '11:00〜14:30', closed: '月曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=うどん+庵+吉見町',
+                    features: '吉見の田園地帯。地場産根菜ときのこの出汁でいただく胃に優しい手打ち麺。'
+                },
+                {
+                    id: 'motoike-higashimatsuyama',
+                    name: '手打ちそば 本池',
+                    category: '出汁・十割生粉打ち蕎麦',
+                    parking: '専用あり（敷地内・約10台）',
+                    address: '埼玉県東松山市石橋',
+                    lat: 36.0285, lng: 139.3980,
+                    hours: '11:30〜14:00', closed: '月曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+本池+東松山市',
+                    features: '十割生粉打ちの粗挽き蕎麦。雑味のない鰹昆布出汁で油分ゼロ、胃をスッキリ整える。'
+                },
+                {
+                    id: 'haruki-higashimatsuyama',
+                    name: 'そば処 はる喜',
+                    category: '出汁・手打ち蕎麦',
+                    parking: '専用あり（店舗横・約12台）',
+                    address: '埼玉県東松山市下野本1352-1',
+                    lat: 36.0125, lng: 139.4180,
+                    hours: '11:30〜14:30', closed: '水曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=そば処+はる喜+東松山市',
+                    features: '国道254号近く。自家製粉蕎麦を辛味大根おろしでいただく消化酵素たっぷりランチ。'
+                },
+                {
+                    id: 'fukuya-higashimatsuyama',
+                    name: '富久屋 春秋庵',
+                    category: '和粥・滋養和食',
+                    parking: '専用あり（敷地内・約15台）',
+                    address: '埼玉県東松山市松葉町2丁目11-15',
+                    lat: 36.0420, lng: 139.4050,
+                    hours: '10:30〜15:30', closed: '不定休',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=富久屋+春秋庵+東松山市',
+                    features: '季節の和粥膳やおこわ。油を徹底して抑え、胃腸を休める滋味深い和食ランチ。'
+                },
+                {
+                    id: 'wakao-ageo',
+                    name: '手打ち蕎麦 わかお',
+                    category: '出汁・本格手打ち蕎麦',
+                    parking: '専用あり（店舗前・約8台）',
+                    address: '埼玉県上尾市小敷谷386-1',
+                    lat: 35.9620, lng: 139.5490,
+                    hours: '11:30〜14:30', closed: '火曜日・第3水曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ち蕎麦+わかお+上尾市',
+                    features: '上質な蕎麦粉の香り立つせいろ蕎麦。天然出汁でいただく低GI・高ルチン食。'
+                },
+                {
+                    id: 'gorou-ageo',
+                    name: '武蔵野うどん 五六',
+                    category: 'きのこ出汁・手打ちうどん',
+                    parking: '専用あり（店舗前・約10台）',
+                    address: '埼玉県上尾市平方1622-1',
+                    lat: 35.9550, lng: 139.5320,
+                    hours: '11:00〜14:30', closed: '日曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=武蔵野うどん+五六+上尾市',
+                    features: '荒川サイクリングロード近接。きのこ汁と噛みごたえのある麺で満腹感と食物繊維を両立。'
+                },
+                {
+                    id: 'takagi-okegawa',
+                    name: '和食・魚料理 たかぎ',
+                    category: '鮮魚卸直営・焼き魚定食',
+                    parking: '専用あり（店舗前・約8台）',
+                    address: '埼玉県桶川市坂田1532-1',
+                    lat: 36.0080, lng: 139.5780,
+                    hours: '11:30〜14:00', closed: '日曜日・祝日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=和食+たかぎ+桶川市',
+                    features: '直火焼きの焼き魚定食や刺身。揚げ物を使わず、良質な魚油（EPA/DHA）を効率摂取。'
+                },
+                {
+                    id: 'uogashi-omiyamarket',
+                    name: '市場食堂 魚がし（大宮市場）',
+                    category: '鮮魚卸直営・焼き魚定食',
+                    parking: '専用あり（大宮市場共用・広大無料P）',
+                    address: '埼玉県さいたま市北区吉野町2-226-1 大宮総合食品地方卸売市場内',
+                    lat: 35.9525, lng: 139.6050,
+                    hours: '10:00〜14:30', closed: '日曜日・祝日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=市場食堂+魚がし+さいたま市北区吉野町',
+                    features: '市場直営の刺身・焼き魚定食。揚げ物を避けて純粋な魚タンパク質とEPA/DHAを摂取。'
+                },
+                {
+                    id: 'sunaba-nishiomiya',
+                    name: '手打ちそば 砂場 西大宮店',
+                    category: '出汁・手打ち蕎麦',
+                    parking: '専用あり（敷地内・約12台）',
+                    address: '埼玉県さいたま市西区西大宮1丁目',
+                    lat: 35.9220, lng: 139.5855,
+                    hours: '11:00〜15:00', closed: '木曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+砂場+西大宮',
+                    features: 'バイパス近接の蕎麦処。辛味大根おろしや自然薯と天然出汁で胃腸を活性化。'
+                },
+                {
+                    id: 'fujidana-nishiomiya',
+                    name: '手打ちうどん 藤店うどん',
+                    category: '具だくさん天然出汁うどん',
+                    parking: '専用あり（敷地内・約30台）',
+                    address: '埼玉県さいたま市西区西大宮3丁目61-1',
+                    lat: 35.9170, lng: 139.5780,
+                    hours: '10:00〜15:00', closed: '日曜日・祝日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=藤店うどん+西大宮',
+                    features: 'きのこ汁・ごま汁うどんが名物。油分を抑えた煮干し・鰹節の濃厚天然出汁。'
+                },
+                {
+                    id: 'kamakura-kawagoe',
+                    name: '手打ちそば 鎌倉',
+                    category: '出汁・十割生粉打ち蕎麦',
+                    parking: '専用・提携Pあり',
+                    address: '埼玉県川越市元町2丁目1-40',
+                    lat: 35.9248, lng: 139.4832,
+                    hours: '11:30〜14:30', closed: '水曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+鎌倉+川越市',
+                    features: 'つなぎを一切使わない生粉打ち。雑味のない辛口出汁で胃腸の負担を最小限に。'
+                },
+                {
+                    id: 'tofu-unohana-kawagoe',
+                    name: '小江戸川越 豆腐懐石 うの花',
+                    category: '自家製豆腐・湯葉和定食',
+                    parking: '提携・専用Pあり',
+                    address: '埼玉県川越市元町2丁目1-3',
+                    lat: 35.9235, lng: 139.4825,
+                    hours: '11:00〜14:30', closed: '火曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=豆腐料理+うの花+川越市',
+                    features: '国産大豆の豆腐・湯葉料理。植物性タンパク質が豊富で脂質を徹底抑制した和定食。'
                 }
+                // ※ 川越市場食堂 近江屋（id: oumiya-kawagoemarket）は既存データに登録済みのため重複追加せず
             ];
 
             const HL_ORIGIN = [36.0260, 139.5180];   // 北本団地
@@ -2710,7 +2876,8 @@
                     hlMarkers.push({ id: spot.id, spot: spot, marker: m });
                     latlngs.push([la, lo]);
                 });
-                try { hlMap.fitBounds(latlngs, { padding: [40, 40], maxZoom: 13 }); } catch (e) {}
+                // 東松山〜川越〜大宮〜都内まで広がった全ピン＋起点を収める自動 fitBounds
+                try { hlMap.fitBounds(L.latLngBounds(latlngs), { padding: [30, 30], maxZoom: 12 }); } catch (e) {}
             }
 
             function hlFocus(id) {
@@ -2797,7 +2964,8 @@
                     if (!el || typeof L === 'undefined') return;
 
                     if (!hlBuilt) {
-                        hlMap = L.map('healthMap', { scrollWheelZoom: true }).setView(HL_ORIGIN, 11);
+                        // 初期中心は埼玉〜都内をまたぐ広域ビュー（この直後の hlDrawMarkers→fitBounds で最終調整）
+                        hlMap = L.map('healthMap', { scrollWheelZoom: true }).setView([35.92, 139.58], 10);
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                             maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
                         }).addTo(hlMap);
