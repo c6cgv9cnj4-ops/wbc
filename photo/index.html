@@ -2538,19 +2538,7 @@
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=鯛塩そば+灯花+エキュート大宮店',
                     features: '宇和島産真鯛の出汁茶漬けセット。高タンパク・低脂質な鯛の身と天然出汁で胃腸を休養。'
                 },
-                {
-                    id: 'tofu-shigezo-kasukabe',
-                    name: '三代目 茂蔵 工場直売・豆腐処',
-                    category: '自家製極上豆腐・湯葉料理',
-                    parking: '専用あり（敷地内・約15台）',
-                    address: '埼玉県春日部市樋籠',
-                    lat: 35.9812,
-                    lng: 139.7650,
-                    hours: '10:00〜17:00',
-                    closed: '無休',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=三代目+茂蔵+春日部市',
-                    features: '国産大豆の濃厚豆腐と引き上げ湯葉。動物性脂質ゼロで植物性タンパク質を極限まで補給。'
-                },
+                // 除外: 三代目 茂蔵（篠崎屋）は工場直売の豆腐物販店。イートイン・定食提供なし → 掲載基準外。
                 {
                     id: 'umenohana-omiya',
                     name: '梅の花 大宮店',
@@ -2884,17 +2872,8 @@
                     mapUrl: 'https://www.google.com/maps/search/?api=1&query=そば処+更科+狭山市広瀬',
                     features: '特産狭山茶を練り込んだ茶そば。カテキン・ルチンが豊富で、油分ゼロの天然鰹出汁と相性抜群。'
                 },
-                {
-                    id: 'tofu-fujiya-ogose',
-                    name: '越生こだわりとうふ 藤屋',
-                    category: '自家製極上豆腐・豆乳湯葉',
-                    parking: '専用あり（敷地内・約15台）',
-                    address: '埼玉県入間郡越生町成瀬870',
-                    lat: 35.9615, lng: 139.2985,
-                    hours: '10:00〜17:00', closed: '火曜日',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=越生こだわりとうふ+藤屋',
-                    features: '越生山麓の天然水と厳選国産大豆で作る極上豆腐。脂質を徹底排除し植物性タンパク質を贅沢補給。'
-                },
+                // 除外: 越生こだわりとうふ 藤屋 は1933年創業の豆腐製造直売所。小さなイートインコーナーはあるが
+                // 定食・麺類を注文して座って食べる飲食店ではない → 掲載基準外。
                 {
                     id: 'sumiya-moroyama',
                     name: '蕎麦料理 すみや',
@@ -3010,15 +2989,18 @@
                     features: '嵐山渓谷近くの街道沿い。きのこや地場根菜の天然温出汁で、低脂質・食物繊維をしっかり補給。'
                 },
                 {
-                    id: 'tofu-wataya-tokigawa',
-                    name: 'とうふ工房 わたなべ',
-                    category: '自家製極上豆腐・豆乳湯葉',
-                    parking: '専用あり（敷地内・約30台広大P）',
-                    address: '埼玉県比企郡ときがわ町番匠372',
-                    lat: 35.9985, lng: 139.2980,
-                    hours: '9:00〜17:00', closed: '無休',
-                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=とうふ工房わたなべ+ときがわ町',
-                    features: '地下水と厳選国産大豆で作る手作り豆腐・汲み上げ湯葉。動物性脂質ゼロで植物性タンパク質を贅沢補給。'
+                    // 差し替え: とうふ工房わたなべ は物販・直売所のためイートイン基準に不適格 → 除外。
+                    // 代替は同町内の手打ち蕎麦・和食処。rating/reviews は利用者提供の参考値（Places API 未連携時の表示用）。
+                    id: 'tokian-tokigawa',
+                    name: '手打ちそば とき庵',
+                    category: '出汁・手打ち生粉打ち蕎麦',
+                    rating: 4.2, reviews: 320,
+                    parking: '専用あり（店舗敷地内・約15台）',
+                    address: '埼玉県比企郡ときがわ町大乗54',
+                    lat: 36.0045, lng: 139.2620,
+                    hours: '11:30〜14:30', closed: '火曜日・水曜日',
+                    mapUrl: 'https://www.google.com/maps/search/?api=1&query=手打ちそば+とき庵+ときがわ町',
+                    features: '都幾川の清流沿い。自家製粉の十割粗挽き蕎麦と辛口天然鰹出汁。油分を使わず胃腸を休める絶品ランチ。'
                 },
                 {
                     id: 'fukusuke-ogawa',
@@ -3332,10 +3314,14 @@
             // 店名 → 薄青カテゴリバッジ → 黄色のGoogle評価行 → 🅿️駐車場 → 💡特徴・健康要素(1行) →
             // 🕒営業時間/📅定休日 → 全幅の緑ボタン。
             function hlPopupHtml(spot) {
+                // ①Places API 実測値 ②データに定義済みの参考値(spot.rating) ③未取得 の順
                 const ratingRow = (spot.ratingLive && spot.googleRatingNum)
                     ? '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 ★' + hlEsc(spot.googleRatingNum) +
                       ' / 投稿数 ' + hlEsc(spot.reviewCountNum != null ? String(spot.reviewCountNum) : '0') + '件</div>'
-                    : '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 <span class="font-semibold text-amber-500/80">未取得（下のボタンでクチコミを確認）</span></div>';
+                    : (spot.rating != null
+                        ? '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 ★' + hlEsc(Number(spot.rating).toFixed(1)) +
+                          ' / 投稿数 ' + hlEsc(spot.reviews != null ? String(spot.reviews) : '—') + '件 <span class="font-normal text-amber-500/70">（参考）</span></div>'
+                        : '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 <span class="font-semibold text-amber-500/80">未取得（下のボタンでクチコミを確認）</span></div>');
 
                 return '<div class="text-xs font-sans" style="min-width:210px;max-width:250px;">' +
                     // 1. 店舗名（最上部・太字）
@@ -3398,7 +3384,9 @@
                     card.className = 'w-full text-left px-3 py-2 rounded-lg border transition text-xs bg-slate-900/70 border-slate-700 text-slate-300 hover:border-emerald-600 hover:text-white';
                     const ratingBit = (spot.ratingLive && spot.googleRatingNum)
                         ? '<span class="text-amber-400 font-bold shrink-0">★' + hlEsc(spot.googleRatingNum) + '</span>'
-                        : '';
+                        : (spot.rating != null
+                            ? '<span class="text-amber-400 font-bold shrink-0">★' + hlEsc(Number(spot.rating).toFixed(1)) + '<span class="font-normal text-amber-400/60 text-[9px]">(参考)</span></span>'
+                            : '');
                     card.innerHTML =
                         '<span class="flex items-center justify-between gap-2">' +
                             '<span class="flex items-center gap-1.5 font-bold text-white">' + hlEmoji(spot) + ' ' + hlEsc(spot.name) + '</span>' +
