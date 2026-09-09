@@ -49,8 +49,12 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 )
 REQUEST_INTERVAL_SEC = 2.0
-GEMINI_MODEL_NAME = "gemini-3.6-flash"
+GEMINI_MODEL_NAME = "gemini-2.0-flash"
 GEMINI_MAX_RETRIES = 3
+# Geminiへ送るチラシ画像の長辺上限(px)。結合画像は長辺2000〜4000px規模になる
+# ことがあり、そのまま送ると画像入力トークン(SKU: ... gemini image)が膨らむ。
+# 価格・規格のOCR用途なら1024pxで読み取り精度はほぼ落ちない。
+GEMINI_IMAGE_MAX_EDGE_PX = 1024
 TILE_RE = re.compile(r"/spangle/[^/]+/(?P<flyer_id>\d+)/P(?P<page>\d+)-L(?P<layer>\d+)-R(?P<row>\d+)-C(?P<col>\d+)\.jpg")
 
 
@@ -249,9 +253,39 @@ def extract_json_array(text):
         return []
 
 
+def downscale_for_gemini(image_bytes, max_edge=GEMINI_IMAGE_MAX_EDGE_PX):
+    """Geminiに渡す前にチラシ画像を長辺 max_edge px 以下へ縮小してJPEGで返す。
+
+    画像入力トークン数は解像度に比例して増えるため、送信直前に縮小して課金を
+    抑える。元から max_edge 以下なら何もせずそのまま返す。デコードできない
+    バイト列が来た場合も、握りつぶさず元データをそのまま返す(従来動作を維持)。
+    """
+    try:
+        img = Image.open(BytesIO(image_bytes))
+        img.load()
+    except Exception:  # noqa: BLE001  画像として開けないものは従来どおり素通し
+        return image_bytes
+
+    long_edge = max(img.size)
+    if long_edge <= max_edge:
+        return image_bytes
+
+    scale = max_edge / long_edge
+    new_size = (max(1, round(img.size[0] * scale)), max(1, round(img.size[1] * scale)))
+    resized = img.convert("RGB").resize(new_size, Image.Resampling.LANCZOS)
+    out = BytesIO()
+    resized.save(out, format="JPEG", quality=85)
+    return out.getvalue()
+
+
 def call_gemini(client, image_path, prompt):
     with open(image_path, "rb") as f:
         image_bytes = f.read()
+    original_len = len(image_bytes)
+    image_bytes = downscale_for_gemini(image_bytes)
+    if len(image_bytes) != original_len:
+        print(f"[gemini] 画像を縮小: {original_len // 1024}KB -> {len(image_bytes) // 1024}KB "
+              f"(長辺{GEMINI_IMAGE_MAX_EDGE_PX}px上限)")
     image_part = genai_types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
     for attempt in range(1, GEMINI_MAX_RETRIES + 1):
         try:
