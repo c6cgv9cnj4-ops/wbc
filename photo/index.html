@@ -3453,6 +3453,14 @@
             const HL_HYDRATE_EAGER = 30;   // 起動時にまとめて取得する上位件数（コスト抑制）
             const hlInflight = Object.create(null);
 
+            // 旧キー（hlgpr:）の「未取得」ネガティブキャッシュが残っていると評価が更新されないため、
+            // セッション開始時に一掃する（hlgpr2: に完全移行）。
+            try {
+                Object.keys(sessionStorage).forEach(function (k) {
+                    if (k.indexOf('hlgpr:') === 0) sessionStorage.removeItem(k);
+                });
+            } catch (e) {}
+
             async function hydrateOneSpot(spot) {
                 if (!HL_PLACES_KEY || !spot || spot.ratingLive) return false;
                 // v2: 旧「未取得」ネガティブキャッシュを引きずらないようキー刷新
