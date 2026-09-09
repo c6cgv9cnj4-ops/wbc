@@ -59,6 +59,14 @@
             background: #0f172a !important;
             border: 2px dashed #10B981 !important;
         }
+        /* 現在地（GPS）パルスマーカー */
+        .gps-pulse-outer { animation: gpsPulse 1.8s ease-out infinite; transform-origin: center; }
+        @keyframes gpsPulse {
+            0%   { stroke-opacity: 0.9; stroke-width: 3; }
+            70%  { stroke-opacity: 0;   stroke-width: 20; }
+            100% { stroke-opacity: 0;   stroke-width: 20; }
+        }
+        #originToggleBtn[disabled] { opacity: 0.7; cursor: progress; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen pb-12 font-sans antialiased">
@@ -96,12 +104,18 @@
         </div>
     </header>
 
+    <!-- 全タブ共通: 現在地（GPS）起点トグル。押しやすい固定ボタン -->
+    <button id="originToggleBtn" type="button" onclick="toggleOrigin()"
+        class="fixed z-[60] bottom-4 right-4 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-full shadow-xl border border-emerald-400/40 transition">
+        📍 現在地から探す
+    </button>
+
     <!-- TAB 1: 関東撮影スポットNAVI -->
     <main id="tabContentSpot" class="max-w-7xl mx-auto px-3 sm:px-4 mt-4">
         <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-5 flex flex-wrap justify-between items-center gap-3 text-xs sm:text-sm">
             <div class="flex items-center gap-1.5 text-slate-300">
                 <i data-lucide="map-pin" class="w-4 h-4 text-rose-400 shrink-0"></i>
-                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong></span>
+                <span>基準起点: <strong class="text-white js-origin-label">北本団地 (36.0260, 139.5180)</strong></span>
             </div>
             
             <div class="flex flex-wrap md:flex-nowrap items-center gap-2 w-full md:w-auto">
@@ -271,7 +285,7 @@
         <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-4 space-y-2 text-xs sm:text-sm">
             <div class="flex items-start gap-1.5 text-slate-300">
                 <i data-lucide="building-2" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"></i>
-                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong> ／ 北本から近い順の<strong class="text-white">名作団地8スポット</strong>。公団初期の配棟計画・給水塔・歩車分離と、現存する<strong class="text-amber-300">スターハウス（前川第2＝現役／赤羽台＝保存棟）</strong>を鑑賞し、帰りに<strong class="text-slate-100">一人でも入れる安心店（町中華・大衆食堂／立ち食いそば／昔ながらの純喫茶）</strong>とニフティ温泉上位の日帰り湯をはしご。</span>
+                <span>基準起点: <strong class="text-white js-origin-label">北本団地 (36.0260, 139.5180)</strong> ／ 北本から近い順の<strong class="text-white">名作団地8スポット</strong>。公団初期の配棟計画・給水塔・歩車分離と、現存する<strong class="text-amber-300">スターハウス（前川第2＝現役／赤羽台＝保存棟）</strong>を鑑賞し、帰りに<strong class="text-slate-100">一人でも入れる安心店（町中華・大衆食堂／立ち食いそば／昔ながらの純喫茶）</strong>とニフティ温泉上位の日帰り湯をはしご。</span>
             </div>
             <p class="text-[11px] text-slate-400 leading-relaxed">
                 左で団地を選ぶと地図がズーム15で寄り、<strong class="text-slate-200">半径1kmの円</strong>を描画して圏内の厳選ピンを強調。飲食は「独自ルール店・行列店・気取った店」を除外し、実在確認できた<strong class="text-slate-200">ハズレなしの安心店のみ</strong>を各団地2〜6軒（水増しなし）。座標・営業時間・料金は参考値で、<span class="text-amber-300/90">「位置目安」バッジ</span>は住所未確定のため駅・エリア中心へ概算プロット。Google評価は数値を持たないためポップアップのマップ検索で確認。麺や司（上尾）等の閉店店は除外済み。訪問前に公式で最新を確認し、現役棟では住民のプライバシーに配慮して公道から撮影すること。
@@ -330,7 +344,7 @@
         <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-4 space-y-2 text-xs sm:text-sm">
             <div class="flex items-start gap-1.5 text-slate-300">
                 <span class="text-base leading-none shrink-0">🥗</span>
-                <span>基準起点: <strong class="text-white">北本団地 (36.0260, 139.5180)</strong>。<strong class="text-white">キュレーション（車・埼玉全域）</strong>＋<strong class="text-white">OpenStreetMap / Overpass API 自動取得（都内=山手線圏／埼玉=秩父路・比企〜大里〜坂戸）</strong>の、胃腸を休められる健康食ランチ。十割そば・直火焼き魚・名水豆腐・きのこ出汁うどんなど揚げ物に頼らない滋養食を、北本から近い順に<strong class="text-white">全件</strong>表示（距離での足切りは一切なし）。都内OSMピンは 🚉（駅近）、埼玉秩父路OSMピンは 🅿️（沿道・専用P想定）。OSM由来は名称・座標のみ確定で営業時間等は「要確認」（ボタンから公式・クチコミを確認）。OSMデータはリポジトリ同梱の静的JSONを即時読込（Overpass障害時もピンは消えない）＋端末に7日キャッシュ、期限切れ時のみ裏でライブ更新。</span>
+                <span>基準起点: <strong class="text-white js-origin-label">北本団地 (36.0260, 139.5180)</strong>。<strong class="text-white">キュレーション（車・埼玉全域）</strong>＋<strong class="text-white">OpenStreetMap / Overpass API 自動取得（都内=山手線圏／埼玉=秩父路・比企〜大里〜坂戸）</strong>の、胃腸を休められる健康食ランチ。十割そば・直火焼き魚・名水豆腐・きのこ出汁うどんなど揚げ物に頼らない滋養食を、北本から近い順に<strong class="text-white">全件</strong>表示（距離での足切りは一切なし）。都内OSMピンは 🚉（駅近）、埼玉秩父路OSMピンは 🅿️（沿道・専用P想定）。OSM由来は名称・座標のみ確定で営業時間等は「要確認」（ボタンから公式・クチコミを確認）。OSMデータはリポジトリ同梱の静的JSONを即時読込（Overpass障害時もピンは消えない）＋端末に7日キャッシュ、期限切れ時のみ裏でライブ更新。</span>
             </div>
         </div>
 
@@ -430,6 +444,81 @@
 
         const KITAMOTO_LAT = 36.0260;
         const KITAMOTO_LNG = 139.5180;
+
+        // ==========================================
+        // 共通ステート: 距離計算の起点（既定=北本団地 / GPSで現在地に切替）
+        // ==========================================
+        window.currentOrigin = { lat: KITAMOTO_LAT, lng: KITAMOTO_LNG, name: '北本団地', isGPS: false };
+        function originLat() { return window.currentOrigin.lat; }
+        function originLng() { return window.currentOrigin.lng; }
+        function originLabel() {
+            return window.currentOrigin.isGPS
+                ? '現在地 (' + window.currentOrigin.lat.toFixed(4) + ', ' + window.currentOrigin.lng.toFixed(4) + ')'
+                : '北本団地 (36.0260, 139.5180)';
+        }
+
+        // 各地図（route=map / danchi=danchiMap / health=hlMap）に置く現在地パルスマーカー
+        let gpsMarkers = [];
+        function _liveMaps() {
+            const out = [];
+            try { if (typeof map !== 'undefined' && map) out.push(map); } catch (e) {}
+            try { if (typeof danchiMap !== 'undefined' && danchiMap) out.push(danchiMap); } catch (e) {}
+            try { if (typeof window.__hlMap === 'function' && window.__hlMap()) out.push(window.__hlMap()); } catch (e) {}
+            return out;
+        }
+        function updateGpsMarkers() {
+            gpsMarkers.forEach(function (g) { try { g.mp.removeLayer(g.m); } catch (e) {} });
+            gpsMarkers = [];
+            if (!window.currentOrigin.isGPS || typeof L === 'undefined') return;
+            const ll = [window.currentOrigin.lat, window.currentOrigin.lng];
+            _liveMaps().forEach(function (mp) {
+                try {
+                    const halo = L.circleMarker(ll, { radius: 10, color: '#3b82f6', weight: 3, fill: false, className: 'gps-pulse-outer', interactive: false }).addTo(mp);
+                    const dot  = L.circleMarker(ll, { radius: 6, color: '#1d4ed8', weight: 2, fillColor: '#60a5fa', fillOpacity: 0.95 }).addTo(mp).bindTooltip('現在地', { direction: 'top', offset: [0, -6] });
+                    gpsMarkers.push({ mp: mp, m: halo });
+                    gpsMarkers.push({ mp: mp, m: dot });
+                } catch (e) {}
+            });
+        }
+
+        // 起点が変わったら全タブのバナー・ボタン表示を更新し、各タブを再描画
+        function applyOriginToActiveTab() {
+            try {
+                document.querySelectorAll('.js-origin-label').forEach(function (el) { el.textContent = originLabel(); });
+                const btn = document.getElementById('originToggleBtn');
+                if (btn) { btn.disabled = false; btn.innerHTML = window.currentOrigin.isGPS ? '🏠 北本起点に戻す' : '📍 現在地から探す'; }
+                if (typeof renderSpots === 'function') { try { renderSpots(); } catch (e) {} }
+                if (typeof getDanchiSorted === 'function') {
+                    try { if (typeof renderDanchi === 'function') renderDanchi(); } catch (e) {}
+                    try { if (typeof renderDanchiSelector === 'function') renderDanchiSelector(); } catch (e) {}
+                    try { if (window.danchiSelectedId && typeof selectDanchi === 'function') selectDanchi(window.danchiSelectedId); } catch (e) {}
+                }
+                if (typeof window.hlRefreshOrigin === 'function') { try { window.hlRefreshOrigin(); } catch (e) {} }
+                updateGpsMarkers();
+            } catch (e) { console.warn('applyOriginToActiveTab', e); }
+        }
+
+        function setOriginToKitamoto() {
+            window.currentOrigin = { lat: KITAMOTO_LAT, lng: KITAMOTO_LNG, name: '北本団地', isGPS: false };
+            applyOriginToActiveTab();
+        }
+        function setOriginToGPS() {
+            if (!navigator.geolocation) { showErrorToast('この端末は位置情報（GPS）に対応していません'); return; }
+            const btn = document.getElementById('originToggleBtn');
+            if (btn) { btn.disabled = true; btn.innerHTML = '📍 現在地を取得中…'; }
+            navigator.geolocation.getCurrentPosition(function (pos) {
+                window.currentOrigin = { lat: pos.coords.latitude, lng: pos.coords.longitude, name: '現在地', isGPS: true };
+                applyOriginToActiveTab();
+            }, function (err) {
+                if (btn) { btn.disabled = false; btn.innerHTML = '📍 現在地から探す'; }
+                showErrorToast('位置情報の取得が許可されていません（北本起点のまま表示します）');
+            }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+        }
+        function toggleOrigin() {
+            if (window.currentOrigin.isGPS) setOriginToKitamoto();
+            else setOriginToGPS();
+        }
+        window.toggleOrigin = toggleOrigin;
 
         const P = ['埼玉県', '東京都', '神奈川県', '千葉県', '茨城県', '栃木県', '群馬県'];
         const P_SLUG = ['saitama', 'tokyo', 'kanagawa', 'chiba', 'ibaraki', 'tochigi', 'gunma'];
@@ -852,8 +941,8 @@
                         // （race による "Invalid LatLng" 回避）
                         if (danchiMap && Array.isArray(danchiMarkers) && danchiMarkers.length) {
                             danchiMap.invalidateSize();
-                            if (!danchiSelectedId && danchiMapSorted.length) {
-                                selectDanchi(danchiMapSorted[0].id);
+                            if (!danchiSelectedId && getDanchiSorted().length) {
+                                selectDanchi(getDanchiSorted()[0].id);
                             }
                         } else if (danchiMap) {
                             danchiMap.invalidateSize();
@@ -880,6 +969,17 @@
                 const container = document.getElementById('spotList');
 
                 if (!container) return;
+
+                // 現在の起点（北本団地 or 現在地GPS）で距離を再計算し並べ替え
+                spotsData.forEach(function (sp) {
+                    sp.distanceLinear = calcDist(originLat(), originLng(), sp.lat, sp.lng);
+                    sp.distanceRoad = sp.distanceLinear * 1.3;
+                    sp.trainMinutes = calcTrainMinutes(sp.distanceLinear, P.indexOf(sp.pref));
+                    sp.carAcc = calcCarAccess(sp.distanceLinear, sp.distanceRoad, P.indexOf(sp.pref));
+                    sp.gmapExpressUrl = 'https://www.google.com/maps/dir/?api=1&origin=' + originLat() + ',' + originLng() + '&destination=' + sp.lat + ',' + sp.lng;
+                    sp.gmapLocalUrl = 'https://www.google.com/maps/dir/?api=1&origin=' + originLat() + ',' + originLng() + '&destination=' + sp.lat + ',' + sp.lng + '&dirflg=d&avoid=highways';
+                });
+                spotsData.sort(function (a, b) { return a.distanceLinear - b.distanceLinear; });
 
                 const searchQuery = searchInput ? searchInput.value.toLowerCase() : '';
                 const selectedPref = prefFilter ? prefFilter.value : '';
@@ -963,7 +1063,7 @@
                             '<div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b border-slate-700/80 pb-3">' +
                                 '<div class="space-y-1">' +
                                     '<div class="flex flex-wrap items-center gap-1.5">' +
-                                        '<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[11px] px-2.5 py-0.5 rounded-full font-bold">北本団地から #' + (index + 1) + '</span>' +
+                                        '<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[11px] px-2.5 py-0.5 rounded-full font-bold">' + window.currentOrigin.name + 'から #' + (index + 1) + '</span>' +
                                         '<span class="bg-slate-700 text-slate-300 text-[11px] px-2 py-0.5 rounded-full">' + spot.pref + '</span>' +
                                         '<span class="text-xs text-slate-400 ml-1">直線: 約<strong class="text-white">' + spot.distanceLinear.toFixed(1) + '</strong>km / 道路: 約<strong class="text-emerald-300">' + spot.distanceRoad.toFixed(1) + '</strong>km</span>' +
                                     '</div>' +
@@ -1257,7 +1357,15 @@
             }
         ];
 
-        const danchiMapSorted = danchiMapData.slice().sort(function (a, b) { return a.distKm - b.distKm; });
+        // 起点=北本団地なら仕様指定の distKm、GPS現在地なら実測 calcDist で距離とソートを切替
+        function danchiOriginKm(dc) {
+            return window.currentOrigin.isGPS
+                ? calcDist(originLat(), originLng(), dc.lat, dc.lng)
+                : dc.distKm;
+        }
+        function getDanchiSorted() {
+            return danchiMapData.slice().sort(function (a, b) { return danchiOriginKm(a) - danchiOriginKm(b); });
+        }
 
         function danchiEmojiIcon(cat) {
             const c = DANCHI_CATS[cat] || DANCHI_CATS.gourmet;
@@ -1456,7 +1564,7 @@
                 const box = document.getElementById('danchiSelector');
                 if (!box) return;
                 box.innerHTML = '';
-                danchiMapSorted.forEach(function (dc) {
+                getDanchiSorted().forEach(function (dc) {
                     const active = dc.id === danchiSelectedId;
                     const pk = DANCHI_PARKING[dc.id];
                     const btn = document.createElement('button');
@@ -1468,7 +1576,7 @@
                     btn.innerHTML =
                         '<span class="flex items-center justify-between gap-2">' +
                             '<span class="flex items-center gap-1.5 font-bold"><span>🏢</span> ' + dc.name + '</span>' +
-                            '<span class="text-[10px] ' + (active ? 'text-emerald-100' : 'text-slate-500') + ' shrink-0">北本から約' + dc.distKm + 'km</span>' +
+                            '<span class="text-[10px] ' + (active ? 'text-emerald-100' : 'text-slate-500') + ' shrink-0">' + window.currentOrigin.name + 'から約' + (window.currentOrigin.isGPS ? danchiOriginKm(dc).toFixed(1) : dc.distKm) + 'km</span>' +
                         '</span>' +
                         (dc.starhouse ? '<span class="mt-1 flex items-center gap-1 text-[10px] ' + (active ? 'text-amber-100' : 'text-amber-300/80') + '"><span>⭐</span><span>スターハウス鑑賞スポット</span></span>' : '') +
                         (pk ? '<span class="mt-0.5 flex items-start gap-1 text-[10px] ' + (active ? 'text-emerald-50' : 'text-slate-400') + '"><span class="shrink-0">🚗</span><span>' + pk.summary + '</span></span>' : '');
@@ -1547,6 +1655,7 @@
                 const dLat = parseFloat(dc.lat), dLng = parseFloat(dc.lng);
                 const coordOk = !isNaN(dLat) && !isNaN(dLng);
                 danchiSelectedId = id;
+                window.danchiSelectedId = id;
                 initDanchiMapIfNeeded();
 
                 if (danchiMap && coordOk) {
@@ -1586,9 +1695,9 @@
                 if (!container) return;
                 container.innerHTML = '';
 
-                danchiMapData.forEach(function (dc, index) {
+                getDanchiSorted().forEach(function (dc, index) {
                     try {
-                        const distLin = (typeof calcDist === 'function') ? calcDist(KITAMOTO_LAT, KITAMOTO_LNG, dc.lat, dc.lng) : dc.distKm;
+                        const distLin = (typeof calcDist === 'function') ? calcDist(originLat(), originLng(), dc.lat, dc.lng) : dc.distKm;
                         const distRoad = distLin * 1.3;
                         const carAcc = (typeof calcCarAccess === 'function') ? calcCarAccess(distLin, distRoad, dc.tollPrefIdx) : null;
                         const fuel = calcFuelCost(distRoad);
@@ -1645,8 +1754,8 @@
                             '<div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b border-slate-700/80 pb-3">' +
                                 '<div class="space-y-1">' +
                                     '<div class="flex flex-wrap items-center gap-1.5">' +
-                                        '<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[11px] px-2.5 py-0.5 rounded-full font-bold">北本から #' + (index + 1) + '</span>' +
-                                        '<span class="bg-slate-700 text-slate-300 text-[11px] px-2 py-0.5 rounded-full">北本から約' + dc.distKm + 'km</span>' +
+                                        '<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[11px] px-2.5 py-0.5 rounded-full font-bold">' + window.currentOrigin.name + 'から #' + (index + 1) + '</span>' +
+                                        '<span class="bg-slate-700 text-slate-300 text-[11px] px-2 py-0.5 rounded-full">' + window.currentOrigin.name + 'から約' + (window.currentOrigin.isGPS ? distLin.toFixed(1) : dc.distKm) + 'km</span>' +
                                         (dc.starhouse ? '<span class="bg-amber-900/60 text-amber-300 border border-amber-700 text-[11px] px-2 py-0.5 rounded-full">⭐ スターハウス</span>' : '') +
                                     '</div>' +
                                     '<h2 class="text-lg sm:text-xl font-bold text-white">' + dc.name + '</h2>' +
@@ -3062,16 +3171,27 @@
             let hlMarkers = [];   // { id, spot, marker }
             let hlBuilt = false;
 
+            // 起点は共通ステート window.currentOrigin（北本団地 or 現在地GPS）
+            function hlOrigin() {
+                return (window.currentOrigin && typeof window.currentOrigin.lat === 'number')
+                    ? [window.currentOrigin.lat, window.currentOrigin.lng]
+                    : HL_ORIGIN;
+            }
             function hlDist(spot) {
+                const o = hlOrigin();
                 try {
-                    if (typeof calcDist === 'function') return calcDist(HL_ORIGIN[0], HL_ORIGIN[1], spot.lat, spot.lng);
+                    if (typeof calcDist === 'function') return calcDist(o[0], o[1], spot.lat, spot.lng);
                 } catch (e) {}
                 const R = 6371;
-                const dLat = (spot.lat - HL_ORIGIN[0]) * Math.PI / 180;
-                const dLon = (spot.lng - HL_ORIGIN[1]) * Math.PI / 180;
-                const a = Math.sin(dLat / 2) ** 2 + Math.cos(HL_ORIGIN[0] * Math.PI / 180) * Math.cos(spot.lat * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+                const dLat = (spot.lat - o[0]) * Math.PI / 180;
+                const dLon = (spot.lng - o[1]) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) ** 2 + Math.cos(o[0] * Math.PI / 180) * Math.cos(spot.lat * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
                 return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             }
+            window.__hlMap = function () { return hlMap; };
+            window.hlRefreshOrigin = function () {
+                try { hlDrawMarkers(); renderHealthList(); } catch (e) { console.warn('hlRefreshOrigin', e); }
+            };
 
             // ============================================================
             // OSM（OpenStreetMap）健康食スポット取得。3段構え:
@@ -3436,7 +3556,7 @@
                         '<span class="flex items-center justify-between gap-2">' +
                             '<span class="flex items-center gap-1.5 font-bold text-white">' + hlEmoji(spot) + ' ' + hlEsc(spot.name) + '</span>' +
                             '<span class="flex items-center gap-1.5">' + ratingBit +
-                                '<span class="text-[10px] text-slate-500 shrink-0">北本から約' + (isNaN(km) ? '—' : km.toFixed(1)) + 'km</span>' +
+                                '<span class="text-[10px] text-slate-500 shrink-0">' + window.currentOrigin.name + 'から約' + (isNaN(km) ? '—' : km.toFixed(1)) + 'km</span>' +
                             '</span>' +
                         '</span>' +
                         '<span class="mt-1 block"><span class="inline-block bg-sky-100 text-sky-800 font-semibold px-1.5 py-0.5 rounded text-[10px]">' + hlEsc(spot.category) + '</span></span>' +
