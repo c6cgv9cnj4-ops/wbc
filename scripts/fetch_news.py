@@ -282,11 +282,27 @@ RSS_ITEM_LIMIT = 10
 STATE_PATH = "state/news_seen.json"
 STATE_RETENTION_DAYS = 14  # 古い記録は掃除して肥大化を防ぐ
 
+# MLB・メジャーリーグ関連のニュースは、細川さんの指示により配信対象から完全に除外する
+# (#webhook_news にも #webhook_sports_culture にも流さず、その場で捨てる)。
+# NPB(日本のプロ野球)は対象外 ── 順位表・試合結果は別ワークフローで継続配信する。
+MLB_EXCLUDE_KEYWORDS = [
+    "MLB", "ＭＬＢ", "メジャーリーグ", "大リーグ", "メジャー移籍", "メジャー挑戦", "メジャー契約",
+    "大谷翔平", "ドジャース", "ヤンキース", "レッドソックス", "パドレス",
+    "エンゼルス", "カブス", "メッツ", "ワールドシリーズ", "ナ・リーグ", "ア・リーグ",
+    "山本由伸", "ダルビッシュ", "鈴木誠也", "吉田正尚", "今永昇太", "菊池雄星",
+]
+
+
+def is_mlb_related(title):
+    return any(kw in title for kw in MLB_EXCLUDE_KEYWORDS)
+
+
 # 一般ニュースフィード(Yahoo!トップピックス等)にスポーツ記事が混入した場合、
 # #webhook_news ではなく #webhook_sports_culture へ振り分けるためのキーワード。
 # タイトルにこれらの語が含まれていれば「スポーツニュース」とみなす。
+# ※ MLB / 大谷翔平 は上の MLB_EXCLUDE_KEYWORDS 側で先に弾かれるためここには置かない。
 SPORTS_KEYWORDS = [
-    "野球", "プロ野球", "セ・リーグ", "パ・リーグ", "甲子園", "MLB", "大谷翔平",
+    "野球", "プロ野球", "セ・リーグ", "パ・リーグ", "甲子園",
     "西武", "日本ハム", "ドーム", "1軍", "2軍", "内野手", "外野手", "投手",
     "負傷交代", "スタメン", "先発", "本塁打", "打点", "防御率",
     "阪神", "巨人", "読売ジャイアンツ", "ロッテ", "ソフトバンク", "楽天イーグルス",
@@ -744,6 +760,9 @@ def build_local_news_message(state, now):
     for item in saitama_new:
         if is_saitama_local_noise(item["title"]):
             continue
+        if is_mlb_related(item["title"]):
+            print(f"[INFO] MLB・メジャー関連のため除外(配信しない): {item['title']}")
+            continue
         if is_sports_related(item["title"]):
             sports_items.append(item)
         else:
@@ -866,6 +885,9 @@ def build_national_news_message(client, state, now):
     top_new = dedupe_new_items(top_all, "url", state, now)
     top_general = []
     for item in top_new:
+        if is_mlb_related(item["title"]):
+            print(f"[INFO] MLB・メジャー関連のため除外(配信しない): {item['title']}")
+            continue
         if is_sports_related(item["title"]):
             sports_items.append(item)
         else:
