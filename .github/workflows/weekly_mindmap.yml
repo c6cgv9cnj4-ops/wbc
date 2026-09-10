@@ -1,0 +1,94 @@
+name: 週次棚卸しマインドマップ
+
+# 毎週日曜 20:00 JST に、直近1週間の Discord モーニングジャーナル / Google
+# カレンダー / Google Tasks を集約し、
+#   1) 円形放射状マインドマップ画像(PNG)を #週間まとめ チャンネルへ投稿
+#   2) Google スプレッドシートの週次タブ(YYYY_Www・チェックボックス付き)へ追記
+# する。生成物(PNG / 行 CSV)は Actions アーティファクトに、行 CSV のみ
+# reports/weekly/ にコミットする(PNG はバイナリ肥大化を避けアーティファクトのみ)。
+#
+# 認証は「1本の OAuth リフレッシュトークン」に集約(Calendar/Tasks/Sheets 共通)。
+# 発行手順は docs/WEEKLY_MINDMAP_SETUP.md。同意画面は必ず「本番」公開にすること
+# (テスト公開だとトークンが7日で失効し2回目以降必ず認証エラーになる)。
+
+on:
+  schedule:
+    - cron: "0 11 * * 0"        # 日曜 11:00 UTC = 20:00 JST
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "対象週の基準日 YYYY-MM-DD（空なら実行日）"
+        required: false
+        default: ""
+      dry_run:
+        description: "1 で Sheets 書き込み / Discord 投稿をせずログのみ"
+        required: false
+        default: ""
+
+permissions:
+  contents: write               # reports/weekly へのコミット用
+
+concurrency:
+  group: weekly-mindmap
+  cancel-in-progress: false
+
+jobs:
+  weekly-mindmap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # コミット後の git pull --rebase を安全にするため
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: 日本語フォント（PNG の CJK 表示用）
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements-weekly.txt
+
+      - name: 週次棚卸しマインドマップ生成
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID_MORNING_JOURNAL: ${{ secrets.DISCORD_CHANNEL_ID_MORNING_JOURNAL }}
+          DISCORD_CHANNEL_ID_HEALTH: ${{ secrets.DISCORD_CHANNEL_ID_HEALTH }}
+          DISCORD_WEBHOOK_WEEKLY: ${{ secrets.DISCORD_WEBHOOK_WEEKLY }}
+          DISCORD_CHANNEL_ID_WEEKLY_SUMMARY: ${{ secrets.DISCORD_CHANNEL_ID_WEEKLY_SUMMARY }}
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
+          WEEKLY_SPREADSHEET_ID: ${{ secrets.WEEKLY_SPREADSHEET_ID }}
+          GOOGLE_CALENDAR_IDS: ${{ vars.GOOGLE_CALENDAR_IDS }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          WEEK: ${{ github.event.inputs.week }}
+        run: |
+          if [ -n "$WEEK" ]; then
+            python scripts/weekly_mindmap.py --week "$WEEK"
+          else
+            python scripts/weekly_mindmap.py
+          fi
+
+      - name: 生成物を Actions アーティファクトに保存（PNG + CSV）
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-mindmap
+          path: reports/weekly/
+          if-no-files-found: ignore
+          retention-days: 90
+
+      - name: 行 CSV のみリポジトリへコミット
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/weekly/*.csv
+          git diff --cached --quiet || git commit -m "週次棚卸しマインドマップ（行データ）を自動生成 ($(date -u +%Y-%m-%d))"
+          git pull --rebase origin main || echo "[WARN] git pull --rebase に失敗（後続 push で解消を試みる）"
+          git push || echo "[WARN] git push に失敗（ブランチ保護等。アーティファクトには保存済み）"

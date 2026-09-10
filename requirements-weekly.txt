@@ -1,0 +1,15 @@
+# 週次棚卸しマインドマップ(weekly_mindmap.py / weekly_mindmap.yml)専用の依存。
+# 既存の requirements.txt(requests / google-genai 等)に上乗せする形。
+# CI では `pip install -r requirements-weekly.txt` のみでよい。
+-r requirements.txt
+
+# Google Calendar / Tasks / Sheets を OAuth で叩くための公式クライアント
+google-api-python-client>=2.140.0
+google-auth>=2.34.0
+
+# 放射状マインドマップ画像の描画(graphviz には依存しない)
+matplotlib>=3.8
+
+# 注: リフレッシュトークン発行ヘルパ scripts/mint_google_oauth_token.py だけは
+#     google-auth-oauthlib が要る。CI では不要なのでここには入れていない。
+#     ローカルで一度だけ:  pip install google-auth-oauthlib
