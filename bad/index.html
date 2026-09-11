@@ -156,9 +156,18 @@
     .status-badge-ok { color: var(--success-color); font-weight: 600; }
     .status-badge-ng { color: var(--danger-color); font-weight: 600; }
     .rc-location { display:inline-block; margin-left:6px; padding:1px 8px; border-radius:10px; background:#eef5ff; color:var(--primary-color); font-size:0.7rem; font-weight:700; }
-    .reserve-check-row { flex-wrap: wrap; gap: 8px; }
-    .rc-row-main { display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
-    .rc-inline-select { width:auto; padding:4px 8px; font-size:0.72rem; border-radius:10px; border:1px solid #bcdcff; background:#eef5ff; color:var(--primary-color); font-weight:700; }
+    .reserve-check-row { flex-wrap: nowrap; gap: 8px; }
+    .rc-row-main {
+      display:flex; align-items:center; flex-wrap:nowrap; gap:6px;
+      flex:1 1 auto; min-width:0; overflow-x:auto; -ms-overflow-style:none; scrollbar-width:none;
+    }
+    .rc-row-main::-webkit-scrollbar { display:none; }
+    .rc-row-main > strong,
+    .rc-row-main > .status-badge-ok,
+    .rc-row-main > .status-badge-ng { flex-shrink:0; white-space:nowrap; }
+    .rc-inline-select { flex-shrink:0; width:auto; padding:3px 6px; font-size:0.7rem; border-radius:10px; border:1px solid #bcdcff; background:#eef5ff; color:var(--primary-color); font-weight:700; }
+    .reserve-check-row > .btn-del,
+    .reserve-check-row > .btn-primary { flex-shrink:0; }
     .courts-toggle { display:flex; gap:8px; }
     .courts-toggle__btn {
       flex:1; padding:10px 0; border-radius: var(--radius-sm); border:1.5px solid var(--border-color);
@@ -1037,26 +1046,17 @@
             badge.textContent = `✅ 予約済み (${fee.toLocaleString()}円)`;
             mainDiv.appendChild(badge);
 
-            const btnRow = document.createElement("div");
-            btnRow.style.cssText = "display:flex; gap:4px;";
-            const editBtn = document.createElement("button");
-            editBtn.type = "button";
-            editBtn.className = "btn-edit";
-            editBtn.textContent = "✏️ 編集";
-            editBtn.addEventListener("click", () => editReserve(dateStr, docId));
             const delBtn = document.createElement("button");
             delBtn.type = "button";
             delBtn.className = "btn-del";
             delBtn.textContent = "🗑️ 削除";
             delBtn.addEventListener("click", () => deleteReserve(docId));
-            btnRow.appendChild(editBtn);
-            btnRow.appendChild(delBtn);
 
             row.appendChild(mainDiv);
-            row.appendChild(btnRow);
+            row.appendChild(delBtn);
           } else {
             row.innerHTML = `
-              <div>
+              <div class="rc-row-main">
                 <strong>📅 ${m}/${d} (金)</strong>
                 <span class="status-badge-ng" style="margin-left:6px;">⚠️ 未予約</span>
               </div>
@@ -1068,22 +1068,6 @@
         curr.setDate(curr.getDate() + 1);
       }
     }
-
-    window.editReserve = function(dateStr, docId) {
-      const target = rawReservesData.find(r => r.id === docId);
-      if (!target) return;
-
-      editingReserveDocId = docId;
-      if (reserveTargetDate) reserveTargetDate.value = dateStr;
-      calcExactReserveDate();
-      if (reserveCourtFeeInput) reserveCourtFeeInput.value = target.courtFee !== undefined ? target.courtFee : 1600;
-      applyLocationToControls("reserveLocation", "reserveLocationCustom", target.location || "");
-      setReserveCourtsToggle(target.courts !== undefined ? target.courts : 1);
-
-      const saveBtn = document.getElementById("saveReserveBtn");
-      if (saveBtn) saveBtn.textContent = "✏️ 予約内容を上書き保存する";
-      document.getElementById("reserveAccordionContainer").scrollIntoView({ behavior: 'smooth' });
-    };
 
     window.setQuickReserve = async function(dateStr) {
       const feeVal = parseInt(document.getElementById("reserveCourtFee").value, 10) || 1600;
