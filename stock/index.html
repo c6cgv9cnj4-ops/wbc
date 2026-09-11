@@ -114,10 +114,18 @@ h1 { font-size: var(--fs-lg); margin: 0 0 var(--space-2); }
   z-index: 100;
 }
 .toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+
+.test-banner {
+  background: var(--success-weak); color: var(--success);
+  border: 1px solid var(--success); border-radius: var(--radius-sm);
+  padding: 8px 12px; font-size: var(--fs-sm); font-weight: 700;
+  text-align: center; margin-bottom: var(--space-4);
+}
 </style>
 </head>
 <body>
 <div class="layout">
+  <div class="test-banner">🟢 動作テスト版（2026/09/11 更新）</div>
   <h1>スイング監視Bot コマンド一覧</h1>
   <p class="text-muted">枠をタップ／クリックするとコマンドがコピーされます。</p>
 
