@@ -64,6 +64,13 @@ h1 { font-size: var(--fs-lg); margin: 0 0 var(--space-2); }
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  /* iOS Safari は user-select:none だけでは長押し時の「コピー」コールアウトメニューを
+     抑止しない(既知の挙動)。このメニューから素の表示テキスト(code:のラベル込み)を
+     コピーされるとJS側のdata-copy処理を完全にバイパスしてしまうため、
+     -webkit-touch-callout も明示的に無効化する。 */
+  -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   transition: background .12s ease, border-color .12s ease, transform .08s ease;
@@ -73,6 +80,9 @@ h1 { font-size: var(--fs-lg); margin: 0 0 var(--space-2); }
 .cmd-copy code {
   font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--text);
   white-space: pre; overflow-x: auto;
+  /* 親のuser-select/touch-calloutはinheritされる想定だが、<code>要素は
+     ブラウザ/WebView実装によって既定スタイルが強いことがあるため明示的に上書きする。 */
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
 .cmd-copy__icon {
   flex-shrink: 0; color: var(--text-muted); font-size: var(--fs-sm);
@@ -210,26 +220,33 @@ h1 { font-size: var(--fs-lg); margin: 0 0 var(--space-2); }
     return Promise.resolve(fallbackCopy(text));
   }
 
-  function handleCopy(target) {
-    var text = target.dataset.copy;
-    if (!text) return;
+  // クリック/タップされた要素(またはその祖先)の data-copy 属性が唯一の
+  // コピー対象。画面の見た目テキスト(innerText)は絶対に参照しない。
+  // data-copy が無ければ何もコピーしない(表示テキストへのフォールバック禁止)。
+  function handleCopy(originEl) {
+    var source = originEl.closest ? originEl.closest('[data-copy]') : originEl;
+    if (!source || !source.dataset || !source.dataset.copy) return;
+    var text = source.dataset.copy;
     copyText(text).then(function (ok) {
       showToast(ok ? 'コピーしました' : 'コピーに失敗しました');
       if (ok) {
-        target.classList.add('is-copied');
-        setTimeout(function () { target.classList.remove('is-copied'); }, 1000);
+        source.classList.add('is-copied');
+        setTimeout(function () { source.classList.remove('is-copied'); }, 1000);
       }
     });
   }
 
   document.querySelectorAll('.cmd-copy').forEach(function (el) {
-    el.addEventListener('click', function () { handleCopy(el); });
+    el.addEventListener('click', function (e) { handleCopy(e.currentTarget); });
     el.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        handleCopy(el);
+        handleCopy(e.currentTarget);
       }
     });
+    // iOS等で -webkit-touch-callout:none をすり抜けて長押しメニューが出た場合の
+    // 保険。「コピー」を選ばれて表示テキストが渡っても、ここで握りつぶす。
+    el.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   });
 })();
 </script>
