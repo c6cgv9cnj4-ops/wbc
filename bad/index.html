@@ -155,6 +155,7 @@
     .reserve-check-row.unreserved { background-color: #fff2f2; border-color: #ffccc7; }
     .status-badge-ok { color: var(--success-color); font-weight: 600; }
     .status-badge-ng { color: var(--danger-color); font-weight: 600; }
+    .rc-location { display:inline-block; margin-left:6px; padding:1px 8px; border-radius:10px; background:#eef5ff; color:var(--primary-color); font-size:0.7rem; font-weight:700; }
     .stats-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.8rem; margin-top: 10px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border-color); }
     .stats-table th, .stats-table td { padding: 10px 8px; text-align: center; border-bottom: 1px solid var(--border-color); }
     .stats-table th { background: #fafafa; color: var(--text-sub); font-weight: 600; }
@@ -281,6 +282,16 @@
           </div>
         </div>
 
+        <div class="form-row">
+          <label>開催場所</label>
+          <select id="eventLocation">
+            <option value="西部" selected>西部</option>
+            <option value="センター">センター</option>
+            <option value="その他">その他（直接入力）</option>
+          </select>
+          <input type="text" id="eventLocationCustom" placeholder="場所名を入力" style="display:none; margin-top:8px;">
+        </div>
+
         <div class="grid-2 form-row">
           <div>
             <label>会費単価 (固定)</label>
@@ -317,6 +328,15 @@
             <label>コート使用予定日 (練習日)</label>
             <input type="date" id="reserveTargetDate">
             <div id="targetDateWithDay" style="font-size:0.8rem; color:var(--primary-color); font-weight:600; margin-top:4px;"></div>
+          </div>
+          <div class="form-row">
+            <label>予約場所</label>
+            <select id="reserveLocation">
+              <option value="西部" selected>西部</option>
+              <option value="センター">センター</option>
+              <option value="その他">その他（直接入力）</option>
+            </select>
+            <input type="text" id="reserveLocationCustom" placeholder="場所名を入力" style="display:none; margin-top:8px;">
           </div>
           <div class="form-row">
             <label>予約手続き日 (正確な3ヶ月前)</label>
@@ -591,6 +611,46 @@
     let reservedCourtsMap = {};
     let reservedDocIdsMap = {};
     let reservedCompletedMap = {};
+    let reservedLocationsMap = {};
+
+    // 開催場所セレクトの共通処理（「その他」選択時のみ自由入力欄を表示）
+    function setupLocationSelector(selectId, customId) {
+      const sel = document.getElementById(selectId);
+      const custom = document.getElementById(customId);
+      if (!sel || !custom) return;
+      const sync = () => { custom.style.display = sel.value === "その他" ? "block" : "none"; };
+      sel.addEventListener("change", sync);
+      sync();
+    }
+
+    function getSelectedLocation(selectId, customId) {
+      const sel = document.getElementById(selectId);
+      const custom = document.getElementById(customId);
+      if (!sel) return "";
+      if (sel.value === "その他") {
+        return (custom && custom.value.trim()) || "その他";
+      }
+      return sel.value;
+    }
+
+    function applyLocationToControls(selectId, customId, location) {
+      const sel = document.getElementById(selectId);
+      const custom = document.getElementById(customId);
+      if (!sel) return;
+      if (location === "西部" || location === "センター") {
+        sel.value = location;
+        if (custom) { custom.value = ""; custom.style.display = "none"; }
+      } else if (location) {
+        sel.value = "その他";
+        if (custom) { custom.value = location; custom.style.display = "block"; }
+      } else {
+        sel.value = "西部";
+        if (custom) { custom.value = ""; custom.style.display = "none"; }
+      }
+    }
+
+    setupLocationSelector("eventLocation", "eventLocationCustom");
+    setupLocationSelector("reserveLocation", "reserveLocationCustom");
 
     // 練習実績ログ(type:"practice")が存在する日付の集合。
     // 予約点検表・日程コピーの表示除外（＝消化済み判定）に使う。
@@ -711,10 +771,10 @@
       updateSummary();
     }
 
-    // members のリアルタイム購読は匿名認証完了後に subscribeRealtime() で開始する。
-    if (!(isFirebaseReady && db)) {
-      renderMembersUI(rawMembersData);
-    }
+    // 画面表示直後にローカルキャッシュで即描画する。
+    // Firebase同期が有効な場合は、匿名認証完了後の subscribeRealtime() が最新データで上書き描画するが、
+    // 認証や通信が遅延・失敗しても画面が「計算中...」のまま止まらないよう、常にここで先に描画しておく。
+    renderMembersUI(rawMembersData);
 
     function renderMemberSelection() {
       const chips = memberListContainer.querySelectorAll(".member-chip");
@@ -822,12 +882,14 @@
       reservedCourtsMap = {};
       reservedDocIdsMap = {};
       reservedCompletedMap = {};
+      reservedLocationsMap = {};
       reserves.forEach(d => {
         const dateKey = d.targetDate || d.date;
         const feeVal = d.courtFee !== undefined ? d.courtFee : (d.fee || 1600);
         if (dateKey) {
           reservedCourtsMap[dateKey] = feeVal;
           reservedDocIdsMap[dateKey] = d.id;
+          reservedLocationsMap[dateKey] = d.location || "";
           if (d.completed) reservedCompletedMap[dateKey] = true;
         }
       });
@@ -836,10 +898,8 @@
       updateSummary();
     }
 
-    // reserves のリアルタイム購読は匿名認証完了後に subscribeRealtime() で開始する。
-    if (!(isFirebaseReady && db)) {
-      renderReservesUI(rawReservesData);
-    }
+    // 画面表示直後にローカルキャッシュで即描画する（詳細は renderMembersUI 呼び出し箇所のコメント参照）。
+    renderReservesUI(rawReservesData);
 
     function renderReserveCheckList() {
       const reserveCheckList = document.getElementById("reserveCheckList");
@@ -874,9 +934,11 @@
           row.className = `reserve-check-row ${isReserved ? 'reserved' : 'unreserved'}`;
 
           if (isReserved) {
+            const locLabel = reservedLocationsMap[dateStr];
             row.innerHTML = `
               <div>
                 <strong>📅 ${m}/${d} (金)</strong>
+                ${locLabel ? `<span class="rc-location">${locLabel}</span>` : ''}
                 <span class="status-badge-ok" style="margin-left:8px;">✅ 予約済み (${fee.toLocaleString()}円)</span>
               </div>
               <div style="display:flex; gap:4px;">
@@ -907,6 +969,7 @@
       if (reserveTargetDate) reserveTargetDate.value = dateStr;
       calcExactReserveDate();
       if (reserveCourtFeeInput) reserveCourtFeeInput.value = target.courtFee !== undefined ? target.courtFee : 1600;
+      applyLocationToControls("reserveLocation", "reserveLocationCustom", target.location || "");
 
       const saveBtn = document.getElementById("saveReserveBtn");
       if (saveBtn) saveBtn.textContent = "✏️ 予約内容を上書き保存する";
@@ -915,11 +978,12 @@
 
     window.setQuickReserve = async function(dateStr) {
       const feeVal = parseInt(document.getElementById("reserveCourtFee").value, 10) || 1600;
+      const locationVal = getSelectedLocation("reserveLocation", "reserveLocationCustom");
       await runSave(async () => {
         if (isFirebaseReady && db) {
-          await addDoc(collection(db, "reserves"), { targetDate: dateStr, courtFee: feeVal, createdAt: serverTimestamp() });
+          await addDoc(collection(db, "reserves"), { targetDate: dateStr, courtFee: feeVal, location: locationVal, createdAt: serverTimestamp() });
         } else {
-          rawReservesData.push({ id: 'res_' + Date.now(), targetDate: dateStr, courtFee: feeVal });
+          rawReservesData.push({ id: 'res_' + Date.now(), targetDate: dateStr, courtFee: feeVal, location: locationVal });
           safeSetLS("bad_reserves", JSON.stringify(rawReservesData));
           renderReservesUI(rawReservesData);
         }
@@ -947,23 +1011,24 @@
       if (!targetDateVal) return alert("コート使用予定日を選択してください");
 
       const feeVal = parseInt(reserveCourtFeeInput ? reserveCourtFeeInput.value : 1600, 10) || 0;
+      const locationVal = getSelectedLocation("reserveLocation", "reserveLocationCustom");
 
       const btn = this;
       const ok = await runSave(async () => {
         if (isFirebaseReady && db) {
           if (editingReserveDocId) {
-            await updateDoc(doc(db, "reserves", editingReserveDocId), { targetDate: targetDateVal, courtFee: feeVal });
+            await updateDoc(doc(db, "reserves", editingReserveDocId), { targetDate: targetDateVal, courtFee: feeVal, location: locationVal });
             editingReserveDocId = null;
           } else {
-            await addDoc(collection(db, "reserves"), { targetDate: targetDateVal, courtFee: feeVal, createdAt: serverTimestamp() });
+            await addDoc(collection(db, "reserves"), { targetDate: targetDateVal, courtFee: feeVal, location: locationVal, createdAt: serverTimestamp() });
           }
         } else {
           if (editingReserveDocId) {
             const idx = rawReservesData.findIndex(r => r.id === editingReserveDocId);
-            if (idx !== -1) rawReservesData[idx] = { ...rawReservesData[idx], targetDate: targetDateVal, courtFee: feeVal };
+            if (idx !== -1) rawReservesData[idx] = { ...rawReservesData[idx], targetDate: targetDateVal, courtFee: feeVal, location: locationVal };
             editingReserveDocId = null;
           } else {
-            rawReservesData.push({ id: 'res_' + Date.now(), targetDate: targetDateVal, courtFee: feeVal });
+            rawReservesData.push({ id: 'res_' + Date.now(), targetDate: targetDateVal, courtFee: feeVal, location: locationVal });
           }
           safeSetLS("bad_reserves", JSON.stringify(rawReservesData));
           renderReservesUI(rawReservesData);
@@ -999,6 +1064,7 @@
         type: "practice",
         date: eventDateInput.value,
         time: document.getElementById("eventTime").value,
+        location: getSelectedLocation("eventLocation", "eventLocationCustom"),
         memberCount: totalMembers.length,
         members: totalMembers,
         members700: members700,
@@ -1193,6 +1259,7 @@
       const timeElem = document.getElementById("eventTime");
       if (timeElem) timeElem.value = target.time || "19:00〜22:00 (3h)";
       courtFeeInput.value = target.courtFee || 0;
+      applyLocationToControls("eventLocation", "eventLocationCustom", target.location || "");
 
       selectedMemberFees.clear();
       if (target.members700 || target.members500) {
@@ -1384,10 +1451,8 @@
       renderReserveCheckList();
     }
 
-    // events のリアルタイム購読は匿名認証完了後に subscribeRealtime() で開始する。
-    if (!(isFirebaseReady && db)) {
-      renderEventsUI(rawEventsData);
-    }
+    // 画面表示直後にローカルキャッシュで即描画する（詳細は renderMembersUI 呼び出し箇所のコメント参照）。
+    renderEventsUI(rawEventsData);
 
     function updateMemberStatsTable(stats, totalPractice) {
       const tbody = document.getElementById("memberStatsBody");
@@ -1516,7 +1581,7 @@
         const end = new Date();
         end.setDate(end.getDate() + 90);
 
-        const groups = []; // [{ key:'2026年8月', label:'【2026年8月】', dates:['8/28(金)', ...] }]
+        const groups = []; // [{ key:'2026-9', label:'9月', items:[{y,m,d,weekday,location,dateStr}] }]
         const loggedDates = getPracticeLoggedDates();
         const cur = new Date(start);
         while (cur <= end) {
@@ -1529,10 +1594,15 @@
             if (reservedCourtsMap[dateStr] !== undefined
                 && !reservedCompletedMap[dateStr]
                 && !loggedDates.has(dateStr)) {
-              const key = `${y}年${m}月`;
+              const key = `${y}-${m}`;
               let g = groups.find(x => x.key === key);
-              if (!g) { g = { key, label: `【${key}】`, dates: [] }; groups.push(g); }
-              g.dates.push(`${m}/${d}(${weekDays[cur.getDay()]})`);
+              if (!g) { g = { key, label: `${m}月`, items: [] }; groups.push(g); }
+              g.items.push({
+                y, m, d,
+                weekday: weekDays[cur.getDay()],
+                location: reservedLocationsMap[dateStr] || "",
+                dateStr
+              });
             }
           }
           cur.setDate(cur.getDate() + 1);
@@ -1540,40 +1610,95 @@
         return groups;
       }
 
-      // 1ヶ月分: 【YYYY年M月】の直後に日付、各日付のあとは1行空ける
-      function formatMonth(group) {
-        return group.label + "\n" + group.dates.join("\n\n");
-      }
-      // 全月分: 月と月の間も1行空ける
-      function formatAll(groups) {
-        return groups.map(formatMonth).join("\n\n");
+      // モーダル一覧表示用（1件1行）: 例）9/11(金) センター
+      function formatModalLines(group) {
+        return group.items
+          .map(it => `${it.m}/${it.d}(${it.weekday})${it.location ? ' ' + it.location : ''}`)
+          .join("\n");
       }
 
-      async function copyText(text, okMsg) {
+      // コピー用テキスト（1ヶ月分、場所ごとにまとめる）: 例）9月\n西部 18日\nセンター 11日 25日
+      function formatMonthCopyText(group) {
+        const order = [];
+        const byLocation = {};
+        group.items.forEach(it => {
+          const loc = it.location || "場所未設定";
+          if (!byLocation[loc]) { byLocation[loc] = []; order.push(loc); }
+          byLocation[loc].push(`${it.d}日`);
+        });
+        const lines = order.map(loc => `${loc} ${byLocation[loc].join(" ")}`);
+        return `${group.label}\n${lines.join("\n")}`;
+      }
+
+      // 全月分: 月ブロック間は1行空ける
+      function formatAllCopyText(groups) {
+        return groups.map(formatMonthCopyText).join("\n\n");
+      }
+
+      // iOS Safari / Firefox 向けフォールバック。
+      // contentEditable + readOnly=false にしてから Range/Selection で選択範囲を確保しないと、
+      // 環境によっては execCommand('copy') が選択を認識せず失敗する。
+      function fallbackCopyToClipboard(text) {
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed";
+          ta.style.top = "0";
+          ta.style.left = "0";
+          ta.style.width = "2em";
+          ta.style.height = "2em";
+          ta.style.padding = "0";
+          ta.style.border = "none";
+          ta.style.outline = "none";
+          ta.style.boxShadow = "none";
+          ta.style.background = "transparent";
+          ta.style.opacity = "0";
+          ta.setAttribute("readonly", "");
+          ta.contentEditable = "true";
+          document.body.appendChild(ta);
+
+          ta.readOnly = false;
+          const range = document.createRange();
+          range.selectNodeContents(ta);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          ta.setSelectionRange(0, text.length);
+
+          const ok = document.execCommand("copy");
+          document.body.removeChild(ta);
+          return ok;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      // Firefox対策: クリック/タップイベントと同一スタック内で navigator.clipboard.writeText を呼ぶ。
+      // テキストは呼び出し前にすでにメモリ上へ生成済みのものを渡し、await を挟まず即実行する。
+      // 拒否・非対応の場合のみ、その場で textarea + execCommand のフォールバックに切り替える。
+      function copyText(text, okMsg) {
+        const successMsg = okMsg || "コピーしました！";
+        let calledAsyncApi = false;
         try {
           if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(text);
-          } else {
-            throw new Error("clipboard API 非対応");
+            calledAsyncApi = true;
+            navigator.clipboard.writeText(text).then(() => {
+              showToast(successMsg, "info", 2000);
+            }).catch(() => {
+              if (fallbackCopyToClipboard(text)) {
+                showToast(successMsg, "info", 2000);
+              } else {
+                showToast("コピーに失敗しました。手動で範囲選択してください。", "error", 5000);
+              }
+            });
           }
-          showToast(okMsg || "コピーしました！", "info", 2000);
         } catch (e) {
-          // フォールバック: 一時 textarea + execCommand
-          try {
-            const ta = document.createElement("textarea");
-            ta.value = text;
-            ta.style.position = "fixed";
-            ta.style.top = "0";
-            ta.style.left = "0";
-            ta.style.opacity = "0";
-            document.body.appendChild(ta);
-            ta.focus();
-            ta.select();
-            const ok = document.execCommand("copy");
-            document.body.removeChild(ta);
-            if (!ok) throw new Error("execCommand copy 失敗");
-            showToast(okMsg || "コピーしました！", "info", 2000);
-          } catch (e2) {
+          calledAsyncApi = false;
+        }
+        if (!calledAsyncApi) {
+          if (fallbackCopyToClipboard(text)) {
+            showToast(successMsg, "info", 2000);
+          } else {
             showToast("コピーに失敗しました。手動で範囲選択してください。", "error", 5000);
           }
         }
@@ -1594,7 +1719,9 @@
         copyAllBtn.style.display = "";
 
         groups.forEach(g => {
-          const monthText = formatMonth(g);
+          // クリック時に await を挟まないよう、コピー対象テキストはここで事前に生成しておく
+          const monthCopyText = formatMonthCopyText(g);
+
           const block = document.createElement("div");
           block.className = "sc-month-block";
 
@@ -1604,13 +1731,13 @@
 
           const list = document.createElement("pre");
           list.className = "sc-date-list";
-          list.textContent = g.dates.join("\n\n");
+          list.textContent = formatModalLines(g);
 
           const btn = document.createElement("button");
           btn.type = "button";
           btn.className = "sc-copy-btn";
           btn.textContent = "📋 この月をコピー";
-          btn.addEventListener("click", () => copyText(monthText, "コピーしました！"));
+          btn.addEventListener("click", () => copyText(monthCopyText, "コピーしました！"));
 
           block.appendChild(title);
           block.appendChild(list);
@@ -1618,7 +1745,8 @@
           bodyEl.appendChild(block);
         });
 
-        copyAllBtn.onclick = () => copyText(formatAll(groups), "コピーしました！");
+        const allCopyText = formatAllCopyText(groups);
+        copyAllBtn.onclick = () => copyText(allCopyText, "コピーしました！");
       }
 
       function openModal() {
