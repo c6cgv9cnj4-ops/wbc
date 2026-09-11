@@ -166,8 +166,10 @@
     .rc-row-main > .status-badge-ok,
     .rc-row-main > .status-badge-ng { flex-shrink:0; white-space:nowrap; }
     .rc-inline-select { flex-shrink:0; width:auto; padding:3px 6px; font-size:0.7rem; border-radius:10px; border:1px solid #bcdcff; background:#eef5ff; color:var(--primary-color); font-weight:700; }
-    .reserve-check-row > .btn-del,
     .reserve-check-row > .btn-primary { flex-shrink:0; }
+    .rc-actions { display:flex; gap:4px; flex-shrink:0; white-space:nowrap; }
+    .rc-actions .btn-edit,
+    .rc-actions .btn-del { flex-shrink:0; white-space:nowrap; }
     .courts-toggle { display:flex; gap:8px; }
     .courts-toggle__btn {
       flex:1; padding:10px 0; border-radius: var(--radius-sm); border:1.5px solid var(--border-color);
@@ -1046,14 +1048,26 @@
             badge.textContent = `✅ 予約済み (${fee.toLocaleString()}円)`;
             mainDiv.appendChild(badge);
 
+            const actions = document.createElement("div");
+            actions.className = "rc-actions";
+
+            const editBtn = document.createElement("button");
+            editBtn.type = "button";
+            editBtn.className = "btn-edit";
+            editBtn.textContent = "✏️ 編集";
+            editBtn.addEventListener("click", () => editReserve(dateStr, docId));
+
             const delBtn = document.createElement("button");
             delBtn.type = "button";
             delBtn.className = "btn-del";
             delBtn.textContent = "🗑️ 削除";
             delBtn.addEventListener("click", () => deleteReserve(docId));
 
+            actions.appendChild(editBtn);
+            actions.appendChild(delBtn);
+
             row.appendChild(mainDiv);
-            row.appendChild(delBtn);
+            row.appendChild(actions);
           } else {
             row.innerHTML = `
               <div class="rc-row-main">
@@ -1068,6 +1082,25 @@
         curr.setDate(curr.getDate() + 1);
       }
     }
+
+    // 予約点検表の「✏️編集」ボタンから呼ばれる。金額はインライン編集の対象外のため、
+    // 上部フォーム（日付・場所・面数・金額）に予約内容を復元し、上書き保存できるようにする。
+    window.editReserve = function(dateStr, docId) {
+      const target = rawReservesData.find(r => r.id === docId);
+      if (!target) return;
+
+      editingReserveDocId = docId;
+      if (reserveTargetDate) reserveTargetDate.value = dateStr;
+      calcExactReserveDate();
+      applyLocationToControls("reserveLocation", "reserveLocationCustom", target.location || "");
+      setReserveCourtsToggle(target.courts !== undefined ? target.courts : 1);
+      if (reserveCourtFeeInput) reserveCourtFeeInput.value = target.courtFee !== undefined ? target.courtFee : 1600;
+
+      const saveBtn = document.getElementById("saveReserveBtn");
+      if (saveBtn) saveBtn.textContent = "✏️ 予約内容を上書き保存する";
+      const accordion = document.getElementById("reserveAccordionContainer");
+      if (accordion) accordion.scrollIntoView({ behavior: 'smooth' });
+    };
 
     window.setQuickReserve = async function(dateStr) {
       const feeVal = parseInt(document.getElementById("reserveCourtFee").value, 10) || 1600;
