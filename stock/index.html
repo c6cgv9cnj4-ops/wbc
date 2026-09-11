@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>スイング監視Bot コマンド一覧</title>
+<style>
+/* =========================================================================
+   DESIGN TOKENS（design-systemスキル準拠）
+   ========================================================================= */
+:root, :root[data-theme="dark"] {
+  --bg: #0c1116; --surface: #14171c; --surface-2: #1a1e26; --surface-3: #232833;
+  --border: #262c36; --border-strong: #333b48;
+  --text: #e6e9ee; --text-muted: #94a3b8; --text-dim: #64707f;
+  --accent: #4da6ff; --accent-hover: #7ec8ff; --accent-solid: #3b82f6;
+  --accent-weak: rgba(77,166,255,0.12); --on-accent: #0b1220;
+  --success: #4fb08a; --success-solid: #10b981; --success-weak: rgba(79,176,138,0.14);
+  --warning: #e0b356; --danger: #ef6a5a;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px;
+  --radius-sm: 6px; --radius: 10px; --radius-pill: 999px;
+  --shadow-lg: 0 16px 48px rgba(0,0,0,.50);
+  --ring: 0 0 0 3px rgba(77,166,255,0.35);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN",
+               "Hiragino Sans", "Yu Gothic", "Yu Gothic UI", Meiryo, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  --fs-xs: 12px; --fs-sm: 13px; --fs-base: 14px; --fs-lg: 20px;
+}
+:root[data-theme="light"] {
+  --bg: #f5f7fa; --surface: #ffffff; --surface-2: #eef1f5; --surface-3: #e2e7ee;
+  --border: #dfe4ea; --border-strong: #c6cdd6;
+  --text: #1c2430; --text-muted: #566173; --text-dim: #8a94a3;
+  --accent: #2563eb; --accent-solid: #2563eb; --accent-weak: rgba(37,99,235,0.10);
+  --success: #0f9d6b; --success-weak: rgba(16,185,129,0.12);
+  --shadow-lg: 0 16px 48px rgba(16,24,40,.16);
+  --ring: 0 0 0 3px rgba(37,99,235,0.30);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: var(--font-sans); font-size: var(--fs-base); line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+h1 { font-size: var(--fs-lg); margin: 0 0 var(--space-2); }
+.layout { max-width: 640px; margin: 0 auto; padding: var(--space-5); }
+.text-muted { color: var(--text-muted); font-size: var(--fs-sm); margin: 0 0 var(--space-5); }
+:focus-visible { outline: none; box-shadow: var(--ring); border-radius: var(--radius-sm); }
+
+/* =========================================================================
+   コマンドコピー枠
+   ・PC: クリック / スマホ: タップ でクリップボードへコピー
+   ========================================================================= */
+.cmd-list { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.cmd-copy {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background .12s ease, border-color .12s ease, transform .08s ease;
+}
+.cmd-copy:hover { background: var(--surface-3); border-color: var(--accent); }
+.cmd-copy:active { transform: scale(0.98); }
+.cmd-copy code {
+  font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--text);
+  white-space: pre; overflow-x: auto;
+}
+.cmd-copy__icon {
+  flex-shrink: 0; color: var(--text-muted); font-size: var(--fs-sm);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.cmd-copy__icon svg { width: 15px; height: 15px; display: block; }
+
+.cmd-copy.is-copied { border-color: var(--success); background: var(--success-weak); }
+.cmd-copy.is-copied .cmd-copy__icon { color: var(--success); }
+
+.toast {
+  position: fixed; left: 50%; bottom: var(--space-6);
+  transform: translate(-50%, 12px);
+  background: var(--surface-3); color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  padding: 10px 20px;
+  font-size: var(--fs-sm); font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+  z-index: 100;
+}
+.toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+<div class="layout">
+  <h1>スイング監視Bot コマンド一覧</h1>
+  <p class="text-muted">枠をタップ／クリックするとコマンドがコピーされます。</p>
+
+  <div class="cmd-list">
+    <div class="cmd-copy" data-copy="/bottom" tabindex="0" role="button" aria-label="/bottom をコピー">
+      <code>/bottom</code>
+      <span class="cmd-copy__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </span>
+    </div>
+
+    <div class="cmd-copy" data-copy="/earnings" tabindex="0" role="button" aria-label="/earnings をコピー">
+      <code>/earnings</code>
+      <span class="cmd-copy__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </span>
+    </div>
+
+    <div class="cmd-copy" data-copy="/splits" tabindex="0" role="button" aria-label="/splits をコピー">
+      <code>/splits</code>
+      <span class="cmd-copy__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </span>
+    </div>
+
+    <div class="cmd-copy" data-copy="/portfolio" tabindex="0" role="button" aria-label="/portfolio をコピー">
+      <code>/portfolio</code>
+      <span class="cmd-copy__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </span>
+    </div>
+
+    <div class="cmd-copy" data-copy="/buy code: shares: price:" tabindex="0" role="button" aria-label="/buy コマンドをコピー">
+      <code>/buy code: shares: price:</code>
+      <span class="cmd-copy__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- トースト通知はJSが初回コピー時に自動生成するため、静的なHTML要素の追加は不要 -->
+
+<script>
+(function () {
+  var TOAST_MS = 1500;
+  var toastTimer = null;
+
+  function getToast() {
+    var el = document.getElementById('cmdCopyToast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'cmdCopyToast';
+      el.className = 'toast';
+      el.setAttribute('role', 'status');
+      el.setAttribute('aria-live', 'polite');
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+
+  function showToast(message) {
+    var el = getToast();
+    el.textContent = message;
+    el.classList.add('is-visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('is-visible'); }, TOAST_MS);
+  }
+
+  // 安全でないコンテキスト(http)や古いブラウザ向けフォールバック
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '0';
+    ta.style.left = '0';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    var selected = document.getSelection().rangeCount > 0 ? document.getSelection().getRangeAt(0) : false;
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length); // iOS Safari対策
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    if (selected) {
+      document.getSelection().removeAllRanges();
+      document.getSelection().addRange(selected);
+    }
+    return ok;
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).then(
+        function () { return true; },
+        function () { return fallbackCopy(text); }
+      );
+    }
+    return Promise.resolve(fallbackCopy(text));
+  }
+
+  function handleCopy(target) {
+    var text = target.dataset.copy;
+    if (!text) return;
+    copyText(text).then(function (ok) {
+      showToast(ok ? 'コピーしました' : 'コピーに失敗しました');
+      if (ok) {
+        target.classList.add('is-copied');
+        setTimeout(function () { target.classList.remove('is-copied'); }, 1000);
+      }
+    });
+  }
+
+  document.querySelectorAll('.cmd-copy').forEach(function (el) {
+    el.addEventListener('click', function () { handleCopy(el); });
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handleCopy(el);
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>
