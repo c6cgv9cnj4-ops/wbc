@@ -156,6 +156,15 @@
     .status-badge-ok { color: var(--success-color); font-weight: 600; }
     .status-badge-ng { color: var(--danger-color); font-weight: 600; }
     .rc-location { display:inline-block; margin-left:6px; padding:1px 8px; border-radius:10px; background:#eef5ff; color:var(--primary-color); font-size:0.7rem; font-weight:700; }
+    .reserve-check-row { flex-wrap: wrap; gap: 8px; }
+    .rc-row-main { display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
+    .rc-inline-select { width:auto; padding:4px 8px; font-size:0.72rem; border-radius:10px; border:1px solid #bcdcff; background:#eef5ff; color:var(--primary-color); font-weight:700; }
+    .courts-toggle { display:flex; gap:8px; }
+    .courts-toggle__btn {
+      flex:1; padding:10px 0; border-radius: var(--radius-sm); border:1.5px solid var(--border-color);
+      background:#fafafa; color:var(--text-main); font-size:0.9rem; font-weight:700;
+    }
+    .courts-toggle__btn.active { background-color: var(--primary-color); border-color: var(--primary-color); color:#ffffff; }
     .stats-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.8rem; margin-top: 10px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border-color); }
     .stats-table th, .stats-table td { padding: 10px 8px; text-align: center; border-bottom: 1px solid var(--border-color); }
     .stats-table th { background: #fafafa; color: var(--text-sub); font-weight: 600; }
@@ -337,6 +346,14 @@
               <option value="その他">その他（直接入力）</option>
             </select>
             <input type="text" id="reserveLocationCustom" placeholder="場所名を入力" style="display:none; margin-top:8px;">
+          </div>
+          <div class="form-row">
+            <label>コート面数</label>
+            <div class="courts-toggle" id="reserveCourtsToggle">
+              <button type="button" class="courts-toggle__btn active" data-courts="1">1面</button>
+              <button type="button" class="courts-toggle__btn" data-courts="2">2面</button>
+              <button type="button" class="courts-toggle__btn" data-courts="3">3面</button>
+            </div>
           </div>
           <div class="form-row">
             <label>予約手続き日 (正確な3ヶ月前)</label>
@@ -612,6 +629,7 @@
     let reservedDocIdsMap = {};
     let reservedCompletedMap = {};
     let reservedLocationsMap = {};
+    let reservedCourtsCountMap = {};
 
     // 開催場所セレクトの共通処理（「その他」選択時のみ自由入力欄を表示）
     function setupLocationSelector(selectId, customId) {
@@ -651,6 +669,22 @@
 
     setupLocationSelector("eventLocation", "eventLocationCustom");
     setupLocationSelector("reserveLocation", "reserveLocationCustom");
+
+    // コート予約フォームの「面数」トグル（デフォルト1面）
+    let selectedReserveCourts = 1;
+    const reserveCourtsToggle = document.getElementById("reserveCourtsToggle");
+    function setReserveCourtsToggle(value) {
+      selectedReserveCourts = value;
+      if (!reserveCourtsToggle) return;
+      reserveCourtsToggle.querySelectorAll(".courts-toggle__btn").forEach(btn => {
+        btn.classList.toggle("active", parseInt(btn.dataset.courts, 10) === value);
+      });
+    }
+    if (reserveCourtsToggle) {
+      reserveCourtsToggle.querySelectorAll(".courts-toggle__btn").forEach(btn => {
+        btn.addEventListener("click", () => setReserveCourtsToggle(parseInt(btn.dataset.courts, 10)));
+      });
+    }
 
     // 練習実績ログ(type:"practice")が存在する日付の集合。
     // 予約点検表・日程コピーの表示除外（＝消化済み判定）に使う。
@@ -883,6 +917,7 @@
       reservedDocIdsMap = {};
       reservedCompletedMap = {};
       reservedLocationsMap = {};
+      reservedCourtsCountMap = {};
       reserves.forEach(d => {
         const dateKey = d.targetDate || d.date;
         const feeVal = d.courtFee !== undefined ? d.courtFee : (d.fee || 1600);
@@ -890,6 +925,7 @@
           reservedCourtsMap[dateKey] = feeVal;
           reservedDocIdsMap[dateKey] = d.id;
           reservedLocationsMap[dateKey] = d.location || "";
+          reservedCourtsCountMap[dateKey] = d.courts !== undefined ? d.courts : 1;
           if (d.completed) reservedCompletedMap[dateKey] = true;
         }
       });
@@ -934,18 +970,90 @@
           row.className = `reserve-check-row ${isReserved ? 'reserved' : 'unreserved'}`;
 
           if (isReserved) {
-            const locLabel = reservedLocationsMap[dateStr];
-            row.innerHTML = `
-              <div>
-                <strong>📅 ${m}/${d} (金)</strong>
-                ${locLabel ? `<span class="rc-location">${locLabel}</span>` : ''}
-                <span class="status-badge-ok" style="margin-left:8px;">✅ 予約済み (${fee.toLocaleString()}円)</span>
-              </div>
-              <div style="display:flex; gap:4px;">
-                <button type="button" class="btn-edit" onclick="editReserve('${dateStr}', '${docId}')">✏️ 編集</button>
-                <button type="button" class="btn-del" onclick="deleteReserve('${docId}')">🗑️ 削除</button>
-              </div>
-            `;
+            const locValue = reservedLocationsMap[dateStr] || "";
+            const isKnownLoc = locValue === "西部" || locValue === "センター";
+            const courtsValue = reservedCourtsCountMap[dateStr] !== undefined ? reservedCourtsCountMap[dateStr] : 1;
+
+            const mainDiv = document.createElement("div");
+            mainDiv.className = "rc-row-main";
+
+            const dateStrong = document.createElement("strong");
+            dateStrong.textContent = `📅 ${m}/${d} (金)`;
+            mainDiv.appendChild(dateStrong);
+
+            // 場所インライン編集（プルダウン即保存。「その他」選択時のみ入力ダイアログ）
+            const locSelect = document.createElement("select");
+            locSelect.className = "rc-inline-select";
+            locSelect.setAttribute("aria-label", "予約場所を変更");
+            locSelect.dataset.prevValue = isKnownLoc ? locValue : "その他";
+            [
+              ["西部", "西部"],
+              ["センター", "センター"],
+              ["その他", (!isKnownLoc && locValue) ? locValue : "その他（直接入力）"]
+            ].forEach(([val, label]) => {
+              const opt = document.createElement("option");
+              opt.value = val;
+              opt.textContent = label;
+              if (val === "その他") {
+                if (!isKnownLoc) opt.selected = true;
+              } else if (val === locValue) {
+                opt.selected = true;
+              }
+              locSelect.appendChild(opt);
+            });
+            locSelect.addEventListener("change", async () => {
+              if (locSelect.value === "その他") {
+                const custom = prompt("場所名を入力してください", isKnownLoc ? "" : locValue);
+                if (!custom || !custom.trim()) {
+                  locSelect.value = locSelect.dataset.prevValue;
+                  return;
+                }
+                await updateReserveField(docId, "location", custom.trim());
+              } else {
+                await updateReserveField(docId, "location", locSelect.value);
+              }
+            });
+            mainDiv.appendChild(locSelect);
+
+            // 面数インライン編集（プルダウン即保存）
+            const courtsSelect = document.createElement("select");
+            courtsSelect.className = "rc-inline-select rc-inline-courts";
+            courtsSelect.setAttribute("aria-label", "コート面数を変更");
+            [1, 2, 3].forEach(n => {
+              const opt = document.createElement("option");
+              opt.value = String(n);
+              opt.textContent = `${n}面`;
+              if (n === courtsValue) opt.selected = true;
+              courtsSelect.appendChild(opt);
+            });
+            courtsSelect.addEventListener("change", async () => {
+              await updateReserveField(docId, "courts", parseInt(courtsSelect.value, 10) || 1);
+            });
+            mainDiv.appendChild(courtsSelect);
+
+            const badge = document.createElement("span");
+            badge.className = "status-badge-ok";
+            badge.style.marginLeft = "4px";
+            badge.textContent = `✅ 予約済み (${fee.toLocaleString()}円)`;
+            mainDiv.appendChild(badge);
+
+            const btnRow = document.createElement("div");
+            btnRow.style.cssText = "display:flex; gap:4px;";
+            const editBtn = document.createElement("button");
+            editBtn.type = "button";
+            editBtn.className = "btn-edit";
+            editBtn.textContent = "✏️ 編集";
+            editBtn.addEventListener("click", () => editReserve(dateStr, docId));
+            const delBtn = document.createElement("button");
+            delBtn.type = "button";
+            delBtn.className = "btn-del";
+            delBtn.textContent = "🗑️ 削除";
+            delBtn.addEventListener("click", () => deleteReserve(docId));
+            btnRow.appendChild(editBtn);
+            btnRow.appendChild(delBtn);
+
+            row.appendChild(mainDiv);
+            row.appendChild(btnRow);
           } else {
             row.innerHTML = `
               <div>
@@ -970,6 +1078,7 @@
       calcExactReserveDate();
       if (reserveCourtFeeInput) reserveCourtFeeInput.value = target.courtFee !== undefined ? target.courtFee : 1600;
       applyLocationToControls("reserveLocation", "reserveLocationCustom", target.location || "");
+      setReserveCourtsToggle(target.courts !== undefined ? target.courts : 1);
 
       const saveBtn = document.getElementById("saveReserveBtn");
       if (saveBtn) saveBtn.textContent = "✏️ 予約内容を上書き保存する";
@@ -979,15 +1088,33 @@
     window.setQuickReserve = async function(dateStr) {
       const feeVal = parseInt(document.getElementById("reserveCourtFee").value, 10) || 1600;
       const locationVal = getSelectedLocation("reserveLocation", "reserveLocationCustom");
+      const courtsVal = selectedReserveCourts;
       await runSave(async () => {
         if (isFirebaseReady && db) {
-          await addDoc(collection(db, "reserves"), { targetDate: dateStr, courtFee: feeVal, location: locationVal, createdAt: serverTimestamp() });
+          await addDoc(collection(db, "reserves"), { targetDate: dateStr, courtFee: feeVal, location: locationVal, courts: courtsVal, createdAt: serverTimestamp() });
         } else {
-          rawReservesData.push({ id: 'res_' + Date.now(), targetDate: dateStr, courtFee: feeVal, location: locationVal });
+          rawReservesData.push({ id: 'res_' + Date.now(), targetDate: dateStr, courtFee: feeVal, location: locationVal, courts: courtsVal });
           safeSetLS("bad_reserves", JSON.stringify(rawReservesData));
           renderReservesUI(rawReservesData);
         }
       }, "予約を登録しました");
+    };
+
+    // 予約点検表インライン編集（場所・面数）用の単一フィールド更新。
+    // フォームを開かずプルダウン変更だけで即保存できるようにする。
+    window.updateReserveField = async function(docId, field, value) {
+      await runSave(async () => {
+        if (isFirebaseReady && db) {
+          await updateDoc(doc(db, "reserves", docId), { [field]: value });
+        } else {
+          const idx = rawReservesData.findIndex(r => r.id === docId);
+          if (idx !== -1) {
+            rawReservesData[idx] = { ...rawReservesData[idx], [field]: value };
+            safeSetLS("bad_reserves", JSON.stringify(rawReservesData));
+            renderReservesUI(rawReservesData);
+          }
+        }
+      });
     };
 
     window.deleteReserve = async function(docId) {
@@ -1012,23 +1139,24 @@
 
       const feeVal = parseInt(reserveCourtFeeInput ? reserveCourtFeeInput.value : 1600, 10) || 0;
       const locationVal = getSelectedLocation("reserveLocation", "reserveLocationCustom");
+      const courtsVal = selectedReserveCourts;
 
       const btn = this;
       const ok = await runSave(async () => {
         if (isFirebaseReady && db) {
           if (editingReserveDocId) {
-            await updateDoc(doc(db, "reserves", editingReserveDocId), { targetDate: targetDateVal, courtFee: feeVal, location: locationVal });
+            await updateDoc(doc(db, "reserves", editingReserveDocId), { targetDate: targetDateVal, courtFee: feeVal, location: locationVal, courts: courtsVal });
             editingReserveDocId = null;
           } else {
-            await addDoc(collection(db, "reserves"), { targetDate: targetDateVal, courtFee: feeVal, location: locationVal, createdAt: serverTimestamp() });
+            await addDoc(collection(db, "reserves"), { targetDate: targetDateVal, courtFee: feeVal, location: locationVal, courts: courtsVal, createdAt: serverTimestamp() });
           }
         } else {
           if (editingReserveDocId) {
             const idx = rawReservesData.findIndex(r => r.id === editingReserveDocId);
-            if (idx !== -1) rawReservesData[idx] = { ...rawReservesData[idx], targetDate: targetDateVal, courtFee: feeVal, location: locationVal };
+            if (idx !== -1) rawReservesData[idx] = { ...rawReservesData[idx], targetDate: targetDateVal, courtFee: feeVal, location: locationVal, courts: courtsVal };
             editingReserveDocId = null;
           } else {
-            rawReservesData.push({ id: 'res_' + Date.now(), targetDate: targetDateVal, courtFee: feeVal, location: locationVal });
+            rawReservesData.push({ id: 'res_' + Date.now(), targetDate: targetDateVal, courtFee: feeVal, location: locationVal, courts: courtsVal });
           }
           safeSetLS("bad_reserves", JSON.stringify(rawReservesData));
           renderReservesUI(rawReservesData);
@@ -1581,7 +1709,7 @@
         const end = new Date();
         end.setDate(end.getDate() + 90);
 
-        const groups = []; // [{ key:'2026-9', label:'9月', items:[{y,m,d,weekday,location,dateStr}] }]
+        const groups = []; // [{ key:'2026-9', label:'9月', items:[{y,m,d,weekday,location,courts,dateStr}] }]
         const loggedDates = getPracticeLoggedDates();
         const cur = new Date(start);
         while (cur <= end) {
@@ -1601,6 +1729,7 @@
                 y, m, d,
                 weekday: weekDays[cur.getDay()],
                 location: reservedLocationsMap[dateStr] || "",
+                courts: reservedCourtsCountMap[dateStr] !== undefined ? reservedCourtsCountMap[dateStr] : 1,
                 dateStr
               });
             }
@@ -1610,21 +1739,21 @@
         return groups;
       }
 
-      // モーダル一覧表示用（1件1行）: 例）9/11(金) センター
+      // モーダル一覧表示用（1件1行）: 例）9/11(金) センター 2面
       function formatModalLines(group) {
         return group.items
-          .map(it => `${it.m}/${it.d}(${it.weekday})${it.location ? ' ' + it.location : ''}`)
+          .map(it => `${it.m}/${it.d}(${it.weekday})${it.location ? ' ' + it.location : ''} ${it.courts}面`)
           .join("\n");
       }
 
-      // コピー用テキスト（1ヶ月分、場所ごとにまとめる）: 例）9月\n西部 18日\nセンター 11日 25日
+      // コピー用テキスト（1ヶ月分、場所ごとにまとめる）: 例）9月\n西部 18日(2面)\nセンター 11日(2面) 25日(1面)
       function formatMonthCopyText(group) {
         const order = [];
         const byLocation = {};
         group.items.forEach(it => {
           const loc = it.location || "場所未設定";
           if (!byLocation[loc]) { byLocation[loc] = []; order.push(loc); }
-          byLocation[loc].push(`${it.d}日`);
+          byLocation[loc].push(`${it.d}日(${it.courts}面)`);
         });
         const lines = order.map(loc => `${loc} ${byLocation[loc].join(" ")}`);
         return `${group.label}\n${lines.join("\n")}`;
