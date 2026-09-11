@@ -56,7 +56,7 @@ h1 { font-size: var(--fs-lg); margin: 0 0 var(--space-2); }
 .cmd-list { display: flex; flex-direction: column; gap: var(--space-3); }
 
 .cmd-copy {
-  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  display: flex; flex-direction: column; align-items: stretch; gap: 4px;
   background: var(--surface-2);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
@@ -84,11 +84,18 @@ h1 { font-size: var(--fs-lg); margin: 0 0 var(--space-2); }
      ブラウザ/WebView実装によって既定スタイルが強いことがあるため明示的に上書きする。 */
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
+.cmd-copy__row {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  width: 100%;
+}
 .cmd-copy__icon {
   flex-shrink: 0; color: var(--text-muted); font-size: var(--fs-sm);
   display: inline-flex; align-items: center; gap: 6px;
 }
 .cmd-copy__icon svg { width: 15px; height: 15px; display: block; }
+.cmd-copy__hint {
+  font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.4;
+}
 
 .cmd-copy.is-copied { border-color: var(--success); background: var(--success-weak); }
 .cmd-copy.is-copied .cmd-copy__icon { color: var(--success); }
@@ -116,45 +123,59 @@ h1 { font-size: var(--fs-lg); margin: 0 0 var(--space-2); }
 
   <div class="cmd-list">
     <div class="cmd-copy" data-copy="/bottom" tabindex="0" role="button" aria-label="/bottom をコピー">
-      <code>/bottom</code>
-      <span class="cmd-copy__icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-      </span>
+      <div class="cmd-copy__row">
+        <code>/bottom</code>
+        <span class="cmd-copy__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </span>
+      </div>
     </div>
 
     <div class="cmd-copy" data-copy="/earnings" tabindex="0" role="button" aria-label="/earnings をコピー">
-      <code>/earnings</code>
-      <span class="cmd-copy__icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-      </span>
+      <div class="cmd-copy__row">
+        <code>/earnings</code>
+        <span class="cmd-copy__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </span>
+      </div>
     </div>
 
     <div class="cmd-copy" data-copy="/splits" tabindex="0" role="button" aria-label="/splits をコピー">
-      <code>/splits</code>
-      <span class="cmd-copy__icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-      </span>
+      <div class="cmd-copy__row">
+        <code>/splits</code>
+        <span class="cmd-copy__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </span>
+      </div>
     </div>
 
     <div class="cmd-copy" data-copy="/portfolio" tabindex="0" role="button" aria-label="/portfolio をコピー">
-      <code>/portfolio</code>
-      <span class="cmd-copy__icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-      </span>
+      <div class="cmd-copy__row">
+        <code>/portfolio</code>
+        <span class="cmd-copy__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </span>
+      </div>
     </div>
 
     <div class="cmd-copy" data-copy="/buy " tabindex="0" role="button" aria-label="/buy コマンドをコピー">
-      <code>/buy code: shares: price:</code>
-      <span class="cmd-copy__icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-      </span>
+      <div class="cmd-copy__row">
+        <code>/buy</code>
+        <span class="cmd-copy__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </span>
+      </div>
+      <div class="cmd-copy__hint">買いポジション登録: code, shares, price</div>
     </div>
 
     <div class="cmd-copy" data-copy="/sell " tabindex="0" role="button" aria-label="/sell コマンドをコピー">
-      <code>/sell code: shares:</code>
-      <span class="cmd-copy__icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-      </span>
+      <div class="cmd-copy__row">
+        <code>/sell</code>
+        <span class="cmd-copy__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </span>
+      </div>
+      <div class="cmd-copy__hint">売却記録: code, shares</div>
     </div>
   </div>
 </div>
