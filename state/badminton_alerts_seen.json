@@ -107,7 +107,9 @@
     "https://news.google.com/rss/articles/CBMijgFBVV95cUxORUtlVXM3M2VKaFZSVEVoRnRhcXpGOHlOWW40MGhYSUEtazdvNVR1SE1QY3pNYW1MVzBJUjZpTGJhWkxtMlZQcUE5eE53VThkc1VaU0JnWUJhTlVRUVowYnJrNjJWWFVBdTUzTmdRZk1jSl81eHozcGNZUTYtSk1wVXBVR0pJQjlfbEtDdExn?oc=5": "2026-09-12T21:02:43.362155+09:00",
     "https://news.google.com/rss/articles/CBMiV0FVX3lxTE40a0NWS0FhTEhLRFFpVVFwT2gyRFlRS1gtWHVpaURZQXhrdjA3Nl9UZnhnc00wc2lvRHFTc0l4OWx0NEcyRGpDUmJCTWdqd0pkbWI0T3EtWQ?oc=5": "2026-09-12T21:02:43.362155+09:00",
     "https://news.google.com/rss/articles/CBMie0FVX3lxTE5hb0hxblcxZWtUNHZlelJoNkpZQVY1SEN2amhNajN5LXVObWVPQzRhaGxuQzU0VWVQa2ZJc3RUNF9oRG9IdEZvSmI0eW1tYVd6dTZOVER4bW1UaEhVUU96SnlYbkJZNkVCVG5pazZrWGtFa1hNUHo5Y1I3TQ?oc=5": "2026-09-12T21:02:43.362155+09:00",
-    "https://news.google.com/rss/articles/CBMijgFBVV95cUxObnlIYmRMaWpQSXhSM3JLZzNMci04aVVvYTZMUFFaSkdMNUhSbS1xUGo0QUlzWmdsejlnNk10TURaREN4RkdnOXltcDhpUjRXWWRPdm9nRlMzN2pqcHVucVZKcnBqd3ZMZHNobWxXLTVrOGg2NGllRWtfcDVodGtJV3FQMHQ5d3dLMzBMaVZR?oc=5": "2026-09-12T21:02:43.362155+09:00"
+    "https://news.google.com/rss/articles/CBMijgFBVV95cUxObnlIYmRMaWpQSXhSM3JLZzNMci04aVVvYTZMUFFaSkdMNUhSbS1xUGo0QUlzWmdsejlnNk10TURaREN4RkdnOXltcDhpUjRXWWRPdm9nRlMzN2pqcHVucVZKcnBqd3ZMZHNobWxXLTVrOGg2NGllRWtfcDVodGtJV3FQMHQ5d3dLMzBMaVZR?oc=5": "2026-09-12T21:02:43.362155+09:00",
+    "https://news.google.com/rss/articles/CBMif0FVX3lxTE55bG05VEVIOUtVNjZZQVdaTzQ4RGVqS1hIT2xObUVSb2pEV1RWSTBCTjhHbGdjYW03OGkxUFptTURVTmRJVlFOSC0tWjRuY200ZmZEYU9oZEFIMUxhTkhaT1QyaUMyVVhob291T0RUU1JNMl9NV1BfZ1EtRkVzQjg?oc=5": "2026-09-13T00:31:34.085145+09:00",
+    "https://news.google.com/rss/articles/CBMijgFBVV95cUxOMnBWQ0pWcjRzd2RlYlA2NjFRQ1BMdkgwVlFMVjh4MUY1VlFpdG52NVZhQUZQVTdoQmcwX1RaVWNJeXdyT1loMWcwMFBPdU9zOWRFSmY3RWppOXNHcGxwODNGd2JuOVlkd3N2eHFlSDBQM3hnbHFiQ04tZzhRWVdiNmV0RjFqWjF2dGdidWZn?oc=5": "2026-09-13T00:31:34.085145+09:00"
   },
   "seen_nba_result_ids": {
     "982": "2026-09-06T18:30:52.185356+09:00",
@@ -145,7 +147,16 @@
     "matches": [],
     "summaries": [],
     "badspi": [],
-    "gnews": [],
+    "gnews": [
+      {
+        "title": "「100万投げるから見せて」元バドミントン日本代表→ライバーに転身した女性（30）が遭遇した“2億円投げ銭リスナー”からの恐ろしい嫌がらせ（文春オンライン）",
+        "url": "https://news.google.com/rss/articles/CBMif0FVX3lxTE55bG05VEVIOUtVNjZZQVdaTzQ4RGVqS1hIT2xObUVSb2pEV1RWSTBCTjhHbGdjYW03OGkxUFptTURVTmRJVlFOSC0tWjRuY200ZmZEYU9oZEFIMUxhTkhaT1QyaUMyVVhob291T0RUU1JNMl9NV1BfZ1EtRkVzQjg?oc=5"
+      },
+      {
+        "title": "「100万投げるから見せて」元バドミントン日本代表→ライバーに転身した女性（30）が遭遇した“2億円投げ銭リスナー”からの恐ろしい嫌がらせ (文春オンライン)",
+        "url": "https://news.google.com/rss/articles/CBMijgFBVV95cUxOMnBWQ0pWcjRzd2RlYlA2NjFRQ1BMdkgwVlFMVjh4MUY1VlFpdG52NVZhQUZQVTdoQmcwX1RaVWNJeXdyT1loMWcwMFBPdU9zOWRFSmY3RWppOXNHcGxwODNGd2JuOVlkd3N2eHFlSDBQM3hnbHFiQ04tZzhRWVdiNmV0RjFqWjF2dGdidWZn?oc=5"
+      }
+    ],
     "nba": []
   },
   "wr_rankings": {
