@@ -42,7 +42,10 @@
     "https://www.badspi.jp/202609091916/?utm_source=rss&utm_medium=rss&utm_campaign=202609091916": "2026-09-09T21:58:21.676266+09:00",
     "https://www.badspi.jp/202609091852/?utm_source=rss&utm_medium=rss&utm_campaign=202609091852": "2026-09-09T21:58:21.676266+09:00",
     "https://www.badspi.jp/2026091116245/?utm_source=rss&utm_medium=rss&utm_campaign=2026091116245": "2026-09-11T17:03:19.224028+09:00",
-    "https://www.badspi.jp/202609111611/?utm_source=rss&utm_medium=rss&utm_campaign=202609111611": "2026-09-11T17:03:19.224028+09:00"
+    "https://www.badspi.jp/202609111611/?utm_source=rss&utm_medium=rss&utm_campaign=202609111611": "2026-09-11T17:03:19.224028+09:00",
+    "https://www.badspi.jp/202609132019/?utm_source=rss&utm_medium=rss&utm_campaign=202609132019": "2026-09-13T22:26:10.600250+09:00",
+    "https://www.badspi.jp/202611221123/?utm_source=rss&utm_medium=rss&utm_campaign=202611221123": "2026-09-13T22:26:10.600250+09:00",
+    "https://www.badspi.jp/202609131110/?utm_source=rss&utm_medium=rss&utm_campaign=202609131110": "2026-09-13T22:26:10.600250+09:00"
   },
   "seen_national_summaries": {
     "https://www.sposoku.com/wakabacup-badminton/::優勝：岡垣ジュニア(福岡県)準優勝：Selfish(神奈川県)第三位：shinshin(石川県)、F.Flash(埼玉県)": "2026-09-06T00:41:49.469551+09:00",
@@ -114,7 +117,9 @@
     "https://news.google.com/rss/articles/CBMibkFVX3lxTE5RUlFDenVfWWoxaUpkM1NUdEpHUlQ5U1dPYnZ0dWN3ZkMtb2pZUFV4bXNPRXBkbFJDbEhGdmpuSm9mQ21IZzNueW5mbDZDNlFHZ2ZXODFQRzI1eVl6Z0RvUFRRLUVndG1hNFBiTGln?oc=5": "2026-09-13T09:20:59.570977+09:00",
     "https://news.google.com/rss/articles/CBMiZEFVX3lxTFBNalB0bm42N0cwd2pVT25kcGY2cGZrUWZFalRHY2RxNC0xbV9fbGExTEZmQnRoWHZZN1hBWFRvczNRNmh4SjNYMEgxS2FoNF9lSm9adF9yZm5NUzRKaEZ5TkxaT3M?oc=5": "2026-09-13T17:28:55.235866+09:00",
     "https://news.google.com/rss/articles/CBMif0FVX3lxTE01VmJSU3RHSFNRNDR2eUV5WDNGVDdOVlZsNm5UaDlYRXRvM0ZSa3ZnRmFGdzUyMGFHTUlGVE11R1BLN0l6M1ZaQ2YybHBFRGtER3VrcEl0VWlzYWczWG5GOVpwRGJTdGRXS2NFbTlyd2VmOW44d05fLURqTFd2VEU?oc=5": "2026-09-13T17:28:55.235866+09:00",
-    "https://news.google.com/rss/articles/CBMif0FVX3lxTE5JRHVVWTZnSTBCYnA2cFU5SzhkT3doSEZPMzRGMnJoVlR2UTdpVElPTUttRDZZUFB1dGdUZ095VHoxT3VEM0NsLW04Z0VTbnBlQzBRVXZ5Q29FU2hmRGY4TVFwZ3JkR0JoT0R1OUhfbXlOdzQ4SDVMd3V2Yk9FTjg?oc=5": "2026-09-13T17:28:55.235866+09:00"
+    "https://news.google.com/rss/articles/CBMif0FVX3lxTE5JRHVVWTZnSTBCYnA2cFU5SzhkT3doSEZPMzRGMnJoVlR2UTdpVElPTUttRDZZUFB1dGdUZ095VHoxT3VEM0NsLW04Z0VTbnBlQzBRVXZ5Q29FU2hmRGY4TVFwZ3JkR0JoT0R1OUhfbXlOdzQ4SDVMd3V2Yk9FTjg?oc=5": "2026-09-13T17:28:55.235866+09:00",
+    "https://news.google.com/rss/articles/CBMif0FVX3lxTE9ENlNLRVJJNE1sUDZFb2NsQl8tOHJyWVhQNy1Cb0lEUVY3czNFRTZJalZPekJPZHc3MGotVXBHTGZPa2dibnh3UWpGTjRvSDNtTGhJdTJVeEt3OGNEeWItVEtOWlcxM2Mzdzd2UGdHdlplM055dVRQU1V2U1ROb1E?oc=5": "2026-09-13T22:26:10.600250+09:00",
+    "https://news.google.com/rss/articles/CBMidkFVX3lxTE5RSzJZUmc2cU5oT2YzV3VJeTJ5WEptaEowd2E5c2w0NXBjSUROamRwb2VWNVMtTHc5ZHJsSmdSQlo0N21RbXEtTmRMWHBGRDJjT0NDTldobTVLUFJFdl9VQWtvWFlBenVZd1hFSHVuR0RrRHZrUVHSAYoBQVVfeXFMTlVLemF3RnVWOWlqWDJBdzc1SnFCMkVyc2hJazV4dUdnM2F2dThuRFlpQlBlU3Q3SlJLYk14NVRhRzBqSmRQeTFBUVZVTVJZZ3BSclFJdF9tdUxscFFGa0ZQUUpzUmMzMHlGRUIwdmVwaWVaNDQzbU1UTUhWU3QzSGFPbUZRYkpxbEtn?oc=5": "2026-09-13T22:26:10.600250+09:00"
   },
   "seen_nba_result_ids": {
     "982": "2026-09-06T18:30:52.185356+09:00",
