@@ -56,6 +56,11 @@ state/news_seen.json に記録し、そのURL/IDと重複するものはスキ�
     する。
   - 日経平均株価: Yahoo!ファイナンスの銘柄ページに埋め込まれたJSONを抽出
   - ドル円: open.er-api.com(無料・APIキー不要の為替レートAPI)
+  - 日経CNBC(2026-09-13追加): 公式サイトに購読可能なニュースRSSが見当たらな
+    かったため、公式YouTubeチャンネル(@NikkeiCNBC)のRSS(APIキー不要)から
+    直近動画を取得する。「📺 日経CNBC 要約」として#webhook_marketの経済
+    ニュース枠に必ず表示し(取得失敗時も見出しごと消さず「取得待機中」と
+    明記する)、他の経済ニュース(日経・東洋経済)とは別枠で扱う。
 
 環境変数:
   DISCORD_WEBHOOK_LOCAL  (必須)
@@ -693,6 +698,77 @@ def fetch_kabutan_us_index(url, label):
         print(f"[WARN] {label}の前日比を抽出できませんでした。")
         return None
 
+
+# ============================================================
+# 日経CNBC(公式YouTubeチャンネルの新着動画をマーケット要約枠として配信)
+# ============================================================
+# 2026-09-13追加: 「📺 日経CNBC / マーケット要約」の枠が一切表示されて
+# いなかった(=そもそも取得ロジックが存在しなかった)ため新規実装した。
+# 日経CNBC公式サイトには購読可能なニュースRSSが見当たらなかったため、
+# 公式YouTubeチャンネル(@NikkeiCNBC)のRSS(APIキー不要・チャンネルIDのみで
+# 取得可能)から直近動画を取得する方式にした。ショート動画(#shorts、
+# インフルエンサー出演のTips系)より、東京市場の引け解説等の本編動画を
+# 優先して拾う(タイトルに市況キーワードを含む本編があればそれを、
+# 無ければ単純に最新の1本を返す)。
+NIKKEI_CNBC_CHANNEL_ID = "UClVsQnfs-jKkjKmUKUHnT2g"
+NIKKEI_CNBC_RSS_URL = f"https://www.youtube.com/feeds/videos.xml?channel_id={NIKKEI_CNBC_CHANNEL_ID}"
+NIKKEI_CNBC_FETCH_RETRIES = 2
+NIKKEI_CNBC_MARKET_KEYWORDS = ["東京株式市場", "日経平均", "市況", "引け", "寄り付き"]
+
+
+def fetch_nikkei_cnbc_latest(limit=10, retries=NIKKEI_CNBC_FETCH_RETRIES):
+    """日経CNBC公式チャンネルの直近動画から、マーケット要約枠に載せる1本を返す。
+
+    取得失敗・0件・ページ構造変化はすべて例外を握りつぶさずログに残し、
+    Noneを返す(呼び出し側で「取得待機中」のプレースホルダを出すため、
+    無言でニュース枠自体が消えることはない)。
+    """
+    resp = None
+    last_err = None
+    for attempt in range(retries):
+        try:
+            resp = requests.get(
+                NIKKEI_CNBC_RSS_URL, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT
+            )
+            resp.raise_for_status()
+            break
+        except Exception as err:  # noqa: BLE001
+            last_err = err
+            resp = None
+            print(f"[WARN] 日経CNBC取得に失敗(試行{attempt + 1}/{retries}): {err}")
+            time.sleep(3.0)
+
+    if resp is None:
+        print(f"[ERROR] 日経CNBC取得に失敗しました(全{retries}回試行)。最新ニュース取得待機中として扱います: {last_err}")
+        return None
+
+    try:
+        feed = feedparser.parse(resp.content)
+    except Exception as err:  # noqa: BLE001
+        print(f"[ERROR] 日経CNBC RSSのパースに失敗しました(構造変化の可能性): {err}")
+        return None
+
+    if not feed.entries:
+        print("[WARN] 日経CNBCの新着動画が0件でした(RSS構造変化の可能性があります)。")
+        return None
+
+    candidates = feed.entries[:limit]
+    market_videos = [
+        e for e in candidates
+        if "/shorts/" not in e.get("link", "")
+        and any(kw in e.get("title", "") for kw in NIKKEI_CNBC_MARKET_KEYWORDS)
+    ]
+    full_videos = [e for e in candidates if "/shorts/" not in e.get("link", "")]
+    entry = (market_videos or full_videos or candidates)[0]
+
+    title = entry.get("title", "(タイトル不明)")
+    url_ = entry.get("link", "")
+    if not url_:
+        print("[WARN] 日経CNBC動画のURLを取得できませんでした(構造変化の可能性)。")
+        return None
+
+    return {"title": title, "url": url_, "published": format_published_jst(entry)}
+
     return {"price": price_m.group(1), "change": change_nums[0], "change_rate": change_nums[1]}
 
 
@@ -950,6 +1026,27 @@ def build_national_news_message(client, state, now):
     return "\n".join(lines).rstrip(), sports_items
 
 
+MARKET_SIGNATURE_KEY = "_weekend_market_signature"
+
+
+def _market_signature(nikkei, usdjpy, jgb, cnbc):
+    """「前回送信時と価格系の中身が同じか」を比較するための軽量な指紋を作る。
+    土日の重複配信抑制にのみ使う(平日は常に送信するため参照しない)。
+    経済ニュース(biz_new)はここに含めない: dedupe_new_items()が状態に
+    書き込んだ時点で「新着」リストは実行のたびに空になっていく性質があり、
+    含めてしまうと2回目以降のシグネチャが必ず変わって重複判定できなくなる
+    (実データで確認済みの不具合)。新着ニュースの有無は呼び出し側で
+    別途チェックし、新着があれば土日でも必ず送信する。
+    """
+    parts = {
+        "nikkei": nikkei.get("price") if nikkei else None,
+        "usdjpy": usdjpy,
+        "jgb": jgb.get("price") if jgb else None,
+        "cnbc_url": cnbc.get("url") if cnbc else None,
+    }
+    return json.dumps(parts, ensure_ascii=False, sort_keys=True)
+
+
 def build_market_message(state, now):
     """株価は常に送る。経済ニュースは新着があるときだけ追記する。
     2026-08-28、細川さんの指定により、日経の取引時間中か否かで表示する
@@ -1010,14 +1107,41 @@ def build_market_message(state, now):
     else:
         lines.append("- 長期国債先物(10年国債先物): 取得できませんでした")
 
+    # 2026-09-13、細川さんの指定によりレイアウトを固定化。
+    # 「📰 主要経済ニュース」「📺 日経CNBC 要約」の2枠は、取得失敗時も
+    # 見出しごと消えることなく必ず出力する(取得失敗時はその旨を明記)。
     biz_all = fetch_economy_news_candidates()
     biz_new = dedupe_new_items(biz_all, "url", state, now)
+    lines.append("\n## 📰 主要経済ニュース(日経・東洋経済)")
     if biz_new:
-        lines.append("\n## 💰 経済ニュース(新着)")
         for item in biz_new:
             lines.append(f"- [{item['title']}](<{item['url']}>) `[{item['published']}]`")
+    else:
+        lines.append("- 新着なし")
 
-    return "\n".join(lines)
+    cnbc = fetch_nikkei_cnbc_latest()
+    lines.append("\n## 📺 日経CNBC 要約")
+    if cnbc:
+        lines.append(f"- [{cnbc['title']}](<{cnbc['url']}>) `[{cnbc['published']}]`")
+    else:
+        lines.append("- 最新ニュース取得待機中(取得元の一時的な問題の可能性。次回配信で再試行します)")
+
+    message = "\n".join(lines)
+
+    # 2026-09-13追加: 土日は株価・先物・コモディティが動かず、同じ静止データが
+    # 数時間おきに連投される問題があったため、平日休場中(土日)に限り
+    # 「前回送信時から価格系の中身が変わっておらず、かつ新着経済ニュースも
+    # 無ければ送らない」判定を追加する。新着ニュースが1件でもあれば土日でも
+    # 必ず送信する(ニュースを握りつぶさないため)。平日は取引時間中の値動きで
+    # 通常は毎回変化するため対象外(抑制は土日限定に絞っている)。
+    signature = _market_signature(nikkei, usdjpy, jgb, cnbc)
+    skip_as_duplicate = False
+    if now.weekday() >= 5 and not biz_new and state.get(MARKET_SIGNATURE_KEY) == signature:
+        skip_as_duplicate = True
+        print("[INFO] 休場中(土日)で前回配信からマーケット情報に変化が無いため、配信をスキップします。")
+    state[MARKET_SIGNATURE_KEY] = signature
+
+    return message, skip_as_duplicate
 
 
 SPORTS_LEAK_COLOR = 0x2C7A7B
@@ -1210,10 +1334,12 @@ def main():
         print("[WARN] DISCORD_WEBHOOK_NEWS が未設定のため、全国ニュース配信をスキップします。")
 
     if market_webhook:
-        market_message = build_market_message(state, now)
+        market_message, skip_as_duplicate = build_market_message(state, now)
         print("=== マーケットメッセージ ===")
         print(market_message)
-        if not send_to_discord(market_webhook, market_message):
+        if skip_as_duplicate:
+            print("[INFO] 土日の重複配信のためDiscordへの送信はスキップしました(ログには残しています)。")
+        elif not send_to_discord(market_webhook, market_message):
             had_error = True
     else:
         print("[WARN] DISCORD_WEBHOOK_MARKET が未設定のため、マーケット配信をスキップします。")
