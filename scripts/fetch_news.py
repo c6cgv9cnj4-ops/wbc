@@ -319,6 +319,24 @@ def is_sports_related(title):
 # 既送信記事の状態管理(state/news_seen.json)
 # ============================================================
 
+def normalize_url(url):
+    """記事URLの重複判定キーを正規化する(2026-09-13追加)。
+
+    クエリパラメータ(utm_source等のトラッキングパラメータ含む)とフラグメントを
+    除去し、scheme+netloc+pathだけのベースURLに揃えることで、同じ記事が
+    パラメータ違いのURLで複数回取得されても「同一記事」と判定できるようにする。
+    Discordへ実際に投稿するリンク(item["url"])自体は書き換えず、重複判定の
+    キーとしてのみこの正規化後の値を使う。
+    """
+    if not url:
+        return url
+    try:
+        parts = urllib.parse.urlsplit(url)
+        return urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
+    except ValueError:
+        return url
+
+
 def load_seen_state():
     if not os.path.exists(STATE_PATH):
         return {}
@@ -345,14 +363,18 @@ def dedupe_new_items(items, key_field, state, now):
     """
     itemsのうちstateに無いもの(=未送信)だけを残して返す。
     stateには副作用として今回分のキーを書き込む(呼び出し側でsave_seen_stateすること)。
+    key_fieldが"url"の場合はnormalize_url()でクエリパラメータ・フラグメントを
+    除去した値をキーにする(同一記事がパラメータ違いのURLで再取得されても
+    重複と判定できるようにするため、2026-09-13追加)。
     """
     new_items = []
     for item in items:
-        key = item.get(key_field)
-        if not key:
+        raw_key = item.get(key_field)
+        if not raw_key:
             # URL等が取れない項目は重複判定できないため、常に「新着」として扱う
             new_items.append(item)
             continue
+        key = normalize_url(raw_key) if key_field == "url" else raw_key
         if key in state:
             continue
         state[key] = now.isoformat()
@@ -535,27 +557,33 @@ def fetch_economy_news_candidates():
     ため、site:検索を使わない緩いGoogle Newsクエリと同じ
     FINANCE_REQUIRED_KEYWORDS必須フィルタ(is_finance_relevant)を適用する。
     """
+    # 2026-09-13: 複数クエリ・複数フィードにまたがる同一記事の重複を防ぐため、
+    # 生URLではなくnormalize_url()した値をバッチ内重複判定キーにする
+    # (同じ記事がクエリ違いでトラッキングパラメータ違いのURLとして
+    # 返ってきても、1回の実行内で1度しか候補に残らないようにする)。
     candidates = []
     seen_in_batch = set()
     for query in ECONOMY_NEWS_QUERIES:
         for item in fetch_google_news_query(query):
-            if item["url"] in seen_in_batch:
+            key = normalize_url(item["url"])
+            if key in seen_in_batch:
                 continue
             if is_economy_news_blacklisted(item["title"]):
                 continue
             if not is_finance_relevant(item["title"], query):
                 continue
-            seen_in_batch.add(item["url"])
+            seen_in_batch.add(key)
             candidates.append(item)
 
     for item in fetch_direct_rss_items(TOYOKEIZAI_RSS):
-        if item["url"] in seen_in_batch:
+        key = normalize_url(item["url"])
+        if key in seen_in_batch:
             continue
         if is_economy_news_blacklisted(item["title"]):
             continue
         if not is_finance_relevant(item["title"], "direct-rss"):
             continue
-        seen_in_batch.add(item["url"])
+        seen_in_batch.add(key)
         candidates.append(item)
     return candidates
 
@@ -746,13 +774,17 @@ def build_local_news_message(state, now):
     """
     sports_items = []
 
+    # 2026-09-13: Google News検索と直接RSS(号外NET等)の両方に同一記事が
+    # 混ざるケースがあるため、生URLではなくnormalize_url()した値でバッチ内
+    # 重複判定する(パラメータ違いのURLでも同一記事として1回にまとめる)。
     saitama_all = fetch_rss_items(GOOGLE_NEWS_SAITAMA_RSS)
-    seen_in_batch = {item["url"] for item in saitama_all}
+    seen_in_batch = {normalize_url(item["url"]) for item in saitama_all}
     for feed_url in LOCAL_DIRECT_RSS_FEEDS:
         for item in fetch_direct_rss_items(feed_url):
-            if item["url"] in seen_in_batch:
+            key = normalize_url(item["url"])
+            if key in seen_in_batch:
                 continue
-            seen_in_batch.add(item["url"])
+            seen_in_batch.add(key)
             saitama_all.append(item)
 
     saitama_new = dedupe_new_items(saitama_all, "url", state, now)
