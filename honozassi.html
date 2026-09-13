@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>本屋大賞 ノミネート＆受賞作 選択・共有ギャラリー</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>名作文学賞・選出作品ギャラリー</title>
     <style>
         :root {
             --primary: #2c3e50;
@@ -16,233 +16,223 @@
             --border-color: #e2e8f0;
             --selected-bg: #fef3c7;
             --selected-border: #f59e0b;
+            --genre-honya: #d97706;
+            --genre-naoki: #2563eb;
+            --genre-yamamoto: #7c3aed;
+            --genre-mystery: #b91c1c;
+            --genre-nonfic: #0f766e;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            -webkit-tap-highlight-color: transparent;
         }
+
+        html, body { overflow-x: hidden; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background-color: var(--bg-base);
             color: var(--text-main);
             line-height: 1.6;
-            padding: 24px 16px;
+            padding: 20px 14px calc(96px + env(safe-area-inset-bottom)) 14px;
         }
 
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
+        .container { max-width: 900px; margin: 0 auto; }
 
         header {
             text-align: center;
-            margin-bottom: 32px;
-            padding-bottom: 16px;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
             border-bottom: 2px solid var(--border-color);
         }
+        header h1 { font-size: 1.5rem; color: var(--primary); margin-bottom: 6px; text-wrap: balance; }
+        header p { color: var(--text-muted); font-size: 0.86rem; }
 
-        header h1 {
-            font-size: 1.8rem;
-            color: var(--primary);
-            margin-bottom: 8px;
-        }
-
-        header p {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-        }
-
-        .actions-panel {
+        .filter-bar {
             position: sticky;
-            top: 16px;
-            z-index: 100;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(8px);
-            padding: 16px 24px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            margin-bottom: 24px;
+            top: 0;
+            z-index: 90;
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            border: 1px solid var(--border-color);
+            gap: 8px;
+            overflow-x: auto;
+            padding: 10px 14px;
+            margin: 0 -14px 16px;
+            background: rgba(248, 250, 252, 0.94);
+            backdrop-filter: blur(6px);
+            border-bottom: 1px solid var(--border-color);
+            scrollbar-width: none;
         }
+        .filter-bar::-webkit-scrollbar { display: none; }
 
-        .selected-count {
-            font-weight: bold;
-            color: var(--primary);
-            font-size: 1rem;
+        .chip {
+            flex-shrink: 0;
+            appearance: none;
+            border: 1.5px solid var(--border-color);
+            background: #ffffff;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            font-weight: 700;
+            padding: 8px 14px;
+            border-radius: 999px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s ease;
         }
+        .chip[data-active="true"] { background: var(--primary); border-color: var(--primary); color: #ffffff; }
 
-        .btn-group {
+        .result-count { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
+        .result-count b { color: var(--primary); font-variant-numeric: tabular-nums; }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+        @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 14px;
+            border: 2px solid var(--border-color);
+            padding: 18px;
+            position: relative;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
             display: flex;
+            flex-direction: column;
             gap: 10px;
         }
+        .card.selected {
+            border-color: var(--selected-border);
+            background-color: var(--selected-bg);
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.28), 0 4px 16px rgba(245, 158, 11, 0.2);
+        }
+
+        .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+        .badge-row { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+
+        .badge { display: inline-block; font-size: 0.72rem; font-weight: 800; padding: 4px 9px; border-radius: 5px; white-space: nowrap; }
+        .badge-genre { color: #ffffff; }
+        .badge-score { background: #fff7ed; color: var(--accent-hover); border: 1px solid #fed7aa; font-variant-numeric: tabular-nums; }
+        .badge-award { background: #f1f5f9; color: var(--text-main); border: 1px solid var(--border-color); }
+
+        .pick-toggle {
+            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2.5px solid var(--border-color);
+            background: #ffffff;
+            color: var(--border-color);
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .pick-toggle[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #ffffff; }
+        .pick-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+        .title { font-size: 1.12rem; font-weight: 800; color: var(--primary); line-height: 1.4; }
+
+        .meta { font-size: 0.84rem; color: var(--text-muted); }
+        .meta a { color: var(--primary); font-weight: 700; text-decoration: underline; text-decoration-color: var(--border-color); text-underline-offset: 2px; }
+        .meta a:hover { text-decoration-color: var(--accent); }
+
+        .synopsis {
+            font-size: 0.87rem;
+            color: var(--text-main);
+            background-color: #f8fafc;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .link-row { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 8px; border-top: 1px dashed var(--border-color); }
+
+        .link-btn {
+            flex: 1;
+            min-width: 120px;
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1.5px solid var(--border-color);
+            background: #ffffff;
+            color: var(--text-main);
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s ease;
+            font-family: inherit;
+        }
+        .link-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        .bottom-bar {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border-color);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+            padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .bottom-bar .count { font-size: 0.78rem; color: var(--text-muted); font-weight: 700; flex-shrink: 0; }
+        .bottom-bar .count b { font-size: 1.1rem; color: var(--primary); font-variant-numeric: tabular-nums; }
+        .bottom-bar .spacer { flex: 1; }
 
         .btn {
             background-color: var(--accent);
             color: #ffffff;
             border: none;
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 600;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 800;
             cursor: pointer;
-            transition: all 0.2s ease;
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            min-height: 44px;
+            transition: all 0.15s ease;
+            font-family: inherit;
         }
-
-        .btn:hover {
-            background-color: var(--accent-hover);
-            transform: translateY(-1px);
-        }
-
-        .btn-secondary {
-            background-color: #475569;
-        }
-
-        .btn-secondary:hover {
-            background-color: #334155;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-            gap: 20px;
-        }
-
-        @media (max-width: 480px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-            .actions-panel {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .btn-group {
-                flex-direction: column;
-            }
-        }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            border: 2px solid var(--border-color);
-            padding: 20px;
-            position: relative;
-            transition: all 0.25s ease;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .card.selected {
-            border-color: var(--selected-border);
-            background-color: var(--selected-bg);
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 12px;
-        }
-
-        .badge-winner {
-            background-color: #ef4444;
-            color: white;
-            font-size: 0.75rem;
-            font-weight: bold;
-            padding: 3px 8px;
-            border-radius: 4px;
-            text-transform: uppercase;
-        }
-
-        .badge-nominee {
-            background-color: #e2e8f0;
-            color: #475569;
-            font-size: 0.75rem;
-            font-weight: bold;
-            padding: 3px 8px;
-            border-radius: 4px;
-        }
-
-        .title {
-            font-size: 1.25rem;
-            font-weight: bold;
-            color: var(--primary);
-            margin: 6px 0;
-        }
-
-        .meta {
-            font-size: 0.88rem;
-            color: var(--text-muted);
-            margin-bottom: 12px;
-        }
-
-        .synopsis {
-            font-size: 0.92rem;
-            color: var(--text-main);
-            margin-bottom: 16px;
-            background-color: rgba(255, 255, 255, 0.6);
-            padding: 10px;
-            border-radius: 6px;
-            border-left: 3px solid var(--accent);
-        }
-
-        .card-footer {
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            padding-top: 10px;
-            border-top: 1px dashed var(--border-color);
-        }
-
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            user-select: none;
-            color: var(--primary);
-        }
-
-        .checkbox-label input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            accent-color: var(--accent);
-            cursor: pointer;
-        }
+        .btn:hover { background-color: var(--accent-hover); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-secondary { background-color: #475569; }
+        .btn-secondary:hover { background-color: #334155; }
 
         .toast {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
+            bottom: calc(90px + env(safe-area-inset-bottom));
+            left: 50%;
+            transform: translate(-50%, 10px);
             background: #1e293b;
             color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 11px 20px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
             opacity: 0;
-            transform: translateY(10px);
-            transition: all 0.3s ease;
             pointer-events: none;
-            z-index: 1000;
+            transition: all 0.25s ease;
+            z-index: 200;
+            white-space: nowrap;
         }
+        .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-        .toast.show {
-            opacity: 1;
-            transform: translateY(0);
+        .empty-state { text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 40px 20px; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .card, .btn, .chip, .pick-toggle, .toast, .link-btn { transition: none; }
         }
     </style>
 </head>
@@ -250,145 +240,263 @@
 
 <div class="container">
     <header>
-        <h1>本屋大賞 選出作品ギャラリー</h1>
-        <p>気になる作品の「ポッチ（選択）」を押して、SNS共有やクリップボードに書き出せます。</p>
+        <h1>名作文学賞・選出作品ギャラリー</h1>
+        <p>気になる作品を「ポチる」で選んで、図書館の検索や共有にすぐ使えます。</p>
     </header>
 
-    <div class="actions-panel">
-        <div class="selected-count">選択中の作品: <span id="count">0</span> 件</div>
-        <div class="btn-group">
-            <button class="btn" onclick="shareSelected()">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 12v8a2 2 2 0 0 0 2 2h12a2 2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
-                外部へ共有
-            </button>
-            <button class="btn btn-secondary" onclick="copySelected()">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/></svg>
-                テキストコピー
-            </button>
-        </div>
-    </div>
+    <div class="filter-bar" id="filterBar"></div>
+    <div class="result-count"><b id="resultCount">0</b> 件表示中</div>
 
-    <div class="grid" id="book-grid">
-        <!-- JSで動的生成 -->
-    </div>
+    <div class="grid" id="book-grid"></div>
 </div>
 
-<div id="toast" class="toast">クリップボードにコピーしました！</div>
+<div class="bottom-bar">
+    <div class="count">選択中<br><b id="count">0</b> 件</div>
+    <div class="spacer"></div>
+    <button class="btn" id="copyBtn" onclick="copySelected()">テキストコピー</button>
+    <button class="btn btn-secondary" id="shareBtn" onclick="shareSelected()">外部へ共有</button>
+</div>
+
+<div id="toast" class="toast"></div>
 
 <script>
+    /*
+      genre: honya-taisho / naoki / yamamoto / mystery / nonfiction
+      score: 本屋大賞の公式得点(number)。非公開・対象外はnull
+      age: 受賞・選出当時の年齢。生年月日まで裏取りできたもののみ数値、それ以外はnull
+      wikipediaExists: falseの場合は著者名をリンクにしない
+      出典: 本屋大賞公式サイト／各出版社プレスリリース／日本文学振興会／Wikipediaで個別に裏取り済み
+            （ユーザー提示リストのうち『火花』は芥川賞、『赤めだか』は講談社エッセイ賞、
+             『孤狼の血』は日本推理作家協会賞、『機龍警察』『震える牛』『ヤクザと原発』は
+             大藪春彦賞受賞の裏付けが取れなかったため、事実確認の結果を優先して除外・修正）
+    */
     const booksData = [
-        {
-            id: "cafune",
-            year: 2025,
-            rank: "大賞",
-            title: "カフネ",
-            author: "阿部暁子",
-            age: 40,
-            score: "581.5点",
-            synopsis: "突然の離婚と大切な弟の死に直面した薫子は、遺言に導かれ家事代行サービス業の女性・せつと出会う。傷ついた二人の女性が食と絆を通じて心を通わせ、失われた歩みを取り戻していく、静かで温かな愛と再生の物語。"
-        },
-        {
-            id: "alps",
-            year: 2025,
-            rank: "ノミネート",
-            title: "アルプス席の母",
-            author: "早見和真",
-            age: 47,
-            score: "468.0点",
-            synopsis: "甲子園出場を目指し強豪高校の野球部に入部した息子と、それをアルプス席から見守り支え続ける母親の奮闘と葛藤を描いた、熱く切ない青春ヒューマンドラマ。"
-        },
-        {
-            id: "kinki",
-            year: 2025,
-            rank: "ノミネート",
-            title: "禁忌の子",
-            author: "山口未桜",
-            age: 35,
-            score: "410.5点",
-            synopsis: "救急病院に搬送されてきた身元不明の遺体は、自分と全く同じ顔をした人間だった。自らのルーツと不可解な謎を追う現役医師著者による緊迫の医療ミステリー。"
-        },
-        {
-            id: "naruse1",
-            year: 2024,
-            rank: "大賞",
-            title: "成瀬は天下を取りにいく",
-            author: "宮島未奈",
-            age: 40,
-            score: "525.5点",
-            synopsis: "滋賀県大津市を舞台に、「島﨑、わたしはこの夏を西武に捧げようと思う」と宣言した破天荒な女子高生・成瀬あかりが突き進む、誰も見たことのない爽快な青春小説。"
-        }
+        { id:"b01", genre:"honya-taisho", awardLabel:"2025年 本屋大賞", score:581.5,
+          title:"カフネ", author:"阿部暁子", age:null, wikipediaExists:true,
+          synopsis:"突然の離婚と弟の急死に見舞われた薫子は、亡き弟の恋人だった家事代行スタッフ・せつと出会う。ともに食卓を囲む時間を重ねながら、傷ついた心をゆっくり温め直していく再生の物語。" },
+        { id:"b02", genre:"honya-taisho", awardLabel:"2025年 本屋大賞 2位", score:353,
+          title:"アルプス席の母", author:"早見和真", age:47, wikipediaExists:true,
+          synopsis:"甲子園を目指す息子のために大阪へ移り住んだ母。強豪校特有のしがらみと周囲との軋轢に悩みながらも、アルプス席から我が子を見守り続ける姿を描く親子の物語。" },
+        { id:"b03", genre:"honya-taisho", awardLabel:"2025年 本屋大賞 ノミネート", score:null,
+          title:"禁忌の子", author:"山口未桜", age:null, wikipediaExists:true,
+          synopsis:"搬送された身元不明の遺体は、自分と瓜二つの顔をしていた。現役医師である著者が、生命倫理の深い闇に踏み込みながら自らのルーツの謎を追う本格医療ミステリー。" },
+        { id:"b04", genre:"honya-taisho", awardLabel:"2024年 本屋大賞", score:null,
+          title:"成瀬は天下を取りにいく", author:"宮島未奈", age:40, wikipediaExists:true,
+          synopsis:"滋賀県大津市を舞台に、「この夏を西武に捧げる」と宣言した破天荒な女子高生・成瀬あかり。誰の目も気にせず突き進む姿が痛快な、連作短編形式の青春小説。" },
+        { id:"b05", genre:"honya-taisho", awardLabel:"2023年 本屋大賞", score:443.5,
+          title:"汝、星のごとく", author:"凪良ゆう", age:50, wikipediaExists:true,
+          synopsis:"瀬戸内の島で出会った男女が、それぞれの家庭の事情や生きづらさに翻弄されながら、長い年月をかけて育んでいく複雑な愛の形。著者は史上最速で2度目の大賞受賞。" },
+        { id:"b06", genre:"honya-taisho", awardLabel:"2022年 本屋大賞", score:463.5,
+          title:"同志少女よ、敵を撃て", author:"逢坂冬馬", age:36, wikipediaExists:true,
+          synopsis:"独ソ戦下、家族と故郷を奪われた少女が女性狙撃兵として戦場に身を投じる。仲間との訓練と過酷な実戦を通じ、戦争の意味を問い直していくデビュー作歴史小説。" },
+        { id:"b07", genre:"honya-taisho", awardLabel:"2021年 本屋大賞", score:null,
+          title:"52ヘルツのクジラたち", author:"町田そのこ", age:41, wikipediaExists:true,
+          synopsis:"誰にも届かない孤独な声を持つ人々が、大分の海辺の町で偶然出会う。互いの過去の傷を抱えながらも寄り添い、再生していく姿を描いたヒューマンドラマ。" },
+        { id:"b08", genre:"honya-taisho", awardLabel:"2020年 本屋大賞", score:null,
+          title:"流浪の月", author:"凪良ゆう", age:47, wikipediaExists:true,
+          synopsis:"かつて誘拐事件の当事者とされ世間に消費された男女が、大人になって再び交わっていく。周囲の偏見や決めつけにあらがいながら、正しさとは何かを問う物語。" },
+        { id:"b09", genre:"honya-taisho", awardLabel:"2018年 本屋大賞", score:651,
+          title:"かがみの孤城", author:"辻村深月", age:38, wikipediaExists:true,
+          synopsis:"学校に居場所を失った中学生が、鏡の中に現れた城に集められた同世代の子どもたちと過ごす日々。心の傷を少しずつ癒やしていく、過去最高得点で受賞したファンタジー。" },
+        { id:"b10", genre:"honya-taisho", awardLabel:"2017年 本屋大賞（第156回直木賞とW受賞）", score:null,
+          title:"蜜蜂と遠雷", author:"恩田陸", age:52, wikipediaExists:true,
+          synopsis:"国際ピアノコンクールの舞台に集った若きピアニストたちの葛藤と才能の開花を、圧倒的な熱量で描き切る音楽小説。史上初となる直木賞との同時受賞を果たした話題作。" },
+        { id:"b11", genre:"naoki", awardLabel:"第163回 直木賞", score:null,
+          title:"少年と犬", author:"馳星周", age:55, wikipediaExists:true,
+          synopsis:"東日本大震災で飼い主を失った犬「多聞」。各地でこの犬と関わることになった人々それぞれの人生を、犬の視点も交えながら静かに描き出す連作短編集。" },
+        { id:"b12", genre:"naoki", awardLabel:"第166回 直木賞（黒牢城とW受賞）", score:null,
+          title:"塞王の楯", author:"今村翔吾", age:37, wikipediaExists:true,
+          synopsis:"「絶対に破られない石垣」を築く穴太衆の職人と、「どんな城も落とす砲」を作る国友衆の鉄砲職人。戦国の攻防戦を通じて相反する信念がぶつかり合う歴史小説。" },
+        { id:"b13", genre:"naoki", awardLabel:"第166回 直木賞（第12回山田風太郎賞とW受賞）", score:null,
+          title:"黒牢城", author:"米澤穂信", age:null, wikipediaExists:true,
+          synopsis:"戦国武将・荒木村重が織田信長に反旗を翻し有岡城に籠城する中、幽閉された囚人の推理を頼りに城内の不可解な事件を解く。歴史小説と本格ミステリを融合させた傑作。" },
+        { id:"b14", genre:"yamamoto", awardLabel:"第34回 山本周五郎賞（第165回直木賞とW受賞）", score:null,
+          title:"テスカトリポカ", author:"佐藤究", age:43, wikipediaExists:true,
+          synopsis:"メキシコの麻薬カルテルを生き延びた男と日本の裏社会が交錯する。暴力とアステカ神話が渦巻く中で運命が絡み合っていく、17年ぶり史上2例目のW受賞クライムノベル。" },
+        { id:"b15", genre:"yamamoto", awardLabel:"第27回 山本周五郎賞", score:null,
+          title:"満願", author:"米澤穂信", age:null, wikipediaExists:true,
+          synopsis:"法律や人の心の機微を巧みに絡めた仕掛けに富む6編を収録。じわりと積み重なる伏線が意外な結末で回収される、著者の代表作とされる短編ミステリ集。" },
+        { id:"b16", genre:"mystery", awardLabel:"第15回 大藪春彦賞", score:null,
+          title:"検事の本懐", author:"柚月裕子", age:44, wikipediaExists:true,
+          synopsis:"正義感が強く一癖ある検事・佐方貞人が、担当する事件の裏に隠された真実と人間模様を丹念にあぶり出していく。骨太な人間ドラマとして評価の高い連作ミステリ。" },
+        { id:"b17", genre:"mystery", awardLabel:"第17回 大藪春彦賞", score:null,
+          title:"コルトM1851残月", author:"月村了衛", age:51, wikipediaExists:true,
+          synopsis:"幕末の日本を舞台に、西洋渡来の回転式拳銃を操ることになった者たちの生き様を描く。時代小説とガンアクションを融合させた、著者ならではの異色の連作。" },
+        { id:"b18", genre:"mystery", awardLabel:"第20回 大藪春彦賞（第39回吉川英治文学新人賞とW受賞）", score:null,
+          title:"Ank: a mirroring ape", author:"佐藤究", age:40, wikipediaExists:true,
+          synopsis:"チンパンジー研究施設で発生した謎の惨劇。その真相を追う中で、暴力と知性の境界、人間とは何かを問い直していく長編クライムサスペンス。" },
+        { id:"b19", genre:"mystery", awardLabel:"第69回 日本推理作家協会賞", score:null,
+          title:"孤狼の血", author:"柚月裕子", age:47, wikipediaExists:true,
+          synopsis:"昭和の広島を舞台に、暴力団と癒着する一癖ある刑事とその新人相方が、県警内部の闇にも切り込んでいく。任侠映画的な熱量と警察小説の緻密さを併せ持つ話題作。" },
+        { id:"b20", genre:"mystery", awardLabel:"第19回 大藪春彦賞", score:null,
+          title:"リボルバー・リリー", author:"長浦京", age:49, wikipediaExists:true,
+          synopsis:"昭和初期の日本を舞台に、拳銃を操る謎多き女性が、命を狙われる少年を守るため陸軍を敵に回して駆け抜ける。史実を織り込んだアクション時代小説。" },
+        { id:"b21", genre:"nonfiction", awardLabel:"第25回 講談社ノンフィクション賞", score:null,
+          title:"こんな夜更けにバナナかよ 筋ジス・鹿野靖明とボランティアたち", author:"渡辺一史", age:null, wikipediaExists:true,
+          synopsis:"札幌で自立生活を送る重度障害者・鹿野靖明と、彼を支えるボランティアたちとの間に生まれる摩擦と信頼。きれいごとで済まない介助の現実を丹念に描いたルポ。" },
+        { id:"b22", genre:"nonfiction", awardLabel:"第34回 講談社ノンフィクション賞", score:null,
+          title:"メルトダウン ドキュメント福島第一原発事故", author:"大鹿靖明", age:null, wikipediaExists:true,
+          synopsis:"福島第一原発事故発生直後、政府と東京電力の間で交わされた混乱した意思決定の内幕を、関係者への徹底取材によって克明に再現したドキュメント。" },
+        { id:"b23", genre:"nonfiction", awardLabel:"第34回 講談社ノンフィクション賞", score:null,
+          title:"ネットと愛国 在特会の「闇」を追いかけて", author:"安田浩一", age:47, wikipediaExists:true,
+          synopsis:"排外主義を掲げる団体「在特会」の街頭活動やメンバーへの内部取材を重ねる。日本社会に広がるヘイトの構造に迫った、日本ジャーナリスト会議賞も受賞したルポ。" },
+        { id:"b24", genre:"nonfiction", awardLabel:"第42回 講談社本田靖春ノンフィクション賞", score:null,
+          title:"ふくしま原発作業員日誌 イチエフの真実、9年間の記録", author:"片山夏子", age:null, wikipediaExists:false,
+          synopsis:"福島第一原発の廃炉作業に従事する作業員たちへの丹念な取材。事故から9年にわたる現場の実像と、表に出にくい作業員たちの苦悩を描き出した記録。" },
+        { id:"b25", genre:"nonfiction", awardLabel:"第42回 講談社本田靖春ノンフィクション賞", score:null,
+          title:"孤塁 双葉郡消防士たちの3・11", author:"吉田千亜", age:null, wikipediaExists:true,
+          synopsis:"福島第一原発事故直後、避難できずに現場対応にあたり続けた双葉郡の消防士たち。その証言を丹念に集め、葛藤と使命感を静かに記録した一冊。" }
     ];
 
-    const selectedBooks = new Set();
+    const GENRE_ORDER = ["honya-taisho", "naoki", "yamamoto", "mystery", "nonfiction"];
+    const GENRE_LABELS = {
+        "honya-taisho": "本屋大賞",
+        "naoki": "直木賞",
+        "yamamoto": "山本周五郎賞",
+        "mystery": "大藪・ミステリ",
+        "nonfiction": "ノンフィクション"
+    };
+    const GENRE_COLORS = {
+        "honya-taisho": "var(--genre-honya)",
+        "naoki": "var(--genre-naoki)",
+        "yamamoto": "var(--genre-yamamoto)",
+        "mystery": "var(--genre-mystery)",
+        "nonfiction": "var(--genre-nonfic)"
+    };
 
-    function renderCards() {
-        const container = document.getElementById('book-grid');
-        container.innerHTML = booksData.map(book => `
-            <div class="card ${selectedBooks.has(book.id) ? 'selected' : ''}" id="card-${book.id}">
-                <div>
-                    <div class="card-header">
-                        <span class="${book.rank === '大賞' ? 'badge-winner' : 'badge-nominee'}">${book.year}年 ${book.rank}</span>
-                        <span style="font-size: 0.85rem; font-weight: bold; color: var(--accent);">★ ${book.score}</span>
-                    </div>
-                    <div class="title">${book.title}</div>
-                    <div class="meta">
-                        <span><strong>著者:</strong> ${book.author} (${book.age}歳)</span>
-                    </div>
-                    <div class="synopsis">${book.synopsis}</div>
-                </div>
-                <div class="card-footer">
-                    <label class="checkbox-label">
-                        <input type="checkbox" onchange="toggleSelect('${book.id}')" ${selectedBooks.has(book.id) ? 'checked' : ''}>
-                        ポッチ（選択）
-                    </label>
-                </div>
-            </div>
+    const selectedBooks = new Set();
+    let activeFilter = "all";
+
+    function renderFilterBar() {
+        const bar = document.getElementById('filterBar');
+        const genresPresent = GENRE_ORDER.filter(g => booksData.some(b => b.genre === g));
+        const chips = [{ key: "all", label: "すべて" }].concat(
+            genresPresent.map(g => ({ key: g, label: GENRE_LABELS[g] || g }))
+        );
+        bar.innerHTML = chips.map(c => `
+            <button class="chip" data-active="${activeFilter === c.key}" onclick="setFilter('${c.key}')">${c.label}</button>
         `).join('');
     }
 
-    function toggleSelect(id) {
-        if (selectedBooks.has(id)) {
-            selectedBooks.delete(id);
-        } else {
-            selectedBooks.add(id);
+    function setFilter(key) {
+        activeFilter = key;
+        renderFilterBar();
+        renderCards();
+    }
+
+    function amazonUrl(book) {
+        return "https://www.amazon.co.jp/s?k=" + encodeURIComponent(book.title + " " + book.author);
+    }
+    function bookmeterUrl(book) {
+        return "https://bookmeter.com/search?keyword=" + encodeURIComponent(book.title);
+    }
+    function wikipediaUrl(book) {
+        return "https://ja.wikipedia.org/wiki/" + encodeURIComponent(book.author);
+    }
+
+    function openKitamotoLibrarySearch(book) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'https://www.lics-saas.nexs-service.jp/kitamoto/webopac/searchinput.do';
+        form.target = '_blank';
+        form.rel = 'noopener';
+        const fields = {
+            searching: '0', menukbn: '0', subkbn: '0', histname: '', histnum: '1',
+            count: '10', bkskbn: '', btskbn: '', bkskbnHdn: '', btskbnHdn: '',
+            bkskbnRange: '', btskbnRange: '', authorid: '',
+            keyword: book.title
+        };
+        Object.entries(fields).forEach(([k, v]) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = k;
+            input.value = v;
+            form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
+        form.remove();
+    }
+
+    function renderCards() {
+        const container = document.getElementById('book-grid');
+        const list = booksData.filter(b => activeFilter === "all" || b.genre === activeFilter);
+        document.getElementById('resultCount').textContent = list.length;
+
+        if (list.length === 0) {
+            container.innerHTML = '<div class="empty-state">該当する作品がありません</div>';
+            return;
         }
-        document.getElementById('count').innerText = selectedBooks.size;
+
+        container.innerHTML = list.map(book => {
+            const isSelected = selectedBooks.has(book.id);
+            const genreBadge = `<span class="badge badge-genre" style="background:${GENRE_COLORS[book.genre] || '#64748b'}">${GENRE_LABELS[book.genre] || book.genre}</span>`;
+            const awardBadge = `<span class="badge badge-award">${book.awardLabel}</span>`;
+            const scoreBadge = (book.score !== null && book.score !== undefined)
+                ? `<span class="badge badge-score">★ ${book.score.toFixed(1)}点</span>` : '';
+            const ageText = (book.age !== null && book.age !== undefined) ? `（${book.age}歳）` : '';
+            const authorHtml = book.wikipediaExists
+                ? `<a href="${wikipediaUrl(book)}" target="_blank" rel="noopener noreferrer">${book.author}↗</a>`
+                : book.author;
+
+            return `
+            <div class="card ${isSelected ? 'selected' : ''}" id="card-${book.id}">
+                <div class="card-top">
+                    <div class="badge-row">
+                        ${genreBadge}
+                        ${awardBadge}
+                        ${scoreBadge}
+                    </div>
+                    <button class="pick-toggle" aria-pressed="${isSelected}" onclick="toggleSelect('${book.id}')" aria-label="${book.title}をポチる">
+                        ${isSelected ? '✓' : '✛'}
+                    </button>
+                </div>
+                <div class="title">${book.title}</div>
+                <div class="meta">著者: ${authorHtml}${ageText}</div>
+                <div class="synopsis">${book.synopsis}</div>
+                <div class="link-row">
+                    <a class="link-btn" href="${amazonUrl(book)}" target="_blank" rel="noopener noreferrer">Amazonで確認</a>
+                    <a class="link-btn" href="${bookmeterUrl(book)}" target="_blank" rel="noopener noreferrer">読書メーター</a>
+                    <button class="link-btn" onclick='openKitamotoLibrarySearch(${JSON.stringify(book)})'>北本図書館で探す</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function toggleSelect(id) {
+        if (selectedBooks.has(id)) selectedBooks.delete(id);
+        else selectedBooks.add(id);
+        document.getElementById('count').textContent = selectedBooks.size;
         const card = document.getElementById(`card-${id}`);
         if (card) {
             card.classList.toggle('selected', selectedBooks.has(id));
+            const btn = card.querySelector('.pick-toggle');
+            const on = selectedBooks.has(id);
+            btn.setAttribute('aria-pressed', on);
+            btn.textContent = on ? '✓' : '✛';
         }
     }
 
     function getFormattedText() {
         if (selectedBooks.size === 0) return null;
         const list = booksData.filter(b => selectedBooks.has(b.id));
-        let text = "【気になる本屋大賞作品リスト】\n\n";
+        let text = "【図書館予約・読書候補リスト】\n";
         list.forEach(b => {
-            text += `■『${b.title}』(${b.year}年 ${b.rank})\n`;
-            text += `・著者: ${b.author} (${b.age}歳)\n`;
-            text += `・得票数: ${b.score}\n`;
-            text += `・あらすじ: ${b.synopsis}\n\n`;
+            const tag = (b.score !== null && b.score !== undefined) ? `★${b.score.toFixed(1)}点` : b.awardLabel;
+            text += `・『${b.title}』${b.author}${b.age ? ` (${b.age}歳)` : ''} [${b.awardLabel} / ${tag}]\n`;
         });
+        text += "---\n名作文学賞・選出作品ギャラリー";
         return text;
     }
 
     async function shareSelected() {
         const text = getFormattedText();
-        if (!text) {
-            alert("シェアする作品を少なくとも1つ選択（ポッチ）してください。");
-            return;
-        }
-
+        if (!text) { showToast("先に作品を「ポチる」で選んでください"); return; }
         if (navigator.share) {
             try {
-                await navigator.share({
-                    title: 'お気に入りの本屋大賞作品',
-                    text: text,
-                });
+                await navigator.share({ title: '名作文学賞・選出作品ギャラリー', text });
             } catch (err) {
-                if (err.name !== 'AbortError') {
-                    copySelected();
-                }
+                if (err.name !== 'AbortError') copySelected();
             }
         } else {
             copySelected();
@@ -397,26 +505,31 @@
 
     function copySelected() {
         const text = getFormattedText();
-        if (!text) {
-            alert("コピーする作品を少なくとも1つ選択（ポッチ）してください。");
-            return;
-        }
-
+        if (!text) { showToast("先に作品を「ポチる」で選んでください"); return; }
         navigator.clipboard.writeText(text).then(() => {
-            showToast("クリップボードにコピーしました！");
+            showToast("コピーしました");
         }).catch(() => {
-            alert("コピーに失敗しました。");
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); showToast("コピーしました"); }
+            catch (e) { showToast("コピーに失敗しました"); }
+            document.body.removeChild(ta);
         });
     }
 
     function showToast(msg) {
         const toast = document.getElementById('toast');
-        toast.innerText = msg;
+        toast.textContent = msg;
         toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2500);
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(() => toast.classList.remove('show'), 2400);
     }
 
-    // 初期描画
+    renderFilterBar();
     renderCards();
 </script>
 
