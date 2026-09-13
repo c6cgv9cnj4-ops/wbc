@@ -95,7 +95,7 @@
                     <i data-lucide="footprints" class="w-4 h-4"></i> 都内撮影散歩ルート作成
                 </button>
                 <button id="tabBtnDanchi" class="tab-btn flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white" data-tab="danchi" onclick="switchTab('danchi')">
-                    <i data-lucide="utensils" class="w-4 h-4"></i> 行きつけ名店発掘（北本13km）
+                    <i data-lucide="utensils" class="w-4 h-4"></i> 行きつけ名店発掘（北本15km）
                 </button>
                 <button id="tabBtnHealth" class="tab-btn flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition text-slate-400 hover:text-white" data-tab="health" onclick="switchTab('health')">
                     <span class="text-sm leading-none">🥗</span> 健康食ランチ
@@ -280,12 +280,12 @@
         </div>
     </main>
 
-    <!-- TAB 3: 行きつけ名店発掘（北本団地起点・半径13km圏の個人飲食店） -->
+    <!-- TAB 3: 行きつけ名店発掘（北本団地起点・半径15km圏の個人飲食店） -->
     <main id="tabContentDanchi" class="max-w-7xl mx-auto px-3 sm:px-4 mt-4 hidden">
         <div class="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-slate-700/80 mb-4 space-y-2 text-xs sm:text-sm">
             <div class="flex items-start gap-1.5 text-slate-300">
                 <i data-lucide="utensils" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"></i>
-                <span>基準起点: <strong class="text-white js-origin-label">北本団地 (36.0260, 139.5180)</strong> ／ 直線距離<strong class="text-white">半径13km圏内</strong>（北本市・鴻巣市・桶川市・上尾市・吉見町・川島町など）の<strong class="text-slate-100">一人でも気兼ねなく通える個人経営の名店</strong>を近い順に収録。町中華・定食、手打ちうどん・そば、自家焙煎コーヒー専門店が対象で、<strong class="text-rose-300">チェーン店は完全除外</strong>。</span>
+                <span>基準起点: <strong class="text-white js-origin-label">北本団地 (36.0260, 139.5180)</strong> ／ 直線距離<strong class="text-white">半径15km圏内</strong>（北本市・鴻巣市・桶川市・上尾市・行田市南部・吉見町・川島町・さいたま市北区など）の<strong class="text-slate-100">一人でも気兼ねなく通える個人経営の名店</strong>を近い順に収録。町中華・定食・食堂、手打ちうどん・そば、自家焙煎コーヒー専門店が対象で、<strong class="text-rose-300">チェーン店は完全除外</strong>。</span>
             </div>
             <p class="text-[11px] text-slate-400 leading-relaxed">
                 各店には脂質・調理油に着目した<strong class="text-emerald-400">健康度（🟢A低脂質・リーン／🟡Bバランス／🔴Cチートデイ）</strong>をカード左枠とピンのポップアップに表示。揚げ物・背脂・炒飯などはAに含めていません。価格・カロリー・タンパク質量は目安値、店舗情報は公式サイト・グルメサイトの公開情報を基にした参考値のため、訪問前に営業時間・定休日を公式で確認してください。Google評価・クチコミ件数は数値を確定的に持たないため、ポップアップの「Googleマップで確認」から最新のクチコミを直接ご確認ください。
@@ -1122,7 +1122,7 @@
 
         // ===================================================================
         // ===================================================================
-        // TAB 3: 行きつけ名店発掘（北本団地起点・半径13km圏の個人飲食店）
+        // TAB 3: 行きつけ名店発掘（北本団地起点・半径15km圏の個人飲食店）
         // 団地・スターハウス関連のデータ/UIは完全撤去。北本団地(36.0260,139.5180)から
         // 直線距離13km以内の実在する個人店（チェーン除外）を収録。
         // ===================================================================
@@ -1580,6 +1580,32 @@
                 health_level: 'C', health_note: '油味噌がけの高脂質メニュー。素うどん等ならB相当',
                 googleRating: '', reviewCount: ''
             },
+            {
+                id: 'r_isshoichi', name: '磯料理 一寸一 さきたま店', genre: 'teishoku',
+                area: '埼玉県行田市', addr: '埼玉県行田市埼玉5124-2', lat: 36.1280, lng: 139.4790, distKm: 11.9,
+                hours: '11:30〜14:00 / 17:00〜23:00', closed: '水曜',
+                parking: 'あり',
+                feature: 'さきたま古墳公園そば。新鮮な海鮮丼・釜めしが評判の海鮮料理店',
+                recommend_menu: '海鮮丼', recommend_menu_price: '1,400円前後(参考)',
+                menu_kcal: '約600kcal(目安)', menu_protein: 'P30g(目安)',
+                price_lunch: '1,000〜2,000円', price_dinner: '1,500〜3,000円',
+                payment: '現金中心（要確認）',
+                health_level: 'A', health_note: '海鮮丼は揚げ油を使わず高タンパク・低脂質。天ぷらメニューは避けるのが健康的',
+                googleRating: '', reviewCount: ''
+            },
+            {
+                id: 'r_yutaka', name: '地魚と地酒の店 ゆたか', genre: 'teishoku',
+                area: 'さいたま市北区', addr: '埼玉県さいたま市北区宮原町3-359-1', lat: 35.9280, lng: 139.6285, distKm: 14.8,
+                hours: '11:45〜14:00（昼のみ、夜は居酒屋営業）', closed: '日曜・第1/3土曜・祝日',
+                parking: '近隣コインパーキング利用（要確認）',
+                feature: 'JR宮原駅東口徒歩30秒。昼は定食屋、夜は居酒屋として営業する地魚の店',
+                recommend_menu: '地魚の刺身定食', recommend_menu_price: '1,300円前後(参考)',
+                menu_kcal: '約470kcal(目安)', menu_protein: 'P30g(目安)',
+                price_lunch: '1,000〜2,000円', price_dinner: '要確認（夜は居酒屋営業）',
+                payment: '現金中心（要確認）',
+                health_level: 'A', health_note: '地魚の刺身中心で揚げ油を使わない高タンパク・低脂質な昼定食',
+                googleRating: '', reviewCount: ''
+            },
         ];
 
         // 起点=北本団地なら仕様指定の distKm、GPS現在地なら実測 calcDist で距離とソートを切替
@@ -1688,7 +1714,7 @@
 
                 if (danchiCircle) { try { danchiMap.removeLayer(danchiCircle); } catch (e) {} }
                 danchiCircle = L.circle([KITAMOTO_LAT, KITAMOTO_LNG], {
-                    radius: 13000, color: '#34d399', weight: 1.5, opacity: 0.55,
+                    radius: 15000, color: '#34d399', weight: 1.5, opacity: 0.55,
                     fillColor: '#34d399', fillOpacity: 0.04, dashArray: '4,6'
                 }).addTo(danchiMap);
 
