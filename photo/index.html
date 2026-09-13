@@ -311,7 +311,8 @@
                 </div>
                 <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-slate-300">
                     <span class="font-bold text-slate-400 uppercase tracking-wider">ジャンル凡例</span>
-                    <span class="flex items-center gap-1"><span class="inline-flex w-4 h-4 rounded-full items-center justify-center border border-white" style="background:#ea580c">🥡</span> 町中華・定食</span>
+                    <span class="flex items-center gap-1"><span class="inline-flex w-4 h-4 rounded-full items-center justify-center border border-white" style="background:#ea580c">🥡</span> 町中華</span>
+                    <span class="flex items-center gap-1"><span class="inline-flex w-4 h-4 rounded-full items-center justify-center border border-white" style="background:#7c3aed">🍱</span> 定食・食堂</span>
                     <span class="flex items-center gap-1"><span class="inline-flex w-4 h-4 rounded-full items-center justify-center border border-white" style="background:#0ea5e9">🍜</span> うどん・そば・麺類</span>
                     <span class="flex items-center gap-1"><span class="inline-flex w-4 h-4 rounded-full items-center justify-center border border-white" style="background:#78350f">☕</span> 自家焙煎コーヒー専門</span>
                     <span class="w-full h-px bg-slate-700/80 my-0.5"></span>
@@ -1132,9 +1133,10 @@
         let danchiHealthFilter = 'all'; // 'all' | 'A' | 'B' | 'C'
 
         const RESTAURANT_GENRES = {
-            chuka:  { emoji: '🥡', bg: '#ea580c', label: '町中華・定食' },
-            noodle: { emoji: '🍜', bg: '#0ea5e9', label: 'うどん・そば・麺類' },
-            coffee: { emoji: '☕', bg: '#78350f', label: '自家焙煎コーヒー専門' }
+            chuka:    { emoji: '🥡', bg: '#ea580c', label: '町中華' },
+            teishoku: { emoji: '🍱', bg: '#7c3aed', label: '定食・食堂' },
+            noodle:   { emoji: '🍜', bg: '#0ea5e9', label: 'うどん・そば・麺類' },
+            coffee:   { emoji: '☕', bg: '#78350f', label: '自家焙煎コーヒー専門' }
         };
 
         const HEALTH_LEVELS = {
@@ -1189,20 +1191,7 @@
                 googleRating: '', reviewCount: ''
             },
             {
-                id: 'r_mizuori', name: 'さぬき・むさし野うどん 水織', genre: 'noodle',
-                area: '埼玉県北本市', addr: '埼玉県北本市本宿4-33-3', lat: 36.0075, lng: 139.5195, distKm: 2.1,
-                hours: '11:00〜15:00頃（要確認）', closed: '不定休（要確認）',
-                parking: '専用駐車場あり',
-                feature: '讃岐・武蔵野二刀流のこだわり自家製うどん店',
-                recommend_menu: '肉汁うどん', recommend_menu_price: '850円(参考)',
-                menu_kcal: '約550kcal(目安)', menu_protein: 'P20g(目安)',
-                price_lunch: '600〜1,000円', price_dinner: '夜営業なし（要確認）',
-                payment: '現金中心（要確認）',
-                health_level: 'B', health_note: 'うどん自体は低脂質、豚肉の肉汁は適正脂質のバランス系メニュー',
-                googleRating: '', reviewCount: ''
-            },
-            {
-                id: 'r_masuya', name: 'ますや食堂', genre: 'chuka',
+                id: 'r_masuya', name: 'ますや食堂', genre: 'teishoku',
                 area: '埼玉県北本市', addr: '埼玉県北本市荒井1-153', lat: 36.0290, lng: 139.5260, distKm: 0.8,
                 hours: '11:00〜14:30 / 17:00〜20:00', closed: '月曜・第3火曜',
                 parking: '駐車場完備',
@@ -1267,16 +1256,68 @@
                 googleRating: '', reviewCount: ''
             },
             {
+                id: 'r_nagakiya', name: '手打うどん 長木屋', genre: 'noodle',
+                area: '埼玉県鴻巣市', addr: '埼玉県鴻巣市本町5-5-2', lat: 36.0590, lng: 139.5240, distKm: 3.7,
+                hours: '11:30〜14:30 / 17:00〜19:30（要確認）', closed: '木曜（要確認）',
+                parking: '専用駐車場あり',
+                feature: '明治24年創業、鴻巣駅東口徒歩6分。名物「川幅うどん」（麺幅8〜10cm）で知られる老舗',
+                recommend_menu: '川幅彩うどん', recommend_menu_price: '990円(参考)',
+                menu_kcal: '約560kcal(目安)', menu_protein: 'P16g(目安)',
+                price_lunch: '〜1,200円', price_dinner: '〜1,200円',
+                payment: '現金中心（要確認）',
+                health_level: 'B', health_note: '化学調味料不使用の鰹だしと地粉麺。麺量が多いため糖質はやや高めのバランス系',
+                googleRating: '', reviewCount: ''
+            },
+            {
+                id: 'r_kanehachi', name: 'ご馳走Dokoro かねはち', genre: 'teishoku',
+                area: '埼玉県鴻巣市', addr: '埼玉県鴻巣市寺谷125 鴻巣フラワーセンター2F', lat: 36.0480, lng: 139.4970, distKm: 3.1,
+                hours: '11:00〜14:00（月〜金・日・祝）', closed: '土曜',
+                parking: 'フラワーセンター大型駐車場完備',
+                feature: '鴻巣で六代続く魚屋直営の市場食堂。新鮮な魚を使った海鮮丼・アジフライが名物',
+                recommend_menu: '金華サバ塩焼き定食／海鮮丼', recommend_menu_price: '850円／1,100円(参考)',
+                menu_kcal: '約620kcal(目安)', menu_protein: 'P28g(目安)',
+                price_lunch: '〜1,200円', price_dinner: '昼のみ営業のためなし',
+                payment: '現金中心（要確認）',
+                health_level: 'A', health_note: '塩焼き・刺身中心で魚由来の良質タンパク質、低脂質クリーンな一杯',
+                googleRating: '', reviewCount: ''
+            },
+            {
+                id: 'r_koyamaya', name: '小山屋食堂', genre: 'teishoku',
+                area: '埼玉県鴻巣市', addr: '埼玉県鴻巣市本町5-9-2', lat: 36.0600, lng: 139.5260, distKm: 3.9,
+                hours: '11:00〜14:00 / 17:00〜19:00', closed: '日曜・祝日・第2土曜',
+                parking: '店前にあり',
+                feature: '鴻巣駅東側の大衆食堂。鴨汁うどん・日替わり定食など和食メニューが中心',
+                recommend_menu: '鴨汁定食／日替わり定食', recommend_menu_price: '850円(参考)',
+                menu_kcal: '約680kcal(目安)', menu_protein: 'P22g(目安)',
+                price_lunch: '〜1,000円', price_dinner: '〜1,000円',
+                payment: '現金中心（要確認）',
+                health_level: 'B', health_note: '鴨肉はやや脂があるが定食スタイルで野菜・汁物とのバランスが良い',
+                googleRating: '', reviewCount: ''
+            },
+            {
                 id: 'r_ishizuka', name: '手打ちうどん いしづか', genre: 'noodle',
                 area: '埼玉県桶川市', addr: '埼玉県桶川市南1-7-5', lat: 35.9880, lng: 139.5490, distKm: 5.1,
-                hours: '11:00〜（昼夜要確認）', closed: '要確認',
+                hours: '11:00〜14:00 / 17:00〜20:00', closed: '木曜',
                 parking: '近隣コインパーキング利用（要確認）',
-                feature: '桶川駅東口徒歩5分、旧中山道沿いの武蔵野うどん専門店',
+                feature: '桶川駅東口徒歩5分、旧中山道沿いの武蔵野うどん専門店。食べログ百名店選出歴あり',
                 recommend_menu: '肉汁うどん', recommend_menu_price: '850円(参考)',
                 menu_kcal: '約540kcal(目安)', menu_protein: 'P19g(目安)',
                 price_lunch: '700〜1,100円', price_dinner: '900〜1,400円',
                 payment: '現金中心（要確認）',
                 health_level: 'B', health_note: '豚バラのつけ汁はやや脂があるが地粉うどん＋野菜でバランス系',
+                googleRating: '', reviewCount: ''
+            },
+            {
+                id: 'r_matsuya', name: '手打うどん 松屋', genre: 'noodle',
+                area: '埼玉県桶川市', addr: '埼玉県桶川市寿1-11-18', lat: 35.9870, lng: 139.5500, distKm: 5.4,
+                hours: '10:30〜13:30頃（火〜日、麺切れ次第終了）', closed: '月曜',
+                parking: '有（店舗北20mに商店街共通パーキングあり・1時間無料）',
+                feature: '桶川駅東口徒歩6分、旧中山道沿い。うどん百名店選出歴もある地域屈指の手打ちうどんの老舗',
+                recommend_menu: 'カレーうどん／もりうどん', recommend_menu_price: '850円前後(参考)',
+                menu_kcal: '約580kcal(目安)', menu_protein: 'P16g(目安)',
+                price_lunch: '〜1,000円', price_dinner: '昼のみ営業のためなし',
+                payment: '現金中心（要確認）',
+                health_level: 'B', health_note: '調理油控えめのコシの強い手打ち麺＋出汁。カレーうどんは適度な脂質でバランス系',
                 googleRating: '', reviewCount: ''
             },
             {
@@ -1290,6 +1331,45 @@
                 price_lunch: '700〜1,100円', price_dinner: '要確認',
                 payment: '現金中心（要確認）',
                 health_level: 'B', health_note: '極太麺は糖質やや多いが脂質は肉汁の脂身程度でバランス圏内',
+                googleRating: '', reviewCount: ''
+            },
+            {
+                id: 'r_shinzan', name: '深山うどん', genre: 'noodle',
+                area: '埼玉県上尾市', addr: '埼玉県上尾市上303-4', lat: 35.9920, lng: 139.5790, distKm: 6.7,
+                hours: '11:00〜16:00（日・祝は〜15:00）', closed: '土曜・第1/3金曜',
+                parking: '店舗敷地内にあり',
+                feature: '北上尾駅徒歩15分。肉汁・きのこ汁につけて食べるつけ麺タイプのうどんが人気',
+                recommend_menu: '肉汁うどん', recommend_menu_price: '900円(参考)',
+                menu_kcal: '約600kcal(目安)', menu_protein: 'P20g(目安)',
+                price_lunch: '〜1,000円', price_dinner: '夜営業なし',
+                payment: '現金中心（要確認）',
+                health_level: 'B', health_note: '豚肉のつけ汁はやや脂があるが手打ち麺＋汁物でバランス系',
+                googleRating: '', reviewCount: ''
+            },
+            {
+                id: 'r_arita', name: 'うどん 有田', genre: 'noodle',
+                area: '埼玉県上尾市', addr: '埼玉県上尾市中妻3-7-4', lat: 35.9850, lng: 139.5850, distKm: 7.6,
+                hours: '11:00〜21:00頃（店舗により変動・要確認）', closed: '要確認',
+                parking: '敷地内駐車場あり',
+                feature: '北上尾駅徒歩11分。パチンコ店敷地内にある讃岐うどん店。かしわ天うどん・肉ぶっかけが名物',
+                recommend_menu: 'かしわ天うどん／肉ぶっかけ', recommend_menu_price: '〜900円(参考)',
+                menu_kcal: '約550kcal(目安)', menu_protein: 'P17g(目安)',
+                price_lunch: '〜1,000円', price_dinner: '〜1,000円',
+                payment: '現金中心（要確認）',
+                health_level: 'B', health_note: 'かしわ天は揚げ物のため脂質やや高めだが、うどん単品ならバランス系',
+                googleRating: '', reviewCount: ''
+            },
+            {
+                id: 'r_fujikura', name: '藤倉食堂', genre: 'teishoku',
+                area: '埼玉県上尾市', addr: '埼玉県上尾市壱丁目北8-7', lat: 35.9820, lng: 139.5930, distKm: 8.3,
+                hours: '11:00〜14:00 / 17:00〜21:00', closed: '木曜・第3水曜',
+                parking: 'あり',
+                feature: '昔ながらの大衆食堂。焼肉定食・生姜焼き定食など手作り出汁の味噌汁が付く日常使いの一軒',
+                recommend_menu: '焼肉定食／生姜焼き定食', recommend_menu_price: '850円(参考)',
+                menu_kcal: '約780kcal(目安)', menu_protein: 'P26g(目安)',
+                price_lunch: '〜1,000円', price_dinner: '〜1,000円',
+                payment: '現金中心（要確認）',
+                health_level: 'B', health_note: '焼肉・生姜焼きは適度な脂質、手作り味噌汁で日常バランス系',
                 googleRating: '', reviewCount: ''
             },
             {
