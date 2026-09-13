@@ -1,0 +1,43 @@
+name: 行きつけ名店発掘 新着候補チェック(#webhook_gourmet)
+
+on:
+  schedule:
+    # 毎週月曜 6:00 JST = 日曜 21:00 UTC
+    - cron: "0 21 * * 0"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write  # state/gourmet_shops_seen.json(既通知記録)のコミット用
+
+jobs:
+  check-new-shops:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: check-new-shops
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install requests
+
+      - name: 北本13km圏の新着・昇格店舗を検知してDiscordへ通知
+        env:
+          GOOGLE_PLACES_API_KEY_SERVER: ${{ secrets.GOOGLE_PLACES_API_KEY_SERVER }}
+          DISCORD_WEBHOOK_GOURMET: ${{ secrets.WEBHOOK_GOURMET }}
+        run: python scripts/check_new_shops.py
+
+      - name: 既通知記録をコミット
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state/gourmet_shops_seen.json
+          git diff --cached --quiet || git commit -m "行きつけ名店発掘: 新着候補の既通知記録を更新"
+          git pull --rebase origin main
+          git push
