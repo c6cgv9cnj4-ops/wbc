@@ -207,11 +207,12 @@ def is_finance_relevant(title, query):
 
 # 米国株価指数(株探・米国株版。サーバーサイドレンダリングで静的HTMLから
 # 取得可能なことを実際に確認済み)。日経取引終了後(夜間)の表示に使う。
+# yf_symbol は株探の取得に失敗した際のyfinanceフォールバック用ティッカー。
 KABUTAN_US_INDICES = [
-    {"label": "NYダウ", "url": "https://us.kabutan.jp/indexes/%5EDJI"},
-    {"label": "S&P500", "url": "https://us.kabutan.jp/indexes/%5ESPX"},
-    {"label": "NASDAQ総合", "url": "https://us.kabutan.jp/indexes/%5EIXIC"},
-    {"label": "SOX半導体指数", "url": "https://us.kabutan.jp/indexes/%5ESOX"},
+    {"label": "NYダウ", "url": "https://us.kabutan.jp/indexes/%5EDJI", "yf_symbol": "^DJI"},
+    {"label": "S&P500", "url": "https://us.kabutan.jp/indexes/%5ESPX", "yf_symbol": "^GSPC"},
+    {"label": "NASDAQ総合", "url": "https://us.kabutan.jp/indexes/%5EIXIC", "yf_symbol": "^IXIC"},
+    {"label": "SOX半導体指数", "url": "https://us.kabutan.jp/indexes/%5ESOX", "yf_symbol": "^SOX"},
 ]
 
 # 先物・コモディティ(2026-08-28、細川さんの指定によりyfinance採用)。
@@ -233,6 +234,44 @@ FUTURES_TICKERS = {
 FUTURES_UNITS = {
     "コーヒー先物": "セント/lb",
 }
+
+# 2026-09-14追加: 主要株価指数がスクレイピング先(Yahoo!ファイナンス/株探)
+# の失敗時に「取得できませんでした」のまま空欄になる不具合の修正用。
+# yfinanceのhistory(daily)は取引時間外でも直近の確定終値(前営業日終値)を
+# 返すため、スクレイピングが失敗した場合のフォールバック取得元として使う。
+YF_FALLBACK_TICKERS = {
+    "日経平均株価": "^N225",
+    "NYダウ": "^DJI",
+    "S&P500": "^GSPC",
+    "NASDAQ総合": "^IXIC",
+    "SOX半導体指数": "^SOX",
+}
+
+
+def fetch_index_with_fallback(label, primary_fetch_fn):
+    """スクレイピング(primary_fetch_fn)を先に試し、失敗したらyfinanceの
+    確定終値(前営業日終値)にフォールバックする。フォールバック使用時は
+    is_fallback=Trueを立てて返し、表示側で「(前営業日終値)」等を明記できる
+    ようにする。両方失敗した場合のみNoneを返す。
+    """
+    data = primary_fetch_fn()
+    if data:
+        return data, False
+
+    symbol = YF_FALLBACK_TICKERS.get(label)
+    if not symbol:
+        return None, False
+    quote = fetch_yf_quote(symbol)
+    if not quote:
+        return None, False
+    print(f"[INFO] {label}: スクレイピング失敗のためyfinance({symbol})の確定終値にフォールバックしました。")
+    return {
+        "price": f"{quote['price']:,.2f}",
+        "change": f"{quote['change']:+.2f}",
+        "change_rate": f"{quote['change_rate']:+.2f}",
+    }, True
+
+
 # 日経の取引時間中(9:00〜15:30 JST、平日)かどうかで、表示する先物・指数の
 # セットを切り替える(細川さん指定の構成)。
 NIKKEI_TRADING_START = datetime.time(9, 0)
@@ -246,6 +285,25 @@ def is_nikkei_trading_hours(now):
     if now.weekday() >= 5:  # 土日
         return False
     return NIKKEI_TRADING_START <= now.time() < NIKKEI_TRADING_END
+
+
+# 米国市場(NYSE/NASDAQ)の通常取引時間はJSTで夜間〜未明帯になる。サマータイム
+# (EDT)とウィンター(EST)で1時間ずれるが、祝日カレンダー同様に厳密な判定は
+# 行わず簡易的にEDT側(22:30〜05:00 JST)を採用する(2026-09-14、朝7時台に
+# 「取得できませんでした」となる不具合の修正で追加。この時間帯外なら
+# 株探の値は前営業日終値とみなして表示にその旨を明記する)。
+US_TRADING_START = datetime.time(22, 30)
+US_TRADING_END = datetime.time(5, 0)
+
+
+def is_us_trading_hours(now):
+    """米国株式市場の取引時間中(目安、平日22:30〜翌5:00 JST)かどうかを判定する。"""
+    t = now.time()
+    if t >= US_TRADING_START:
+        return now.weekday() < 5  # 月〜金の夜(取引開始日基準)
+    if t < US_TRADING_END:
+        return now.weekday() != 5  # 日本時間の土曜未明 = 米国はまだ金曜夜なので取引中
+    return False
 
 
 def fetch_yf_quote(symbol):
@@ -698,6 +756,14 @@ def fetch_kabutan_us_index(url, label):
         print(f"[WARN] {label}の前日比を抽出できませんでした。")
         return None
 
+    # 2026-09-14修正: ここまでパースが成功しても結果を一切返していなかった
+    # バグにより、{label}は常に「取得できませんでした」になっていた。
+    return {
+        "price": price_m.group(1),
+        "change": change_nums[0],
+        "change_rate": change_nums[1],
+    }
+
 
 # ============================================================
 # 日経CNBC(公式YouTubeチャンネルの新着動画をマーケット要約枠として配信)
@@ -1059,10 +1125,14 @@ def build_market_message(state, now):
     lines.append(f"# 💹 マーケット情報 ({now_jst} JST時点・{session_label})")
 
     lines.append("\n## 📈 株価")
-    nikkei = fetch_nikkei225()
+    nikkei, nikkei_is_fallback = fetch_index_with_fallback("日経平均株価", fetch_nikkei225)
     if nikkei:
         arrow = "🔺" if not nikkei["change"].startswith("-") else "🔻"
-        lines.append(f"- 日経平均株価: **{nikkei['price']}円** {arrow} {nikkei['change']} ({nikkei['change_rate']}%)")
+        # 日経の取引時間外は、スクレイピング成功時でも表示値は前営業日終値
+        # そのものになるため、フォールバック使用時と合わせて明記する
+        # (2026-09-14、朝7時台等に「取得できませんでした」となる不具合の修正)。
+        suffix = "（前営業日終値）" if (nikkei_is_fallback or not nikkei_hours) else ""
+        lines.append(f"- 日経平均株価: **{nikkei['price']}円** {arrow} {nikkei['change']} ({nikkei['change_rate']}%){suffix}")
     else:
         lines.append("- 日経平均株価: 取得できませんでした")
 
@@ -1072,13 +1142,17 @@ def build_market_message(state, now):
             lines.append(format_yf_line(label, FUTURES_TICKERS[label]))
     else:
         # 日経取引終了後: 米国主要指数(現物、株探)+ 日経平均先物(夜間の目安)
+        us_hours = is_us_trading_hours(now)
         for idx_conf in KABUTAN_US_INDICES:
-            idx_data = fetch_kabutan_us_index(idx_conf["url"], idx_conf["label"])
+            idx_data, idx_is_fallback = fetch_index_with_fallback(
+                idx_conf["label"], lambda c=idx_conf: fetch_kabutan_us_index(c["url"], c["label"])
+            )
             if idx_data:
                 arrow = "🔺" if not idx_data["change"].startswith("-") else "🔻"
+                suffix = "（前営業日終値）" if (idx_is_fallback or not us_hours) else ""
                 lines.append(
                     f"- {idx_conf['label']}: **{idx_data['price']}** "
-                    f"{arrow} {idx_data['change']} ({idx_data['change_rate']}%)"
+                    f"{arrow} {idx_data['change']} ({idx_data['change_rate']}%){suffix}"
                 )
             else:
                 lines.append(f"- {idx_conf['label']}: 取得できませんでした")
