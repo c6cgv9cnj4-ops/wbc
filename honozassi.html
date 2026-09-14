@@ -232,8 +232,117 @@
 
         .empty-state { text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 40px 20px; }
 
+        .author-chip {
+            appearance: none;
+            border: none;
+            background: none;
+            padding: 0;
+            font: inherit;
+            color: var(--primary);
+            font-weight: 700;
+            text-decoration: underline;
+            text-decoration-color: var(--border-color);
+            text-underline-offset: 2px;
+            cursor: pointer;
+        }
+        .author-chip:hover, .author-chip:focus-visible { text-decoration-color: var(--accent); }
+        .author-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+        .sheet-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.5);
+            z-index: 290;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease;
+        }
+        .sheet-overlay.open { opacity: 1; visibility: visible; }
+
+        .author-sheet {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            z-index: 300;
+            background: var(--card-bg);
+            border-radius: 18px 18px 0 0;
+            box-shadow: 0 -8px 30px rgba(0,0,0,0.25);
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(105%);
+            transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        .author-sheet.open { transform: translateY(0); }
+        .author-sheet.dragging { transition: none; }
+
+        .sheet-handle-area {
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+            padding: 10px 0 4px;
+            cursor: grab;
+            touch-action: none;
+        }
+        .sheet-handle {
+            width: 40px; height: 4px;
+            border-radius: 999px;
+            background: var(--border-color);
+        }
+
+        .sheet-header {
+            flex-shrink: 0;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 0 20px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .sheet-header-main { min-width: 0; }
+        .sheet-author-name { font-size: 1.15rem; font-weight: 800; color: var(--primary); }
+        .sheet-author-name a { font-size: 0.78rem; font-weight: 700; color: var(--accent-hover); margin-left: 6px; text-decoration: none; }
+        .sheet-tagline { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; line-height: 1.6; }
+        .sheet-close {
+            flex-shrink: 0;
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            border: 1.5px solid var(--border-color);
+            background: #ffffff;
+            color: var(--text-muted);
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .sheet-close:hover { border-color: var(--primary); color: var(--primary); }
+
+        .sheet-body {
+            overflow-y: auto;
+            padding: 14px 20px calc(20px + env(safe-area-inset-bottom));
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .work-item {
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+        .work-title-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+        .work-title { font-weight: 800; color: var(--primary); font-size: 0.98rem; }
+        .work-year { font-size: 0.75rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        .work-desc { font-size: 0.83rem; color: var(--text-main); margin-top: 4px; line-height: 1.6; }
+        .work-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .work-links .link-btn { flex: 0 0 auto; min-width: 0; min-height: 34px; font-size: 0.72rem; padding: 6px 10px; }
+
+        .sheet-empty { font-size: 0.85rem; color: var(--text-muted); text-align: center; padding: 20px 0; }
+
+        body.modal-open { overflow: hidden; }
+
         @media (prefers-reduced-motion: reduce) {
-            .card, .btn, .chip, .pick-toggle, .toast, .link-btn { transition: none; }
+            .card, .btn, .chip, .pick-toggle, .toast, .link-btn, .author-sheet, .sheet-overlay { transition: none; }
         }
     </style>
 </head>
@@ -259,6 +368,19 @@
 </div>
 
 <div id="toast" class="toast"></div>
+
+<div class="sheet-overlay" id="sheetOverlay" onclick="closeAuthorSheet()"></div>
+<div class="author-sheet" id="authorSheet" role="dialog" aria-modal="true" aria-labelledby="sheetAuthorName">
+    <div class="sheet-handle-area" id="sheetHandle"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+        <div class="sheet-header-main">
+            <div class="sheet-author-name" id="sheetAuthorName"></div>
+            <div class="sheet-tagline" id="sheetTagline"></div>
+        </div>
+        <button class="sheet-close" onclick="closeAuthorSheet()" aria-label="閉じる">✕</button>
+    </div>
+    <div class="sheet-body" id="sheetBody"></div>
+</div>
 
 <script>
     /*
@@ -380,6 +502,48 @@
         { id:"b35", genre:"naoki", awardLabel:"第160回 直木賞", score:null,
           title:"宝島", author:"真藤順丈", age:41, wikipediaExists:true,
           synopsis:"アメリカ統治下の沖縄を舞台に、伝説の英雄に憧れる幼馴染の3人が、それぞれの道で戦後という時代の激動を生き抜いていく群像劇。越境的な熱量で描かれた大作。" },
+        { id:"b37", genre:"bestseller", awardLabel:"2023年 日販年間ベストセラー文庫部門2位", score:null,
+          title:"傲慢と善良", author:"辻村深月", age:43, wikipediaExists:true,
+          synopsis:"婚約者が突然失踪し、彼女の「正しさ」を疑わなかった主人公が過去を辿るうちに、自分自身の中にある傲慢さと無自覚な善良さの危うさに気づいていく恋愛心理ミステリー。" },
+        { id:"b38", genre:"bestseller", awardLabel:"2023年 日販年間ベストセラー文庫部門1位", score:null,
+          title:"クスノキの番人", author:"東野圭吾", age:65, wikipediaExists:true,
+          synopsis:"罪を犯し身を寄せた叔父の家業は、祈れば願いが叶うとされる不思議なクスノキの番人だった。訪れる人々それぞれの秘密と再生を描くハートウォーミングな長編小説。" },
+        { id:"b39", genre:"bestseller", awardLabel:"2025年 日販年間ベストセラー文庫部門1位（オリコン年間文庫でも上下巻1・2位独占）", score:null,
+          title:"国宝", author:"吉田修一", age:57, wikipediaExists:true,
+          synopsis:"任侠の家に生まれた少年が女形の歌舞伎役者として芸の道を究めていく波乱の人生を、戦後から現代までの時代とともに描いた大河小説。2025年の実写映画化でも話題を呼んだ。" },
+        { id:"b40", genre:"bestseller", awardLabel:"2016年 日販年間ベストセラー単行本フィクション部門1位", score:null,
+          title:"君の膵臓をたべたい", author:"住野よる", age:null, wikipediaExists:true,
+          synopsis:"余命わずかな女子高生の秘密の日記を偶然読んでしまったクラスメイトの「僕」が、彼女と過ごすかけがえのない日々を通して生と死の意味を見つめ直す青春小説。" },
+        { id:"b41", genre:"bestseller", awardLabel:"2017年 オリコン年間本ランキング 文芸・小説部門1位", score:null,
+          title:"騎士団長殺し 第1部 顕れるイデア編／第2部 遷ろうメタファー編", author:"村上春樹", age:68, wikipediaExists:true,
+          synopsis:"妻に去られた肖像画家が山中の家に移り住み、屋根裏で見つけた不思議な絵をきっかけに地下の異界とつながる不可解な出来事に巻き込まれていく長編小説。" },
+        { id:"b42", genre:"bestseller", awardLabel:"2021年 ダ・ヴィンチ BOOK OF THE YEAR 小説部門1位", score:null,
+          title:"オルタネート", author:"加藤シゲアキ", age:34, wikipediaExists:true,
+          synopsis:"高校生限定のマッチングアプリ「アルタネート」を軸に、進路や恋愛に悩む3人の高校生たちの群像を描いた青春小説。吉川英治文学新人賞・高校生直木賞も受賞。" },
+        { id:"b43", genre:"nonfiction", awardLabel:"第53回 大宅壮一ノンフィクション賞", score:null,
+          title:"嫌われた監督 落合博満は中日をどう変えたのか", author:"鈴木忠平", age:null, wikipediaExists:true,
+          synopsis:"新聞記者として8年間、中日監督時代の落合博満に密着取材した著者が、選手やコーチとの軋轢、寡黙な采配の裏に隠された真意を丹念に掘り起こしたスポーツノンフィクションの金字塔。" },
+        { id:"b44", genre:"nonfiction", awardLabel:"第52回 大宅壮一ノンフィクション賞", score:null,
+          title:"女帝 小池百合子", author:"石井妙子", age:null, wikipediaExists:true,
+          synopsis:"東京都知事・小池百合子の半生を徹底取材し、学歴やカイロ時代の経歴をめぐる数々の疑惑を掘り下げた評伝。虚実の狭間で権力を築いてきた政治家の実像に迫る調査報道の労作。" },
+        { id:"b45", genre:"nonfiction", awardLabel:"第54回 大宅壮一ノンフィクション賞", score:null,
+          title:"黒い海 船は突然、深海へ消えた", author:"伊澤理江", age:43, wikipediaExists:true,
+          synopsis:"北海道沖で漁船が突然消息を絶った転覆事故の謎を追う調査報道。海上保安庁や関係者への丹念な取材から、公式説明と食い違う事実を掘り起こし、隠された真相に迫っていく。" },
+        { id:"b46", genre:"nonfiction", awardLabel:"第51回 大宅壮一ノンフィクション賞", score:null,
+          title:"チョンキンマンションのボスは知っている アングラ経済の人類学", author:"小川さやか", age:42, wikipediaExists:true,
+          synopsis:"香港の雑居ビルに集うタンザニア人商人たちのもとに住み込んだ人類学者が、制度に頼らず信用と互酬でまわる独自の経済圏の仕組みを、軽妙な筆致で描き出したフィールドワーク記。" },
+        { id:"b47", genre:"nonfiction", awardLabel:"第35回 講談社ノンフィクション賞", score:null,
+          title:"謎の独立国家ソマリランド", author:"高野秀行", age:null, wikipediaExists:true,
+          synopsis:"内戦が続くソマリアの中で平和を保つ「独立国家」ソマリランドへ潜入した著者が、氏族社会の掟や政治の仕組みを体当たりで探る、辺境ノンフィクションの傑作長編ルポ。" },
+        { id:"b48", genre:"nonfiction", awardLabel:"第36回 講談社ノンフィクション賞", score:null,
+          title:"しんがり 山一證券 最後の12人", author:"清武英利", age:null, wikipediaExists:true,
+          synopsis:"1997年、自主廃業に追い込まれた山一證券。最後まで会社に残り、破綻の真相究明と顧客対応に奔走した現場社員たちの闘いを、元記者の著者が丹念な取材で描いた組織人間の記録。" },
+        { id:"b49", genre:"nonfiction", awardLabel:"第41回 講談社本田靖春ノンフィクション賞", score:null,
+          title:"軌道 福知山線脱線事故 JR西日本を変えた闘い", author:"松本創", age:null, wikipediaExists:true,
+          synopsis:"2005年のJR福知山線脱線事故後、JR西日本の企業体質を変えようとした遺族や社員たちの長い闘いを追ったルポ。事故と組織の「その後」を描く硬派な調査ノンフィクション。" },
+        { id:"b50", genre:"nonfiction", awardLabel:"第43回 講談社本田靖春ノンフィクション賞", score:null,
+          title:"沢村忠に真空を飛ばせた男 昭和のプロモーター・野口修 評伝", author:"細田昌志", age:49, wikipediaExists:true,
+          synopsis:"「真空飛び膝蹴り」で一世を風靡したキックボクサー沢村忠を生んだ興行師・野口修の生涯を、10年がかりの取材で描いた評伝。昭和の格闘技興行史の裏面に迫る力作。" },
         { id:"b36", genre:"bestseller", awardLabel:"2024年 オリコン年間BOOKランキング1位", score:null,
           title:"変な家2 〜11の間取り図〜", author:"雨穴", age:null, wikipediaExists:true,
           synopsis:"不動産ミステリーとして大ヒットした前作の続編。読者から寄せられた奇妙な間取り図をきっかけに、その裏に隠された不穏な事情を紐解いていくホラーミステリー。" }
@@ -401,6 +565,11 @@
         "mystery": "var(--genre-mystery)",
         "nonfiction": "var(--genre-nonfic)",
         "bestseller": "var(--genre-bestseller)"
+    };
+
+    // 著者プロフィール・代表作データ（裏取り済みのもののみ登録。未登録の著者は「準備中」表示にフォールバック）
+    const authorWorks = {
+        /* AUTHOR_WORKS_PLACEHOLDER */
     };
 
     const selectedBooks = new Set();
@@ -474,9 +643,7 @@
             const scoreBadge = (book.score !== null && book.score !== undefined)
                 ? `<span class="badge badge-score">★ ${book.score.toFixed(1)}点</span>` : '';
             const ageText = (book.age !== null && book.age !== undefined) ? `（${book.age}歳）` : '';
-            const authorHtml = book.wikipediaExists
-                ? `<a href="${wikipediaUrl(book)}" target="_blank" rel="noopener noreferrer">${book.author}↗</a>`
-                : book.author;
+            const authorHtml = `<button class="author-chip" onclick='openAuthorSheet(${JSON.stringify(book.author)}, ${!!book.wikipediaExists})'>${book.author}</button>`;
 
             return `
             <div class="card ${isSelected ? 'selected' : ''}" id="card-${book.id}">
@@ -559,6 +726,91 @@
             document.body.removeChild(ta);
         });
     }
+
+    function authorWikipediaUrl(author) {
+        return "https://ja.wikipedia.org/wiki/" + encodeURIComponent(author);
+    }
+    function workAmazonUrl(title, author) {
+        return "https://www.amazon.co.jp/s?k=" + encodeURIComponent(title + " " + author);
+    }
+    function workBookmeterUrl(title) {
+        return "https://bookmeter.com/search?keyword=" + encodeURIComponent(title);
+    }
+    function openWorkLibrarySearch(title) {
+        openKitamotoLibrarySearch({ title: title });
+    }
+
+    function openAuthorSheet(author, wikipediaExists) {
+        const profile = authorWorks[author];
+        document.getElementById('sheetAuthorName').innerHTML =
+            author + (wikipediaExists ? ` <a href="${authorWikipediaUrl(author)}" target="_blank" rel="noopener noreferrer">Wikipediaで見る↗</a>` : '');
+        document.getElementById('sheetTagline').textContent = profile ? profile.tagline : 'この著者の代表作データは準備中です';
+
+        const body = document.getElementById('sheetBody');
+        if (profile && profile.works && profile.works.length) {
+            body.innerHTML = profile.works.map(w => `
+                <div class="work-item">
+                    <div class="work-title-row">
+                        <span class="work-title">${w.title}</span>
+                        ${w.year ? `<span class="work-year">${w.year}年</span>` : ''}
+                    </div>
+                    ${w.desc ? `<div class="work-desc">${w.desc}</div>` : ''}
+                    <div class="work-links">
+                        <a class="link-btn" href="${workAmazonUrl(w.title, author)}" target="_blank" rel="noopener noreferrer">Amazonで確認</a>
+                        <a class="link-btn" href="${workBookmeterUrl(w.title)}" target="_blank" rel="noopener noreferrer">読書メーター</a>
+                        <button class="link-btn" onclick='openWorkLibrarySearch(${JSON.stringify(w.title)})'>北本図書館で探す</button>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            body.innerHTML = `
+                <div class="sheet-empty">代表作リストは準備中です。ひとまず著者名でAmazon・読書メーターを検索できます。</div>
+                <div class="work-links" style="justify-content:center;">
+                    <a class="link-btn" href="${workAmazonUrl('', author)}" target="_blank" rel="noopener noreferrer">Amazonで著者名検索</a>
+                    <a class="link-btn" href="${workBookmeterUrl(author)}" target="_blank" rel="noopener noreferrer">読書メーターで検索</a>
+                </div>`;
+        }
+
+        document.getElementById('sheetOverlay').classList.add('open');
+        document.getElementById('authorSheet').classList.add('open');
+        document.body.classList.add('modal-open');
+    }
+
+    function closeAuthorSheet() {
+        document.getElementById('sheetOverlay').classList.remove('open');
+        document.getElementById('authorSheet').classList.remove('open');
+        document.body.classList.remove('modal-open');
+    }
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeAuthorSheet();
+    });
+
+    (function setupSheetDrag() {
+        const sheet = document.getElementById('authorSheet');
+        const handle = document.getElementById('sheetHandle');
+        let startY = 0, currentY = 0, dragging = false;
+
+        handle.addEventListener('touchstart', (e) => {
+            dragging = true;
+            startY = e.touches[0].clientY;
+            sheet.classList.add('dragging');
+        }, { passive: true });
+
+        handle.addEventListener('touchmove', (e) => {
+            if (!dragging) return;
+            currentY = Math.max(0, e.touches[0].clientY - startY);
+            sheet.style.transform = `translateY(${currentY}px)`;
+        }, { passive: true });
+
+        handle.addEventListener('touchend', () => {
+            if (!dragging) return;
+            dragging = false;
+            sheet.classList.remove('dragging');
+            sheet.style.transform = '';
+            if (currentY > 100) closeAuthorSheet();
+            currentY = 0;
+        });
+    })();
 
     function showToast(msg) {
         const toast = document.getElementById('toast');
