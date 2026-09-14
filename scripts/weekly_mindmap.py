@@ -121,6 +121,9 @@ NEXT_DAYS = 7
 DEFAULT_GEMINI_MODEL = "gemini-3.6-flash"
 
 REPORT_WEEKLY_DIR = "reports/weekly"
+MINDMAP_DIR = "mindmap"
+MINDMAP_ARCHIVE_DIR = "mindmap/archive"
+MINDMAP_PAGES_URL = "https://c6cgv9cnj4-ops.github.io/wbc/mindmap/"
 
 DISCORD_USER_AGENT = "wbc-weekly-mindmap/1.0 (+https://github.com/c6cgv9cnj4-ops/wbc)"
 
@@ -917,6 +920,154 @@ def render_mindmap(tree: dict, ctx: dict, source: str, out_path: str) -> str:
 
 
 # ===========================================================================
+# 6.5) GitHub Pages 常設ページ(mindmap/index.html + アーカイブ)
+# ===========================================================================
+def _html_escape(s) -> str:
+    import html as _html
+    return _html.escape(str(s if s is not None else ""))
+
+
+def _mindmap_page_html(*, title: str, week_label: str, generated_ts: str, source_label: str,
+                        sheet_link: str | None, png_rel: str, warnings: list[str] | None,
+                        back_link: str | None = None, archive_index_link: str | None = None) -> str:
+    warn_html = ""
+    if warnings:
+        items = "".join(f"<li>{_html_escape(w)}</li>" for w in warnings)
+        warn_html = f'<div class="warn"><strong>⚠️ 警告</strong><ul>{items}</ul></div>'
+    sheet_html = (f'<a class="btn" href="{_html_escape(sheet_link)}" target="_blank" '
+                  f'rel="noopener">📄 スプレッドシートを開く</a>') if sheet_link else ""
+    nav_parts = []
+    if back_link:
+        nav_parts.append(f'<a href="{_html_escape(back_link)}">← 最新の週へ</a>')
+    if archive_index_link:
+        nav_parts.append(f'<a href="{_html_escape(archive_index_link)}">📚 過去の週一覧</a>')
+    nav_html = "".join(nav_parts)
+    return f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{_html_escape(title)}</title>
+<style>
+  :root {{ color-scheme: light dark; }}
+  body {{ margin:0; padding:24px 16px 48px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans",sans-serif; background:#f8fafc; color:#1e293b; }}
+  @media (prefers-color-scheme: dark) {{ body {{ background:#0f172a; color:#e2e8f0; }} }}
+  .wrap {{ max-width: 980px; margin: 0 auto; }}
+  h1 {{ font-size:1.4rem; margin:0 0 4px; }}
+  .meta {{ font-size:0.85rem; color:#64748b; margin-bottom:18px; }}
+  .nav {{ display:flex; gap:14px; margin-bottom:18px; flex-wrap:wrap; }}
+  .nav a {{ font-size:0.85rem; color:#2563eb; text-decoration:none; font-weight:600; }}
+  .nav a:hover {{ text-decoration:underline; }}
+  img {{ max-width:100%; height:auto; border-radius:10px; border:1px solid #e2e8f0; background:#fff; display:block; }}
+  .actions {{ margin-top:16px; }}
+  .btn {{ display:inline-block; padding:9px 16px; border-radius:8px; background:#2563eb; color:#fff; text-decoration:none; font-size:0.85rem; font-weight:700; }}
+  .warn {{ background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:10px 14px; margin-bottom:16px; font-size:0.85rem; color:#1e293b; }}
+  .warn ul {{ margin:6px 0 0; padding-left:18px; }}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧠 週間棚卸しマップ　{_html_escape(week_label)}</h1>
+  <div class="meta">生成: {_html_escape(generated_ts)} ／ {_html_escape(source_label)}</div>
+  <div class="nav">{nav_html}</div>
+  {warn_html}
+  <img src="{_html_escape(png_rel)}" alt="週間棚卸しマインドマップ {_html_escape(week_label)}">
+  <div class="actions">{sheet_html}</div>
+</div>
+</body>
+</html>
+"""
+
+
+def _write_archive_index() -> None:
+    import glob
+
+    files = sorted(
+        (os.path.basename(p) for p in glob.glob(os.path.join(MINDMAP_ARCHIVE_DIR, "*.html"))
+         if os.path.basename(p) != "index.html"),
+        reverse=True,
+    )
+    items = "".join(
+        f'<li><a href="{_html_escape(f)}">{_html_escape(f[:-5])}</a></li>' for f in files
+    ) or "<li>まだアーカイブがありません</li>"
+    html_doc = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>週間棚卸しマップ - 過去の週一覧</title>
+<style>
+  :root {{ color-scheme: light dark; }}
+  body {{ margin:0; padding:24px 16px 48px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans",sans-serif; background:#f8fafc; color:#1e293b; }}
+  @media (prefers-color-scheme: dark) {{ body {{ background:#0f172a; color:#e2e8f0; }} }}
+  .wrap {{ max-width:640px; margin:0 auto; }}
+  h1 {{ font-size:1.3rem; }}
+  a.back {{ font-size:0.85rem; color:#2563eb; text-decoration:none; font-weight:600; }}
+  ul {{ list-style:none; padding:0; margin-top:16px; }}
+  li {{ margin-bottom:8px; }}
+  li a {{ display:block; padding:10px 14px; background:#fff; border:1px solid #e2e8f0; border-radius:8px;
+         text-decoration:none; color:#1e293b; font-weight:600; }}
+  @media (prefers-color-scheme: dark) {{ li a {{ background:#1e293b; border-color:#334155; color:#e2e8f0; }} }}
+  li a:hover {{ border-color:#2563eb; }}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../index.html">← 最新の週へ</a>
+  <h1>📚 週間棚卸しマップ - 過去の週一覧</h1>
+  <ul>{items}</ul>
+</div>
+</body>
+</html>
+"""
+    with open(os.path.join(MINDMAP_ARCHIVE_DIR, "index.html"), "w", encoding="utf-8") as fh:
+        fh.write(html_doc)
+
+
+def publish_mindmap_pages(png_path: str | None, ctx: dict, source: str,
+                          sheet_link: str | None, warnings: list[str] | None) -> str | None:
+    """mindmap/index.html(固定URL・最新版に上書き)と mindmap/archive/{week_tag}.html
+    (永久保存)を書き出し、mindmap/archive/index.html(過去週一覧)も更新する。
+    GitHub Pages で https://c6cgv9cnj4-ops.github.io/wbc/mindmap/ が常に最新を指すようにする
+    (Actions アーティファクトへの一時出力だけだと数十日で消え 404 になるための恒久対応)。"""
+    if not png_path or not os.path.exists(png_path):
+        print("[WARN] PNG が無いため mindmap ページの生成をスキップ")
+        return None
+    import shutil
+
+    os.makedirs(MINDMAP_ARCHIVE_DIR, exist_ok=True)
+
+    shutil.copyfile(png_path, os.path.join(MINDMAP_DIR, "latest.png"))
+    shutil.copyfile(png_path, os.path.join(MINDMAP_ARCHIVE_DIR, f"{ctx['week_tag']}.png"))
+
+    generated_ts = datetime.datetime.now(JST).strftime("%Y-%m-%d %H:%M JST")
+    src_label = {"gemini": "Gemini構造化", "fallback": "簡易構造化(Gemini未使用)",
+                 "empty": "記録なし"}[source]
+
+    index_html = _mindmap_page_html(
+        title=f"週間棚卸しマップ {ctx['label']}", week_label=ctx["label"],
+        generated_ts=generated_ts, source_label=src_label, sheet_link=sheet_link,
+        png_rel="latest.png", warnings=warnings, archive_index_link="archive/index.html",
+    )
+    with open(os.path.join(MINDMAP_DIR, "index.html"), "w", encoding="utf-8") as fh:
+        fh.write(index_html)
+
+    archive_html = _mindmap_page_html(
+        title=f"週間棚卸しマップ {ctx['label']}（アーカイブ）", week_label=ctx["label"],
+        generated_ts=generated_ts, source_label=src_label, sheet_link=sheet_link,
+        png_rel=f"{ctx['week_tag']}.png", warnings=warnings,
+        back_link="../index.html", archive_index_link="index.html",
+    )
+    with open(os.path.join(MINDMAP_ARCHIVE_DIR, f"{ctx['week_tag']}.html"), "w", encoding="utf-8") as fh:
+        fh.write(archive_html)
+
+    _write_archive_index()
+    print(f"[OK] mindmap ページを更新: {MINDMAP_PAGES_URL} "
+          f"(アーカイブ: mindmap/archive/{ctx['week_tag']}.html)")
+    return MINDMAP_PAGES_URL
+
+
+# ===========================================================================
 # 7) スプレッドシート書き込み
 # ===========================================================================
 def tree_to_rows(tree: dict) -> list[list]:
@@ -1037,7 +1188,9 @@ def write_week_sheet(creds, ctx: dict, rows: list[list]) -> tuple[str, str] | tu
 # ===========================================================================
 # 8) Discord 投稿
 # ===========================================================================
-def post_to_discord(message: str, image_path: str | None) -> bool:
+def post_to_discord(message: str, image_path: str | None) -> tuple[bool, str | None]:
+    """(成功可否, 投稿したメッセージID) を返す。メッセージIDはピン留め用
+    (Webhook 投稿時は ?wait=true を付けて本文を取り戻し、そこから抽出する)。"""
     webhook = os.environ.get("DISCORD_WEBHOOK_WEEKLY", "").strip()
     bot_token = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
     channel_id = os.environ.get("DISCORD_CHANNEL_ID_WEEKLY_SUMMARY", "").strip()
@@ -1047,13 +1200,14 @@ def post_to_discord(message: str, image_path: str | None) -> bool:
     fh = None
     try:
         if webhook:
-            url, hdrs, pl = webhook, {"User-Agent": DISCORD_USER_AGENT}, {**payload, "username": "週次棚卸しBot"}
+            url = webhook + ("&wait=true" if "?" in webhook else "?wait=true")
+            hdrs, pl = {"User-Agent": DISCORD_USER_AGENT}, {**payload, "username": "週次棚卸しBot"}
         elif bot_token and channel_id:
             url = f"{DISCORD_API_BASE}/channels/{channel_id}/messages"
             hdrs, pl = {"Authorization": f"Bot {bot_token}", "User-Agent": DISCORD_USER_AGENT}, payload
         else:
             print("[WARN] DISCORD_WEBHOOK_WEEKLY も Bot+チャンネルID も無いため投稿をスキップ")
-            return False
+            return False, None
 
         if has_image:
             # 画像あり: multipart（payload_json + files[0]）
@@ -1071,29 +1225,105 @@ def post_to_discord(message: str, image_path: str | None) -> bool:
         kind = "Webhook" if webhook else "Bot"
         print(f"[{'OK' if ok else 'WARN'}] Discord({kind}) HTTP {resp.status_code}"
               + ("" if ok else f" {resp.text[:200]}"))
-        return ok
+        message_id = None
+        if ok:
+            try:
+                message_id = resp.json().get("id")
+            except Exception:  # noqa: BLE001
+                message_id = None
+        return ok, message_id
     except Exception as err:  # noqa: BLE001
         print(f"[WARN] Discord 投稿に失敗: {err}")
-        return False
+        return False, None
     finally:
         if fh:
             fh.close()
 
 
+def _discord_bot_request(method: str, path: str, bot_token: str, json_body: dict | None = None):
+    url = f"{DISCORD_API_BASE}{path}"
+    headers = {"Authorization": f"Bot {bot_token}", "User-Agent": DISCORD_USER_AGENT}
+    return requests.request(method, url, headers=headers, json=json_body, timeout=REQUEST_TIMEOUT)
+
+
+def update_weekly_channel_topic(bot_token: str, channel_id: str, page_url: str) -> None:
+    """チャンネルトピックの先頭を「🧠 最新マインドマップ: <URL>」に更新する(ベストエフォート、
+    Bot に MANAGE_CHANNELS 権限が無い等の失敗は警告に留めて継続する)。"""
+    if not bot_token or not channel_id or not page_url:
+        return
+    try:
+        resp = _discord_bot_request("GET", f"/channels/{channel_id}", bot_token)
+        resp.raise_for_status()
+        current = resp.json().get("topic") or ""
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] チャンネル情報の取得に失敗、トピック更新をスキップ: {err}")
+        return
+
+    marker_line = f"🧠 最新マインドマップ: {page_url}"
+    kept = [ln for ln in current.split("\n") if ln.strip() and not ln.strip().startswith("🧠 最新マインドマップ:")]
+    new_topic = "\n".join(kept + [marker_line])[:1024]  # Discord のチャンネルトピック上限
+    if new_topic == current:
+        print("[INFO] チャンネルトピックは既に最新")
+        return
+    try:
+        resp = _discord_bot_request("PATCH", f"/channels/{channel_id}", bot_token,
+                                    json_body={"topic": new_topic})
+        resp.raise_for_status()
+        print("[OK] チャンネルトピックを更新")
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] チャンネルトピックの更新に失敗(権限不足の可能性): {err}")
+
+
+def pin_latest_and_unpin_old(bot_token: str, channel_id: str, message_id: str | None) -> None:
+    """今回の週次サマリーをピン留めし、以前ピン留めしていた週次サマリーは解除する
+    (このBotが投稿した「🧠 週間棚卸しマップ」始まりのメッセージだけを対象にし、
+    ユーザーが手動で別途ピンしたメッセージには触れない。ベストエフォート)。"""
+    if not bot_token or not channel_id:
+        return
+    try:
+        resp = _discord_bot_request("GET", f"/channels/{channel_id}/pins", bot_token)
+        resp.raise_for_status()
+        pins = resp.json()
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] ピン留め一覧の取得に失敗、ピン更新をスキップ: {err}")
+        return
+
+    for p in pins:
+        if (p.get("content") or "").startswith("🧠 週間棚卸しマップ") and p.get("id") != message_id:
+            try:
+                r = _discord_bot_request("DELETE", f"/channels/{channel_id}/pins/{p['id']}", bot_token)
+                r.raise_for_status()
+                print(f"[OK] 旧ピンを解除: {p['id']}")
+            except Exception as err:  # noqa: BLE001
+                print(f"[WARN] 旧ピンの解除に失敗: {err}")
+
+    if not message_id:
+        return
+    try:
+        r = _discord_bot_request("PUT", f"/channels/{channel_id}/pins/{message_id}", bot_token)
+        r.raise_for_status()
+        print("[OK] 最新の週次サマリーをピン留め")
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] ピン留めに失敗(権限不足の可能性): {err}")
+
+
 def compose_message(ctx: dict, sheet_link: str | None, source: str, empty: bool,
-                    warnings: list[str] | None = None) -> str:
+                    warnings: list[str] | None = None, page_url: str | None = None) -> str:
     head = f"🧠 週間棚卸しマップ  {ctx['label']}"
     warn_block = ("\n".join(f"⚠️ {w}" for w in warnings) + "\n\n") if warnings else ""
     if empty:
         body = (warn_block + "今週は取得できた記録がありませんでした"
                 + ("（上の警告が原因の可能性があります）。" if warnings
                    else "。来週は小さくてもログを残していきましょう。")
-                + (f"\n\nスプレッドシート: {sheet_link}" if sheet_link else ""))
+                + (f"\n\nスプレッドシート: {sheet_link}" if sheet_link else "")
+                + (f"\n🔗 常設ページ: {page_url}" if page_url else ""))
         return head + "\n\n" + body
     note = "（簡易構造化：Gemini 未使用）" if source == "fallback" else ""
     lines = [head + (f"  {note}" if note else ""), ""]
     if warn_block:
         lines.append(warn_block.rstrip())
+    if page_url:
+        lines.append(f"🔗 常設ページ: {page_url}")
     if sheet_link:
         lines.append(f"📄 スプレッドシート: {sheet_link}")
     lines.append("")
@@ -1243,6 +1473,7 @@ def main() -> int:
     print(f"[OK] 行プレビュー CSV: {csv_path} ({len(rows)}行)")
 
     if args.use_mock:
+        publish_mindmap_pages(png_path, ctx, source, None, warnings)
         print("=== モック実行のため Sheets / Discord は行いません。完了。 ===")
         return 0
 
@@ -1259,12 +1490,20 @@ def main() -> int:
             print(f"[WARN] スプレッドシート書き込みに失敗: {err}")
             warnings.append("スプレッドシートの更新に失敗しました。")
 
+    # --- 4.5. GitHub Pages 常設ページ(常に書き出す。PNG/CSVと同様 dry-run でも生成) ---
+    page_url = publish_mindmap_pages(png_path, ctx, source, sheet_link, warnings)
+
     # --- 5. Discord -------------------------------------------------
-    message = compose_message(ctx, sheet_link, source, empty, warnings)
+    message = compose_message(ctx, sheet_link, source, empty, warnings, page_url)
     if dry_run:
         print("[INFO] dry-run: Discord 投稿をスキップ。本文プレビュー:\n" + message)
     else:
-        post_to_discord(message, png_path)
+        ok, message_id = post_to_discord(message, png_path)
+        bot_token = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
+        channel_id = os.environ.get("DISCORD_CHANNEL_ID_WEEKLY_SUMMARY", "").strip()
+        if ok and page_url and bot_token and channel_id:
+            update_weekly_channel_topic(bot_token, channel_id, page_url)
+            pin_latest_and_unpin_old(bot_token, channel_id, message_id)
 
     print("=== 完了 ===" + ("（警告あり）" if warnings else ""))
     return 0
