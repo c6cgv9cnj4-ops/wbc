@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-週次「脳内棚卸し」マインドマップ生成パイプライン
+週次「心の棚卸し」マインドマップ生成パイプライン
 
 毎週日曜 20:00 JST(GitHub Actions cron `0 11 * * 0`)に無人実行し、直近1週間の
 記録を 1) 円形放射状マインドマップ画像(PNG) と 2) Google スプレッドシートの
@@ -18,22 +18,28 @@
      - Google Tasks: 過去7日間に完了したタスク + 未完了タスク一覧。
      Google 側は 3 API とも「同一の OAuth リフレッシュトークン」で認証する
      (個人 Gmail はサービスアカウントから Tasks / 個人カレンダーを読めないため)。
+     カレンダー/タスクはタスク管理の一覧としてではなく、「心のベクトル」を裏付ける
+     補助材料(達成実感・体調のリズム・気がかりの残存)として下記の構造化に使う。
 
   2. Gemini による構造化(gemini-3.6-flash / GEMINI_MODEL で上書き可)
-     収集データを渡し、固定 5 大分類のツリー JSON を抽出させる。
-       1 モーニングジャーナル (内省)   [紫]
-       2 インプット (趣味・感性)       [緑]
-       3 実績 (完了タスク)             [青]
-       4 予定 (Google Calendar)        [水色]
-       5 未完了ToDo (Google Tasks)     [黄]
-     各大分類 → 中分類ノード → 末端トピック の 3 階層。Gemini 失敗時は収集データから
-     決定論的にツリーを組み立てるフォールバックへ自動で切り替える。
+     モーニングジャーナルの記述を主素材に、感情・心理の固定 4 象限のツリー JSON を
+     抽出させる。
+       1 意欲・ワクワク   (写真・カルチャー・探求・好奇心が向いたこと)   [緑]
+       2 モヤモヤ・負荷   (先送りした葛藤・集中を削ぐ執着・気掛かり)     [赤]
+       3 体調・バイオリズム (頭の重さ・運動/歩数の達成感・リズムの波)   [青]
+       4 納得・心地よさ   (習慣の定着・ホッとした瞬間・整った実感)     [黄]
+     各象限 → 中分類ノード → 末端トピック の 3 階層に加え、来週の手帳用アクション
+     3行も同時に生成させる。Gemini 失敗時は収集データからキーワードベースで
+     決定論的にツリー+アクションを組み立てるフォールバックへ自動で切り替える。
 
   3. マインドマップ画像(PNG)描画
-     matplotlib のみ(graphviz 非依存)。中央ルートから 5 色の大丸を放射状に配置し、
+     matplotlib のみ(graphviz 非依存)。中央ルートから 4 色の大丸を放射状に配置し、
      その先へ中丸・小丸を扇状に広げる。日本語フォントは環境内の Noto Sans CJK /
-     IPAexGothic / ヒラギノ等を自動検出。左下に「✍️ 来週の手帳用3大アクション」の
-     空欄枠を描画。テキストは折り返し + 文字数上限で枠外へのはみ出しを防ぐ。
+     IPAexGothic / ヒラギノ等を自動検出。文字サイズは可読性優先で大きめに固定し、
+     余白を切り詰めて中央にテキストが凝縮するレイアウトにする。左下に
+     「◆ 来週の手帳用3大アクション」を Gemini/フォールバックが生成した文言入りで
+     描画する(空欄では出力しない)。テキストは折り返し + 文字数上限で枠外への
+     はみ出しを防ぐ。
 
   4. Google スプレッドシートへの追記
      OAuth 認証で、指定スプレッドシート(WEEKLY_SPREADSHEET_ID。未設定なら新規作成し
@@ -134,15 +140,14 @@ GOOGLE_SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
 ]
 
-# 5 大分類(順序・色・キーは固定。Gemini にもこの順で返させる)
+# 感情・心理の 4 象限(順序・色・キーは固定。Gemini にもこの順で返させる)
 # title … 凡例・スプレッドシート・プロンプト用のフル名
 # short … マインドマップの大丸に収める短縮名
 CATEGORIES = [
-    {"key": "morning_journal", "title": "モーニングジャーナル (内省)", "short": "モーニング\nジャーナル", "color": "#7C3AED"},  # 紫
-    {"key": "input",           "title": "インプット (趣味・感性)",     "short": "インプット",         "color": "#059669"},  # 緑
-    {"key": "achievement",     "title": "実績 (完了タスク)",           "short": "実績",               "color": "#2563EB"},  # 青
-    {"key": "schedule",        "title": "予定 (Google Calendar)",      "short": "予定",               "color": "#0EA5E9"},  # 水色
-    {"key": "todo_open",       "title": "未完了ToDo (Google Tasks)",   "short": "未完了\nToDo",       "color": "#D4A017"},  # 黄
+    {"key": "motivation", "title": "意欲・ワクワク",     "short": "意欲\nワクワク",     "color": "#16A34A"},  # 緑
+    {"key": "friction",   "title": "モヤモヤ・負荷",     "short": "モヤモヤ\n負荷",     "color": "#DC2626"},  # 赤
+    {"key": "biorhythm",  "title": "体調・バイオリズム", "short": "体調\nバイオリズム", "color": "#2563EB"},  # 青
+    {"key": "contentment","title": "納得・心地よさ",     "short": "納得\n心地よさ",     "color": "#D4A017"},  # 黄
 ]
 
 # 構造化ツリーの上限(超過分は「…他N件」に畳む)。スプレッドシート/CSV は
@@ -151,6 +156,10 @@ MAX_MIDS_PER_CATEGORY = 6
 MAX_ENDS_PER_MID = 4
 CLIP_MID = 30
 CLIP_END = 60
+
+# 来週の手帳用アクション(固定3行)の上限文字数
+MAX_ACTIONS = 3
+CLIP_ACTION = 42
 
 
 # ===========================================================================
@@ -167,7 +176,7 @@ def week_context(anchor: datetime.date) -> dict:
         "iso_week": iso_week,
         "week_tag": f"{iso_year}_W{iso_week:02d}",       # スプレッドシートのタブ名
         "label": f"{monday.strftime('%Y/%m/%d')}週",     # ルートノードの表示名
-        "root_title": f"週間棚卸しマップ ({monday.strftime('%Y/%m/%d')}週)",
+        "root_title": f"心の棚卸しマップ ({monday.strftime('%Y/%m/%d')}週)",
         "past_start": now - datetime.timedelta(days=PAST_DAYS),
         "now": now,
         "next_end": now + datetime.timedelta(days=NEXT_DAYS),
@@ -558,14 +567,20 @@ def _bundle_to_text(b: dict) -> str:
 
 def _gemini_prompt(ctx: dict, bundle_text: str) -> str:
     cats = "\n".join(f"  {i+1}. {c['title']}" for i, c in enumerate(CATEGORIES))
-    return f"""あなたは記録者本人の「客観視の鏡」です。忖度・迎合・定型挨拶は一切不要。
+    return f"""あなたは記録者本人の「心のベクトルを映す鏡」です。忖度・迎合・定型挨拶は一切不要。
 以下は {ctx['label']} の1週間の記録(Discordモーニングジャーナル / Googleカレンダー /
 Google Tasks の集約)です。ログに無いことは推測・捏造しないでください。
 
 {bundle_text}
 
-このログだけを根拠に「週間棚卸しマインドマップ」の階層データを **JSON のみ** で返して
-ください。前後に説明文・コードフェンス・コメントを付けないこと。
+主素材は「モーニングジャーナル」の記述です。そこに表れた感情・関心・葛藤・体調の
+手触りを中心に読み取り、カレンダー/タスクは「達成できて心が晴れた」「先送りして
+気になっている」「体を動かしてリズムが整った」等、感情の裏付けとしてのみ使って
+ください(単なるタスク一覧としては扱わない)。
+
+このログだけを根拠に「心の棚卸しマインドマップ」の階層データと、来週の手帳に
+書くべきアクション3行を **JSON のみ** で返してください。前後に説明文・コード
+フェンス・コメントを付けないこと。
 
 スキーマ:
 {{
@@ -578,28 +593,45 @@ Google Tasks の集約)です。ログに無いことは推測・捏造しない
            "children": [ {{ "title": "末端トピック(短文・30字以内)" }} ] }}
       ]
     }}
-  ]
+  ],
+  "actions": [ "来週意識すべき心のフォーカス・具体的行動(30字前後)", "...", "..." ]
 }}
 
-固定の大分類(この5つ・この順序・key はこの通り):
-  1. key="morning_journal"  … {CATEGORIES[0]['title']}: 日々の気付き・感情の言語化・思考のモヤモヤ
-  2. key="input"            … {CATEGORIES[1]['title']}: 見た映画/アニメの感想・美術館訪問・撮影写真への気付き
-  3. key="achievement"      … {CATEGORIES[2]['title']}: 完了ToDo・主要成果・改善できた点
-  4. key="schedule"         … {CATEGORIES[3]['title']}: 確定アポイント・週の予定・イベント
-  5. key="todo_open"        … {CATEGORIES[4]['title']}: 残タスク・再スケジュール理由の分析
+固定の 4 象限(この4つ・この順序・key はこの通り):
+  1. key="motivation"   … {CATEGORIES[0]['title']}: 写真・カルチャー・探求・好奇心が向いたこと。ワクワクした瞬間
+  2. key="friction"     … {CATEGORIES[1]['title']}: 先送りした葛藤・集中を削ぐ執着・気掛かり・モヤモヤの正体
+  3. key="biorhythm"    … {CATEGORIES[2]['title']}: 頭の重さ・眠気・運動や歩数の達成感・体調のリズムの波
+  4. key="contentment"  … {CATEGORIES[3]['title']}: 習慣が定着した実感・ホッとした瞬間・整った・満たされた感覚
 
 規則:
-  - 5大分類すべてを必ず含める。該当ログが無い分類は children を空配列 [] にする。
-  - 各大分類の中分類は最大 {MAX_MIDS_PER_CATEGORY} 個、各中分類の末端は最大 {MAX_ENDS_PER_MID} 個。
-  - 「事実」と「感情」を同じノードに混在させない。感情・内省は morning_journal 側へ。
+  - 4象限すべてを必ず含める。該当ログが無い象限は children を空配列 [] にする。
+  - 各象限の中分類は最大 {MAX_MIDS_PER_CATEGORY} 個、各中分類の末端は最大 {MAX_ENDS_PER_MID} 個。
+  - 同じ出来事でも「事実」ではなく必ず「そのとき心がどちらへ動いたか」でどの象限に
+    入れるか判定する(例:練習に行った=biorhythm、行けたことに満足=contentment)。
   - 末端トピックはログの実内容を短く要約したもの。丸括弧・鉤括弧・コロンは使わない。
+  - actions は必ず {MAX_ACTIONS} 行。friction(モヤモヤ)の解消に向けた一手を最低1つ、
+    motivation(意欲)を伸ばす一手を最低1つ含め、抽象論ではなくログに基づく具体的な
+    行動・心構えにする。各行は句点なしの体言止め or 短い命令形、{CLIP_ACTION}字以内。
 参考(このキーだった):
 {cats}
 """
 
 
+def _normalize_actions(raw_actions) -> list[str]:
+    """Gemini/フォールバックの actions を最大 MAX_ACTIONS 件・クリップ済みの文字列配列へ。"""
+    out: list[str] = []
+    for a in (raw_actions if isinstance(raw_actions, list) else []):
+        text = a.get("title") if isinstance(a, dict) else a
+        text = _clip(text, CLIP_ACTION)
+        if text:
+            out.append(text)
+        if len(out) >= MAX_ACTIONS:
+            break
+    return out
+
+
 def _normalize_tree(raw: dict, ctx: dict) -> dict:
-    """Gemini / フォールバック出力を共通形へ整える。5分類・上限・クリップを強制。"""
+    """Gemini / フォールバック出力を共通形へ整える。4象限・上限・クリップを強制。"""
     def _as_list(v):
         return v if isinstance(v, list) else ([v] if v else [])
 
@@ -632,57 +664,129 @@ def _normalize_tree(raw: dict, ctx: dict) -> dict:
             mids_out.append({"title": f"…他{extra_m}項目", "children": []})
         norm_cats.append({**meta, "children": mids_out})
 
-    return {"root": raw.get("root") or ctx["root_title"], "categories": norm_cats}
+    return {
+        "root": raw.get("root") or ctx["root_title"],
+        "categories": norm_cats,
+        "actions": _normalize_actions(raw.get("actions")),
+    }
+
+
+# キーワードベースの感情象限マッピング(フォールバック専用の簡易分類)。
+# 上から順に判定し、最初にマッチした象限へ入れる(モヤモヤ→体調→意欲→納得の優先度)。
+_FRICTION_KW = ("モヤモヤ", "先送り", "気になる", "気掛かり", "不安", "焦り", "イライラ",
+                "執着", "迷い", "ストレス", "滞り", "後回し", "判断を溜め")
+_BIORHYTHM_KW = ("頭が重い", "頭が痛い", "眠い", "疲れ", "だるい", "歩数", "断食", "運動",
+                 "体調", "リズム", "筋トレ", "睡眠", "体が重い", "眠れ")
+_MOTIVATION_KW = ("ワクワク", "楽しみ", "撮影", "写真", "映画", "アニメ", "美術", "展",
+                  "カルチャー", "読書", "音楽", "ライブ", "探求", "好奇心", "面白", "ドラマ")
+_CONTENTMENT_KW = ("整った", "ホッと", "良かった", "満たされ", "習慣", "定着", "安心",
+                   "落ち着", "達成感", "崩れていない", "続いている")
+
+_JOURNAL_SPORT_KW = ("バドミントン", "ジム", "ランニング", "筋トレ", "ウォーキング", "水泳")
+
+
+def _classify_journal_entry(text: str) -> str | None:
+    """ジャーナル1件をキーワードで象限キーへ振り分ける。マッチ無しは None。"""
+    for kw, key in (
+        (_FRICTION_KW, "friction"),
+        (_BIORHYTHM_KW, "biorhythm"),
+        (_MOTIVATION_KW, "motivation"),
+        (_CONTENTMENT_KW, "contentment"),
+    ):
+        if any(k in text for k in kw):
+            return key
+    return None
+
+
+def _fallback_actions(cats_children: dict) -> list[str]:
+    """4象限のフォールバックツリーから来週アクション3行を機械的に組み立てる。"""
+    def _first_leaf(key) -> str | None:
+        for mid in cats_children.get(key, []):
+            for end in mid.get("children", []):
+                return end["title"]
+        return None
+
+    actions: list[str] = []
+    friction_top = _first_leaf("friction")
+    if friction_top:
+        actions.append(_clip(f"「{friction_top}」への向き合い方を1つ決めて手放す", CLIP_ACTION))
+    motivation_top = _first_leaf("motivation")
+    if motivation_top:
+        actions.append(_clip(f"「{motivation_top}」の続きを来週も1回は確保する", CLIP_ACTION))
+    biorhythm_top = _first_leaf("biorhythm")
+    contentment_top = _first_leaf("contentment")
+    if biorhythm_top:
+        actions.append(_clip(f"「{biorhythm_top}」のリズムを来週も崩さず継続する", CLIP_ACTION))
+    elif contentment_top:
+        actions.append(_clip(f"「{contentment_top}」の心地よさを来週も再現する", CLIP_ACTION))
+
+    generic = [
+        "モヤモヤを1つ紙に書き出して輪郭をはっきりさせる",
+        "ワクワクした活動の予定を来週のどこかに1枠入れる",
+        "体調のリズムが崩れた日を振り返り原因を1つ特定する",
+    ]
+    for g in generic:
+        if len(actions) >= MAX_ACTIONS:
+            break
+        if g not in actions:
+            actions.append(g)
+    return actions[:MAX_ACTIONS]
 
 
 def deterministic_tree(bundle: dict, ctx: dict) -> dict:
-    """Gemini を使わず、収集データから機械的に 3 階層ツリーを組む。"""
+    """Gemini を使わず、収集データから機械的に「心のベクトル」4象限ツリーを組む。"""
     def _mid(title, items, render):
         kids = [{"title": _clip(render(x), CLIP_END)} for x in items]
         return {"title": title, "children": kids}
 
     cats_children = {c["key"]: [] for c in CATEGORIES}
 
-    # 1) モーニングジャーナル: 日付ごとに 1 中分類、投稿を末端に
-    by_date: dict[str, list[str]] = {}
+    # 1) ジャーナル本文をキーワードで4象限へ振り分け(象限ごとに1中分類にまとめる)
+    by_quadrant: dict[str, list[str]] = {"friction": [], "biorhythm": [], "motivation": [], "contentment": []}
     for e in bundle["journal"]:
-        by_date.setdefault(e["date"], []).append(e["text"])
-    for d, texts in sorted(by_date.items()):
-        cats_children["morning_journal"].append(
-            {"title": d, "children": [{"title": _clip(t, CLIP_END)} for t in texts[:MAX_ENDS_PER_MID]]}
-        )
+        key = _classify_journal_entry(e["text"])
+        if key:
+            by_quadrant[key].append(e["text"])
+    quadrant_mid_title = {
+        "friction": "気掛かり・モヤモヤ",
+        "biorhythm": "体調・リズムの記録",
+        "motivation": "心が動いた記録",
+        "contentment": "納得・満たされた記録",
+    }
+    for key, texts in by_quadrant.items():
+        if texts:
+            cats_children[key].append(_mid(quadrant_mid_title[key], texts[:MAX_ENDS_PER_MID], lambda x: x))
 
-    # 2) インプット: ジャーナル本文からキーワードで拾う(映画・アニメ・美術館・写真・本)
-    KW = ("映画", "アニメ", "美術", "写真", "撮影", "本", "読書", "展", "ライブ", "音楽", "ドラマ")
-    hits = [e["text"] for e in bundle["journal"] if any(k in e["text"] for k in KW)]
-    if hits:
-        cats_children["input"].append(_mid("感性の記録", hits[:MAX_ENDS_PER_MID], lambda x: x))
-
-    # 3) 実績: 完了タスク + 過去カレンダー
-    tc = bundle["tasks"]["completed"]
-    if tc:
-        cats_children["achievement"].append(_mid("完了ToDo", tc[:MAX_ENDS_PER_MID],
-                                                 lambda t: f"{t['title']}"))
+    # 2) 体調・バイオリズム: 運動系カレンダー実績を補強
     cp = bundle["calendar"]["past"]
-    if cp:
-        cats_children["achievement"].append(_mid("実施した予定", cp[:MAX_ENDS_PER_MID],
+    sport_events = [e for e in cp if any(k in e["summary"] for k in _JOURNAL_SPORT_KW)]
+    if sport_events:
+        cats_children["biorhythm"].append(_mid("運動の実施記録", sport_events[:MAX_ENDS_PER_MID],
+                                                lambda e: f"{e['start'][:10]} {e['summary']}"))
+
+    # 3) 意欲・ワクワク: 趣味系の翌週予定を補強
+    cu = bundle["calendar"]["upcoming"]
+    hobby_events = [e for e in cu if any(k in e["summary"] for k in _MOTIVATION_KW)]
+    if hobby_events:
+        cats_children["motivation"].append(_mid("楽しみな予定", hobby_events[:MAX_ENDS_PER_MID],
                                                  lambda e: f"{e['start'][:10]} {e['summary']}"))
 
-    # 4) 予定: 翌週カレンダー
-    cu = bundle["calendar"]["upcoming"]
-    if cu:
-        cats_children["schedule"].append(_mid("翌週の確定予定", cu[:MAX_ENDS_PER_MID],
-                                              lambda e: f"{e['start'][:10]} {e['summary']}"))
+    # 4) 納得・心地よさ: 完了タスクを「やり切れた」実感として補強
+    tc = bundle["tasks"]["completed"]
+    if tc:
+        cats_children["contentment"].append(_mid("やり切れたこと", tc[:MAX_ENDS_PER_MID],
+                                                  lambda t: t["title"]))
 
-    # 5) 未完了ToDo
+    # 5) モヤモヤ・負荷: 未完了タスクをそのまま気がかりとして補強
     to = bundle["tasks"]["open"]
     if to:
-        cats_children["todo_open"].append(_mid("残タスク", to[:MAX_ENDS_PER_MID],
+        cats_children["friction"].append(_mid("残っている気がかり", to[:MAX_ENDS_PER_MID],
                                                lambda t: t["title"]
                                                + (f" (期限{t['due'][:10]})" if t.get("due") else "")))
 
     raw = {"root": ctx["root_title"],
-           "categories": [{"key": c["key"], "children": cats_children[c["key"]]} for c in CATEGORIES]}
+           "categories": [{"key": c["key"], "children": cats_children[c["key"]]} for c in CATEGORIES],
+           "actions": _fallback_actions(cats_children)}
     return _normalize_tree(raw, ctx)
 
 
@@ -706,7 +810,8 @@ def structure(bundle: dict, ctx: dict, api_key: str, model: str) -> tuple[dict, 
     """(tree, source) を返す。source は 'gemini' / 'fallback' / 'empty'。"""
     if bundle_is_empty(bundle):
         empty = {"root": ctx["root_title"],
-                 "categories": [{"key": c["key"], "children": []} for c in CATEGORIES]}
+                 "categories": [{"key": c["key"], "children": []} for c in CATEGORIES],
+                 "actions": ["今週はまずモーニングジャーナルを1行でも書くことから始める"]}
         return _normalize_tree(empty, ctx), "empty"
 
     if api_key:
@@ -722,6 +827,13 @@ def structure(bundle: dict, ctx: dict, api_key: str, model: str) -> tuple[dict, 
             raw = _loads_loose(resp.text or "")
             tree = _normalize_tree(raw, ctx)
             if any(c["children"] for c in tree["categories"]):
+                if len(tree["actions"]) < MAX_ACTIONS:
+                    fallback_cats = {c["key"]: c["children"] for c in tree["categories"]}
+                    for a in _fallback_actions(fallback_cats):
+                        if len(tree["actions"]) >= MAX_ACTIONS:
+                            break
+                        if a not in tree["actions"]:
+                            tree["actions"].append(a)
                 print(f"[INFO] 構造化: Gemini({model}) 成功")
                 return tree, "gemini"
             print("[WARN] Gemini 応答が空ツリー。フォールバックへ")
@@ -809,111 +921,151 @@ def render_mindmap(tree: dict, ctx: dict, source: str, out_path: str) -> str:
         plt.rcParams["font.family"] = fam
     plt.rcParams["axes.unicode_minus"] = False
 
-    fig, ax = plt.subplots(figsize=(22, 16.5))
+    fig, ax = plt.subplots(figsize=(15, 13.6))
     ax.set_aspect("equal")
     ax.axis("off")
-    LX, LY = 15.5, 13.8
-    ax.set_xlim(-LX, LX)
-    ax.set_ylim(-LY, LY)
+    fig.subplots_adjust(left=0.01, right=0.99, top=0.90, bottom=0.01)
 
-    # 放射マップの中心。上=タイトル、左上=凡例、下端の帯=3大アクション枠に空ける
-    CX0, CY0 = 0.6, 1.3
-    R_CAT, R_MID, R_END = 5.3, 3.5, 1.7
-    HALO = dict(boxstyle="round,pad=0.1", facecolor="white", edgecolor="none", alpha=0.75)
+    # 放射マップの中心。4象限は右上/右下/左下/左上へ振り分け(真上・真下を避けて
+    # タイトル・下段アクション帯とノードの衝突を防ぐ)。半径を詰め密度を上げる。
+    CX0, CY0 = 0.2, 0.6
+    R_CAT, R_MID, R_END = 4.2, 2.95, 1.5
+    START_ANGLE_DEG = 45
+    ACTION_BAND_H = 3.4
 
-    def circle(xy, r, fc, ec="white", lw=2, z=3):
+    HALO = dict(boxstyle="round,pad=0.08", facecolor="white", edgecolor="none", alpha=0.8)
+
+    # 実際に描いたノード・ラベルの座標を集めておき、全描画後にその外接矩形+
+    # 最小限のマージンで xlim/ylim を確定する(固定の理論値だと、ノードを扇状に
+    # 広げた際のオフセットでラベルが枠外にはみ出すため)。
+    bounds_x: list[float] = []
+    bounds_y: list[float] = []
+
+    def _mark(x: float, y: float, pad: float = 0.0) -> None:
+        bounds_x.extend([x - pad, x + pad])
+        bounds_y.extend([y - pad, y + pad])
+
+    def circle(xy, r, fc, ec="white", lw=2.2, z=3):
         ax.add_patch(Circle(xy, r, facecolor=fc, edgecolor=ec, linewidth=lw, zorder=z))
+        _mark(xy[0], xy[1], r)
 
-    def line(a, b, color, lw=2.0, z=1):
-        ax.plot([a[0], b[0]], [a[1], b[1]], color=color, linewidth=lw, zorder=z, alpha=0.45)
+    def line(a, b, color, lw=2.2, z=1):
+        ax.plot([a[0], b[0]], [a[1], b[1]], color=color, linewidth=lw, zorder=z, alpha=0.5)
 
     def label(xy, text, size, color="white", weight="bold", z=5, ha="center", va="center",
-              halo=False):
+              halo=False, pad=0.0):
         ax.text(xy[0], xy[1], text, fontsize=size, color=color, ha=ha, va=va, weight=weight,
                 zorder=z, clip_on=False, bbox=HALO if halo else None)
+        _mark(xy[0], xy[1], pad)
 
     n = len(CATEGORIES)
     for i, cat in enumerate(tree["categories"]):
-        base = math.radians(90 - i * (360 / n))          # このカテゴリのセクター中心角
+        base = math.radians(START_ANGLE_DEG - i * (360 / n))   # このカテゴリのセクター中心角
         cx, cy = CX0 + R_CAT * math.cos(base), CY0 + R_CAT * math.sin(base)
         color = cat["color"]
 
-        line((CX0, CY0), (cx, cy), color, lw=3.4)
-        circle((cx, cy), 1.55, color, lw=3)
-        label((cx, cy), cat["short"], 10.5)
+        line((CX0, CY0), (cx, cy), color, lw=4.2)
+        circle((cx, cy), 2.15, color, lw=3.4)
+        label((cx, cy), cat["short"], 19, pad=0.6)
 
         mids = cat["children"][:RENDER_MAX_MIDS]
         if not mids:
-            ox, oy = 2.15 * math.cos(base), 2.15 * math.sin(base)
-            label((cx + ox, cy + oy), "記録なし", 9, color="#8a8a8a", weight="normal", halo=True)
+            ox, oy = 2.8 * math.cos(base), 2.8 * math.sin(base)
+            label((cx + ox, cy + oy), "記録なし", 16, color="#8a8a8a", weight="normal",
+                  halo=True, pad=1.0)
             continue
 
-        m_span = math.radians(min(78, 22 * len(mids)))
+        m_span = math.radians(min(80, 24 * len(mids)))
         m0 = base - m_span / 2
         m_step = m_span / max(len(mids) - 1, 1)
         for j, mid in enumerate(mids):
             ma = m0 + j * m_step if len(mids) > 1 else base
-            rm = R_MID + (0.9 if j % 2 else 0.0)          # 1つおきに外へずらし中丸の重なりを防ぐ
+            rm = R_MID + (0.75 if j % 2 else 0.0)          # 1つおきに外へずらし中丸の重なりを防ぐ
             mx, my = cx + rm * math.cos(ma), cy + rm * math.sin(ma)
-            line((cx, cy), (mx, my), color, lw=1.9)
-            circle((mx, my), 0.32, color, ec="white", lw=1.4)
-            # 中分類ラベルはマーカーの「内側」(カテゴリ寄り)に置き、末端ラベルと分離
-            lmx, lmy = mx - 1.0 * math.cos(ma), my - 1.0 * math.sin(ma)
-            label((lmx, lmy), _wrap_n(mid["title"], 12, 3), 7.6, color="#1f2937", halo=True)
+            line((cx, cy), (mx, my), color, lw=2.2)
+            circle((mx, my), 0.44, color, ec="white", lw=1.6)
+            # 中分類ラベルはマーカーの「内側」(カテゴリ寄り)に少しだけ置き、末端ラベルと分離。
+            # オフセットは大分類の丸(半径2.15)と重ならない範囲に留める(rm=R_MID時が最小距離)。
+            lmx, lmy = mx - 0.4 * math.cos(ma), my - 0.4 * math.sin(ma)
+            label((lmx, lmy), _wrap_n(mid["title"], 10, 3), 14.5, color="#1f2937", halo=True,
+                  pad=1.4)
 
             ends = mid["children"][:RENDER_MAX_ENDS]
             if not ends:
                 continue
-            e_span = math.radians(min(50, 28 * len(ends)))
+            e_span = math.radians(min(52, 30 * len(ends)))
             e0 = ma - e_span / 2
             e_step = e_span / max(len(ends) - 1, 1)
             for k, end in enumerate(ends):
                 ea = e0 + k * e_step if len(ends) > 1 else ma
-                rr = R_END + (0.75 if k % 2 else 0.0)
+                rr = R_END + (0.65 if k % 2 else 0.0)
                 ex, ey = mx + rr * math.cos(ea), my + rr * math.sin(ea)
-                line((mx, my), (ex, ey), color, lw=1.0)
-                circle((ex, ey), 0.11, "white", ec=color, lw=1.3, z=4)
+                line((mx, my), (ex, ey), color, lw=1.3)
+                circle((ex, ey), 0.16, "white", ec=color, lw=1.6, z=4)
                 ha = "left" if ex >= mx else "right"
-                ox = 0.22 if ha == "left" else -0.22
-                label((ex + ox, ey), _wrap_n(_clip(end["title"], 28), 15, 2), 6.8,
+                ox = 0.2 if ha == "left" else -0.2
+                lx = ex + ox + (2.2 if ha == "left" else -2.2)
+                label((ex + ox, ey), _wrap_n(_clip(end["title"], 22), 10, 2), 13,
                       color="#242424", weight="normal", ha=ha, halo=True)
+                _mark(lx, ey, 0.6)
 
     # 中央ルート
-    circle((CX0, CY0), 1.95, "#111827", ec="white", lw=3, z=6)
-    label((CX0, CY0), f"週間棚卸し\n{ctx['label']}", 10.5, color="white", z=7)
+    circle((CX0, CY0), 2.7, "#111827", ec="white", lw=3.4, z=6)
+    label((CX0, CY0), f"心の棚卸し\n{ctx['label']}", 17, color="white", z=7)
 
-    # タイトル / メタ
+    # タイトル / メタ / 凡例(figure座標。ax の放射マップとは独立して上部に配置)
     ts = datetime.datetime.now(JST).strftime("%Y-%m-%d %H:%M JST")
     src_label = {"gemini": "Gemini構造化", "fallback": "簡易構造化(Gemini未使用)",
                  "empty": "記録なし"}[source]
-    fig.suptitle(f"週間棚卸しマップ  {ctx['label']}", fontsize=22, weight="bold", y=0.975)
-    fig.text(0.5, 0.935, f"生成 {ts} ／ {src_label}", fontsize=11, color="#666666", ha="center")
+    fig.suptitle(f"心の棚卸しマップ　{ctx['label']}", fontsize=30, weight="bold", y=0.985)
+    fig.text(0.5, 0.945, f"生成 {ts} ／ {src_label}", fontsize=14, color="#666666", ha="center")
 
-    # 凡例(左上に縦並び。マップ本体と重ならない空きゾーン)
-    ly = LY - 1.6
-    for cat in CATEGORIES:
-        ax.add_patch(Circle((-LX + 0.6, ly), 0.24, facecolor=cat["color"], edgecolor="none"))
-        ax.text(-LX + 1.05, ly, cat["title"], fontsize=9.5, color="#333333",
-                ha="left", va="center")
-        ly -= 0.8
+    legend_x0 = 0.5 - (len(CATEGORIES) * 0.24) / 2
+    for idx, cat in enumerate(CATEGORIES):
+        lx = legend_x0 + idx * 0.24
+        fig.patches.append(plt.Circle((lx, 0.912), 0.008, facecolor=cat["color"],
+                                      edgecolor="none", transform=fig.transFigure,
+                                      clip_on=False))
+        fig.text(lx + 0.016, 0.912, cat["title"], fontsize=13, color="#333333",
+                 ha="left", va="center")
 
-    # 下端の帯: 来週の手帳用 3大アクション(空欄枠)
-    bx0, bw = -LX + 0.7, 2 * LX - 1.4
-    by0, bh = -LY + 0.6, 3.0
+    # ここまでのノード・ラベルの実座標から外接矩形を求め、最小限の余白で
+    # xlim/ylim を確定する(理論上の半径だけで見積もると、扇状オフセットで
+    # ラベルが枠外にはみ出すため、実測ベースで詰める)。
+    content_half_w = max(abs(min(bounds_x)), abs(max(bounds_x))) if bounds_x else R_CAT
+    content_top = max(bounds_y) if bounds_y else R_CAT
+    content_bottom = min(bounds_y) if bounds_y else -R_CAT
+    LX = content_half_w + 0.35
+    LY_TOP = content_top + 0.35
+
+    # 下端の帯: 来週の手帳用 3大アクション(Gemini/フォールバックが生成した文言を描画)
+    bx0, bw = -LX + 0.3, 2 * LX - 0.6
+    bh = ACTION_BAND_H
+    by0 = content_bottom - 0.35 - bh
     ax.add_patch(FancyBboxPatch(
         (bx0, by0), bw, bh, boxstyle="round,pad=0.15,rounding_size=0.3",
-        facecolor="#FFFDF3", edgecolor="#D8C89A", linewidth=1.6, zorder=8,
+        facecolor="#FFFDF3", edgecolor="#D8C89A", linewidth=1.8, zorder=8,
     ))
-    ax.text(bx0 + 0.55, by0 + bh - 0.45, "◆ 来週の手帳用 3大アクション",
-            fontsize=14, weight="bold", color="#7A5C00", ha="left", va="top", zorder=9)
+    ax.text(bx0 + 0.4, by0 + bh - 0.4, "◆ 来週の手帳用 3大アクション",
+            fontsize=19, weight="bold", color="#7A5C00", ha="left", va="top", zorder=9)
+    actions = (tree.get("actions") or [])[:MAX_ACTIONS]
+    row_h = (bh - 0.9) / MAX_ACTIONS
     for m, num in enumerate(("①", "②", "③")):
-        yy = by0 + bh - 1.3 - m * 0.75
-        ax.text(bx0 + 0.8, yy, num, fontsize=13, color="#7A5C00", ha="left", va="center", zorder=9)
-        ax.plot([bx0 + 1.45, bx0 + bw - 0.6], [yy - 0.28, yy - 0.28],
-                color="#C9B98A", linewidth=1.1, zorder=9)
+        yy = by0 + bh - 0.95 - m * row_h
+        ax.text(bx0 + 0.35, yy, num, fontsize=16, color="#7A5C00", ha="left", va="center", zorder=9)
+        text = actions[m] if m < len(actions) else ""
+        if text:
+            ax.text(bx0 + 0.85, yy, _wrap_n(text, 34, 1), fontsize=14.5, color="#3f2f00",
+                    weight="bold", ha="left", va="center", zorder=9)
+        else:
+            ax.plot([bx0 + 0.85, bx0 + bw - 0.4], [yy - 0.02, yy - 0.02],
+                    color="#C9B98A", linewidth=1.1, zorder=9)
+
+    ax.set_xlim(-LX, LX)
+    ax.set_ylim(by0 - 0.3, LY_TOP)
 
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    fig.savefig(out_path, dpi=150, bbox_inches="tight", facecolor="white")
+    fig.savefig(out_path, dpi=150, bbox_inches="tight", pad_inches=0.15, facecolor="white")
     plt.close(fig)
     print(f"[OK] 画像を保存: {out_path}")
     return out_path
@@ -967,11 +1119,11 @@ def _mindmap_page_html(*, title: str, week_label: str, generated_ts: str, source
 </head>
 <body>
 <div class="wrap">
-  <h1>🧠 週間棚卸しマップ　{_html_escape(week_label)}</h1>
+  <h1>🧠 心の棚卸しマップ　{_html_escape(week_label)}</h1>
   <div class="meta">生成: {_html_escape(generated_ts)} ／ {_html_escape(source_label)}</div>
   <div class="nav">{nav_html}</div>
   {warn_html}
-  <img src="{_html_escape(png_rel)}" alt="週間棚卸しマインドマップ {_html_escape(week_label)}">
+  <img src="{_html_escape(png_rel)}" alt="心の棚卸しマインドマップ {_html_escape(week_label)}">
   <div class="actions">{sheet_html}</div>
 </div>
 </body>
@@ -995,7 +1147,7 @@ def _write_archive_index() -> None:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>週間棚卸しマップ - 過去の週一覧</title>
+<title>心の棚卸しマップ - 過去の週一覧</title>
 <style>
   :root {{ color-scheme: light dark; }}
   body {{ margin:0; padding:24px 16px 48px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans",sans-serif; background:#f8fafc; color:#1e293b; }}
@@ -1014,7 +1166,7 @@ def _write_archive_index() -> None:
 <body>
 <div class="wrap">
   <a class="back" href="../index.html">← 最新の週へ</a>
-  <h1>📚 週間棚卸しマップ - 過去の週一覧</h1>
+  <h1>📚 心の棚卸しマップ - 過去の週一覧</h1>
   <ul>{items}</ul>
 </div>
 </body>
@@ -1045,7 +1197,7 @@ def publish_mindmap_pages(png_path: str | None, ctx: dict, source: str,
                  "empty": "記録なし"}[source]
 
     index_html = _mindmap_page_html(
-        title=f"週間棚卸しマップ {ctx['label']}", week_label=ctx["label"],
+        title=f"心の棚卸しマップ {ctx['label']}", week_label=ctx["label"],
         generated_ts=generated_ts, source_label=src_label, sheet_link=sheet_link,
         png_rel="latest.png", warnings=warnings, archive_index_link="archive/index.html",
     )
@@ -1053,7 +1205,7 @@ def publish_mindmap_pages(png_path: str | None, ctx: dict, source: str,
         fh.write(index_html)
 
     archive_html = _mindmap_page_html(
-        title=f"週間棚卸しマップ {ctx['label']}（アーカイブ）", week_label=ctx["label"],
+        title=f"心の棚卸しマップ {ctx['label']}（アーカイブ）", week_label=ctx["label"],
         generated_ts=generated_ts, source_label=src_label, sheet_link=sheet_link,
         png_rel=f"{ctx['week_tag']}.png", warnings=warnings,
         back_link="../index.html", archive_index_link="index.html",
@@ -1094,7 +1246,7 @@ def create_spreadsheet(creds) -> str:
     """空の週次スプレッドシートを 1 つ作成し ID を返す(初回セットアップ専用)。"""
     svc = build_service("sheets", "v4", creds)
     created = svc.spreadsheets().create(
-        body={"properties": {"title": "週間棚卸しマップ"}}, fields="spreadsheetId",
+        body={"properties": {"title": "心の棚卸しマップ"}}, fields="spreadsheetId",
     ).execute(num_retries=5)
     return created["spreadsheetId"]
 
@@ -1276,7 +1428,7 @@ def update_weekly_channel_topic(bot_token: str, channel_id: str, page_url: str) 
 
 def pin_latest_and_unpin_old(bot_token: str, channel_id: str, message_id: str | None) -> None:
     """今回の週次サマリーをピン留めし、以前ピン留めしていた週次サマリーは解除する
-    (このBotが投稿した「🧠 週間棚卸しマップ」始まりのメッセージだけを対象にし、
+    (このBotが投稿した「🧠 心の棚卸しマップ」始まりのメッセージだけを対象にし、
     ユーザーが手動で別途ピンしたメッセージには触れない。ベストエフォート)。"""
     if not bot_token or not channel_id:
         return
@@ -1289,7 +1441,7 @@ def pin_latest_and_unpin_old(bot_token: str, channel_id: str, message_id: str | 
         return
 
     for p in pins:
-        if (p.get("content") or "").startswith("🧠 週間棚卸しマップ") and p.get("id") != message_id:
+        if (p.get("content") or "").startswith("🧠 心の棚卸しマップ") and p.get("id") != message_id:
             try:
                 r = _discord_bot_request("DELETE", f"/channels/{channel_id}/pins/{p['id']}", bot_token)
                 r.raise_for_status()
@@ -1309,7 +1461,7 @@ def pin_latest_and_unpin_old(bot_token: str, channel_id: str, message_id: str | 
 
 def compose_message(ctx: dict, sheet_link: str | None, source: str, empty: bool,
                     warnings: list[str] | None = None, page_url: str | None = None) -> str:
-    head = f"🧠 週間棚卸しマップ  {ctx['label']}"
+    head = f"🧠 心の棚卸しマップ  {ctx['label']}"
     warn_block = ("\n".join(f"⚠️ {w}" for w in warnings) + "\n\n") if warnings else ""
     if empty:
         body = (warn_block + "今週は取得できた記録がありませんでした"
