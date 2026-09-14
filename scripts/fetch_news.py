@@ -207,12 +207,11 @@ def is_finance_relevant(title, query):
 
 # 米国株価指数(株探・米国株版。サーバーサイドレンダリングで静的HTMLから
 # 取得可能なことを実際に確認済み)。日経取引終了後(夜間)の表示に使う。
-# yf_symbol は株探の取得に失敗した際のyfinanceフォールバック用ティッカー。
 KABUTAN_US_INDICES = [
-    {"label": "NYダウ", "url": "https://us.kabutan.jp/indexes/%5EDJI", "yf_symbol": "^DJI"},
-    {"label": "S&P500", "url": "https://us.kabutan.jp/indexes/%5ESPX", "yf_symbol": "^GSPC"},
-    {"label": "NASDAQ総合", "url": "https://us.kabutan.jp/indexes/%5EIXIC", "yf_symbol": "^IXIC"},
-    {"label": "SOX半導体指数", "url": "https://us.kabutan.jp/indexes/%5ESOX", "yf_symbol": "^SOX"},
+    {"label": "NYダウ", "url": "https://us.kabutan.jp/indexes/%5EDJI"},
+    {"label": "S&P500", "url": "https://us.kabutan.jp/indexes/%5ESPX"},
+    {"label": "NASDAQ総合", "url": "https://us.kabutan.jp/indexes/%5EIXIC"},
+    {"label": "SOX半導体指数", "url": "https://us.kabutan.jp/indexes/%5ESOX"},
 ]
 
 # 先物・コモディティ(2026-08-28、細川さんの指定によりyfinance採用)。
@@ -310,10 +309,20 @@ def fetch_yf_quote(symbol):
     """yfinance(Yahoo Financeの非公式API、APIキー不要・無料)で直近の
     終値と前日比を取得する。ネットワーク先が外部サービスのため失敗しうる。
     取得できなければNoneを返し、推測で埋めない。
+
+    period="5d"は通常の連休(土日+祝日1日程度)なら直近2営業日分の
+    ローソク足を含むが、年末年始等の連休や一時的なデータ欠損で
+    2本に満たないケースに備え、その場合は period="1mo" で再取得する
+    (2026-09-14、休場時間帯に「取得できませんでした」となる不具合の
+    修正で追加。単一のperiod指定だけに頼らず代替の取得幅を試すことで、
+    直近ローソク足の終値を極力空欄にしない)。
     """
     try:
         import yfinance as yf
-        hist = yf.Ticker(symbol).history(period="5d")
+        ticker = yf.Ticker(symbol)
+        hist = ticker.history(period="5d")
+        if hist.empty or len(hist) < 2:
+            hist = ticker.history(period="1mo")
         if hist.empty or len(hist) < 2:
             print(f"[WARN] yfinanceで{symbol}のデータが取得できませんでした。")
             return None
@@ -1140,6 +1149,22 @@ def build_market_message(state, now):
         # 日経取引中: 米国主要指数先物(前場・後場のうちに動くため先物を見る)
         for label in ("ダウ先物", "S&P500先物", "ナスダック先物"):
             lines.append(format_yf_line(label, FUTURES_TICKERS[label]))
+        # SOX半導体指数は先物ティッカーを採用していないため、日経取引中も
+        # 現物(株探、失敗時はyfinance確定終値)を表示する。この時間帯は米国市場が
+        # 閉まっているため値は常に前営業日終値になる(2026-09-14、5指数を
+        # 必ず表示する要件の対応で追加)。
+        sox_conf = next(c for c in KABUTAN_US_INDICES if c["label"] == "SOX半導体指数")
+        sox_data, _sox_is_fallback = fetch_index_with_fallback(
+            sox_conf["label"], lambda c=sox_conf: fetch_kabutan_us_index(c["url"], c["label"])
+        )
+        if sox_data:
+            arrow = "🔺" if not sox_data["change"].startswith("-") else "🔻"
+            lines.append(
+                f"- {sox_conf['label']}: **{sox_data['price']}** "
+                f"{arrow} {sox_data['change']} ({sox_data['change_rate']}%)（前営業日終値）"
+            )
+        else:
+            lines.append(f"- {sox_conf['label']}: 取得できませんでした")
     else:
         # 日経取引終了後: 米国主要指数(現物、株探)+ 日経平均先物(夜間の目安)
         us_hours = is_us_trading_hours(now)
