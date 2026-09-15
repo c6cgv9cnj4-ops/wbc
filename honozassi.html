@@ -69,6 +69,15 @@
         }
         .filter-bar::-webkit-scrollbar { display: none; }
 
+        .sub-filter-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 2px 2px 12px;
+            scrollbar-width: none;
+        }
+        .sub-filter-bar::-webkit-scrollbar { display: none; }
+
         .chip {
             flex-shrink: 0;
             appearance: none;
@@ -115,6 +124,7 @@
         .badge-genre { color: #ffffff; }
         .badge-score { background: #fff7ed; color: var(--accent-hover); border: 1px solid #fed7aa; font-variant-numeric: tabular-nums; }
         .badge-award { background: #f1f5f9; color: var(--text-main); border: 1px solid var(--border-color); }
+        .badge-read { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
 
         .pick-toggle {
             flex-shrink: 0;
@@ -147,6 +157,77 @@
             padding: 10px 12px;
             border-radius: 8px;
             border-left: 3px solid var(--accent);
+        }
+
+        .read-track {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed var(--border-color);
+        }
+        .read-toggle {
+            align-self: flex-start;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: 1.5px solid var(--border-color);
+            background: #ffffff;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.15s ease;
+            min-height: 40px;
+        }
+        .read-toggle.on { background: #16a34a; border-color: #16a34a; color: #ffffff; }
+        .read-toggle:hover { border-color: var(--primary); }
+        .read-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+        .read-detail {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .read-count { display: flex; align-items: center; gap: 8px; }
+        .read-count .count-num {
+            font-weight: 800;
+            color: var(--primary);
+            font-variant-numeric: tabular-nums;
+            min-width: 3.4em;
+            text-align: center;
+        }
+        .read-count button {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1.5px solid var(--border-color);
+            background: #ffffff;
+            color: var(--primary);
+            font-weight: 800;
+            font-size: 1rem;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .read-count button:hover { border-color: var(--accent); color: var(--accent-hover); }
+        .read-date { display: flex; align-items: center; gap: 6px; }
+        .read-date input[type="date"] {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 5px 7px;
+            font-family: inherit;
+            font-size: 0.8rem;
+            color: var(--text-main);
+            background: #ffffff;
         }
 
         .link-row { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 8px; border-top: 1px dashed var(--border-color); }
@@ -356,6 +437,7 @@
     </header>
 
     <div class="filter-bar" id="filterBar"></div>
+    <div class="sub-filter-bar" id="readFilterBar"></div>
     <div class="result-count"><b id="resultCount">0</b> 件表示中</div>
 
     <div class="grid" id="book-grid"></div>
@@ -1163,6 +1245,54 @@
 
     const selectedBooks = new Set();
     let activeFilter = "all";
+    let readFilter = "all";
+
+    // 読書記録(既読チェック・読了回数・直近読了日)をlocalStorageに永続化。
+    // 作品IDをキーにするので、データ更新でタイトルや賞バッジが変わっても記録は保持される。
+    const READ_STORAGE_KEY = "honozassi-read-records-v1";
+    let readRecords = {};
+    function loadReadRecords() {
+        try { readRecords = JSON.parse(localStorage.getItem(READ_STORAGE_KEY) || "{}"); }
+        catch (e) { readRecords = {}; }
+    }
+    function saveReadRecords() {
+        try { localStorage.setItem(READ_STORAGE_KEY, JSON.stringify(readRecords)); }
+        catch (e) { /* プライベートブラウジング等で失敗しても致命的ではない */ }
+    }
+    function getReadRecord(id) {
+        return readRecords[id] || { read: false, count: 0, lastReadDate: "" };
+    }
+    function todayStr() {
+        const d = new Date();
+        return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0")
+            + "-" + String(d.getDate()).padStart(2, "0");
+    }
+    function toggleRead(id) {
+        const rec = getReadRecord(id);
+        if (rec.read) {
+            rec.read = false;
+        } else {
+            rec.read = true;
+            if (!rec.count) rec.count = 1;
+            if (!rec.lastReadDate) rec.lastReadDate = todayStr();
+        }
+        readRecords[id] = rec;
+        saveReadRecords();
+        renderCards();
+    }
+    function adjustReadCount(id, delta) {
+        const rec = getReadRecord(id);
+        rec.count = Math.max(1, (rec.count || 1) + delta);
+        readRecords[id] = rec;
+        saveReadRecords();
+        renderCards();
+    }
+    function setReadDate(id, value) {
+        const rec = getReadRecord(id);
+        rec.lastReadDate = value;
+        readRecords[id] = rec;
+        saveReadRecords();
+    }
 
     function renderFilterBar() {
         const bar = document.getElementById('filterBar');
@@ -1173,10 +1303,26 @@
         bar.innerHTML = chips.map(c => `
             <button class="chip" data-active="${activeFilter === c.key}" onclick="setFilter('${c.key}')">${c.label}</button>
         `).join('');
+
+        const readBar = document.getElementById('readFilterBar');
+        const readChips = [
+            { key: "all", label: "すべて" },
+            { key: "read", label: "📖 読了のみ" },
+            { key: "unread", label: "未読のみ" }
+        ];
+        readBar.innerHTML = readChips.map(c => `
+            <button class="chip" data-active="${readFilter === c.key}" onclick="setReadFilter('${c.key}')">${c.label}</button>
+        `).join('');
     }
 
     function setFilter(key) {
         activeFilter = key;
+        renderFilterBar();
+        renderCards();
+    }
+
+    function setReadFilter(key) {
+        readFilter = key;
         renderFilterBar();
         renderCards();
     }
@@ -1217,7 +1363,9 @@
 
     function renderCards() {
         const container = document.getElementById('book-grid');
-        const list = booksData.filter(b => activeFilter === "all" || b.genre === activeFilter);
+        let list = booksData.filter(b => activeFilter === "all" || b.genre === activeFilter);
+        if (readFilter === "read") list = list.filter(b => getReadRecord(b.id).read);
+        else if (readFilter === "unread") list = list.filter(b => !getReadRecord(b.id).read);
         document.getElementById('resultCount').textContent = list.length;
 
         if (list.length === 0) {
@@ -1227,12 +1375,28 @@
 
         container.innerHTML = list.map(book => {
             const isSelected = selectedBooks.has(book.id);
+            const readRec = getReadRecord(book.id);
             const genreBadge = `<span class="badge badge-genre" style="background:${GENRE_COLORS[book.genre] || '#64748b'}">${GENRE_LABELS[book.genre] || book.genre}</span>`;
             const awardBadge = `<span class="badge badge-award">${book.awardLabel}</span>`;
             const scoreBadge = (book.score !== null && book.score !== undefined)
                 ? `<span class="badge badge-score">★ ${book.score.toFixed(1)}点</span>` : '';
+            const readBadge = readRec.read ? `<span class="badge badge-read">読了</span>` : '';
             const ageText = (book.age !== null && book.age !== undefined) ? `（${book.age}歳）` : '';
             const authorHtml = `<button class="author-chip" onclick='openAuthorSheet(${JSON.stringify(book.author)}, ${!!book.wikipediaExists})'>${book.author}</button>`;
+
+            const readDetailHtml = readRec.read ? `
+                <div class="read-detail">
+                    <div class="read-count">
+                        読了回数
+                        <button onclick="adjustReadCount('${book.id}', -1)" aria-label="読了回数を減らす">−</button>
+                        <span class="count-num">${readRec.count || 1}回</span>
+                        <button onclick="adjustReadCount('${book.id}', 1)" aria-label="読了回数を増やす">＋</button>
+                    </div>
+                    <label class="read-date">
+                        直近読了日
+                        <input type="date" value="${readRec.lastReadDate || ''}" onchange="setReadDate('${book.id}', this.value)">
+                    </label>
+                </div>` : '';
 
             return `
             <div class="card ${isSelected ? 'selected' : ''}" id="card-${book.id}">
@@ -1241,6 +1405,7 @@
                         ${genreBadge}
                         ${awardBadge}
                         ${scoreBadge}
+                        ${readBadge}
                     </div>
                     <button class="pick-toggle" aria-pressed="${isSelected}" onclick="toggleSelect('${book.id}')" aria-label="${book.title}をポチる">
                         ${isSelected ? '✓' : '✛'}
@@ -1249,6 +1414,12 @@
                 <div class="title">${book.title}</div>
                 <div class="meta">著者: ${authorHtml}${ageText}</div>
                 <div class="synopsis">${book.synopsis}</div>
+                <div class="read-track">
+                    <button class="read-toggle ${readRec.read ? 'on' : ''}" onclick="toggleRead('${book.id}')">
+                        ${readRec.read ? '✅ 読了済み' : '📖 読んだ'}
+                    </button>
+                    ${readDetailHtml}
+                </div>
                 <div class="link-row">
                     <a class="link-btn" href="${amazonUrl(book)}" target="_blank" rel="noopener noreferrer">Amazonで確認</a>
                     <a class="link-btn" href="${bookmeterUrl(book)}" target="_blank" rel="noopener noreferrer">読書メーター</a>
@@ -1409,6 +1580,7 @@
         showToast._t = setTimeout(() => toast.classList.remove('show'), 2400);
     }
 
+    loadReadRecords();
     renderFilterBar();
     renderCards();
 </script>
