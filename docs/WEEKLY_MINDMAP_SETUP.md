@@ -3,20 +3,27 @@
 毎週日曜 20:00 JST に、直近1週間の Discord モーニングジャーナル / Google カレンダー /
 Google Tasks を集約し、
 
-1. 円形放射状マインドマップ画像（PNG）を Discord `# 週間まとめ` チャンネルへ投稿
-2. Google スプレッドシートの週次タブ `YYYY_Www`（A:大分類 / B:中分類 / C:トピック /
-   D:採用チェックボックス）へ追記
+1. 円形放射状マインドマップ画像（PNG）を Discord `# 週間まとめ` チャンネルへ、高視認性
+   URL ブロック + Link Button 付きで投稿
+2. Google スプレッドシートの固定タブ「週次ログ」（1タブに週ごと1行を蓄積）へ追記/上書き。
+   列は A:対象週 / B:マインドマップ画像（`=IMAGE()` 埋め込み） / C-F:4象限要約
+   （意欲・ワクワク／モヤモヤ・負荷／体調・バイオリズム／納得・心地よさ） /
+   G:来週の手帳用3大アクション / H:マップ詳細Webリンク
+3. 月末週（その月最後の日曜）は、直近4週分の「週次ログ」を Gemini で再統合した
+   月間マインドマップも生成し `mindmap/monthly/` 配下へ公開、Discord へ別メッセージで通知
 
 する。
 
 | ファイル | 役割 |
 |---|---|
-| `scripts/weekly_mindmap.py` | 収集 → Gemini 構造化 → PNG 描画 → Sheets 追記 → Discord 投稿 |
+| `scripts/weekly_mindmap.py` | 収集 → Gemini 構造化 → PNG 描画 → Sheets 追記 → Discord 投稿 → (月末週のみ)月間統合 |
 | `scripts/mint_google_oauth_token.py` | OAuth リフレッシュトークン発行（ローカルで1回） |
 | `.github/workflows/weekly_mindmap.yml` | 定期実行（cron `0 11 * * 0` = 日曜 20:00 JST）|
 | `requirements-weekly.txt` | 追加依存（`google-api-python-client` / `google-auth` / `matplotlib`）|
-| `reports/weekly/YYYY_Www_mindmap.png` | マインドマップ画像（Actions アーティファクトのみ。リポジトリには置かない）|
-| `reports/weekly/YYYY_Www_rows.csv` | 行データ（リポジトリにコミット & アーティファクト）|
+| `reports/weekly/YYYY_Www_mindmap.png` | 週次マインドマップ画像（Actions アーティファクトのみ。リポジトリには置かない）|
+| `reports/weekly/YYYY_Www_rows.csv` | 週次の行データ詳細プレビュー（リポジトリにコミット & アーティファクト）|
+| `reports/monthly/YYYY-MM_mindmap.png` | 月間マインドマップ画像（Actions アーティファクトのみ）|
+| `mindmap/monthly/index.html` / `mindmap/monthly/archive/YYYY-MM.html` | 月間マインドマップの GitHub Pages 常設ページ（リポジトリにコミット）|
 
 ---
 
@@ -174,7 +181,8 @@ Actions タブ → 「週次棚卸しマインドマップ」→ Run workflow。
   `[ERROR]` ログ + Discord 本文に `⚠️ Google 認証エラー…` を必ず出す（データがあるのに
   黙って空マップを投稿し続けるのを防ぐ）。CI ステップ自体は緑のまま終わる。
 - Gemini 失敗時は収集データから決定論的にツリーを組む（通知に「簡易構造化」と明記）。
-- 週次タブが既にあれば中身を作り直す（冪等。同じ週を何度再実行しても行は重複しない）。
+- 週次ログシートは対象週（A列）で既存行を検索し上書きする（冪等。同じ週を何度
+  再実行しても行が重複しない）。月間ページも月度（YYYY-MM）ファイル名で同様に冪等。
 - Discord 送信は画像あり=multipart / 画像なし=生 JSON で自動切替。Discord GET は 429/5xx を
   指数バックオフで再試行。Google API は各呼び出しで `num_retries=5`。
 - 画像 PNG はリポジトリにコミットしない（アーティファクトのみ）。行 CSV だけコミットする。

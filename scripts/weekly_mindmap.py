@@ -3,8 +3,9 @@
 週次「心の棚卸し」マインドマップ生成パイプライン
 
 毎週日曜 20:00 JST(GitHub Actions cron `0 11 * * 0`)に無人実行し、直近1週間の
-記録を 1) 円形放射状マインドマップ画像(PNG) と 2) Google スプレッドシートの
-週次タブ(チェックボックス付き) の 2 系統に出力する。
+記録を 1) 円形放射状マインドマップ画像(PNG)、2) Google スプレッドシートの
+週次ログシート(画像埋め込み・1週1行で蓄積) の 2 系統に出力する。さらに月末週
+(その月最後の日曜)には直近4週分を統合した月間マインドマップも生成する。
 
 ------------------------------------------------------------------------------
 処理フロー
@@ -41,16 +42,28 @@
      描画する(空欄では出力しない)。テキストは折り返し + 文字数上限で枠外への
      はみ出しを防ぐ。
 
-  4. Google スプレッドシートへの追記
+  4. Google スプレッドシートへの追記(週次ログシートに1週1行で蓄積)
      OAuth 認証で、指定スプレッドシート(WEEKLY_SPREADSHEET_ID。未設定なら新規作成し
-     ID をログ出力)に週次タブ `YYYY_Www`(ISO 週)を作成。既存なら中身を作り直す
-     (冪等)。列は A:大分類 / B:中分類 / C:具体的な内容・トピック / D:採用
-     (D は BOOLEAN データ検証を付けたチェックボックス、初期値 FALSE)。
+     ID をログ出力)の固定タブ「週次ログ」に、この週の1行を追記または上書きする
+     (A列=対象週で既存行を検索、あれば上書きするので同じ週の再実行でも重複しない)。
+     列は A:対象週 / B:マインドマップ画像(=IMAGE 関数、行の高さを広げ縮小プレビュー
+     表示) / C-F:4象限要約(意欲/モヤモヤ/体調/納得) / G:来週の手帳用3大アクション /
+     H:マップ詳細Webリンク(アーカイブ固定URL)。
 
   5. Discord 通知投稿
-     `# 週間まとめ` チャンネルへ mindmap.png を添付投稿。本文にスプレッドシートの
-     リンクと案内文を添える。DISCORD_WEBHOOK_WEEKLY があれば Webhook、無ければ
-     DISCORD_CHANNEL_ID_WEEKLY_SUMMARY + Bot トークンで送信。
+     `# 週間まとめ` チャンネルへ mindmap.png を添付投稿。スマホで開いた瞬間に
+     見失わないよう、メッセージの最上部・最下部の両方に罫線付きの高視認性URL
+     ブロックを配置し、さらに Link Button(タップで直接開ける)も添える。
+     DISCORD_WEBHOOK_WEEKLY があれば Webhook、無ければ DISCORD_CHANNEL_ID_WEEKLY_SUMMARY
+     + Bot トークンで送信。
+
+  6. 月間統合(月末バッチ: その月最後の日曜日のみ)
+     週次ログシートの直近4週分(4象限要約 + 週次アクション)を読み取り、Gemini で
+     「1ヶ月を通じた心の重心・繰り返されたテーマ・変化」として再構造化する
+     (Gemini 失敗時は4週分の要約をそのまま積み上げる決定論フォールバック)。
+     `mindmap/monthly/index.html` (最新月) と `mindmap/monthly/archive/YYYY-MM.html`
+     (永久保存) を公開し、Discord へ「🌕【月間思考棚卸しマップ(◯月度)】」として
+     別メッセージで通知する。
 
 ------------------------------------------------------------------------------
 冪等性・エラーハンドリング方針(ワークフローを確実に緑で通すため)
@@ -60,7 +73,8 @@
     「今週は入力がありませんでした」の短文を投稿する。
   * データソース単位で try/except。1 ソースが 403/404/一過性エラーでも他は続行。
   * Gemini 失敗 → 決定論フォールバック。GEMINI_API_KEY 未設定でも致命にしない。
-  * 週次タブが既にあれば作り直し。同じ週を何度再実行しても行は重複しない。
+  * 週次ログシートは対象週(A列)で既存行を検索し上書きする。同じ週を何度
+    再実行しても行が重複しない。月間ページも月度(YYYY-MM)ファイル名で同様に冪等。
   * 致命終了(exit 1)は「--dry-run でも --use-mock でもないのに Google OAuth
     認証情報が 1 つも無い」場合のみ。それ以外は警告に留めて exit 0。
 
@@ -75,6 +89,9 @@
 
   # 対象週の基準日を指定(バックフィル・検証用)
   python scripts/weekly_mindmap.py --week 2026-09-07 --dry-run
+
+  # 月末週(月間統合も走る条件)を狙って --use-mock で検証する例
+  python scripts/weekly_mindmap.py --week 2026-09-27 --use-mock
 
 OAuth リフレッシュトークンの発行手順は docs/WEEKLY_MINDMAP_SETUP.md、
 生成用ヘルパは scripts/mint_google_oauth_token.py を参照。
@@ -127,9 +144,23 @@ NEXT_DAYS = 7
 DEFAULT_GEMINI_MODEL = "gemini-3.6-flash"
 
 REPORT_WEEKLY_DIR = "reports/weekly"
+REPORT_MONTHLY_DIR = "reports/monthly"
 MINDMAP_DIR = "mindmap"
 MINDMAP_ARCHIVE_DIR = "mindmap/archive"
 MINDMAP_PAGES_URL = "https://c6cgv9cnj4-ops.github.io/wbc/mindmap/"
+MINDMAP_MONTHLY_DIR = "mindmap/monthly"
+MINDMAP_MONTHLY_ARCHIVE_DIR = "mindmap/monthly/archive"
+MINDMAP_MONTHLY_PAGES_URL = "https://c6cgv9cnj4-ops.github.io/wbc/mindmap/monthly/"
+
+# 週次ログを蓄積するスプレッドシートのタブ名(固定・1タブに週ごと1行を追記していく)
+WEEKLY_LOG_SHEET_NAME = "週次ログ"
+WEEKLY_LOG_HEADER = ["対象週", "マインドマップ", "意欲・ワクワク", "モヤモヤ・負荷",
+                     "体調・バイオリズム", "納得・心地よさ", "来週の手帳用3大アクション",
+                     "マップ詳細リンク"]
+# 画像プレビュー行の高さ(px)。ヘッダー/テキストのみの行は Sheets の既定値のまま。
+WEEKLY_LOG_IMAGE_ROW_HEIGHT = 120
+# 月間集計に使う直近週数
+MONTHLY_LOOKBACK_WEEKS = 4
 
 DISCORD_USER_AGENT = "wbc-weekly-mindmap/1.0 (+https://github.com/c6cgv9cnj4-ops/wbc)"
 
@@ -169,17 +200,39 @@ def week_context(anchor: datetime.date) -> dict:
     """基準日 anchor が属する ISO 週の情報と収集ウィンドウを返す。"""
     iso_year, iso_week, _ = anchor.isocalendar()
     monday = datetime.date.fromisocalendar(iso_year, iso_week, 1)
+    sunday = monday + datetime.timedelta(days=6)
     now = datetime.datetime.now(JST)
     return {
         "anchor": anchor,
         "iso_year": iso_year,
         "iso_week": iso_week,
-        "week_tag": f"{iso_year}_W{iso_week:02d}",       # スプレッドシートのタブ名
+        "week_tag": f"{iso_year}_W{iso_week:02d}",       # ファイル名・アーカイブURL用
+        "week_tag_dash": f"{iso_year}-W{iso_week:02d}",  # スプレッドシート表示用(例: 2026-W37)
         "label": f"{monday.strftime('%Y/%m/%d')}週",     # ルートノードの表示名
         "root_title": f"心の棚卸しマップ ({monday.strftime('%Y/%m/%d')}週)",
+        "sunday": sunday,
         "past_start": now - datetime.timedelta(days=PAST_DAYS),
         "now": now,
         "next_end": now + datetime.timedelta(days=NEXT_DAYS),
+    }
+
+
+def is_month_closing_week(ctx: dict) -> bool:
+    """この週の日曜日が、その月における最後の日曜日かどうか(=月末バッチ実行週か)。"""
+    sunday = ctx["sunday"]
+    next_sunday = sunday + datetime.timedelta(days=7)
+    return next_sunday.month != sunday.month
+
+
+def month_context(ctx: dict) -> dict:
+    """月末週の ctx から、その月度の月間マインドマップ用コンテキストを組み立てる。"""
+    sunday = ctx["sunday"]
+    return {
+        "year": sunday.year,
+        "month": sunday.month,
+        "month_tag": f"{sunday.year}-{sunday.month:02d}",       # ファイル名・アーカイブURL用
+        "label": f"{sunday.year}年{sunday.month}月度",
+        "root_title": f"月間棚卸しマップ ({sunday.year}年{sunday.month}月度)",
     }
 
 
@@ -846,6 +899,115 @@ def structure(bundle: dict, ctx: dict, api_key: str, model: str) -> tuple[dict, 
 
 
 # ===========================================================================
+# 5.5) 月間統合(過去4週分の週次ログを Gemini で再構造化)
+# ===========================================================================
+def _gemini_prompt_monthly(mctx: dict, weeks: list[dict]) -> str:
+    weeks_text = "\n\n".join(
+        f"## {w['week']}\n意欲・ワクワク: {w['motivation']}\nモヤモヤ・負荷: {w['friction']}\n"
+        f"体調・バイオリズム: {w['biorhythm']}\n納得・心地よさ: {w['contentment']}\n"
+        f"その週のアクション: {w['actions']}"
+        for w in weeks
+    ) or "(直近の週次ログがありません)"
+    cats = "\n".join(f"  {i+1}. {c['title']}" for i, c in enumerate(CATEGORIES))
+    return f"""あなたは記録者本人の「心のベクトルを映す鏡」です。忖度・迎合・定型挨拶は一切不要。
+以下は {mctx['label']} における直近{len(weeks)}週分の週次サマリー(4象限要約と週ごとの
+アクション)です。ログに無いことは推測・捏造しないでください。
+
+{weeks_text}
+
+週ごとの断片としてではなく、1ヶ月を通しての「心の大きな重心・繰り返されたテーマ・
+変化の兆し」を読み取り、月間版の階層データと来月の手帳に書くべきフォーカス3行を
+**JSON のみ** で返してください。前後に説明文・コードフェンス・コメントを付けないこと。
+
+スキーマ:
+{{
+  "root": "{mctx['root_title']}",
+  "categories": [
+    {{ "key": "<下記の固定キー>",
+       "children": [ {{ "title": "月間の傾向(体言止め・20字以内)",
+                        "children": [ {{ "title": "根拠になった出来事(短文・30字以内)" }} ] }} ] }}
+  ],
+  "actions": [ "来月意識すべき心のフォーカス(30字前後)", "...", "..." ]
+}}
+
+固定の 4 象限(この4つ・この順序・key はこの通り):
+  1. key="motivation"   … {CATEGORIES[0]['title']}: 月を通して繰り返し心が動いた対象・伸ばしたい方向
+  2. key="friction"     … {CATEGORIES[1]['title']}: 月を通して繰り返された気掛かり・先送りのパターン
+  3. key="biorhythm"    … {CATEGORIES[2]['title']}: 体調・リズムの月間傾向(波があった時期・崩れた原因)
+  4. key="contentment"  … {CATEGORIES[3]['title']}: 月を通して定着した習慣・心地よさの実感
+
+規則:
+  - 4象限すべてを必ず含める。該当が無い象限は children を空配列 [] にする。
+  - 各象限の中分類は最大 {MAX_MIDS_PER_CATEGORY} 個、各中分類の末端は最大 {MAX_ENDS_PER_MID} 個。
+  - 個別の週の出来事の羅列ではなく「1ヶ月を通じた傾向・変化」として一段抽象化して書く。
+  - actions は必ず {MAX_ACTIONS} 行、{CLIP_ACTION}字以内、句点なしの体言止め or 短い命令形。
+参考(このキーだった):
+{cats}
+"""
+
+
+def deterministic_monthly_tree(weeks: list[dict], mctx: dict) -> dict:
+    """Gemini を使わず、週次ログの4象限要約をそのまま月間ツリーへ積み上げる。"""
+    cats_children: dict[str, list] = {c["key"]: [] for c in CATEGORIES}
+    for w in weeks:
+        for key in cats_children:
+            text = (w.get(key) or "").strip()
+            if text and text != "特になし":
+                cats_children[key].append(
+                    {"title": w["week"], "children": [{"title": _clip(text, CLIP_END)}]}
+                )
+
+    actions: list[str] = []
+    for w in reversed(weeks):  # 直近の週のアクションを優先して採用
+        for a in _parse_action_cell(w.get("actions", "")):
+            if len(actions) >= MAX_ACTIONS:
+                break
+            if a not in actions:
+                actions.append(_clip(a, CLIP_ACTION))
+        if len(actions) >= MAX_ACTIONS:
+            break
+    if not actions:
+        actions = ["来月はまず週次ログを継続して記録することから始める"]
+
+    raw = {"root": mctx["root_title"],
+           "categories": [{"key": c["key"], "children": cats_children[c["key"]]} for c in CATEGORIES],
+           "actions": actions}
+    return _normalize_tree(raw, mctx)
+
+
+def structure_monthly(weeks: list[dict], mctx: dict, api_key: str, model: str) -> tuple[dict, str]:
+    """(tree, source) を返す。source は 'gemini' / 'fallback' / 'empty'。"""
+    if not weeks:
+        empty = {"root": mctx["root_title"],
+                 "categories": [{"key": c["key"], "children": []} for c in CATEGORIES],
+                 "actions": ["来月はまず週次ログを継続して記録することから始める"]}
+        return _normalize_tree(empty, mctx), "empty"
+
+    if api_key:
+        try:
+            from google import genai
+
+            client = genai.Client(api_key=api_key)
+            resp = client.models.generate_content(
+                model=model,
+                contents=_gemini_prompt_monthly(mctx, weeks),
+                config={"response_mime_type": "application/json"},
+            )
+            raw = _loads_loose(resp.text or "")
+            tree = _normalize_tree(raw, mctx)
+            if any(c["children"] for c in tree["categories"]):
+                print(f"[INFO] 月間構造化: Gemini({model}) 成功")
+                return tree, "gemini"
+            print("[WARN] Gemini 応答が空ツリー。月間フォールバックへ")
+        except Exception as err:  # noqa: BLE001
+            print(f"[WARN] Gemini 月間構造化に失敗、フォールバックへ: {err}")
+    else:
+        print("[INFO] GEMINI_API_KEY 未設定。決定論フォールバックで月間構造化")
+
+    return deterministic_monthly_tree(weeks, mctx), "fallback"
+
+
+# ===========================================================================
 # 6) マインドマップ画像(PNG)描画 — matplotlib 放射状
 # ===========================================================================
 def _resolve_jp_font():
@@ -908,7 +1070,10 @@ RENDER_MAX_MIDS = 4
 RENDER_MAX_ENDS = 2
 
 
-def render_mindmap(tree: dict, ctx: dict, source: str, out_path: str) -> str:
+def render_mindmap(tree: dict, ctx: dict, source: str, out_path: str, *,
+                    title_prefix: str = "心の棚卸しマップ",
+                    center_label_prefix: str = "心の棚卸し",
+                    action_band_title: str = "◆ 来週の手帳用 3大アクション") -> str:
     import math
 
     import matplotlib
@@ -1011,13 +1176,13 @@ def render_mindmap(tree: dict, ctx: dict, source: str, out_path: str) -> str:
 
     # 中央ルート
     circle((CX0, CY0), 2.7, "#111827", ec="white", lw=3.4, z=6)
-    label((CX0, CY0), f"心の棚卸し\n{ctx['label']}", 17, color="white", z=7)
+    label((CX0, CY0), f"{center_label_prefix}\n{ctx['label']}", 17, color="white", z=7)
 
     # タイトル / メタ / 凡例(figure座標。ax の放射マップとは独立して上部に配置)
     ts = datetime.datetime.now(JST).strftime("%Y-%m-%d %H:%M JST")
     src_label = {"gemini": "Gemini構造化", "fallback": "簡易構造化(Gemini未使用)",
                  "empty": "記録なし"}[source]
-    fig.suptitle(f"心の棚卸しマップ　{ctx['label']}", fontsize=30, weight="bold", y=0.985)
+    fig.suptitle(f"{title_prefix}　{ctx['label']}", fontsize=30, weight="bold", y=0.985)
     fig.text(0.5, 0.945, f"生成 {ts} ／ {src_label}", fontsize=14, color="#666666", ha="center")
 
     legend_x0 = 0.5 - (len(CATEGORIES) * 0.24) / 2
@@ -1046,12 +1211,12 @@ def render_mindmap(tree: dict, ctx: dict, source: str, out_path: str) -> str:
         (bx0, by0), bw, bh, boxstyle="round,pad=0.15,rounding_size=0.3",
         facecolor="#FFFDF3", edgecolor="#D8C89A", linewidth=1.8, zorder=8,
     ))
-    ax.text(bx0 + 0.4, by0 + bh - 0.4, "◆ 来週の手帳用 3大アクション",
+    ax.text(bx0 + 0.4, by0 + bh - 0.45, action_band_title,
             fontsize=19, weight="bold", color="#7A5C00", ha="left", va="top", zorder=9)
     actions = (tree.get("actions") or [])[:MAX_ACTIONS]
-    row_h = (bh - 0.9) / MAX_ACTIONS
+    row_h = (bh - 1.3) / MAX_ACTIONS
     for m, num in enumerate(("①", "②", "③")):
-        yy = by0 + bh - 0.95 - m * row_h
+        yy = by0 + bh - 1.15 - m * row_h
         ax.text(bx0 + 0.35, yy, num, fontsize=16, color="#7A5C00", ha="left", va="center", zorder=9)
         text = actions[m] if m < len(actions) else ""
         if text:
@@ -1079,9 +1244,12 @@ def _html_escape(s) -> str:
     return _html.escape(str(s if s is not None else ""))
 
 
-def _mindmap_page_html(*, title: str, week_label: str, generated_ts: str, source_label: str,
-                        sheet_link: str | None, png_rel: str, warnings: list[str] | None,
-                        back_link: str | None = None, archive_index_link: str | None = None) -> str:
+def _mindmap_page_html(*, title: str, heading: str, week_label: str, generated_ts: str,
+                        source_label: str, sheet_link: str | None, png_rel: str,
+                        warnings: list[str] | None, img_alt_prefix: str,
+                        back_link: str | None = None, archive_index_link: str | None = None,
+                        back_link_label: str = "← 最新へ",
+                        archive_index_label: str = "📚 過去の一覧") -> str:
     warn_html = ""
     if warnings:
         items = "".join(f"<li>{_html_escape(w)}</li>" for w in warnings)
@@ -1090,9 +1258,9 @@ def _mindmap_page_html(*, title: str, week_label: str, generated_ts: str, source
                   f'rel="noopener">📄 スプレッドシートを開く</a>') if sheet_link else ""
     nav_parts = []
     if back_link:
-        nav_parts.append(f'<a href="{_html_escape(back_link)}">← 最新の週へ</a>')
+        nav_parts.append(f'<a href="{_html_escape(back_link)}">{_html_escape(back_link_label)}</a>')
     if archive_index_link:
-        nav_parts.append(f'<a href="{_html_escape(archive_index_link)}">📚 過去の週一覧</a>')
+        nav_parts.append(f'<a href="{_html_escape(archive_index_link)}">{_html_escape(archive_index_label)}</a>')
     nav_html = "".join(nav_parts)
     return f"""<!DOCTYPE html>
 <html lang="ja">
@@ -1119,11 +1287,11 @@ def _mindmap_page_html(*, title: str, week_label: str, generated_ts: str, source
 </head>
 <body>
 <div class="wrap">
-  <h1>🧠 心の棚卸しマップ　{_html_escape(week_label)}</h1>
+  <h1>{_html_escape(heading)}　{_html_escape(week_label)}</h1>
   <div class="meta">生成: {_html_escape(generated_ts)} ／ {_html_escape(source_label)}</div>
   <div class="nav">{nav_html}</div>
   {warn_html}
-  <img src="{_html_escape(png_rel)}" alt="心の棚卸しマインドマップ {_html_escape(week_label)}">
+  <img src="{_html_escape(png_rel)}" alt="{_html_escape(img_alt_prefix)} {_html_escape(week_label)}">
   <div class="actions">{sheet_html}</div>
 </div>
 </body>
@@ -1131,11 +1299,11 @@ def _mindmap_page_html(*, title: str, week_label: str, generated_ts: str, source
 """
 
 
-def _write_archive_index() -> None:
+def _write_archive_index(archive_dir: str, title: str, heading: str) -> None:
     import glob
 
     files = sorted(
-        (os.path.basename(p) for p in glob.glob(os.path.join(MINDMAP_ARCHIVE_DIR, "*.html"))
+        (os.path.basename(p) for p in glob.glob(os.path.join(archive_dir, "*.html"))
          if os.path.basename(p) != "index.html"),
         reverse=True,
     )
@@ -1147,7 +1315,7 @@ def _write_archive_index() -> None:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>心の棚卸しマップ - 過去の週一覧</title>
+<title>{_html_escape(title)}</title>
 <style>
   :root {{ color-scheme: light dark; }}
   body {{ margin:0; padding:24px 16px 48px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans",sans-serif; background:#f8fafc; color:#1e293b; }}
@@ -1165,58 +1333,91 @@ def _write_archive_index() -> None:
 </head>
 <body>
 <div class="wrap">
-  <a class="back" href="../index.html">← 最新の週へ</a>
-  <h1>📚 心の棚卸しマップ - 過去の週一覧</h1>
+  <a class="back" href="../index.html">← 最新へ</a>
+  <h1>{_html_escape(heading)}</h1>
   <ul>{items}</ul>
 </div>
 </body>
 </html>
 """
-    with open(os.path.join(MINDMAP_ARCHIVE_DIR, "index.html"), "w", encoding="utf-8") as fh:
+    with open(os.path.join(archive_dir, "index.html"), "w", encoding="utf-8") as fh:
         fh.write(html_doc)
 
 
-def publish_mindmap_pages(png_path: str | None, ctx: dict, source: str,
-                          sheet_link: str | None, warnings: list[str] | None) -> str | None:
-    """mindmap/index.html(固定URL・最新版に上書き)と mindmap/archive/{week_tag}.html
-    (永久保存)を書き出し、mindmap/archive/index.html(過去週一覧)も更新する。
-    GitHub Pages で https://c6cgv9cnj4-ops.github.io/wbc/mindmap/ が常に最新を指すようにする
-    (Actions アーティファクトへの一時出力だけだと数十日で消え 404 になるための恒久対応)。"""
+def _publish_pages(*, png_path: str | None, base_dir: str, archive_dir: str, pages_url: str,
+                    tag: str, label: str, source: str, sheet_link: str | None,
+                    warnings: list[str] | None, heading: str, title_prefix: str,
+                    img_alt_prefix: str, archive_list_title: str,
+                    back_link_label: str, archive_index_label: str) -> str | None:
+    """mindmap 系ページ({base_dir}/index.html + {archive_dir}/{tag}.html + 過去一覧)を
+    書き出す共通ロジック。週次(publish_mindmap_pages)・月間(publish_monthly_pages)で共用する。
+    GitHub Pages で {pages_url} が常に最新を指すようにする(Actions アーティファクトへの
+    一時出力だけだと数十日で消え 404 になるための恒久対応)。"""
     if not png_path or not os.path.exists(png_path):
-        print("[WARN] PNG が無いため mindmap ページの生成をスキップ")
+        print(f"[WARN] PNG が無いため {pages_url} ページの生成をスキップ")
         return None
     import shutil
 
-    os.makedirs(MINDMAP_ARCHIVE_DIR, exist_ok=True)
+    os.makedirs(archive_dir, exist_ok=True)
 
-    shutil.copyfile(png_path, os.path.join(MINDMAP_DIR, "latest.png"))
-    shutil.copyfile(png_path, os.path.join(MINDMAP_ARCHIVE_DIR, f"{ctx['week_tag']}.png"))
+    shutil.copyfile(png_path, os.path.join(base_dir, "latest.png"))
+    shutil.copyfile(png_path, os.path.join(archive_dir, f"{tag}.png"))
 
     generated_ts = datetime.datetime.now(JST).strftime("%Y-%m-%d %H:%M JST")
     src_label = {"gemini": "Gemini構造化", "fallback": "簡易構造化(Gemini未使用)",
                  "empty": "記録なし"}[source]
 
     index_html = _mindmap_page_html(
-        title=f"心の棚卸しマップ {ctx['label']}", week_label=ctx["label"],
+        title=f"{title_prefix} {label}", heading=heading, week_label=label,
         generated_ts=generated_ts, source_label=src_label, sheet_link=sheet_link,
         png_rel="latest.png", warnings=warnings, archive_index_link="archive/index.html",
+        img_alt_prefix=img_alt_prefix, back_link_label=back_link_label,
+        archive_index_label=archive_index_label,
     )
-    with open(os.path.join(MINDMAP_DIR, "index.html"), "w", encoding="utf-8") as fh:
+    with open(os.path.join(base_dir, "index.html"), "w", encoding="utf-8") as fh:
         fh.write(index_html)
 
     archive_html = _mindmap_page_html(
-        title=f"心の棚卸しマップ {ctx['label']}（アーカイブ）", week_label=ctx["label"],
+        title=f"{title_prefix} {label}（アーカイブ）", heading=heading, week_label=label,
         generated_ts=generated_ts, source_label=src_label, sheet_link=sheet_link,
-        png_rel=f"{ctx['week_tag']}.png", warnings=warnings,
+        png_rel=f"{tag}.png", warnings=warnings,
         back_link="../index.html", archive_index_link="index.html",
+        img_alt_prefix=img_alt_prefix, back_link_label=back_link_label,
+        archive_index_label=archive_index_label,
     )
-    with open(os.path.join(MINDMAP_ARCHIVE_DIR, f"{ctx['week_tag']}.html"), "w", encoding="utf-8") as fh:
+    with open(os.path.join(archive_dir, f"{tag}.html"), "w", encoding="utf-8") as fh:
         fh.write(archive_html)
 
-    _write_archive_index()
-    print(f"[OK] mindmap ページを更新: {MINDMAP_PAGES_URL} "
-          f"(アーカイブ: mindmap/archive/{ctx['week_tag']}.html)")
-    return MINDMAP_PAGES_URL
+    _write_archive_index(archive_dir, f"{title_prefix} - {archive_list_title}",
+                         f"📚 {title_prefix} - {archive_list_title}")
+    print(f"[OK] ページを更新: {pages_url} (アーカイブ: {archive_dir}/{tag}.html)")
+    return pages_url
+
+
+def publish_mindmap_pages(png_path: str | None, ctx: dict, source: str,
+                          sheet_link: str | None, warnings: list[str] | None) -> str | None:
+    return _publish_pages(
+        png_path=png_path, base_dir=MINDMAP_DIR, archive_dir=MINDMAP_ARCHIVE_DIR,
+        pages_url=MINDMAP_PAGES_URL, tag=ctx["week_tag"], label=ctx["label"], source=source,
+        sheet_link=sheet_link, warnings=warnings, heading="🧠 心の棚卸しマップ",
+        title_prefix="心の棚卸しマップ", img_alt_prefix="心の棚卸しマインドマップ",
+        archive_list_title="過去の週一覧", back_link_label="← 最新の週へ",
+        archive_index_label="📚 過去の週一覧",
+    )
+
+
+def publish_monthly_pages(png_path: str | None, mctx: dict, source: str,
+                          warnings: list[str] | None) -> str | None:
+    """月間マインドマップの GitHub Pages 常設ページを書き出す。週次とは独立した
+    mindmap/monthly/ 配下に置き、週次ページの上書きに巻き込まれないようにする。"""
+    return _publish_pages(
+        png_path=png_path, base_dir=MINDMAP_MONTHLY_DIR, archive_dir=MINDMAP_MONTHLY_ARCHIVE_DIR,
+        pages_url=MINDMAP_MONTHLY_PAGES_URL, tag=mctx["month_tag"], label=mctx["label"],
+        source=source, sheet_link=None, warnings=warnings, heading="🌕 月間思考棚卸しマップ",
+        title_prefix="月間思考棚卸しマップ", img_alt_prefix="月間思考棚卸しマインドマップ",
+        archive_list_title="過去の月一覧", back_link_label="← 最新の月へ",
+        archive_index_label="📚 過去の月一覧",
+    )
 
 
 # ===========================================================================
@@ -1251,11 +1452,103 @@ def create_spreadsheet(creds) -> str:
     return created["spreadsheetId"]
 
 
-def write_week_sheet(creds, ctx: dict, rows: list[list]) -> tuple[str, str] | tuple[None, None]:
-    """週次タブを作り直して行を書き込み、(spreadsheet_id, deep_link) を返す。
+def quadrant_summaries(tree: dict) -> dict[str, str]:
+    """4象限それぞれの中分類タイトルを結合した短い要約テキストを返す(スプレッドシート用)。"""
+    out = {}
+    for cat in tree["categories"]:
+        mids = [m["title"] for m in cat["children"] if m.get("title")]
+        out[cat["key"]] = _clip("、".join(mids), 300) if mids else "特になし"
+    return out
 
-    WEEKLY_SPREADSHEET_ID 未設定なら (None, None) を返して呼び出し側でスキップさせる
-    (毎回スプレッドシートを新規作成してしまう事故を防ぐ)。
+
+def actions_cell_text(actions: list[str]) -> str:
+    """来週(来月)アクションを、セル内改行付きの1つの文字列にまとめる。"""
+    nums = ("①", "②", "③")
+    lines = []
+    for i in range(MAX_ACTIONS):
+        text = actions[i] if i < len(actions) else "(未定)"
+        lines.append(f"{nums[i]} {text}")
+    return "\n".join(lines)
+
+
+def _parse_action_cell(cell_text: str) -> list[str]:
+    """actions_cell_text() の逆変換。番号記号を外し「(未定)」を除いた行だけ返す。"""
+    out = []
+    for line in (cell_text or "").split("\n"):
+        line = line.strip()
+        for num in ("①", "②", "③"):
+            if line.startswith(num):
+                line = line[len(num):].strip()
+                break
+        if line and line != "(未定)":
+            out.append(line)
+    return out
+
+
+def _find_sheet_id_by_title(svc, ssid: str, title: str) -> tuple[int | None, bool]:
+    meta = svc.spreadsheets().get(
+        spreadsheetId=ssid, fields="sheets(properties(sheetId,title))"
+    ).execute(num_retries=5)
+    for s in meta.get("sheets", []):
+        if s["properties"]["title"] == title:
+            return s["properties"]["sheetId"], True
+    return None, False
+
+
+def _ensure_weekly_log_sheet(svc, ssid: str) -> int:
+    """週次ログシート(WEEKLY_LOG_SHEET_NAME)が無ければヘッダー・列幅つきで作成し、sheetId を返す。"""
+    gid, exists = _find_sheet_id_by_title(svc, ssid, WEEKLY_LOG_SHEET_NAME)
+    if exists:
+        return gid
+
+    resp = svc.spreadsheets().batchUpdate(
+        spreadsheetId=ssid,
+        body={"requests": [{"addSheet": {"properties": {
+            "title": WEEKLY_LOG_SHEET_NAME,
+            "gridProperties": {"columnCount": len(WEEKLY_LOG_HEADER)},
+        }}}]},
+    ).execute(num_retries=5)
+    gid = resp["replies"][0]["addSheet"]["properties"]["sheetId"]
+
+    svc.spreadsheets().values().update(
+        spreadsheetId=ssid, range=f"'{WEEKLY_LOG_SHEET_NAME}'!A1",
+        valueInputOption="USER_ENTERED", body={"values": [WEEKLY_LOG_HEADER]},
+    ).execute(num_retries=5)
+
+    col_widths = [100, 200, 220, 220, 220, 220, 260, 260]
+    fmt_reqs = [
+        {"repeatCell": {
+            "range": {"sheetId": gid, "startRowIndex": 0, "endRowIndex": 1},
+            "cell": {"userEnteredFormat": {
+                "textFormat": {"bold": True},
+                "backgroundColor": {"red": 0.93, "green": 0.93, "blue": 0.96},
+                "wrapStrategy": "WRAP",
+            }},
+            "fields": "userEnteredFormat(textFormat,backgroundColor,wrapStrategy)",
+        }},
+        {"updateSheetProperties": {
+            "properties": {"sheetId": gid, "gridProperties": {"frozenRowCount": 1}},
+            "fields": "gridProperties.frozenRowCount",
+        }},
+    ]
+    for i, w in enumerate(col_widths):
+        fmt_reqs.append({"updateDimensionProperties": {
+            "range": {"sheetId": gid, "dimension": "COLUMNS", "startIndex": i, "endIndex": i + 1},
+            "properties": {"pixelSize": w}, "fields": "pixelSize",
+        }})
+    svc.spreadsheets().batchUpdate(spreadsheetId=ssid, body={"requests": fmt_reqs}).execute(num_retries=5)
+    return gid
+
+
+def write_week_log_row(creds, ctx: dict, tree: dict,
+                       archive_page_url: str | None) -> tuple[str, str] | tuple[None, None]:
+    """週次ログシート(1タブに週ごと1行を蓄積)へ、この週の行を追記または上書きする。
+
+    列構成: A対象週 / B マインドマップ画像(=IMAGE) / C-F 4象限要約 /
+    G 来週の手帳用3大アクション / H マップ詳細Webリンク。
+    既に同じ対象週(A列)の行があれば上書きし、同じ週を何度再実行しても行が
+    重複しないようにする(冪等)。B列の行だけ高さを広げ縮小プレビュー表示にする。
+    WEEKLY_SPREADSHEET_ID 未設定なら (None, None) を返して呼び出し側でスキップさせる。
     """
     ssid = os.environ.get("WEEKLY_SPREADSHEET_ID", "").strip()
     if not ssid:
@@ -1265,82 +1558,104 @@ def write_week_sheet(creds, ctx: dict, rows: list[list]) -> tuple[str, str] | tu
         return None, None
 
     svc = build_service("sheets", "v4", creds)
-    tab = ctx["week_tag"]
-    meta = svc.spreadsheets().get(
-        spreadsheetId=ssid, fields="sheets(properties(sheetId,title))"
-    ).execute(num_retries=5)
-    existing = {s["properties"]["title"]: s["properties"]["sheetId"] for s in meta.get("sheets", [])}
+    gid = _ensure_weekly_log_sheet(svc, ssid)
 
-    reqs = []
-    if tab in existing:
-        reqs.append({"updateCells": {
-            "range": {"sheetId": existing[tab]},
-            "fields": "userEnteredValue,dataValidation,userEnteredFormat",
-        }})
-    else:
-        reqs.append({"addSheet": {"properties": {"title": tab, "gridProperties": {"columnCount": 4}}}})
-    resp = svc.spreadsheets().batchUpdate(
-        spreadsheetId=ssid, body={"requests": reqs}
-    ).execute(num_retries=5)
+    existing_vals = svc.spreadsheets().values().get(
+        spreadsheetId=ssid, range=f"'{WEEKLY_LOG_SHEET_NAME}'!A2:A",
+    ).execute(num_retries=5).get("values", [])
+    row_index = None  # 0-based。ヘッダーの次(シート上の行2)が index 0
+    for i, r in enumerate(existing_vals):
+        if r and r[0] == ctx["week_tag_dash"]:
+            row_index = i
+            break
+    if row_index is None:
+        row_index = len(existing_vals)
 
-    if tab in existing:
-        gid = existing[tab]
-    else:
-        gid = resp["replies"][-1]["addSheet"]["properties"]["sheetId"]
-
-    header = ["大分類", "中分類", "具体的な内容・トピック", "採用"]
-    values = [header] + (rows or [["", "(今週は入力がありませんでした)", "", "FALSE"]])
+    summaries = quadrant_summaries(tree)
+    image_url = f"{MINDMAP_PAGES_URL}archive/{ctx['week_tag']}.png"
+    archive_link = archive_page_url or f"{MINDMAP_PAGES_URL}archive/{ctx['week_tag']}.html"
+    row_values = [
+        ctx["week_tag_dash"],
+        f'=IMAGE("{image_url}")',
+        summaries["motivation"],
+        summaries["friction"],
+        summaries["biorhythm"],
+        summaries["contentment"],
+        actions_cell_text(tree.get("actions") or []),
+        archive_link,
+    ]
+    sheet_row_number = row_index + 2  # +1 ヘッダー分 +1 1-based
     svc.spreadsheets().values().update(
-        spreadsheetId=ssid, range=f"'{tab}'!A1",
-        valueInputOption="USER_ENTERED", body={"values": values},
+        spreadsheetId=ssid, range=f"'{WEEKLY_LOG_SHEET_NAME}'!A{sheet_row_number}",
+        valueInputOption="USER_ENTERED", body={"values": [row_values]},
     ).execute(num_retries=5)
 
-    nrows = len(values)
     fmt_reqs = [
-        {"repeatCell": {
-            "range": {"sheetId": gid, "startRowIndex": 0, "endRowIndex": 1},
-            "cell": {"userEnteredFormat": {
-                "textFormat": {"bold": True},
-                "backgroundColor": {"red": 0.93, "green": 0.93, "blue": 0.96},
-            }},
-            "fields": "userEnteredFormat(textFormat,backgroundColor)",
-        }},
-        {"updateSheetProperties": {
-            "properties": {"sheetId": gid, "gridProperties": {"frozenRowCount": 1}},
-            "fields": "gridProperties.frozenRowCount",
+        {"updateDimensionProperties": {
+            "range": {"sheetId": gid, "dimension": "ROWS",
+                      "startIndex": row_index + 1, "endIndex": row_index + 2},
+            "properties": {"pixelSize": WEEKLY_LOG_IMAGE_ROW_HEIGHT}, "fields": "pixelSize",
         }},
         {"repeatCell": {
-            "range": {"sheetId": gid, "startRowIndex": 1, "endRowIndex": nrows,
-                      "startColumnIndex": 3, "endColumnIndex": 4},
-            "cell": {"dataValidation": {"condition": {"type": "BOOLEAN"}}},
-            "fields": "dataValidation",
-        }},
-        {"updateDimensionProperties": {
-            "range": {"sheetId": gid, "dimension": "COLUMNS", "startIndex": 0, "endIndex": 1},
-            "properties": {"pixelSize": 190}, "fields": "pixelSize",
-        }},
-        {"updateDimensionProperties": {
-            "range": {"sheetId": gid, "dimension": "COLUMNS", "startIndex": 1, "endIndex": 2},
-            "properties": {"pixelSize": 200}, "fields": "pixelSize",
-        }},
-        {"updateDimensionProperties": {
-            "range": {"sheetId": gid, "dimension": "COLUMNS", "startIndex": 2, "endIndex": 3},
-            "properties": {"pixelSize": 420}, "fields": "pixelSize",
+            "range": {"sheetId": gid, "startRowIndex": row_index + 1, "endRowIndex": row_index + 2,
+                      "startColumnIndex": 0, "endColumnIndex": len(WEEKLY_LOG_HEADER)},
+            "cell": {"userEnteredFormat": {"wrapStrategy": "WRAP", "verticalAlignment": "TOP"}},
+            "fields": "userEnteredFormat(wrapStrategy,verticalAlignment)",
         }},
     ]
-    svc.spreadsheets().batchUpdate(
-        spreadsheetId=ssid, body={"requests": fmt_reqs}
-    ).execute(num_retries=5)
+    svc.spreadsheets().batchUpdate(spreadsheetId=ssid, body={"requests": fmt_reqs}).execute(num_retries=5)
 
     link = f"https://docs.google.com/spreadsheets/d/{ssid}/edit#gid={gid}"
-    print(f"[OK] スプレッドシート更新: タブ {tab} / {nrows - 1}行 / {link}")
+    print(f"[OK] 週次ログシート更新: '{WEEKLY_LOG_SHEET_NAME}' 行{sheet_row_number} / {link}")
     return ssid, link
+
+
+def read_recent_weekly_log_rows(creds, n: int = MONTHLY_LOOKBACK_WEEKS) -> list[dict]:
+    """週次ログシートから直近 n 週分の行を読み取り、月間集計の入力素材にする。
+    未設定・取得失敗時は [] を返す(呼び出し側で月間の空データフォールバックへ)。
+    """
+    ssid = os.environ.get("WEEKLY_SPREADSHEET_ID", "").strip()
+    if not ssid or creds is None:
+        return []
+    try:
+        svc = build_service("sheets", "v4", creds)
+        resp = svc.spreadsheets().values().get(
+            spreadsheetId=ssid, range=f"'{WEEKLY_LOG_SHEET_NAME}'!A2:H",
+        ).execute(num_retries=5)
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] 週次ログシートの読み取りに失敗: {err}")
+        return []
+
+    rows = resp.get("values", [])[-n:]
+    out = []
+    for r in rows:
+        r = r + [""] * (8 - len(r))
+        out.append({"week": r[0], "motivation": r[2], "friction": r[3],
+                    "biorhythm": r[4], "contentment": r[5], "actions": r[6], "link": r[7]})
+    return out
 
 
 # ===========================================================================
 # 8) Discord 投稿
 # ===========================================================================
-def post_to_discord(message: str, image_path: str | None) -> tuple[bool, str | None]:
+# スマホで開いた瞬間にタップできる、枠線付きの高視認性URLブロック。
+URL_BLOCK_WIDTH = 40
+
+
+def _url_block(url: str, label: str) -> str:
+    bar = "═" * URL_BLOCK_WIDTH
+    return f"╔{bar}╗\n🗺️ 【{label}】\n👉 {url}\n╚{bar}╝"
+
+
+def _link_button_row(url: str, label: str) -> dict:
+    """Discord メッセージ用の Link Button(style=5)。Interaction を発生させない
+    純粋なリンク遷移ボタンなので、Bot 権限なしの Webhook 投稿でも送信できる。"""
+    return {"type": 1, "components": [{"type": 2, "style": 5, "label": label[:80], "url": url}]}
+
+
+def post_to_discord(message: str, image_path: str | None, *,
+                    components: list[dict] | None = None,
+                    username: str = "週次棚卸しBot") -> tuple[bool, str | None]:
     """(成功可否, 投稿したメッセージID) を返す。メッセージIDはピン留め用
     (Webhook 投稿時は ?wait=true を付けて本文を取り戻し、そこから抽出する)。"""
     webhook = os.environ.get("DISCORD_WEBHOOK_WEEKLY", "").strip()
@@ -1348,12 +1663,14 @@ def post_to_discord(message: str, image_path: str | None) -> tuple[bool, str | N
     channel_id = os.environ.get("DISCORD_CHANNEL_ID_WEEKLY_SUMMARY", "").strip()
 
     payload = {"content": message[:1900]}
+    if components:
+        payload["components"] = components
     has_image = bool(image_path and os.path.exists(image_path))
     fh = None
     try:
         if webhook:
             url = webhook + ("&wait=true" if "?" in webhook else "?wait=true")
-            hdrs, pl = {"User-Agent": DISCORD_USER_AGENT}, {**payload, "username": "週次棚卸しBot"}
+            hdrs, pl = {"User-Agent": DISCORD_USER_AGENT}, {**payload, "username": username}
         elif bot_token and channel_id:
             url = f"{DISCORD_API_BASE}/channels/{channel_id}/messages"
             hdrs, pl = {"Authorization": f"Bot {bot_token}", "User-Agent": DISCORD_USER_AGENT}, payload
@@ -1428,8 +1745,9 @@ def update_weekly_channel_topic(bot_token: str, channel_id: str, page_url: str) 
 
 def pin_latest_and_unpin_old(bot_token: str, channel_id: str, message_id: str | None) -> None:
     """今回の週次サマリーをピン留めし、以前ピン留めしていた週次サマリーは解除する
-    (このBotが投稿した「🧠 心の棚卸しマップ」始まりのメッセージだけを対象にし、
-    ユーザーが手動で別途ピンしたメッセージには触れない。ベストエフォート)。"""
+    (このBotが投稿した「🧠 心の棚卸しマップ」を含むメッセージだけを対象にし、
+    ユーザーが手動で別途ピンしたメッセージには触れない。ベストエフォート)。
+    先頭に高視認性URLブロックを付けているため startswith ではなく in で判定する。"""
     if not bot_token or not channel_id:
         return
     try:
@@ -1441,7 +1759,7 @@ def pin_latest_and_unpin_old(bot_token: str, channel_id: str, message_id: str | 
         return
 
     for p in pins:
-        if (p.get("content") or "").startswith("🧠 心の棚卸しマップ") and p.get("id") != message_id:
+        if "🧠 心の棚卸しマップ" in (p.get("content") or "") and p.get("id") != message_id:
             try:
                 r = _discord_bot_request("DELETE", f"/channels/{channel_id}/pins/{p['id']}", bot_token)
                 r.raise_for_status()
@@ -1461,27 +1779,39 @@ def pin_latest_and_unpin_old(bot_token: str, channel_id: str, message_id: str | 
 
 def compose_message(ctx: dict, sheet_link: str | None, source: str, empty: bool,
                     warnings: list[str] | None = None, page_url: str | None = None) -> str:
+    """通知本文を組み立てる。スマホで開いた瞬間に見失わないよう、URL ブロックを
+    メッセージの最上部・最下部の両方に配置する(先頭に埋もれさせない)。"""
+    url_block = _url_block(page_url, "最新マインドマップを開く（タップ）") if page_url else ""
     head = f"🧠 心の棚卸しマップ  {ctx['label']}"
     warn_block = ("\n".join(f"⚠️ {w}" for w in warnings) + "\n\n") if warnings else ""
     if empty:
-        body = (warn_block + "今週は取得できた記録がありませんでした"
+        body = (head + "\n\n" + warn_block + "今週は取得できた記録がありませんでした"
                 + ("（上の警告が原因の可能性があります）。" if warnings
                    else "。来週は小さくてもログを残していきましょう。")
-                + (f"\n\nスプレッドシート: {sheet_link}" if sheet_link else "")
-                + (f"\n🔗 常設ページ: {page_url}" if page_url else ""))
-        return head + "\n\n" + body
+                + (f"\n\nスプレッドシート: {sheet_link}" if sheet_link else ""))
+        return "\n\n".join(p for p in [url_block, body, url_block] if p)
     note = "（簡易構造化：Gemini 未使用）" if source == "fallback" else ""
     lines = [head + (f"  {note}" if note else ""), ""]
     if warn_block:
         lines.append(warn_block.rstrip())
-    if page_url:
-        lines.append(f"🔗 常設ページ: {page_url}")
     if sheet_link:
         lines.append(f"📄 スプレッドシート: {sheet_link}")
     lines.append("")
     lines.append("今週の脳内棚卸しが完了しました。画像またはスプレッドシートから、"
                  "来週手帳に書く 3 つのアクションを選んでください。")
-    return "\n".join(lines)
+    body = "\n".join(lines)
+    return "\n\n".join(p for p in [url_block, body, url_block] if p)
+
+
+def compose_monthly_message(mctx: dict, page_url: str | None,
+                            warnings: list[str] | None = None) -> str:
+    """月間マインドマップの通知本文。週次と同様に URL ブロックを上下に配置する。"""
+    url_block = _url_block(page_url, "月間マインドマップを開く（タップ）") if page_url else ""
+    warn_block = ("\n".join(f"⚠️ {w}" for w in warnings) + "\n\n") if warnings else ""
+    head = f"🌕 【月間思考棚卸しマップ（{mctx['month']}月度）】"
+    body = (head + "\n\n" + warn_block
+            + "直近4週分の心のベクトルを統合しました。来月の3大フォーカスも生成済みです。")
+    return "\n\n".join(p for p in [url_block, body, url_block] if p)
 
 
 # ===========================================================================
@@ -1525,6 +1855,28 @@ def mock_bundle() -> dict:
             ],
         },
     }
+
+
+def mock_weekly_log_rows() -> list[dict]:
+    """--use-mock で月間統合も検証できるようにする、直近4週分の週次ログ相当データ。"""
+    return [
+        {"week": "2026-W35", "motivation": "写真展の準備、撮影散歩",
+         "friction": "経理作業の先送り", "biorhythm": "1万歩習慣が定着",
+         "contentment": "16時間断食が安定",
+         "actions": "① 経理を1つ着手する\n② 撮影散歩を継続する\n③ 睡眠時間を確保する", "link": ""},
+        {"week": "2026-W36", "motivation": "映画鑑賞、DUNE再見",
+         "friction": "決算書の先送りが継続", "biorhythm": "頭が重い日が2日",
+         "contentment": "バドミントン再開で満足",
+         "actions": "① 決算書に着手する\n② 映画の感想を記録する\n③ 早寝を試す", "link": ""},
+        {"week": "2026-W37", "motivation": "美術館訪問を計画",
+         "friction": "判断を先送りする癖", "biorhythm": "歩数が安定",
+         "contentment": "習慣が定着してきた実感",
+         "actions": "① 先送り癖に向き合う\n② 美術館へ行く\n③ 歩数を維持する", "link": ""},
+        {"week": "2026-W38", "motivation": "写真展搬入、DUNE鑑賞",
+         "friction": "決算書ドラフトが未着手", "biorhythm": "断食と歩数が継続",
+         "contentment": "請求書対応をやり切った",
+         "actions": "① 決算書ドラフトに着手する\n② 写真展の続きを楽しむ\n③ 体調のリズムを保つ", "link": ""},
+    ]
 
 
 # ===========================================================================
@@ -1624,38 +1976,65 @@ def main() -> int:
             w.writerow([r[0], r[1], r[2], "FALSE"])
     print(f"[OK] 行プレビュー CSV: {csv_path} ({len(rows)}行)")
 
-    if args.use_mock:
-        publish_mindmap_pages(png_path, ctx, source, None, warnings)
-        print("=== モック実行のため Sheets / Discord は行いません。完了。 ===")
-        return 0
-
-    # --- 4. スプレッドシート ----------------------------------------
+    # --- 4. スプレッドシート(週次ログシートへ1行追記/上書き) ---------
     sheet_link = None
-    if dry_run:
+    if args.use_mock:
+        print("[INFO] モック実行のため Sheets 書き込みをスキップ")
+    elif dry_run:
         print("[INFO] dry-run: スプレッドシート書き込みをスキップ")
     elif creds is None:
         print("[INFO] OAuth 認証情報が無い/無効のためスプレッドシート書き込みをスキップ")
     else:
         try:
-            _, sheet_link = write_week_sheet(creds, ctx, rows)
+            _, sheet_link = write_week_log_row(creds, ctx, tree, None)
         except Exception as err:  # noqa: BLE001
             print(f"[WARN] スプレッドシート書き込みに失敗: {err}")
             warnings.append("スプレッドシートの更新に失敗しました。")
 
-    # --- 4.5. GitHub Pages 常設ページ(常に書き出す。PNG/CSVと同様 dry-run でも生成) ---
+    # --- 4.5. GitHub Pages 常設ページ(常に書き出す。PNG/CSVと同様 dry-run/mock でも生成) ---
     page_url = publish_mindmap_pages(png_path, ctx, source, sheet_link, warnings)
 
-    # --- 5. Discord -------------------------------------------------
+    # --- 5. Discord(週次) --------------------------------------------
     message = compose_message(ctx, sheet_link, source, empty, warnings, page_url)
-    if dry_run:
-        print("[INFO] dry-run: Discord 投稿をスキップ。本文プレビュー:\n" + message)
+    components = [_link_button_row(page_url, "🗺️ マインドマップを開く")] if page_url else None
+    if dry_run or args.use_mock:
+        skip_reason = "モック実行" if args.use_mock else "dry-run"
+        print(f"[INFO] {skip_reason}のため Discord 投稿をスキップ。本文プレビュー:\n" + message)
     else:
-        ok, message_id = post_to_discord(message, png_path)
+        ok, message_id = post_to_discord(message, png_path, components=components)
         bot_token = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
         channel_id = os.environ.get("DISCORD_CHANNEL_ID_WEEKLY_SUMMARY", "").strip()
         if ok and page_url and bot_token and channel_id:
             update_weekly_channel_topic(bot_token, channel_id, page_url)
             pin_latest_and_unpin_old(bot_token, channel_id, message_id)
+
+    # --- 6. 月末週(その月最後の日曜)なら月間マインドマップも生成 ---------
+    if is_month_closing_week(ctx):
+        mctx = month_context(ctx)
+        print(f"=== 月末週のため月間棚卸し {mctx['month_tag']} ({mctx['label']}) も生成します ===")
+
+        weeks = mock_weekly_log_rows() if args.use_mock else read_recent_weekly_log_rows(creds, MONTHLY_LOOKBACK_WEEKS)
+        mtree, msource = structure_monthly(weeks, mctx, api_key, model)
+
+        monthly_png_path = os.path.join(REPORT_MONTHLY_DIR, f"{mctx['month_tag']}_mindmap.png")
+        try:
+            render_mindmap(mtree, mctx, msource, monthly_png_path,
+                          title_prefix="月間思考棚卸しマップ", center_label_prefix="月間棚卸し",
+                          action_band_title="◆ 来月の手帳用 3大フォーカス")
+        except Exception as err:  # noqa: BLE001
+            print(f"[WARN] 月間画像描画に失敗しました: {err}")
+            monthly_png_path = None
+
+        monthly_page_url = publish_monthly_pages(monthly_png_path, mctx, msource, [])
+        monthly_message = compose_monthly_message(mctx, monthly_page_url)
+        monthly_components = ([_link_button_row(monthly_page_url, "🌕 月間マップを開く")]
+                              if monthly_page_url else None)
+        if dry_run or args.use_mock:
+            skip_reason = "モック実行" if args.use_mock else "dry-run"
+            print(f"[INFO] {skip_reason}のため 月間Discord投稿をスキップ。本文プレビュー:\n" + monthly_message)
+        else:
+            post_to_discord(monthly_message, monthly_png_path, components=monthly_components,
+                           username="月間棚卸しBot")
 
     print("=== 完了 ===" + ("（警告あり）" if warnings else ""))
     return 0

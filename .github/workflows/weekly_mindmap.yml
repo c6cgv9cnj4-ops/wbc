@@ -2,13 +2,18 @@ name: 週次棚卸しマインドマップ
 
 # 毎週日曜 20:00 JST に、直近1週間の Discord モーニングジャーナル / Google
 # カレンダー / Google Tasks を集約し、
-#   1) 円形放射状マインドマップ画像(PNG)を #週間まとめ チャンネルへ投稿
-#   2) Google スプレッドシートの週次タブ(YYYY_Www・チェックボックス付き)へ追記
+#   1) 円形放射状マインドマップ画像(PNG)を #週間まとめ チャンネルへ高視認性URL
+#      ブロック付きで投稿
+#   2) Google スプレッドシートの「週次ログ」タブへ1週1行を追記/上書き
+#      (B列にマインドマップ画像を =IMAGE() で埋め込み)
 #   3) mindmap/index.html(固定URL) + mindmap/archive/{週}.html(永久アーカイブ)を
 #      GitHub Pages 公開用にリポジトリへコミット
 #      (https://c6cgv9cnj4-ops.github.io/wbc/mindmap/ が常に最新を指す)
+#   4) 月末週(その月最後の日曜)は直近4週分を統合した月間マインドマップも生成し、
+#      mindmap/monthly/ 配下に公開、Discord へ別メッセージで通知
 # する。reports/weekly/ の行 CSV も引き続きコミットする(PNGはmindmap/配下のみ
-# 恒久保存し、reports/weekly/*.png はバイナリ肥大化を避けアーティファクトのみ)。
+# 恒久保存し、reports/weekly/*.png・reports/monthly/*.png はバイナリ肥大化を
+# 避けアーティファクトのみ)。
 #
 # 認証は「1本の OAuth リフレッシュトークン」に集約(Calendar/Tasks/Sheets 共通)。
 # 発行手順は docs/WEEKLY_MINDMAP_SETUP.md。同意画面は必ず「本番」公開にすること
@@ -83,7 +88,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: weekly-mindmap
-          path: reports/weekly/
+          path: |
+            reports/weekly/
+            reports/monthly/
           if-no-files-found: ignore
           retention-days: 90
 
