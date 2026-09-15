@@ -1,0 +1,32 @@
+name: 週末撮影予報 見頃先回り通知(#webhook_local)
+
+on:
+  schedule:
+    # 毎週木曜 7:00 JST = 水曜 22:00 UTC
+    - cron: "0 22 * * 3"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  photo-season-alert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: photo-season-alert
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install requests
+
+      - name: 見頃の関東カメラスポットを抽出してDiscordへ通知
+        env:
+          DISCORD_WEBHOOK_LOCAL: ${{ secrets.WEBHOOK_LOCAL }}
+        run: python scripts/check_photo_season.py
