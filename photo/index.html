@@ -789,29 +789,29 @@
         // meibutsu は各店の公式・紹介記事で確認した名物。
         const tokyoSobaSeatedSpots = [
             // --- 東京23区（老舗・名店） ---
-            { name: '神田まつや 本店', short: 'まつや', lat: 35.69611, lng: 139.76879, addr: '千代田区神田須田町1-13', cat: '着席型蕎麦', isMustVisit: true, area: '東京', meibutsu: '鴨南ばん・かしわ南ばん・鴨せいろ（明治17年創業）' },
-            { name: 'かんだやぶそば', short: '神田やぶ', lat: 35.69700, lng: 139.76869, addr: '千代田区神田淡路町2-10', cat: '着席型蕎麦', isMustVisit: true, area: '東京', meibutsu: 'せいろうそば・天ぷらそば（小海老のかき揚げ）・鴨せいろう' },
+            { name: '神田まつや 本店', short: 'まつや', lat: 35.69611, lng: 139.76879, addr: '千代田区神田須田町1-13', sobamae: 'あかね鶏の焼鳥・わさびかまぼこ・焼のり・蕎麦味噌（酒のお通し）', mori: 'もりそば・鴨せいろ', cat: '着席型蕎麦', isMustVisit: true, area: '東京', meibutsu: '鴨南ばん・かしわ南ばん・鴨せいろ（明治17年創業）' },
+            { name: 'かんだやぶそば', short: '神田やぶ', lat: 35.69700, lng: 139.76869, addr: '千代田区神田淡路町2-10', sobamae: '板わさ・焼のりなどの一品料理と日本酒', mori: 'せいろうそば', cat: '着席型蕎麦', isMustVisit: true, area: '東京', meibutsu: 'せいろうそば・天ぷらそば（小海老のかき揚げ）・鴨せいろう' },
             { name: '神田錦町 更科', short: '錦町更科', lat: 35.69378, lng: 139.76170, addr: '千代田区神田錦町3-14', cat: '着席型蕎麦', area: '東京', meibutsu: 'とり汁せいろ・季節の変わりそば（白い更科そば）' },
-            { name: '並木藪蕎麦', short: '並木藪', lat: 35.70968, lng: 139.79594, addr: '台東区雷門2-11-9', cat: '着席型蕎麦', area: '東京', meibutsu: '天ざるそば・鴨南蛮・せいろ（辛口のつゆ）' },
-            { name: '室町 砂場', short: '室町砂場', lat: 35.68935, lng: 139.77177, addr: '中央区日本橋室町4-1-13', cat: '着席型蕎麦', area: '東京', meibutsu: '天ざる・天もり（発祥の店）・天ぷらそば' },
+            { name: '並木藪蕎麦', short: '並木藪', lat: 35.70968, lng: 139.79594, addr: '台東区雷門2-11-9', sobamae: '日本酒・ビール', mori: 'せいろ（ざる）・天ざるそば', cat: '着席型蕎麦', area: '東京', meibutsu: '天ざるそば・鴨南蛮・せいろ（辛口のつゆ）' },
+            { name: '室町 砂場', short: '室町砂場', lat: 35.68935, lng: 139.77177, addr: '中央区日本橋室町4-1-13', sobamae: '板わさ・そば味噌・焼き鳥・玉子焼き', mori: 'もり・ざる（天もり・天ざるも）', cat: '着席型蕎麦', area: '東京', meibutsu: '天ざる・天もり（発祥の店）・天ぷらそば' },
             { name: '上野 藪そば', short: '上野藪', lat: 35.71020, lng: 139.77546, addr: '台東区上野6-9-16', cat: '着席型蕎麦', area: '東京', meibutsu: '天せいろう・鴨せいろう' },
             { name: '総本家 更科堀井 本店', short: '更科堀井', lat: 35.65680, lng: 139.73288, addr: '港区元麻布3-11-4', cat: '着席型蕎麦', area: '東京', meibutsu: 'さらしなそば（寛政元年創業）・季節の変わりそば' },
-            { name: '虎ノ門 大坂屋 砂場', short: '大坂屋砂場', lat: 35.66822, lng: 139.75070, addr: '港区虎ノ門1-10-6', cat: '着席型蕎麦', area: '東京', meibutsu: '天ぷらそば・天せいろ（登録有形文化財の建物）' },
+            { name: '虎ノ門 大坂屋 砂場', short: '大坂屋砂場', lat: 35.66822, lng: 139.75070, addr: '港区虎ノ門1-10-6', sobamae: '日本酒・焼酎と、玉子焼き・焼き鳥・天ぷらなどのつまみ', mori: 'もりそば・天せいろ', cat: '着席型蕎麦', area: '東京', meibutsu: '天ぷらそば・天せいろ（登録有形文化財の建物）' },
             { name: '蕎麦きり みまき', short: 'みまき', lat: 35.67593, lng: 139.73575, addr: '港区赤坂4-2-3', cat: '着席型蕎麦', area: '東京', meibutsu: '天せいろ（車海老と旬野菜）・季節の天ぷら' },
-            { name: '翁庵', short: '翁庵', lat: 35.71184, lng: 139.77886, addr: '台東区東上野3-39-8', cat: '着席型蕎麦', area: '東京', meibutsu: 'ねぎせいろ（イカのかき揚げ入りの汁）' },
+            { name: '翁庵', short: '翁庵', lat: 35.71184, lng: 139.77886, addr: '台東区東上野3-39-8', sobamae: '板わさ・油揚甘辛煮・かつ煮・そばがき', mori: '大もり・ねぎせいろ', cat: '着席型蕎麦', area: '東京', meibutsu: 'ねぎせいろ（イカのかき揚げ入りの汁）' },
             // --- 埼玉県（北本〜大宮・浦和・上尾・川越） ---
             { name: '太治平', short: '太治平', lat: 36.01659, lng: 139.55062, addr: '北本市二ツ家2-151', cat: '着席型蕎麦', isMustVisit: true, area: '埼玉', meibutsu: '鴨汁せいろ・肉汁せいろ（外一の手打ち）' },
             { name: '手打そば すゞ木', short: 'すゞ木', lat: 36.02821, lng: 139.53874, addr: '北本市本宿2-81', cat: '着席型蕎麦', area: '埼玉', meibutsu: '鴨汁そば・十割そば・鴨汁きしめん' },
             { name: '萬吉禎', short: '萬吉禎', lat: 36.01920, lng: 139.50899, addr: '北本市荒井4-255', cat: '着席型蕎麦', area: '埼玉', meibutsu: '天付鴨汁そば・わさび丼' },
-            { name: '手打ちそば処 久霧', short: '久霧', lat: 35.90013, lng: 139.62388, addr: 'さいたま市中央区上落合9-9-4', cat: '着席型蕎麦', area: '埼玉', meibutsu: 'そばの味くらべ（そばがき・十割・手挽き）・手挽きせいろ' },
+            { name: '手打ちそば処 久霧', short: '久霧', lat: 35.90013, lng: 139.62388, addr: 'さいたま市中央区上落合9-9-4', sobamae: '地酒・埼玉産クラフトビール・蕎麦味噌・そばがき', mori: '手挽きせいろ・十割そば', cat: '着席型蕎麦', area: '埼玉', meibutsu: 'そばの味くらべ（そばがき・十割・手挽き）・手挽きせいろ' },
             { name: '手打ちそば きくち', short: 'きくち', lat: 35.92587, lng: 139.62794, addr: 'さいたま市北区盆栽町377-3', cat: '着席型蕎麦', area: '埼玉', meibutsu: '三色そば（変わりそば＋えび天）・鴨そば' },
             { name: '蕎麦 孤丘', short: '孤丘', lat: 35.88606, lng: 139.63721, addr: 'さいたま市浦和区上木崎1-11-12', cat: '着席型蕎麦', area: '埼玉', meibutsu: '十割そば・海老天せいろ・鴨南蛮そば' },
             { name: '分上野薮 かねこ', short: '薮かねこ', lat: 35.86118, lng: 139.65025, addr: 'さいたま市浦和区仲町2-9-11', cat: '着席型蕎麦', area: '埼玉', meibutsu: 'せいろう・鴨南蛮（上野藪の暖簾分け）' },
             { name: '内藤流手打ちそば あさきや', short: 'あさきや', lat: 35.86005, lng: 139.64708, addr: 'さいたま市浦和区仲町3-13-6', cat: '着席型蕎麦', area: '埼玉', meibutsu: '信州内藤流の石臼自家製粉・手打ち／手毬唄（かき揚げ天丼とそば）' },
             { name: '石挽手打そば わかお', short: 'わかお', lat: 35.96032, lng: 139.55125, addr: '上尾市小敷谷331-3', cat: '着席型蕎麦', area: '埼玉', meibutsu: '特製二味そば（もり汁＋辛味大根汁）・十割そば' },
-            { name: '文楽 東蔵', short: '東蔵', lat: 35.97788, lng: 139.58630, addr: '上尾市上町2-5-5', cat: '着席型蕎麦', area: '埼玉', meibutsu: '海老天上せいろ・くるみだれせいろ（酒蔵を改修した店）' },
+            { name: '文楽 東蔵', short: '東蔵', lat: 35.97788, lng: 139.58630, addr: '上尾市上町2-5-5', sobamae: '酒蔵「文楽」直結の地酒・季節の焼き物／煮物・前菜セット', mori: 'せいろそば・くるみだれせいろ', cat: '着席型蕎麦', area: '埼玉', meibutsu: '海老天上せいろ・くるみだれせいろ（酒蔵を改修した店）' },
             { name: '手打そば 百丈', short: '百丈', lat: 35.92460, lng: 139.48523, addr: '川越市元町1-1-15', cat: '着席型蕎麦', area: '埼玉', meibutsu: '天もりそば・揚もちそば（会津・山都町産粉の二八）' },
-            { name: '蕎麦.酒 十限無', short: '十限無', lat: 35.91955, lng: 139.48735, addr: '川越市久保町6-6', cat: '着席型蕎麦', area: '埼玉', meibutsu: '十割そば切り・韃靼そば・ごま豆乳そば' }
+            { name: '蕎麦.酒 十限無', short: '十限無', lat: 35.91955, lng: 139.48735, addr: '川越市久保町6-6', sobamae: '種類豊富なお酒・自家製梅酒・蕎麦とのペアリング（昼飲みも歓迎）', mori: '十割そば切り', cat: '着席型蕎麦', area: '埼玉', meibutsu: '十割そば切り・韃靼そば・ごま豆乳そば' }
         ];
 
         const tokyoCoffeeSpots = [
@@ -2342,17 +2342,25 @@
                             const liveInfo = spot.ratingNum
                                 ? '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 ★' + escapeHtml(spot.ratingNum) + '（' + escapeHtml(Number(spot.ratingCount).toLocaleString()) + '件）</div>'
                                 : (spot.meibutsu ? '<div class="text-slate-400 text-[10px] mt-1">Google評価: Googleマップで確認</div>' : '');
-                            const meibutsuLine = spot.meibutsu ? '<div class="text-orange-700 font-bold text-[11px] mt-1">🍤 名物: ' + escapeHtml(spot.meibutsu) + '</div>' : '';
+                            // 蕎麦前も愉しめる名店: 「酒を頼まないと入りづらい」印象にならないよう、蕎麦のみ利用を先に案内する
+                            const sobamaeBlock = spot.sobamae ? '<div class="mt-1.5 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-1">' +
+                                '<div class="text-emerald-800 font-bold text-[10.5px]">🍶 蕎麦前も愉しめる名店<span class="font-normal">（食事・蕎麦のみも大歓迎）</span></div>' +
+                                '<div class="text-slate-800 text-[11px] mt-0.5">🍽 <b>名物：</b>' + escapeHtml(spot.mori || '') + '</div>' +
+                                '<div class="text-slate-700 text-[11px]">🍶 <b>蕎麦前・酒肴：</b>' + escapeHtml(spot.sobamae) + '</div>' +
+                                '<div class="text-slate-500 text-[10px] mt-0.5">蕎麦一枚のサクッとしたお食事利用でも愛される名店。お酒はその日の気分でどうぞ。</div>' +
+                                '</div>' : '';
+                            const meibutsuLine = spot.meibutsu ? '<div class="text-orange-700 font-bold text-[11px] mt-1">' + (spot.sobamae ? '🍤 看板メニュー: ' : '🍤 名物: ') + escapeHtml(spot.meibutsu) + '</div>' : '';
                             const mustBadge = spot.mustVisit ? '<span class="inline-block font-bold px-1.5 py-0.5 rounded text-[10px] mb-1 ml-1" style="background:linear-gradient(135deg,#fde047,#f59e0b); color:#451a03; border:1px solid #d97706;">🔥 必訪名店</span>' : '';
                             const specialBadge = mustBadge + (spot.isSpecial ? '<span class="inline-block bg-amber-100 text-amber-800 border border-amber-300 font-bold px-1.5 py-0.5 rounded text-[10px] mb-1 ml-1">🏅 殿堂入り・名店</span>' : '');
                             const noteLine = spot.note ? '<div class="text-slate-400 text-[10px] mt-0.5">' + escapeHtml(spot.note) + '</div>' : '';
                             const mapLink = spot.gmapUri ? '<a href="' + escapeHtml(spot.gmapUri) + '" target="_blank" rel="noopener" class="text-sky-600 underline text-[10px] block mt-1">Googleマップで開く</a>' : '';
                             return '<div class="text-slate-900 text-xs font-sans">' +
                                 '<strong class="text-sm font-bold block mb-1">' + escapeHtml(safeName) + '</strong>' +
-                                '<span class="inline-block bg-sky-100 text-sky-800 font-semibold px-1.5 py-0.5 rounded text-[10px] mb-1">' + escapeHtml(safeCat) + '</span>' + specialBadge +
+                                '<span class="inline-block bg-sky-100 text-sky-800 font-semibold px-1.5 py-0.5 rounded text-[10px] mb-1">' + escapeHtml(safeCat) + '</span>' + specialBadge + (spot.sobamae ? '<span class="inline-block bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-1.5 py-0.5 rounded text-[10px] mb-1 ml-1">🍶 蕎麦前OK</span>' : '') +
                                 addressLine +
                                 (spot.meibutsu ? liveInfo : infoBadge) +
                                 meibutsuLine +
+                                sobamaeBlock +
                                 liveHoursHtml(spot, hoursPopup) +
                                 noteLine +
                                 mapLink +
