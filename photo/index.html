@@ -779,7 +779,7 @@
             { name: '立喰そば 大むら (潮見)', short: '大むら', lat: 35.65748, lng: 139.81525, addr: '江東区潮見1-27-5', cat: '立ち食いそば', meibutsu: '春菊天（器からはみ出す大きさ）・かけそば200円台', hours: '6:00-14:00' },
             { name: '文殊 亀戸店', short: '文殊 亀戸', lat: 35.69717, lng: 139.82829, addr: '江東区亀戸6-61-1', cat: '立ち食いそば', meibutsu: '岩のりそば・かき揚げそば', isSpecial: true, note: '路麺文化の名店として殿堂入り（★基準に関わらず掲載）' },
             // --- 荒川区・北区・豊島区 ---
-            { name: '一由そば (日暮里)', short: '一由そば', lat: 35.73025, lng: 139.77084, addr: '荒川区西日暮里2-26-8', cat: '立ち食いそば', meibutsu: 'ジャンボゲソ天そば（太そば）', hours: '24時間営業' },
+            { name: '一由そば (日暮里)', short: '一由そば', lat: 35.73025, lng: 139.77084, addr: '荒川区西日暮里2-26-8', cat: '立ち食いそば', isMustVisit: true, meibutsu: 'ジャンボゲソ天そば（太そば）', hours: '24時間営業' },
             { name: '立喰そば かしやま (田端)', short: 'かしやま', lat: 35.73902, lng: 139.76201, addr: '北区東田端1-17-20', cat: '立ち食いそば', meibutsu: '天玉そば（朝のみ営業）', hours: '6:00-10:00', holiday: '日曜・祝日' },
             { name: '肉そば 南天 (椎名町)', short: '南天', lat: 35.72664, lng: 139.69510, addr: '豊島区長崎1-2-2', cat: '立ち食いそば', meibutsu: '肉そば（玉ねぎの甘みの豚肉山盛り）', hours: '5:30-25:30' }
         ];
@@ -789,8 +789,8 @@
         // meibutsu は各店の公式・紹介記事で確認した名物。
         const tokyoSobaSeatedSpots = [
             // --- 東京23区（老舗・名店） ---
-            { name: '神田まつや 本店', short: 'まつや', lat: 35.69611, lng: 139.76879, addr: '千代田区神田須田町1-13', cat: '着席型蕎麦', area: '東京', meibutsu: '鴨南ばん・かしわ南ばん・鴨せいろ（明治17年創業）' },
-            { name: 'かんだやぶそば', short: '神田やぶ', lat: 35.69700, lng: 139.76869, addr: '千代田区神田淡路町2-10', cat: '着席型蕎麦', area: '東京', meibutsu: 'せいろうそば・天ぷらそば（小海老のかき揚げ）・鴨せいろう' },
+            { name: '神田まつや 本店', short: 'まつや', lat: 35.69611, lng: 139.76879, addr: '千代田区神田須田町1-13', cat: '着席型蕎麦', isMustVisit: true, area: '東京', meibutsu: '鴨南ばん・かしわ南ばん・鴨せいろ（明治17年創業）' },
+            { name: 'かんだやぶそば', short: '神田やぶ', lat: 35.69700, lng: 139.76869, addr: '千代田区神田淡路町2-10', cat: '着席型蕎麦', isMustVisit: true, area: '東京', meibutsu: 'せいろうそば・天ぷらそば（小海老のかき揚げ）・鴨せいろう' },
             { name: '神田錦町 更科', short: '錦町更科', lat: 35.69378, lng: 139.76170, addr: '千代田区神田錦町3-14', cat: '着席型蕎麦', area: '東京', meibutsu: 'とり汁せいろ・季節の変わりそば（白い更科そば）' },
             { name: '並木藪蕎麦', short: '並木藪', lat: 35.70968, lng: 139.79594, addr: '台東区雷門2-11-9', cat: '着席型蕎麦', area: '東京', meibutsu: '天ざるそば・鴨南蛮・せいろ（辛口のつゆ）' },
             { name: '室町 砂場', short: '室町砂場', lat: 35.68935, lng: 139.77177, addr: '中央区日本橋室町4-1-13', cat: '着席型蕎麦', area: '東京', meibutsu: '天ざる・天もり（発祥の店）・天ぷらそば' },
@@ -800,7 +800,7 @@
             { name: '蕎麦きり みまき', short: 'みまき', lat: 35.67593, lng: 139.73575, addr: '港区赤坂4-2-3', cat: '着席型蕎麦', area: '東京', meibutsu: '天せいろ（車海老と旬野菜）・季節の天ぷら' },
             { name: '翁庵', short: '翁庵', lat: 35.71184, lng: 139.77886, addr: '台東区東上野3-39-8', cat: '着席型蕎麦', area: '東京', meibutsu: 'ねぎせいろ（イカのかき揚げ入りの汁）' },
             // --- 埼玉県（北本〜大宮・浦和・上尾・川越） ---
-            { name: '太治平', short: '太治平', lat: 36.01659, lng: 139.55062, addr: '北本市二ツ家2-151', cat: '着席型蕎麦', area: '埼玉', meibutsu: '鴨汁せいろ・肉汁せいろ（外一の手打ち）' },
+            { name: '太治平', short: '太治平', lat: 36.01659, lng: 139.55062, addr: '北本市二ツ家2-151', cat: '着席型蕎麦', isMustVisit: true, area: '埼玉', meibutsu: '鴨汁せいろ・肉汁せいろ（外一の手打ち）' },
             { name: '手打そば すゞ木', short: 'すゞ木', lat: 36.02821, lng: 139.53874, addr: '北本市本宿2-81', cat: '着席型蕎麦', area: '埼玉', meibutsu: '鴨汁そば・十割そば・鴨汁きしめん' },
             { name: '萬吉禎', short: '萬吉禎', lat: 36.01920, lng: 139.50899, addr: '北本市荒井4-255', cat: '着席型蕎麦', area: '埼玉', meibutsu: '天付鴨汁そば・わさび丼' },
             { name: '手打ちそば処 久霧', short: '久霧', lat: 35.90013, lng: 139.62388, addr: 'さいたま市中央区上落合9-9-4', cat: '着席型蕎麦', area: '埼玉', meibutsu: 'そばの味くらべ（そばがき・十割・手挽き）・手挽きせいろ' },
@@ -1959,10 +1959,15 @@
             return '<div class="text-emerald-600 font-semibold text-[11px] mt-1">🕒 ' + escapeHtml(spot.hoursLive) + (spot.holidayLive ? '<br>📅 定休日: ' + escapeHtml(spot.holidayLive) : '') + '</div>' + week;
         }
 
+        // 🔥必訪: (条件①) 実測★4.1以上かつ300件以上、または (条件②) isMustVisit:true の個別指定
+        const SOBA_MUST_RATING = 4.1;
+        const SOBA_MUST_REVIEWS = 300;
         const SOBA_MIN_RATING = 3.8;
         const SOBA_MIN_REVIEWS = 100;
         const allSobaSpots = () => [...tokyoSobaSpots, ...tokyoSobaSeatedSpots];
+        allSobaSpots().forEach(sp => { if (sp.isMustVisit) sp.mustVisit = true; });
         let sobaFilterMode = 'both'; // 'standing' | 'seated' | 'both'
+        let sobaMustOnly = false;   // 🔥必訪店のみ
 
         // 立ち食い/着席型の表示切替。実測で基準未達となった店(excluded)は常に非表示
         function applySobaFilter(map) {
@@ -1971,7 +1976,7 @@
                 const catOk = sobaFilterMode === 'both'
                     || (sobaFilterMode === 'standing' && spot.cat === '立ち食いそば')
                     || (sobaFilterMode === 'seated' && spot.cat === '着席型蕎麦');
-                const show = catOk && !spot.excluded;
+                const show = catOk && !spot.excluded && (!sobaMustOnly || spot.mustVisit);
                 const on = map.hasLayer(spot._marker);
                 if (show && !on) spot._marker.addTo(map);
                 if (!show && on) map.removeLayer(spot._marker);
@@ -1979,7 +1984,7 @@
             const cs = document.getElementById('sobaFilterCounts');
             if (cs) {
                 const n = c => allSobaSpots().filter(x => x.cat === c && !x.excluded).length;
-                cs.textContent = '立ち食い ' + n('立ち食いそば') + '店 / 着席型 ' + n('着席型蕎麦') + '店';
+                cs.textContent = '立ち食い ' + n('立ち食いそば') + '店 / 着席型 ' + n('着席型蕎麦') + '店 / 🔥必訪 ' + allSobaSpots().filter(x => x.mustVisit && !x.excluded).length + '店';
             }
         }
 
@@ -1991,6 +1996,7 @@
                 div.innerHTML = '<div style="font-weight:bold; margin-bottom:2px;">🍜 蕎麦屋の表示</div>' +
                     [['both', '両方表示'], ['standing', '<span style="color:#ea580c;">●</span> 立ち食いのみ'], ['seated', '<span style="color:#3730a3;">●</span> 着席型のみ']]
                         .map(([v, t]) => '<label style="display:block; cursor:pointer;"><input type="radio" name="sobaFilter" value="' + v + '"' + (v === sobaFilterMode ? ' checked' : '') + '> ' + t + '</label>').join('') +
+                    '<label style="display:block; cursor:pointer; margin-top:3px; padding-top:3px; border-top:1px solid #e2e8f0; font-weight:bold; color:#b45309;"><input type="checkbox" id="sobaMustOnly"' + (sobaMustOnly ? ' checked' : '') + '> 🔥 必訪店のみ</label>' +
                     '<div id="sobaFilterCounts" style="color:#64748b; font-size:10px; margin-top:2px;"></div>';
                 // 地図クリック(任意スポット追加)へ伝播させない
                 L.DomEvent.disableClickPropagation(div);
@@ -1998,6 +2004,8 @@
                 div.querySelectorAll('input[name="sobaFilter"]').forEach(function(inp) {
                     inp.addEventListener('change', function() { sobaFilterMode = inp.value; applySobaFilter(map); });
                 });
+                const mo = div.querySelector('#sobaMustOnly');
+                if (mo) mo.addEventListener('change', function() { sobaMustOnly = mo.checked; applySobaFilter(map); });
                 return div;
             };
             ctl.addTo(map);
@@ -2049,6 +2057,7 @@
                     spot.ratingNum = Number(data.rating).toFixed(1);
                     spot.ratingCount = data.count;
                     spot.belowThreshold = !okScore;
+                    spot.mustVisit = !!spot.isMustVisit || (data.rating >= SOBA_MUST_RATING && data.count >= SOBA_MUST_REVIEWS);
                     if (data.uri) spot.gmapUri = data.uri;
                     // 営業時間: weekdayDescriptions は月曜始まり。「本日」と定休日(曜日)を実測値から作る
                     if (data.week && data.week.length === 7) {
@@ -2058,7 +2067,11 @@
                         spot.holidayLive = closed.length ? closed.map(c => c + '曜').join('・') : '';
                         spot.weekLive = data.week.map(d => d.replace('曜日', ''));
                     }
-                    if (spot._marker) spot._marker.setIcon(makeIcon(spot));
+                    if (spot._marker) {
+                        spot._marker.setIcon(makeIcon(spot));
+                        if (spot.mustVisit) spot._marker.setZIndexOffset(1000);
+                    }
+                    if (sobaMustOnly) applySobaFilter(map);
                 } catch (e) { console.warn('hydrateSobaSpots item', spot.name, e); }
             }
             applySobaFilter(map);
@@ -2244,12 +2257,17 @@
                 // 立ち食い=オレンジ🍜 / 殿堂入り=🏅 / 着席型=藍色🥢 で一目で区別
                 const makeSobaIcon = function(spot) {
                     const seated = spot.cat === '着席型蕎麦';
-                    const bg = seated ? '#3730a3' : '#ea580c';
-                    const mark = spot.isSpecial ? '🏅' : (seated ? '🥢' : '🍜');
+                    const must = !!spot.mustVisit;
+                    // 必訪は金色グラデ＋黒文字＋金の光彩で一段大きく。通常は立ち食い=橙 / 着席型=藍
+                    const bg = must ? 'linear-gradient(135deg,#fde047,#f59e0b)' : (seated ? '#3730a3' : '#ea580c');
+                    const mark = must ? '🔥' : (spot.isSpecial ? '🏅' : (seated ? '🥢' : '🍜'));
                     const label = mark + ' ' + escapeHtml(spot.short || 'そば') + (spot.ratingNum ? ' ★' + spot.ratingNum : '');
+                    const style = must
+                        ? 'background:' + bg + '; color:#451a03; font-size:11px; padding:3px 9px; border:2px solid #fff7ed; box-shadow:0 0 0 2px #d97706, 0 0 10px 3px rgba(251,191,36,0.85);'
+                        : 'background:' + bg + '; color:white; font-size:10px; padding:2px 7px; border:1px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.3);';
                     return L.divIcon({
-                        className: 'custom-soba-pin',
-                        html: '<div style="transform:translate(-50%,-50%); display:inline-block; background-color:' + bg + '; color:white; border-radius:9999px; padding:2px 7px; font-weight:bold; font-size:10px; border:1px solid white; white-space:nowrap; box-shadow:0 2px 4px rgba(0,0,0,0.3);">' + label + '</div>',
+                        className: 'custom-soba-pin' + (must ? ' custom-soba-pin-must' : ''),
+                        html: '<div style="transform:translate(-50%,-50%); display:inline-block; border-radius:9999px; font-weight:bold; white-space:nowrap; ' + style + '">' + label + '</div>',
                         iconSize: null
                     });
                 };
@@ -2325,7 +2343,8 @@
                                 ? '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 ★' + escapeHtml(spot.ratingNum) + '（' + escapeHtml(Number(spot.ratingCount).toLocaleString()) + '件）</div>'
                                 : (spot.meibutsu ? '<div class="text-slate-400 text-[10px] mt-1">Google評価: Googleマップで確認</div>' : '');
                             const meibutsuLine = spot.meibutsu ? '<div class="text-orange-700 font-bold text-[11px] mt-1">🍤 名物: ' + escapeHtml(spot.meibutsu) + '</div>' : '';
-                            const specialBadge = spot.isSpecial ? '<span class="inline-block bg-amber-100 text-amber-800 border border-amber-300 font-bold px-1.5 py-0.5 rounded text-[10px] mb-1 ml-1">🏅 殿堂入り・名店</span>' : '';
+                            const mustBadge = spot.mustVisit ? '<span class="inline-block font-bold px-1.5 py-0.5 rounded text-[10px] mb-1 ml-1" style="background:linear-gradient(135deg,#fde047,#f59e0b); color:#451a03; border:1px solid #d97706;">🔥 必訪名店</span>' : '';
+                            const specialBadge = mustBadge + (spot.isSpecial ? '<span class="inline-block bg-amber-100 text-amber-800 border border-amber-300 font-bold px-1.5 py-0.5 rounded text-[10px] mb-1 ml-1">🏅 殿堂入り・名店</span>' : '');
                             const noteLine = spot.note ? '<div class="text-slate-400 text-[10px] mt-0.5">' + escapeHtml(spot.note) + '</div>' : '';
                             const mapLink = spot.gmapUri ? '<a href="' + escapeHtml(spot.gmapUri) + '" target="_blank" rel="noopener" class="text-sky-600 underline text-[10px] block mt-1">Googleマップで開く</a>' : '';
                             return '<div class="text-slate-900 text-xs font-sans">' +
