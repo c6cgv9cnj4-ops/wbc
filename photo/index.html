@@ -741,17 +741,43 @@
             { name: '二子玉川駅', lat: 35.6122, lng: 139.6278, cat: '主要駅' }
         ];
 
+        // 立ち食いそば・路麺（独立系のみ／大手チェーン除外）
+        // 掲載基準: Googleマップ評価 3.8以上 かつ レビュー100件以上（表示時にPlaces APIで実測・不合格は自動で非表示）
+        // 評価・件数は固定値を持たない（hydrateSobaSpots で実測取得）。meibutsu は各店の紹介記事・公式情報で確認した名物。
         const tokyoSobaSpots = [
-            { name: '名代 富士そば (代々木店など)', lat: 35.6830, lng: 139.7020, cat: '立ち食いそば', info: 'Google評価 ★4.1 / 投稿数 420件', hours: '24時間営業', holiday: '無休' },
-            { name: '小諸そば (大手町店など)', lat: 35.6850, lng: 139.7650, cat: '立ち食いそば', info: 'Google評価 ★4.2 / 投稿数 550件', hours: '07:00-21:00', holiday: '土日祝' },
-            { name: 'ゆで太郎 (銀座店など)', lat: 35.6710, lng: 139.7630, cat: '立ち食いそば', info: 'Google評価 ★4.1 / 投稿数 490件', hours: '06:30-23:00', holiday: '無休' },
-            { name: 'よもだそば (日本橋本店)', lat: 35.6822, lng: 139.7744, cat: '立ち食いそば', info: 'Google評価 ★4.5 / 投稿数 2,100件', hours: '07:00-22:00', holiday: '無休' },
-            { name: '亀戸 立ち食いそば文殊', lat: 35.6980, lng: 139.8250, cat: '立ち食いそば', info: 'Google評価 ★4.4 / 投稿数 850件', hours: '06:30-21:00', holiday: '無休' },
-            { name: '浅草 蕎亭 大黒屋', lat: 35.7115, lng: 139.7960, cat: '立ち食いそば', info: 'Google評価 ★4.3 / 投稿数 620件', hours: '11:00-20:00', holiday: '水曜' },
-            { name: '一由そば (日暮里)', lat: 35.7275, lng: 139.7708, cat: '立ち食いそば', info: 'Google評価 ★4.6 / 投稿数 3,400件', hours: '24時間営業', holiday: '無休' },
-            { name: '箱根そば (新宿西口店など)', lat: 35.6900, lng: 139.6980, cat: '立ち食いそば', info: 'Google評価 ★4.2 / 投稿数 780件', hours: '07:00-22:00', holiday: '無休' },
-            { name: '嵯峨谷 (渋谷店)', lat: 35.6580, lng: 139.6970, cat: '立ち食いそば', info: 'Google評価 ★4.3 / 投稿数 1,100件', hours: '07:00-23:00', holiday: '無休' },
-            { name: 'めん処 つるや (神田)', lat: 35.6915, lng: 139.7708, cat: '立ち食いそば', info: 'Google評価 ★4.4 / 投稿数 920件', hours: '06:30-20:00', holiday: '土日祝' }
+            // --- 中央区 ---
+            { name: '峠そば (茅場町)', short: '峠そば', lat: 35.67900, lng: 139.77931, addr: '中央区日本橋茅場町2-8-6', cat: '立ち食いそば', meibutsu: '鯵天そば（ごま油香る江戸前）', holiday: '水曜・日曜' },
+            { name: 'そば処 亀島 (茅場町)', short: '亀島', lat: 35.67947, lng: 139.78154, addr: '中央区日本橋茅場町1-14-2', cat: '立ち食いそば', meibutsu: '春菊天そば' },
+            { name: '立ち食い 福そば (人形町)', short: '福そば', lat: 35.68468, lng: 139.78309, addr: '中央区日本橋人形町1-16-3', cat: '立ち食いそば', meibutsu: '天ぷらそば（かき揚げ・げそ・春菊など6種から選択）' },
+            { name: 'そば処 おか田 (小伝馬町)', short: 'おか田', lat: 35.69109, lng: 139.77937, addr: '中央区日本橋小伝馬町13-6', cat: '立ち食いそば', meibutsu: 'かき揚げ天そば・春菊天そば' },
+            { name: 'よもだそば (日本橋店)', short: 'よもだそば', lat: 35.68251, lng: 139.77223, addr: '中央区日本橋2-1-20', cat: '立ち食いそば', meibutsu: '玉ねぎ1個分のかき揚げ・インドカレー' },
+            // --- 千代田区 ---
+            { name: 'めんや (神田須田町)', short: 'めんや', lat: 35.69535, lng: 139.76989, addr: '千代田区神田須田町1-14', cat: '立ち食いそば', meibutsu: '明日葉天そば', holiday: '土日祝' },
+            { name: 'そば千 (東神田)', short: 'そば千', lat: 35.69510, lng: 139.78128, addr: '千代田区東神田1-17-4', cat: '立ち食いそば', meibutsu: 'おきあみ天そば（漆黒のつゆ）' },
+            // --- 台東区 ---
+            { name: '川一 (秋葉原・台東)', short: '川一', lat: 35.70078, lng: 139.77968, addr: '台東区台東1-2-7', cat: '立ち食いそば', meibutsu: 'げそ天そば・春菊天そば', holiday: '日曜' },
+            { name: 'スタンドそば 野むら (浅草橋)', short: '野むら', lat: 35.70120, lng: 139.78101, addr: '台東区浅草橋5-20-8', cat: '立ち食いそば', meibutsu: '春菊天そば（継ぎ足しの黒いつゆ「暗黒汁」）', hours: '8:00-14:00', holiday: '土日祝' },
+            { name: 'そば・うどん ひさご (浅草橋)', short: 'ひさご', lat: 35.69739, lng: 139.78547, addr: '台東区浅草橋1-17-2 駅ガード下', cat: '立ち食いそば', meibutsu: '自家製麺の天ぷらそば・たぬきそば' },
+            { name: '鶏だし そば・うどん 三丁目 (仲御徒町)', short: '三丁目', lat: 35.70577, lng: 139.77663, addr: '台東区台東3-42-7', cat: '立ち食いそば', meibutsu: '鶏だしそば・朝そば（10時まで）' },
+            { name: 'そば うどん 元長 (稲荷町)', short: '元長', lat: 35.71418, lng: 139.77982, addr: '台東区東上野4-10-7', cat: '立ち食いそば', meibutsu: '自家製麺のかき揚げそば' },
+            // --- 港区 ---
+            { name: '立喰 そば うどん 丹波屋 (新橋)', short: '丹波屋', lat: 35.66628, lng: 139.75700, addr: '港区新橋2-16-1 ニュー新橋ビル1F', cat: '立ち食いそば', meibutsu: '春菊天そば・スパイス調合のインドカレー' },
+            { name: 'そば うどん おくとね (新橋)', short: 'おくとね', lat: 35.66621, lng: 139.75954, addr: '港区新橋2-20-15 新橋駅前ビル1号館B1F', cat: '立ち食いそば', meibutsu: '舞茸天そば（薄く広げた大判の天ぷら）', hours: '7:00-20:00' },
+            // --- 新宿区 ---
+            { name: '立喰い そば・うどん 山吹 (山吹町)', short: '山吹', lat: 35.70754, lng: 139.73141, addr: '新宿区山吹町265-6', cat: '立ち食いそば', meibutsu: 'カレー南蛮（豚肉ごろごろ）' },
+            { name: '白河そば (牛込柳町)', short: '白河そば', lat: 35.69952, lng: 139.72401, addr: '新宿区原町2-8', cat: '立ち食いそば', meibutsu: '塩だしつゆ・ごぼう天・カレーうどん', hours: '7:00-13:00頃', holiday: '土日祝' },
+            // --- 文京区 ---
+            { name: 'そば処 はるな (本郷三丁目)', short: 'はるな', lat: 35.70544, lng: 139.76072, addr: '文京区本郷2-26-10', cat: '立ち食いそば', meibutsu: 'ハゼ天そば・かき揚げ天そば' },
+            { name: '名代 白木そば (本郷・水道橋)', short: '白木そば', lat: 35.70582, lng: 139.75464, addr: '文京区本郷1-33-7', cat: '立ち食いそば', meibutsu: '牛肉そば（硬めの太そば）' },
+            // --- 墨田区 ---
+            { name: '文殊 両国本店', short: '文殊', lat: 35.69496, lng: 139.79635, addr: '墨田区両国4-34-1', cat: '立ち食いそば', meibutsu: 'かき揚げそば・春菊天そば・あなご天そば', note: '都内10店舗規模の地域チェーン（本店を掲載）' },
+            // --- 江東区 ---
+            { name: '立喰いそば 遠野屋 (南砂町)', short: '遠野屋', lat: 35.67280, lng: 139.83295, addr: '江東区南砂6-3-4', cat: '立ち食いそば', meibutsu: '小柱のかき揚げそば・えびかき揚げ' },
+            { name: '立喰そば 大むら (潮見)', short: '大むら', lat: 35.65748, lng: 139.81525, addr: '江東区潮見1-27-5', cat: '立ち食いそば', meibutsu: '春菊天（器からはみ出す大きさ）・かけそば200円台', hours: '6:00-14:00' },
+            // --- 荒川区・北区・豊島区 ---
+            { name: '一由そば (日暮里)', short: '一由そば', lat: 35.73025, lng: 139.77084, addr: '荒川区西日暮里2-26-8', cat: '立ち食いそば', meibutsu: 'ジャンボゲソ天そば（太そば）', hours: '24時間営業' },
+            { name: '立喰そば かしやま (田端)', short: 'かしやま', lat: 35.73902, lng: 139.76201, addr: '北区東田端1-17-20', cat: '立ち食いそば', meibutsu: '天玉そば（朝のみ営業）', hours: '6:00-10:00', holiday: '日曜・祝日' },
+            { name: '肉そば 南天 (椎名町)', short: '南天', lat: 35.72664, lng: 139.69510, addr: '豊島区長崎1-2-2', cat: '立ち食いそば', meibutsu: '肉そば（玉ねぎの甘みの豚肉山盛り）', hours: '5:30-25:30' }
         ];
 
         const tokyoCoffeeSpots = [
@@ -1889,6 +1915,52 @@
             }
         }
 
+        // 立ち食いそば: Places API (New) で評価・件数・営業状況を実測し、基準(★3.8以上/100件以上/営業中)未達はピンを外す
+        // APIキー無し・通信失敗時は基準を判定できないためピンは残し、評価は「Googleマップで確認」表示にする
+        const SOBA_MIN_RATING = 3.8;
+        const SOBA_MIN_REVIEWS = 100;
+        async function hydrateSobaSpots(map, makeIcon) {
+            if (!GOOGLE_PLACES_API_KEY) return;
+            for (const spot of tokyoSobaSpots) {
+                try {
+                    const ck = 'gpsoba:' + spot.name;
+                    let data = null;
+                    try { data = JSON.parse(sessionStorage.getItem(ck) || 'null'); } catch (e) {}
+                    if (!data) {
+                        const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+                                'X-Goog-FieldMask': 'places.rating,places.userRatingCount,places.businessStatus,places.googleMapsUri'
+                            },
+                            body: JSON.stringify({
+                                textQuery: spot.name.replace(/\s*[(（].*$/, '') + ' ' + spot.addr,
+                                languageCode: 'ja', maxResultCount: 1,
+                                locationBias: { circle: { center: { latitude: spot.lat, longitude: spot.lng }, radius: 300 } }
+                            })
+                        });
+                        if (!res.ok) continue;
+                        const p = ((await res.json()).places || [])[0];
+                        if (!p) continue;
+                        data = { rating: p.rating || null, count: (typeof p.userRatingCount === 'number') ? p.userRatingCount : null, status: p.businessStatus || null, uri: p.googleMapsUri || null };
+                        try { sessionStorage.setItem(ck, JSON.stringify(data)); } catch (e) {}
+                    }
+                    const okStatus = !data.status || data.status === 'OPERATIONAL';
+                    const okScore = data.rating >= SOBA_MIN_RATING && data.count >= SOBA_MIN_REVIEWS;
+                    if (!okStatus || !okScore) {
+                        if (spot._marker) map.removeLayer(spot._marker);
+                        spot.excluded = true;
+                        continue;
+                    }
+                    spot.ratingNum = Number(data.rating).toFixed(1);
+                    spot.ratingCount = data.count;
+                    if (data.uri) spot.gmapUri = data.uri;
+                    if (spot._marker) spot._marker.setIcon(makeIcon(spot));
+                } catch (e) { console.warn('hydrateSobaSpots item', spot.name, e); }
+            }
+        }
+
         // GOOGLE_PLACES_API_KEY があれば Places API (New) で評価・件数・座標を実測値に更新
         async function hydrateDanchiRatings() {
             if (!GOOGLE_PLACES_API_KEY) return;
@@ -2065,11 +2137,15 @@
                     iconSize: [30, 20]
                 });
 
-                const sobaIcon = L.divIcon({
-                    className: 'custom-soba-pin',
-                    html: '<div style="background-color:#ea580c; color:white; border-radius:9999px; padding:2px 6px; font-weight:bold; font-size:10px; border:1px solid white; white-space:nowrap; box-shadow:0 2px 4px rgba(0,0,0,0.3);">🍜 そば</div>',
-                    iconSize: [35, 20]
-                });
+                // そばピンは店名(short)＋実測評価を表示。iconSize:null + translateで中心に合わせる
+                const makeSobaIcon = function(spot) {
+                    const label = '🍜 ' + escapeHtml(spot.short || 'そば') + (spot.ratingNum ? ' ★' + spot.ratingNum : '');
+                    return L.divIcon({
+                        className: 'custom-soba-pin',
+                        html: '<div style="transform:translate(-50%,-50%); display:inline-block; background-color:#ea580c; color:white; border-radius:9999px; padding:2px 7px; font-weight:bold; font-size:10px; border:1px solid white; white-space:nowrap; box-shadow:0 2px 4px rgba(0,0,0,0.3);">' + label + '</div>',
+                        iconSize: null
+                    });
+                };
 
                 const coffeeIcon = L.divIcon({
                     className: 'custom-coffee-pin',
@@ -2092,7 +2168,7 @@
                             return;
                         }
                         const safeName = spot.name || '名称不明スポット';
-                        const safeAddress = spot.address || '';
+                        const safeAddress = spot.address || spot.addr || '';
                         const safeCat = spot.cat || '';
                         const safeInfo = spot.info || '';
                         const safeHours = spot.hours || '';
@@ -2102,7 +2178,7 @@
                         if (safeCat === '主要駅') {
                             markerOpts = { icon: stationIcon };
                         } else if (safeCat === '立ち食いそば') {
-                            markerOpts = { icon: sobaIcon };
+                            markerOpts = { icon: makeSobaIcon(spot) };
                         } else if (safeCat === '珈琲専門店') {
                             markerOpts = { icon: coffeeIcon };
                         }
@@ -2117,10 +2193,10 @@
                             evt?.originalEvent?.preventDefault?.();
                         });
 
-                        if (safeHours && safeHoliday) {
+                        if (safeHours || safeHoliday) {
                             const tooltipContent = '<div style="font-weight:bold; color:#f8fafc;">' + escapeHtml(safeName) + '</div>' +
-                                                   '<div style="color:#34d399;">🕒 営業時間: ' + escapeHtml(safeHours) + '</div>' +
-                                                   '<div style="color:#f43f5e;">📅 定休日: ' + escapeHtml(safeHoliday) + '</div>';
+                                                   (safeHours ? '<div style="color:#34d399;">🕒 営業時間: ' + escapeHtml(safeHours) + '</div>' : '') +
+                                                   (safeHoliday ? '<div style="color:#f43f5e;">📅 定休日: ' + escapeHtml(safeHoliday) + '</div>' : '');
                             marker.bindTooltip(tooltipContent, {
                                 className: 'custom-hover-tooltip',
                                 direction: 'top',
@@ -2131,23 +2207,34 @@
                         // 団地タブのポップアップと配色を統一（白背景で読みやすい濃いめの黄・緑、薄青バッジ）
                         const infoBadge = safeInfo ? '<div class="text-amber-500 font-bold text-[11px] mt-1">' + escapeHtml(safeInfo) + '</div>' : '';
                         const addressLine = safeAddress ? '<div class="text-slate-500 text-[10px] mt-0.5">' + escapeHtml(safeAddress) + '</div>' : '';
-                        const hoursPopup = (safeHours && safeHoliday) ? '<div class="text-emerald-600 font-semibold text-[11px] mt-1">🕒 営業時間: ' + escapeHtml(safeHours) + '<br>📅 定休日: ' + escapeHtml(safeHoliday) + '</div>' : '';
+                        const hoursPopup = (safeHours || safeHoliday) ? '<div class="text-emerald-600 font-semibold text-[11px] mt-1">' + (safeHours ? '🕒 営業時間: ' + escapeHtml(safeHours) : '') + (safeHours && safeHoliday ? '<br>' : '') + (safeHoliday ? '📅 定休日: ' + escapeHtml(safeHoliday) : '') + '</div>' : '';
 
                         // 店名などをそのままonclick属性へ文字列展開すると、引用符・特殊文字を含む
                         // 名称でSyntaxErrorになり得るため、inline onclickは使わずボタンだけ用意し、
                         // popupopen時にaddEventListenerで安全にバインドする(下記参照)。
-                        marker.bindPopup(
-                            '<div class="text-slate-900 text-xs font-sans">' +
-                            '<strong class="text-sm font-bold block mb-1">' + escapeHtml(safeName) + '</strong>' +
-                            '<span class="inline-block bg-sky-100 text-sky-800 font-semibold px-1.5 py-0.5 rounded text-[10px] mb-1">' + escapeHtml(safeCat) + '</span>' +
-                            addressLine +
-                            infoBadge +
-                            hoursPopup +
-                            '<button type="button" class="js-add-waypoint-btn bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded text-xs w-full mt-2">' +
-                            '＋ 散歩ルートに追加' +
-                            '</button>' +
-                            '</div>'
-                        );
+                        // 関数で渡すと開くたびに再生成されるため、Places実測後の評価もそのまま反映される
+                        marker.bindPopup(function() {
+                            const liveInfo = spot.ratingNum
+                                ? '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 ★' + escapeHtml(spot.ratingNum) + '（' + escapeHtml(Number(spot.ratingCount).toLocaleString()) + '件）</div>'
+                                : (spot.meibutsu ? '<div class="text-slate-400 text-[10px] mt-1">Google評価: Googleマップで確認</div>' : '');
+                            const meibutsuLine = spot.meibutsu ? '<div class="text-orange-700 font-bold text-[11px] mt-1">🍤 名物: ' + escapeHtml(spot.meibutsu) + '</div>' : '';
+                            const noteLine = spot.note ? '<div class="text-slate-400 text-[10px] mt-0.5">' + escapeHtml(spot.note) + '</div>' : '';
+                            const mapLink = spot.gmapUri ? '<a href="' + escapeHtml(spot.gmapUri) + '" target="_blank" rel="noopener" class="text-sky-600 underline text-[10px] block mt-1">Googleマップで開く</a>' : '';
+                            return '<div class="text-slate-900 text-xs font-sans">' +
+                                '<strong class="text-sm font-bold block mb-1">' + escapeHtml(safeName) + '</strong>' +
+                                '<span class="inline-block bg-sky-100 text-sky-800 font-semibold px-1.5 py-0.5 rounded text-[10px] mb-1">' + escapeHtml(safeCat) + '</span>' +
+                                addressLine +
+                                (spot.meibutsu ? liveInfo : infoBadge) +
+                                meibutsuLine +
+                                hoursPopup +
+                                noteLine +
+                                mapLink +
+                                '<button type="button" class="js-add-waypoint-btn bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded text-xs w-full mt-2">' +
+                                '＋ 散歩ルートに追加' +
+                                '</button>' +
+                                '</div>';
+                        });
+                        if (safeCat === '立ち食いそば') spot._marker = marker;
 
                         // ポップアップが開くたびに呼ばれるが、ボタン自体は毎回作り直されるDOMなので
                         // 二重バインドの心配はない。name/lat/lngは文字列結合せずクロージャで直接渡す。
@@ -2179,6 +2266,8 @@
                         console.warn('tokyoWalkSpots marker build error:', err, spot);
                     }
                 });
+
+                hydrateSobaSpots(map, makeSobaIcon);
 
                 map.on('click', function(e) {
                     try {
