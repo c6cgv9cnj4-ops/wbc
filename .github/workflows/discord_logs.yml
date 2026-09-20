@@ -7,7 +7,13 @@ on:
     # どちらが読む生ログも欠かさないよう、ログ収集ステップを単体で日次実行する。
     # daily_summary.ymlはこのジョブのpush完了後(UTC 15:15)に走る。
     - cron: "0 15 * * *"
-  workflow_dispatch: {}  # 手動実行用ボタン
+  workflow_dispatch:   # 手動実行用ボタン
+    inputs:
+      lookback_days:
+        description: "過去分の復元(バックフィル)用: 直近N日を再生成(空なら通常運用。指定時はIssue起票なし)"
+        required: false
+        default: ""
+
 
 permissions:
   contents: write   # logs/daily, logs/health への書き込み(コミット)用
@@ -33,6 +39,7 @@ jobs:
           DISCORD_CHANNEL_ID_INPUT: ${{ secrets.DISCORD_CHANNEL_ID_INPUT }}
           DISCORD_CHANNEL_ID_HEALTH: ${{ secrets.DISCORD_CHANNEL_ID_HEALTH }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LOG_LOOKBACK_DAYS: ${{ github.event.inputs.lookback_days }}
         run: python scripts/export_discord_logs.py
 
       - name: ログファイルをコミット

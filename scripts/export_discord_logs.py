@@ -310,6 +310,14 @@ def maybe_create_issue_for_message(msg, channel_label, repo, github_token):
 # main
 # ============================================================
 
+def _lookback_override():
+    """LOG_LOOKBACK_DAYS が正の整数なら、手動の過去分復元(バックフィル)として両チャンネルの
+    遡り日数をこの値に上書きする。バックフィル時は、過去のTODO/BUY投稿から意図せず大量に
+    Issueを起票してしまわないよう、Issue起票は行わない。"""
+    raw = (os.environ.get("LOG_LOOKBACK_DAYS") or "").strip()
+    return int(raw) if raw.isdigit() and int(raw) > 0 else None
+
+
 def main():
     bot_token = os.environ.get("DISCORD_BOT_TOKEN")
     github_token = os.environ.get("GITHUB_TOKEN")
@@ -324,6 +332,12 @@ def main():
         sys.exit(1)
 
     issue_count = 0
+    override = _lookback_override()
+    forum_days = override or FORUM_LOOKBACK_DAYS
+    text_days = override or TEXT_LOOKBACK_DAYS
+    file_issues = override is None
+    if override:
+        print(f"[INFO] バックフィルモード: 直近{override}日を再生成(Issue起票なし)")
 
     for channel in CHANNELS:
         channel_id = os.environ.get(channel["env_id"])
@@ -336,29 +350,29 @@ def main():
 
         if is_forum:
             today = datetime.datetime.now(JST).date()
-            start = today - datetime.timedelta(days=FORUM_LOOKBACK_DAYS - 1)
+            start = today - datetime.timedelta(days=forum_days - 1)
             try:
                 by_date = fetch_forum_threads_by_date(channel_id, bot_token, start, today)
             except Exception as err:  # noqa: BLE001
                 print(f"[WARN] #{channel['label']} の取得に失敗したためスキップします: {err}")
                 continue
             total_threads = sum(len(v) for v in by_date.values())
-            print(f"[INFO] 直近{FORUM_LOOKBACK_DAYS}日: {total_threads}件のスレッド(投稿)を取得しました。")
+            print(f"[INFO] 直近{forum_days}日: {total_threads}件のスレッド(投稿)を取得しました。")
             # 直近7日を毎回すべて再生成する(冪等)。実行が日付をまたいでも、後から
             # 書かれた過去日のスレッドでも取りこぼさない。
-            for offset in range(FORUM_LOOKBACK_DAYS):
+            for offset in range(forum_days):
                 d = start + datetime.timedelta(days=offset)
                 entries = by_date.get(d, [])
                 markdown = build_forum_markdown(entries, d.strftime("%Y-%m-%d"), channel["label"])
                 save_markdown(channel["log_dir"], d.strftime("%Y-%m-%d"), markdown)
-                for _, msgs, _url in entries:
+                for _, msgs, _url in (entries if file_issues else []):
                     for msg in msgs:
                         if maybe_create_issue_for_message(msg, channel["label"], repo, github_token):
                             issue_count += 1
             continue
 
         today = datetime.datetime.now(JST).date()
-        start = today - datetime.timedelta(days=TEXT_LOOKBACK_DAYS - 1)
+        start = today - datetime.timedelta(days=text_days - 1)
         try:
             messages = fetch_messages_since(channel_id, bot_token, start)
         except Exception as err:  # noqa: BLE001
@@ -366,14 +380,14 @@ def main():
             # ジョブ全体(後続の日刊/週刊レポート生成)を止めないよう、警告に留めて次へ進む。
             print(f"[WARN] #{channel['label']} の取得に失敗したためスキップします: {err}")
             continue
-        print(f"[INFO] 直近{TEXT_LOOKBACK_DAYS}日: {len(messages)}件のメッセージを取得しました。")
+        print(f"[INFO] 直近{text_days}日: {len(messages)}件のメッセージを取得しました。")
         # 直近N日を毎回すべて再生成する(冪等)。実行が日付をまたいでも取りこぼさない。
-        for offset in range(TEXT_LOOKBACK_DAYS):
+        for offset in range(text_days):
             d = start + datetime.timedelta(days=offset)
             day_msgs = [m for m in messages if message_date_jst(m) == d]
             save_markdown(channel["log_dir"], d.strftime("%Y-%m-%d"),
                           build_markdown(day_msgs, d.strftime("%Y-%m-%d"), channel["label"]))
-        for msg in messages:
+        for msg in (messages if file_issues else []):
             if maybe_create_issue_for_message(msg, channel["label"], repo, github_token):
                 issue_count += 1
 
