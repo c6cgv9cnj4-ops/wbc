@@ -1,13 +1,5 @@
 {
   "seen_urls": {
-    "https://www.itmedia.co.jp/news/article/2609/05/2000001200/": "2026-09-05T23:30:57.331084+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFAwSWNsaGlHQkgtUndOellnT2paaHJiOE91NzZPcjBTMzhaOC1wS0pSWmRhUVV4Ni1XdHBkLTloaHZQUVNDSTh0OU41dlIya0RLOFMzWDh0R3gtelhQOWo2SUZaOVNYdUdy?oc=5": "2026-09-05T23:30:57.331084+09:00",
-    "https://news.google.com/rss/articles/CBMiakFVX3lxTE9RSkQ5VV9SNFpPRlhSZWFZRmdrNG4ySS1BSVpmUXZaOTQyLTRxd2xTUklHNWt5V2VMaDRpOC1OVF81Y3pYY2JhYWllSnZQdWxQeXdUSFhVMHVMRkh2YTRLQy1aZDJEaEFZS0E?oc=5": "2026-09-05T23:30:57.331084+09:00",
-    "https://postcoffee.co/magazine/cffbns/stereoscope-california-coffee-culture/": "2026-09-05T23:36:28.566269+09:00",
-    "https://postcoffee.co/magazine/cffbns/traffic-coffee-montreal/": "2026-09-05T23:36:28.566269+09:00",
-    "https://postcoffee.co/magazine/coffee/coffee-process-washed-natural-honey/": "2026-09-05T23:39:54.909370+09:00",
-    "https://postcoffee.co/magazine/cffbns/melbourne-coffee-culture/": "2026-09-05T23:39:54.909370+09:00",
-    "https://postcoffee.co/magazine/cffbns/specialty-coffee-vienna-jonas-reindl/": "2026-09-05T23:45:06.646402+09:00",
     "https://gigazine.net/news/20260906-compression-is-prediction/": "2026-09-06T16:51:03.655452+09:00",
     "https://news.google.com/rss/articles/CBMiXEFVX3lxTE9MTE8xSjZwSG15U1F4OUtVZnNPbHZWdGRVSm5VX3ViZnU1MnpMRC1NTzFKcUxkS0lkbjlybGlMcWMyLWZpS2NDTHlqbkhuMmRUc0lhUVFBOWFzR2pm?oc=5": "2026-09-06T21:52:44.705919+09:00",
     "https://gigazine.net/news/20260907-ai-coding-cost-efficient/": "2026-09-07T08:53:43.900771+09:00",
@@ -115,6 +107,10 @@
     "https://gigazine.net/news/20260919-text-ai-watermarks/": "2026-09-19T16:59:11.625458+09:00",
     "https://gigazine.net/news/20260919-hack-openai-claude/": "2026-09-19T16:59:11.625458+09:00",
     "https://news.google.com/rss/articles/CBMiiAFBVV95cUxQVm4waDgzelU5T3hRX3FYSXhmdjhFUFEzRmItUDNPc1RHT1ZjamMzTlY1RHgwdVpCX3JHczhVZXUzei1JQ280TDFpYzFLNkxrd1luRnFEUEpSTFhZYzhFTmhOY2RQZEw2eTN4M3FLdVhBRjN3VTZEVHpuM1czb0hlbjBDZjdDVUl1?oc=5": "2026-09-19T22:08:55.437877+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBLV19mdFA2LW43aDg5YVhWTHNUQ1kwR1Vtek1URFVDWnd4Vm9FeFE3aDhMYkN6RWh6UVFsOFN3OGhCdm5BMXZkNGN2QkJrcVVhYjJ0U3NNWTg3YjctSzFQT0FVZEc3SmpD?oc=5": "2026-09-19T22:08:55.437877+09:00"
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBLV19mdFA2LW43aDg5YVhWTHNUQ1kwR1Vtek1URFVDWnd4Vm9FeFE3aDhMYkN6RWh6UVFsOFN3OGhCdm5BMXZkNGN2QkJrcVVhYjJ0U3NNWTg3YjctSzFQT0FVZEc3SmpD?oc=5": "2026-09-19T22:08:55.437877+09:00",
+    "https://postcoffee.co/magazine/coffee/coffee-process-washed-natural-honey/": "2026-09-20T09:08:45.301411+09:00",
+    "https://postcoffee.co/magazine/cffbns/stereoscope-california-coffee-culture/": "2026-09-20T09:08:45.301411+09:00",
+    "https://postcoffee.co/magazine/cffbns/specialty-coffee-vienna-jonas-reindl/": "2026-09-20T09:08:45.301411+09:00",
+    "https://news.google.com/rss/articles/CBMiR0FVX3lxTE9Dbjlwd3hvckpPM19ob3k5NVdHU0NjamhNOWc0V002NUowTVN2VGR2dFJVeG92NjRtWXpRUUhnZk92YmNIZlFr?oc=5": "2026-09-20T09:08:45.301411+09:00"
   }
 }
