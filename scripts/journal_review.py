@@ -21,7 +21,7 @@ Discord フォーラム「#モーニングジャーナル」の日付スレッ�
 
 環境変数: DISCORD_BOT_TOKEN, DISCORD_CHANNEL_ID_MORNING_JOURNAL(or _HEALTH),
           GEMINI_API_KEY(任意。無ければ簡易ルールで構造化), GEMINI_MODEL(任意),
-          WEEKLY_SPREADSHEET_ID + GOOGLE_OAUTH_*(スプレッドシート書き込み時)
+          WEEKLY_SPREADSHEET_ID + GOOGLE_SERVICE_ACCOUNT_JSON(スプレッドシート書き込み時。シートをSAに編集者共有)
 """
 from __future__ import annotations
 
@@ -757,7 +757,7 @@ def run_weekly(*, monday: datetime.date, token: str, channel_id: str, creds, api
     if dry_run:
         print("[INFO] dry-run: 週次レビューのスプレッドシート書き込みをスキップ")
     elif not ssid or creds is None:
-        msg = "週次レビューのシート書き込みをスキップ（WEEKLY_SPREADSHEET_ID または Google 認証が無効）"
+        msg = "週次レビューのシート書き込みをスキップ（WEEKLY_SPREADSHEET_ID または Sheets 認証(サービスアカウント)が無効）"
         print(f"[WARN] {msg}")
         result["warnings"].append(msg)
     else:

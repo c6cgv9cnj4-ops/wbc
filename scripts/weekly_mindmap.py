@@ -430,6 +430,39 @@ def build_google_credentials():
     )
 
 
+SHEETS_ONLY_SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+
+
+def build_service_account_credentials():
+    """スプレッドシート操作用のサービスアカウント認証(2026-09-21追加)。
+
+    ユーザーOAuthは同意画面が「テスト」だと約7日で失効するため、Sheets の読み書きは
+    サービスアカウントで行う(失効しない)。環境変数:
+      GOOGLE_SERVICE_ACCOUNT_JSON  … キーJSONの全文(GitHub Secret 用)
+      GOOGLE_SERVICE_ACCOUNT_FILE  … キーJSONのファイルパス(ローカル用)
+    対象スプレッドシートを、サービスアカウントのメールアドレスに「編集者」で共有しておくこと。
+    無ければ None(従来のユーザーOAuthにフォールバック)。
+    """
+    raw = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON", "").strip()
+    path = os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE", "").strip()
+    try:
+        if raw:
+            info = json.loads(raw)
+        elif path and os.path.exists(path):
+            with open(path, encoding="utf-8") as fh:
+                info = json.load(fh)
+        else:
+            return None
+        from google.oauth2 import service_account
+
+        creds = service_account.Credentials.from_service_account_info(info, scopes=SHEETS_ONLY_SCOPES)
+        print(f"[INFO] Sheets 認証: サービスアカウント({info.get('client_email', '?')})")
+        return creds
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] サービスアカウント認証情報を読み込めません: {type(err).__name__}: {err}")
+        return None
+
+
 def build_service(name: str, version: str, creds):
     from googleapiclient.discovery import build
 
@@ -1929,22 +1962,38 @@ def main() -> int:
     if args.use_mock:
         bundle = mock_bundle()
         creds = None
+        sheets_creds = None
     else:
         ch = (os.environ.get("DISCORD_CHANNEL_ID_MORNING_JOURNAL", "").strip()
               or os.environ.get("DISCORD_CHANNEL_ID_HEALTH", "").strip())
         journal = collect_journal(os.environ.get("DISCORD_BOT_TOKEN", "").strip(), ch, ctx)
-        creds = build_google_credentials()
-        if creds is None and not dry_run:
-            print("[ERROR] Google OAuth 認証情報(GOOGLE_OAUTH_CLIENT_ID/SECRET/REFRESH_TOKEN)が未設定です。"
+        creds = build_google_credentials()          # Calendar/Tasks 用(ユーザーOAuth)
+        sheets_creds = build_service_account_credentials()  # Sheets 用(サービスアカウント)
+        if sheets_creds is not None:
+            sa_err = verify_google_credentials(sheets_creds)
+            if sa_err:
+                print(f"[ERROR] サービスアカウント認証に失敗しました: {sa_err}")
+                warnings.append("サービスアカウント認証エラー：スプレッドシートを更新できませんでした。"
+                                "キーと、シートの共有(編集者)を確認してください。")
+                sheets_creds = None
+        if sheets_creds is None:
+            sheets_creds = creds                    # 従来互換: SAが無ければユーザーOAuthでシートも扱う
+        if creds is None and sheets_creds is None and not dry_run:
+            print("[ERROR] Google 認証情報(GOOGLE_SERVICE_ACCOUNT_JSON もしくは GOOGLE_OAUTH_*)が未設定です。"
                   " --dry-run か --use-mock で実行するか、Secrets を設定してください。")
             return 1
         # OAuth 情報はあるがトークンが失効/無効なケースを 1 回で検知して可視化する
         auth_err = verify_google_credentials(creds)
         if auth_err:
             print(f"[ERROR] Google OAuth トークンの更新に失敗しました（再発行が必要）: {auth_err}")
-            warnings.append("Google 認証エラー：カレンダー/ToDo/シートを取得できませんでした。"
-                            "リフレッシュトークンの再発行が必要です（同意画面は本番公開に）。")
-            creds = None  # 以降の Calendar/Tasks/Sheets は綺麗にスキップさせる
+            if sheets_creds is creds:
+                sheets_creds = None
+                warnings.append("Google 認証エラー：カレンダー/ToDo/シートを取得できませんでした。"
+                                "リフレッシュトークンの再発行が必要です（同意画面は本番公開に）。")
+            else:
+                warnings.append("Google OAuth の期限切れ：カレンダー/ToDoのみ取得できませんでした"
+                                "（シートはサービスアカウントで更新済み）。")
+            creds = None  # 以降の Calendar/Tasks は綺麗にスキップさせる
         calendar = collect_calendar(creds, ctx)
         tasks = collect_tasks(creds, ctx)
         bundle = build_bundle(journal, calendar, tasks)
@@ -1982,11 +2031,11 @@ def main() -> int:
         print("[INFO] モック実行のため Sheets 書き込みをスキップ")
     elif dry_run:
         print("[INFO] dry-run: スプレッドシート書き込みをスキップ")
-    elif creds is None:
-        print("[INFO] OAuth 認証情報が無い/無効のためスプレッドシート書き込みをスキップ")
+    elif sheets_creds is None:
+        print("[INFO] Sheets 認証情報が無い/無効のためスプレッドシート書き込みをスキップ")
     else:
         try:
-            _, sheet_link = write_week_log_row(creds, ctx, tree, None)
+            _, sheet_link = write_week_log_row(sheets_creds, ctx, tree, None)
         except Exception as err:  # noqa: BLE001
             print(f"[WARN] スプレッドシート書き込みに失敗: {err}")
             warnings.append("スプレッドシートの更新に失敗しました。")
@@ -2004,7 +2053,7 @@ def main() -> int:
             if jr_token and jr_channel:
                 review_result = jr.run_weekly(
                     monday=ctx["sunday"] - datetime.timedelta(days=6), token=jr_token,
-                    channel_id=jr_channel, creds=creds, api_key=api_key, model=model, dry_run=dry_run)
+                    channel_id=jr_channel, creds=sheets_creds, api_key=api_key, model=model, dry_run=dry_run)
                 warnings.extend(review_result.get("warnings", []))
                 sheet_link = sheet_link or review_result.get("sheet_link")
             else:
@@ -2035,7 +2084,7 @@ def main() -> int:
         mctx = month_context(ctx)
         print(f"=== 月末週のため月間棚卸し {mctx['month_tag']} ({mctx['label']}) も生成します ===")
 
-        weeks = mock_weekly_log_rows() if args.use_mock else read_recent_weekly_log_rows(creds, MONTHLY_LOOKBACK_WEEKS)
+        weeks = mock_weekly_log_rows() if args.use_mock else read_recent_weekly_log_rows(sheets_creds, MONTHLY_LOOKBACK_WEEKS)
         mtree, msource = structure_monthly(weeks, mctx, api_key, model)
 
         monthly_png_path = os.path.join(REPORT_MONTHLY_DIR, f"{mctx['month_tag']}_mindmap.png")
