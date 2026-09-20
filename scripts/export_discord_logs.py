@@ -39,9 +39,12 @@ GET /channels/{id}/messages では常に0件になる(エラーにもならず�
 する)。そのためフォーラム型のチャンネルは、
   1. ギルド内のアクティブスレッド一覧 + このチャンネル配下のアーカイブ済み
      公開スレッド一覧を取得し、
-  2. スレッドID(Discordスノーフレーク)から作成日時を復元して当日作成分に絞り、
-  3. 各スレッドのメッセージ(投稿本文+返信)を取得
-という手順で当日分の投稿を集める(fetch_forum_threads_today)。
+  2. 各スレッドを「スレッド名の日付(YYYY/MM/DD)」で日付ごとに振り分け
+     (名前から読めなければ作成日JST)、
+  3. 直近7日分の logs/health/YYYY-MM-DD.md を毎回すべて再生成する(冪等)
+という手順で集める(fetch_forum_threads_by_date)。
+※スレッド名の日付と作成日はズレることが多く(例: 「2026/09/15」が9/18作成)、
+  cronも遅延で日付をまたぐため、「本日作成分」だけを見る方式では常に空になる。
 """
 import datetime
 import os
@@ -115,86 +118,47 @@ def message_author_name(msg):
     return author.get("global_name") or author.get("username") or "unknown"
 
 
-def snowflake_to_datetime_utc(snowflake_id):
-    """DiscordスノーフレークID(文字列/整数)からUTC作成日時を復元する。"""
-    ms = (int(snowflake_id) >> 22) + DISCORD_EPOCH_MS
-    return datetime.datetime.fromtimestamp(ms / 1000, tz=datetime.timezone.utc)
+FORUM_LOOKBACK_DAYS = 7  # フォーラムは直近何日分(スレッド名の日付基準)を毎回再生成するか
 
 
-def fetch_forum_threads_today(channel_id, bot_token):
-    """フォーラムチャンネル配下で「本日(JST)作成されたスレッド(投稿)」を集め、
-    (スレッド名, そのスレッドの全メッセージ古い順) のリストを名前順で返す。
+def fetch_forum_threads_by_date(channel_id, bot_token, start_date, end_date):
+    """フォーラム配下のスレッドを「スレッド名の日付(YYYY/MM/DD)」で日付ごとに振り分けて返す。
+
+    返り値: {date: [(スレッド名, そのスレッドの全メッセージ古い順, スレッドURL), ...]}
+    (start_date〜end_date の範囲のみ。名前から日付が読めないスレッドは作成日(JST)を使う)
+
+    2026-09-21修正: 従来は「本日0:00以降に作成されたスレッド」だけを対象にしていたため、
+      ① スレッド名の日付と作成日がズレる(例: 「2026/09/15」が9/18作成)、
+      ② cronの遅延で実行が日付をまたぐ、
+    のどちらでも当日分が拾えず、logs/health が毎日「投稿なし」になっていた。
+    さらに、スレッド内メッセージも「今日0:00以降」で再度絞っていたため、名前が当日でも
+    作成日が違えば本文が0件になっていた。ここでは日付では絞らず、全メッセージを取得する。
     """
-    headers = {"Authorization": f"Bot {bot_token}"}
-    now_jst = datetime.datetime.now(JST)
-    start_of_day_jst = now_jst.replace(hour=0, minute=0, second=0, microsecond=0)
+    from journal_review import (JST as _JST, _list_forum_threads, _thread_messages,
+                                parse_thread_date, snowflake_to_dt_utc, thread_url)
 
-    # チャンネル情報からguild_idを取得(アクティブスレッド一覧の取得に必要)
-    resp = requests.get(
-        f"{DISCORD_API_BASE}/channels/{channel_id}", headers=headers, timeout=REQUEST_TIMEOUT
-    )
-    resp.raise_for_status()
-    guild_id = resp.json().get("guild_id")
-
-    threads = []
-
-    if guild_id:
-        resp = requests.get(
-            f"{DISCORD_API_BASE}/guilds/{guild_id}/threads/active",
-            headers=headers,
-            timeout=REQUEST_TIMEOUT,
-        )
-        resp.raise_for_status()
-        threads.extend(
-            t for t in resp.json().get("threads", []) if t.get("parent_id") == channel_id
-        )
-
-    # アーカイブ済み公開スレッド(このチャンネル配下のみ、ページングあり)。
-    # 既定のフォーラム自動アーカイブ時間(最短でも1時間)を踏まえ、当日作成分が
-    # 既にアーカイブされているケースも拾えるようにする。
-    before = None
-    while True:
-        params = {"limit": 100}
-        if before:
-            params["before"] = before
-        resp = requests.get(
-            f"{DISCORD_API_BASE}/channels/{channel_id}/threads/archived/public",
-            headers=headers,
-            params=params,
-            timeout=REQUEST_TIMEOUT,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        batch = data.get("threads", [])
-        threads.extend(batch)
-        archive_ts = batch[-1].get("thread_metadata", {}).get("archive_timestamp") if batch else None
-        if not data.get("has_more") or not batch or not archive_ts:
-            break
-        before = archive_ts
-
-    # 当日(JST)作成分だけに絞る。重複除去(アクティブ/アーカイブ両方に
-    # 出現することは無いはずだが念のため)。
-    seen_ids = set()
-    today_threads = []
-    for t in threads:
-        thread_id = t.get("id")
-        if not thread_id or thread_id in seen_ids:
+    guild_id, raw = _list_forum_threads(channel_id, bot_token)
+    seen = set()
+    by_date = {}
+    for t in raw:
+        tid = t.get("id")
+        if not tid or tid in seen:
             continue
-        seen_ids.add(thread_id)
-        created_jst = snowflake_to_datetime_utc(thread_id).astimezone(JST)
-        if created_jst >= start_of_day_jst:
-            today_threads.append(t)
+        seen.add(tid)
+        name = t.get("name", "(無題)")
+        d = parse_thread_date(name) or snowflake_to_dt_utc(tid).astimezone(_JST).date()
+        if not (start_date <= d <= end_date):
+            continue
+        by_date.setdefault(d, []).append((name, tid))
 
-    results = []
-    for t in today_threads:
-        thread_id = t["id"]
-        thread_name = t.get("name", "(無題)")
-        # スレッド自体が当日作成のため、日付フィルタは不要(全メッセージが対象)。
-        messages = fetch_today_messages(thread_id, bot_token)
-        results.append((thread_name, messages))
-
-    results.sort(key=lambda item: item[0])
-    return results
+    result = {}
+    for d, items in by_date.items():
+        entries = []
+        for name, tid in sorted(items, key=lambda x: int(x[1])):
+            messages = _thread_messages(tid, bot_token)
+            entries.append((name, messages, thread_url(guild_id, tid)))
+        result[d] = entries
+    return result
 
 
 # ============================================================
@@ -226,8 +190,12 @@ def build_forum_markdown(thread_entries, date_str, channel_label):
         lines.append("(この日の投稿はありませんでした)")
         return "\n".join(lines) + "\n"
 
-    for thread_name, messages in thread_entries:
+    for entry in thread_entries:
+        thread_name, messages = entry[0], entry[1]
+        url = entry[2] if len(entry) > 2 else ""
         lines.append(f"## {thread_name}")
+        if url:
+            lines.append(f"[スレッドを開く]({url})")
         has_content = False
         for msg in messages:
             content = (msg.get("content") or "").strip()
@@ -357,29 +325,42 @@ def main():
 
         is_forum = channel.get("type") == "forum"
         print(f"=== #{channel['label']} の{'投稿(スレッド)' if is_forum else 'メッセージ'}を取得します ===")
+
+        if is_forum:
+            today = datetime.datetime.now(JST).date()
+            start = today - datetime.timedelta(days=FORUM_LOOKBACK_DAYS - 1)
+            try:
+                by_date = fetch_forum_threads_by_date(channel_id, bot_token, start, today)
+            except Exception as err:  # noqa: BLE001
+                print(f"[WARN] #{channel['label']} の取得に失敗したためスキップします: {err}")
+                continue
+            total_threads = sum(len(v) for v in by_date.values())
+            print(f"[INFO] 直近{FORUM_LOOKBACK_DAYS}日: {total_threads}件のスレッド(投稿)を取得しました。")
+            # 直近7日を毎回すべて再生成する(冪等)。実行が日付をまたいでも、後から
+            # 書かれた過去日のスレッドでも取りこぼさない。
+            for offset in range(FORUM_LOOKBACK_DAYS):
+                d = start + datetime.timedelta(days=offset)
+                entries = by_date.get(d, [])
+                markdown = build_forum_markdown(entries, d.strftime("%Y-%m-%d"), channel["label"])
+                save_markdown(channel["log_dir"], d.strftime("%Y-%m-%d"), markdown)
+                for _, msgs, _url in entries:
+                    for msg in msgs:
+                        if maybe_create_issue_for_message(msg, channel["label"], repo, github_token):
+                            issue_count += 1
+            continue
+
         try:
-            if is_forum:
-                thread_entries = fetch_forum_threads_today(channel_id, bot_token)
-                messages = [msg for _, msgs in thread_entries for msg in msgs]
-            else:
-                messages = fetch_today_messages(channel_id, bot_token)
+            messages = fetch_today_messages(channel_id, bot_token)
         except Exception as err:  # noqa: BLE001
             # 権限不足(403)やチャンネルID誤りなど、このチャンネル固有の問題で
             # ジョブ全体(後続の日刊/週刊レポート生成)を止めないよう、警告に留めて次へ進む。
             print(f"[WARN] #{channel['label']} の取得に失敗したためスキップします: {err}")
             continue
-
-        if is_forum:
-            print(f"[INFO] {len(thread_entries)}件のスレッド(投稿)、計{len(messages)}件のメッセージを取得しました。")
-            markdown = build_forum_markdown(thread_entries, date_str, channel["label"])
-        else:
-            print(f"[INFO] {len(messages)}件のメッセージを取得しました。")
-            markdown = build_markdown(messages, date_str, channel["label"])
+        print(f"[INFO] {len(messages)}件のメッセージを取得しました。")
+        markdown = build_markdown(messages, date_str, channel["label"])
         save_markdown(channel["log_dir"], date_str, markdown)
-
         for msg in messages:
-            issue = maybe_create_issue_for_message(msg, channel["label"], repo, github_token)
-            if issue:
+            if maybe_create_issue_for_message(msg, channel["label"], repo, github_token):
                 issue_count += 1
 
     print(f"=== 完了: Issue新規作成 {issue_count}件 ===")
