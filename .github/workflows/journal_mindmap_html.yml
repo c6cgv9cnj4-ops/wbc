@@ -1,0 +1,45 @@
+name: ジャーナル思考マップHTML生成(手動)
+
+# モーニングジャーナル(フォーラム)の直近N日分を読み、4カテゴリの放射状マインドマップを
+# 1枚完結の mindmap.html(D3.js・ノードクリックでDiscordスレッドを開く)と PNG で出力する。
+# 日記本文由来の内容を含むため、コミットも Pages 公開もせず、Actions アーティファクトに
+# 1日だけ保存する(ダウンロード後に削除する運用)。
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "遡る日数（既定30）"
+        required: false
+        default: "30"
+
+permissions:
+  contents: read
+
+jobs:
+  journal-html:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: 日本語フォント
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+      - name: 依存パッケージ
+        run: pip install -r requirements-weekly.txt
+      - name: マインドマップHTML/PNG生成
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID_MORNING_JOURNAL: ${{ secrets.DISCORD_CHANNEL_ID_MORNING_JOURNAL }}
+          DISCORD_CHANNEL_ID_HEALTH: ${{ secrets.DISCORD_CHANNEL_ID_HEALTH }}
+          DAYS: ${{ github.event.inputs.days }}
+        run: python scripts/journal_review.py --days "${DAYS:-30}" --html-out out/mindmap.html --png-out out/mindmap.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: journal-mindmap
+          path: out/
+          retention-days: 1

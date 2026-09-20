@@ -1991,6 +1991,28 @@ def main() -> int:
             print(f"[WARN] スプレッドシート書き込みに失敗: {err}")
             warnings.append("スプレッドシートの更新に失敗しました。")
 
+    # --- 4.4. 週次レビュー(2026-09-20追加): 4カテゴリのマップ画像 + 💡Ideas / 🛑Friction&Action /
+    #          🎯Next Focus + 月〜日のスレッドURLを、シート「週次レビュー」へ新しい週を先頭に蓄積。
+    #          失敗しても既存の週次処理(PNG/Discord)は止めない。
+    if not args.use_mock:
+        try:
+            import journal_review as jr
+
+            jr_channel = (os.environ.get("DISCORD_CHANNEL_ID_MORNING_JOURNAL", "").strip()
+                          or os.environ.get("DISCORD_CHANNEL_ID_HEALTH", "").strip())
+            jr_token = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
+            if jr_token and jr_channel:
+                review_result = jr.run_weekly(
+                    monday=ctx["sunday"] - datetime.timedelta(days=6), token=jr_token,
+                    channel_id=jr_channel, creds=creds, api_key=api_key, model=model, dry_run=dry_run)
+                warnings.extend(review_result.get("warnings", []))
+                sheet_link = sheet_link or review_result.get("sheet_link")
+            else:
+                print("[WARN] Discord トークン/チャンネルID が無いため週次レビューをスキップ")
+        except Exception as err:  # noqa: BLE001
+            print(f"[WARN] 週次レビューの生成に失敗（既存処理は継続）: {err}")
+            warnings.append("週次レビュー（Ideas/Friction/Next Focus）の生成に失敗しました。")
+
     # --- 4.5. GitHub Pages 常設ページ(常に書き出す。PNG/CSVと同様 dry-run/mock でも生成) ---
     page_url = publish_mindmap_pages(png_path, ctx, source, sheet_link, warnings)
 
