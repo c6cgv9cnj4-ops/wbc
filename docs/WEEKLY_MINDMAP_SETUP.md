@@ -191,3 +191,23 @@ Actions タブ → 「週次棚卸しマインドマップ」→ Run workflow。
   当該 Gmail の全スプレッドシートが読み書き可能になる。Secrets の管理に注意。
 - `DISCORD_*` の名前は `export_discord_logs.py` / 既存ワークフローの慣習に合わせている。
 - `client_secret.json` / `token.json` / `.env` はコミットしない（`.gitignore` 済み）。
+
+---
+
+## 週次レビュー（2026-09-20 追加）
+
+毎週日曜の実行で、既存の「週次ログ」タブに加え、シート **「週次レビュー」** に1週=1行を追加する（新しい週が常に2行目＝先頭。古い週は下に残り、スクロールで見返せる）。同じ週を再実行すると同じ行を上書きする。
+
+| 列 | 内容 |
+|---|---|
+| A / B | 週ID(2026-W38) / 週のタイトル(2026年9月第3週 マインドマップ)・期間・実行日 |
+| C | 【俯瞰】4カテゴリ放射状マップ(`=IMAGE`。Pages `mindmap/review/{週}.png`) |
+| D | 【資産】💡 Ideas(各行に該当スレッドURL) |
+| E | 【教訓・脱出】🛑 Friction & Action(ノイズ→対処の1行セット) |
+| F | 【次週フォーカス】🎯 Next Focus(1つだけ・太字) |
+| G〜M | 月〜日のDiscordスレッドURL(`https://discord.com/channels/<guild>/<thread>`) |
+
+- 実装: `scripts/journal_review.py`（`weekly_mindmap.py` から呼ぶ。失敗しても既存処理は継続）。
+- 1枚完結HTML(D3.js。ノードクリックで該当スレッドが開く): 週次実行時は `reports/weekly/{週}_journal_mindmap.html`（アーティファクトのみ）。任意期間は Actions「ジャーナル思考マップHTML生成(手動)」を実行（アーティファクト保持1日）。
+- 必須Secrets: 既存に加え `WEEKLY_SPREADSHEET_ID`。OAuth同意画面は「本番(In production)」必須（テストのままだとトークンが7日で失効し、書き込みが止まる。2026-09-20 に実際に失効していた）。
+- 注意: `mindmap/`・`reports/weekly/*.csv` は公開リポジトリ/Pagesに置かれるため、日記由来の短い要約が公開される（=IMAGEに公開URLが必要なため）。
