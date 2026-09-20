@@ -70,14 +70,19 @@ ISSUE_MARKER_TEMPLATE = "<!-- discord_message_id: {message_id} -->"
 # Discordメッセージ取得
 # ============================================================
 
-def fetch_today_messages(channel_id, bot_token):
-    """
-    当日(JST 0:00以降)のメッセージを、Discordのページネーション(before)を使って
-    さかのぼりながら取得し、古い順に並べ替えて返す。
+TEXT_LOOKBACK_DAYS = 3  # テキストチャンネルは直近何日分(JST)を毎回再生成するか
+
+
+def fetch_messages_since(channel_id, bot_token, start_date):
+    """start_date(JST 0:00)以降のメッセージを、ページネーション(before)でさかのぼりながら
+    全件取得し、古い順に返す。呼び出し側で日付ごとに振り分けて日次ログを再生成する。
+
+    2026-09-21修正: 従来の fetch_today_messages は「実行時点の今日0:00以降」だけを取得して
+    いたため、GitHub Actionsのcron遅延で実行が日付をまたぐと、前日分が「今日」の
+    ファイルに混ざる/前日分を取りこぼす問題があった(フォーラムと同じ問題)。
     """
     headers = {"Authorization": f"Bot {bot_token}"}
-    now_jst = datetime.datetime.now(JST)
-    start_of_day_jst = now_jst.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_dt = datetime.datetime.combine(start_date, datetime.time(0, 0), tzinfo=JST)
 
     messages = []
     before = None
@@ -97,20 +102,24 @@ def fetch_today_messages(channel_id, bot_token):
         if not batch:
             break
 
-        reached_before_today = False
+        reached_older = False
         for msg in batch:
             ts_jst = datetime.datetime.fromisoformat(msg["timestamp"]).astimezone(JST)
-            if ts_jst < start_of_day_jst:
-                reached_before_today = True
+            if ts_jst < start_dt:
+                reached_older = True
                 continue
             messages.append(msg)
 
         before = batch[-1]["id"]
-        if reached_before_today or len(batch) < 100:
+        if reached_older or len(batch) < 100:
             break
 
     messages.reverse()  # 古い順に並べ替え
     return messages
+
+
+def message_date_jst(msg):
+    return datetime.datetime.fromisoformat(msg["timestamp"]).astimezone(JST).date()
 
 
 def message_author_name(msg):
@@ -314,7 +323,6 @@ def main():
               "(通常はGitHub Actions実行時に自動設定されます)")
         sys.exit(1)
 
-    date_str = datetime.datetime.now(JST).strftime("%Y-%m-%d")
     issue_count = 0
 
     for channel in CHANNELS:
@@ -349,16 +357,22 @@ def main():
                             issue_count += 1
             continue
 
+        today = datetime.datetime.now(JST).date()
+        start = today - datetime.timedelta(days=TEXT_LOOKBACK_DAYS - 1)
         try:
-            messages = fetch_today_messages(channel_id, bot_token)
+            messages = fetch_messages_since(channel_id, bot_token, start)
         except Exception as err:  # noqa: BLE001
             # 権限不足(403)やチャンネルID誤りなど、このチャンネル固有の問題で
             # ジョブ全体(後続の日刊/週刊レポート生成)を止めないよう、警告に留めて次へ進む。
             print(f"[WARN] #{channel['label']} の取得に失敗したためスキップします: {err}")
             continue
-        print(f"[INFO] {len(messages)}件のメッセージを取得しました。")
-        markdown = build_markdown(messages, date_str, channel["label"])
-        save_markdown(channel["log_dir"], date_str, markdown)
+        print(f"[INFO] 直近{TEXT_LOOKBACK_DAYS}日: {len(messages)}件のメッセージを取得しました。")
+        # 直近N日を毎回すべて再生成する(冪等)。実行が日付をまたいでも取りこぼさない。
+        for offset in range(TEXT_LOOKBACK_DAYS):
+            d = start + datetime.timedelta(days=offset)
+            day_msgs = [m for m in messages if message_date_jst(m) == d]
+            save_markdown(channel["log_dir"], d.strftime("%Y-%m-%d"),
+                          build_markdown(day_msgs, d.strftime("%Y-%m-%d"), channel["label"]))
         for msg in messages:
             if maybe_create_issue_for_message(msg, channel["label"], repo, github_token):
                 issue_count += 1
