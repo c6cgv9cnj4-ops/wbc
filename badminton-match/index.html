@@ -133,6 +133,21 @@ select.input{padding-right:12px}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;background:rgba(40,40,42,.95);color:#fff;padding:12px 20px;border-radius:999px;font-weight:600;font-size:14px;max-width:90%;animation:up .25s}
 @keyframes fade{from{opacity:0}} @keyframes up{from{transform:translateY(40px);opacity:0}}
 .toast{animation:toast .25s} @keyframes toast{from{opacity:0;transform:translate(-50%,16px)}}
+
+/* pair colors & tap-pairing */
+.pr0{--pc:#007aff;--pt:rgba(0,122,255,.14)} .pr1{--pc:#ff9500;--pt:rgba(255,149,0,.16)} .pr2{--pc:#af52de;--pt:rgba(175,82,222,.16)}
+.pr3{--pc:#34c759;--pt:rgba(52,199,89,.16)} .pr4{--pc:#ff2d55;--pt:rgba(255,45,85,.14)} .pr5{--pc:#00b5d8;--pt:rgba(0,181,216,.16)}
+@media (prefers-color-scheme:dark){.pr0{--pc:#0a84ff}.pr1{--pc:#ff9f0a}.pr2{--pc:#bf5af2}.pr3{--pc:#30d158}.pr4{--pc:#ff375f}.pr5{--pc:#64d2ff}}
+.pcard{cursor:pointer;-webkit-user-select:none;user-select:none;transition:background .15s,box-shadow .15s}
+.pcard:active{background:var(--fill)}
+.pcard.paired{box-shadow:inset 5px 0 0 var(--pc)}
+.pcard.psel{background:var(--blue-t);box-shadow:inset 0 0 0 3px var(--blue)}
+.pbadge{appearance:none;border:0;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:800;background:var(--pt);color:var(--pc);cursor:pointer;display:inline-flex;align-items:center;gap:4px;min-height:30px}
+.pbadge:active{transform:scale(.94)}
+.pbadge .x{font-size:11px;opacity:.7}
+.pbtn{border:0;border-radius:999px;padding:0 14px;min-height:34px;font-size:14px;font-weight:700;background:var(--blue-t);color:var(--blue)}
+.psel .pbtn{background:var(--blue);color:#fff}
+.hint{position:sticky;top:64px;z-index:5}
 .hidden{display:none!important}
 </style>
 </head>
@@ -243,7 +258,7 @@ async function initDB() {
 
 /* ---------- 状態 ---------- */
 const S = { date: todayStr(), members: [], memberMap: {}, session: null, atts: [], attMap: {}, config: undefined,
-  ready: { m: false, s: false, a: false, c: false }, err: null, me: null, isAdmin: false, adminTab: 'game', sel: null, search: '', rosterSearch: '' };
+  ready: { m: false, s: false, a: false, c: false }, err: null, me: null, isAdmin: false, adminTab: 'game', sel: null, pairSel: null, search: '', rosterSearch: '' };
 try { S.me = JSON.parse(lsGet('bm_me') || 'null'); } catch { S.me = null; }
 const setMe = me => { S.me = me; me ? lsSet('bm_me', JSON.stringify(me)) : lsDel('bm_me'); };
 const nameOf = id => (S.memberMap[id] && S.memberMap[id].name) || (S.attMap[id] && S.attMap[id].name) || '？';
@@ -558,7 +573,7 @@ function renderGate(root) {
 }
 function renderAdmin(root) {
   if (!root.querySelector('#admTabs')) root.replaceChildren(h('div', { class: 'stack' }, h('div', { id: 'admTabs' }), h('div', { id: 'admBody' })));
-  $('#admTabs').replaceChildren(seg('admTab', [{ v: 'game', t: '試合' }, { v: 'att', t: '出席' }, { v: 'mgr', t: '管理' }], S.adminTab, v => { S.adminTab = v; S.sel = null; renderAll(); }, 'lg'));
+  $('#admTabs').replaceChildren(seg('admTab', [{ v: 'game', t: '試合' }, { v: 'att', t: '出席' }, { v: 'mgr', t: '管理' }], S.adminTab, v => { S.adminTab = v; S.sel = null; S.pairSel = null; renderAll(); }, 'lg'));
   const body = $('#admBody');
   if (S.adminTab === 'game') adminGame(body); else if (S.adminTab === 'att') adminAtt(body); else adminMgr(body);
 }
@@ -604,18 +619,21 @@ async function removeAttendee(m) {
 function adminMgr(body) {
   const s = S.session, stats = s ? computeStats(s, true) : { games: {} }, pres = presentAtts().sort((a, b) => a.joinedAt - b.joinedAt), stack = h('div', { class: 'stack' });
   const locks = (s && s.locks) || [];
+  const stop = fn => e => { e.stopPropagation(); fn(); };
+  const pairInfo = id => { const k = locks.findIndex(l => l.a === id || l.b === id); if (k < 0) return null; const l = locks[k], n = l.n ?? k; return { n, letter: String.fromCharCode(65 + n % 26), color: n % 6, partner: l.a === id ? l.b : l.a }; };
+  const selName = S.pairSel && S.attMap[S.pairSel] ? S.attMap[S.pairSel].name : '';
   stack.append(h('div', null, h('div', { class: 'title' }, `メンバー管理（出席 ${pres.length}人）`),
+    S.pairSel && selName ? h('div', { class: 'banner info hint', style: 'margin-bottom:10px' }, `「${selName}」さんのペア相手をタップ（もう一度タップ／余白タップでキャンセル）`)
+      : (pres.length > 1 ? h('div', { class: 'small muted', style: 'margin:0 4px 10px' }, 'ペア固定：1人目をタップ → 2人目をタップで成立。バッジをタップで解除。') : null),
     pres.length ? h('div', { class: 'card flush list' }, pres.map(a => {
-      const lk = locks.find(l => l.a === a.id || l.b === a.id), partner = lk ? (lk.a === a.id ? lk.b : lk.a) : '';
-      const sel = h('select', { class: 'input', style: 'min-height:38px;font-size:14px;padding:0 10px;width:auto;max-width:160px', onchange: () => setLock(a.id, sel.value) },
-        h('option', { value: '' }, 'ペア固定なし'), pres.filter(x => x.id !== a.id).map(x => h('option', { value: x.id }, `${x.name}と固定`)));
-      sel.value = partner;
+      const pi = pairInfo(a.id), picked = S.pairSel === a.id;
       const st = a.status === 'left' ? h('span', { class: 'pill red' }, '帰宅') : a.forcedRest ? h('span', { class: 'pill orange' }, '強制休憩') : a.restLeft > 0 ? h('span', { class: 'pill orange' }, `休み${a.restLeft}`) : h('span', { class: 'pill green' }, '参加中');
-      return h('div', { class: 'li', style: 'flex-direction:column;align-items:stretch;gap:8px' },
-        h('div', { class: 'row between' }, h('div', { class: 'row' }, h('span', { class: 't' }, a.name), st), h('span', { class: 'tiny muted' }, `${stats.games[a.id] || 0}試合`)),
-        h('div', { class: 'row wrap' }, sel,
-          h('button', { class: 'btn sm ' + (a.forcedRest ? 'green' : 'orange'), onclick: () => patchAtt(a.id, { forcedRest: !a.forcedRest, restLeft: 0 }) }, a.forcedRest ? '休憩解除' : '強制休憩'),
-          a.status === 'left' ? h('button', { class: 'btn sm green', onclick: () => patchAtt(a.id, { status: 'active', restLeft: 0 }) }, '戻す') : h('button', { class: 'btn sm danger', onclick: () => patchAtt(a.id, { status: 'left' }) }, '早退・帰宅')));
+      const badge = pi ? h('button', { class: `pbadge pr${pi.color}`, type: 'button', title: 'タップでペア解除', onclick: stop(() => unpair(a.id)) }, `🤝 ペア${pi.letter}`, h('span', { class: 'x' }, '✕')) : null;
+      return h('div', { class: 'li pcard' + (pi ? ` paired pr${pi.color}` : '') + (picked ? ' psel' : ''), 'data-id': a.id, style: 'flex-direction:column;align-items:stretch;gap:8px', onclick: () => pickPair(a.id) },
+        h('div', { class: 'row between' }, h('div', { class: 'row wrap', style: 'gap:8px' }, h('span', { class: 't' }, a.name), st, badge), h('span', { class: 'tiny muted' }, `${stats.games[a.id] || 0}試合`)),
+        h('div', { class: 'row wrap' }, h('span', { class: 'pbtn', style: 'display:inline-flex;align-items:center' }, picked ? '選択中（もう一度でキャンセル）' : '🤝 ペア'),
+          h('button', { class: 'btn sm ' + (a.forcedRest ? 'green' : 'orange'), onclick: stop(() => patchAtt(a.id, { forcedRest: !a.forcedRest, restLeft: 0 })) }, a.forcedRest ? '休憩解除' : '強制休憩'),
+          a.status === 'left' ? h('button', { class: 'btn sm green', onclick: stop(() => patchAtt(a.id, { status: 'active', restLeft: 0 })) }, '戻す') : h('button', { class: 'btn sm danger', onclick: stop(() => patchAtt(a.id, { status: 'left' })) }, '早退・帰宅')));
     })) : h('div', { class: 'card empty' }, '出席者がいません')));
   const url = location.href.split('#')[0].replace(/[?&]mock=1/, '');
   stack.append(h('div', { class: 'card stack' }, h('div', { class: 'title', style: 'margin:0' }, '参加者用URL'), h('div', { class: 'small', style: 'word-break:break-all' }, url),
@@ -629,9 +647,16 @@ function adminMgr(body) {
     h('button', { class: 'btn block', onclick: () => { ssDel('bm_admin_ok'); S.isAdmin = false; renderAll(); } }, '主催者画面をロック')));
   body.replaceChildren(stack);
 }
-function setLock(x, y) {
+function pickPair(id) {
+  if (!S.pairSel) { S.pairSel = id; return renderAll(); }
+  if (S.pairSel === id) { S.pairSel = null; return renderAll(); }
+  const x = S.pairSel, y = id; S.pairSel = null; setLock(x, y); toast(`${nameOf(x)}さん × ${nameOf(y)}さん をペアに固定`);
+}
+function unpair(id) { setLock(id, ''); toast(`${nameOf(id)}さんのペアを解除しました`); }
+function setLock(x, y) { // y が空ならペア解除。新規ペアは未使用の最小色番号を割り当て
   const s = S.session, locks = ((s && s.locks) || []).filter(l => ![l.a, l.b].some(id => id === x || id === y));
-  if (y) locks.push({ a: x, b: y }); patchSession({ locks });
+  if (y) { const used = new Set(locks.map((l, i) => l.n ?? i)); let n = 0; while (used.has(n)) n++; locks.push({ a: x, b: y, n }); }
+  patchSession({ locks }); renderAll();
 }
 async function renameMember(m) {
   const r = await sheet({ title: '名前を変更', msg: '誤字の修正用です。過去の履歴も同じ人として扱われます。', input: { value: m.name, maxlength: 16 }, actions: [{ label: '変更する', cls: 'primary', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
@@ -683,7 +708,8 @@ function startSubs() {
   unsubs.push(DB.sub(['bm_sessions', S.date], d => { S.session = d; S.ready.s = true; renderAll(); }, false, err));
   unsubs.push(DB.sub(['bm_config', 'admin'], d => { S.config = d; S.ready.c = true; renderAll(); }, false, err));
 }
-addEventListener('hashchange', () => { S.sel = null; renderAll(); });
+addEventListener('hashchange', () => { S.sel = null; S.pairSel = null; renderAll(); });
+document.addEventListener('click', e => { if (S.pairSel && !e.target.closest('.pcard') && !e.target.closest('.sheet')) { S.pairSel = null; renderAll(); } });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && todayStr() !== S.date) { S.date = todayStr(); startSubs(); } });
 await initDB();
 renderAll(); startSubs();
