@@ -97,6 +97,7 @@ import os
 import re
 import sys
 import time
+import unicodedata
 import urllib.parse
 
 import feedparser
@@ -534,6 +535,274 @@ def fetch_badspi_articles(limit=BADSPI_ITEM_LIMIT):
     return items
 
 
+# ============================================================
+# 記事本文から「試合結果・成績」を抽出して通知本文に展開する(2026-09-22追加)
+# ============================================================
+# 課題: バド×スピ / Google Newsの新着通知が「タイトル+記事を読む」だけで、誰がどんな
+# 試合をして勝ったのかがDiscord上で分からなかった。
+# 方針: 記事本文(Google Newsは配信元URLへ解決して取得)をGeminiで構造化し、
+#   ・団体戦の対戦カード(第1単・第2複…)、ゲームカウント、各ゲームの得点
+#   ・試合のポイント/次戦の相手の要約(2〜3行)
+#  を通知本文に埋め込む。
+# ハルシネーション対策: Geminiが返したスコア・選手名・国名・次戦相手が「取得した本文に実在する
+#  文字列か」を機械的に照合し、照合できない項目は載せない(対戦ごと捨てる)。本文に
+#  スコアが無い記事は、団体戦に限り検索で補完ページを探し、同様に照合できた場合のみ採用する。
+#  それでも無ければ「スコア詳細は記事に記載なし」と明記する(推測で埋めない)。
+GEMINI_MODEL_NAME = "gemini-3.6-flash"
+ARTICLE_TEXT_LIMIT = 15000
+_ENRICH_CACHE = {}
+_TIE_SUPPLEMENT_CACHE = {}  # 対戦ID -> (rubbers, 出典URL) | None(補完ページ無し)
+_SHOWN_TIES = set()  # 同一実行内で対戦別スコアを既に載せた対戦(同じ対戦の関連記事で同じ表を繰り返さないため)
+_GEMINI_CLIENT = None
+
+DETAIL_PROMPT = """あなたはバドミントン記事の事実抽出器です。以下は実際に取得した記事本文です。
+試合結果の情報だけをJSONオブジェクトで返してください。
+
+厳守ルール:
+- 本文に明記されていない値は絶対に推測せず null / 空配列にする。選手名・国名・スコアは本文の表記のまま。
+- rubbers は「本文に対戦カード・スコアが明記された試合」だけ。団体戦なら第1シングルス・第1ダブルス等のラベルを付ける。
+- 個人戦は、記事の主役の選手の試合を rubbers に入れ、label は「準々決勝」等のラウンド名にする。
+- side_a は日本(記事の主役)側、side_b は相手側。ダブルスは「A/B」表記。
+- games は各ゲームの得点を "21-10" の形式で(日本側の得点を先に)。
+- summary は試合のポイント・次戦の相手・注目点を2〜3行(各60字以内)。本文の内容のみ。rubbers の内容の繰り返し(誰が2-0で勝った等)は書かない。
+キー: is_match_report(bool), headline(例「男子団体 準々決勝：日本 3 - 0 カザフスタン」。本文から組める場合のみ),
+ team_a, team_b, tie_score("3-0"等), rubbers[{label, side_a, side_b, game_count("2-0"), games[]}],
+ next_opponent, summary[]
+記事タイトル: {title}
+--- 本文 ---
+{text}
+"""
+
+
+def _gemini():
+    global _GEMINI_CLIENT
+    if _GEMINI_CLIENT is None:
+        key = os.environ.get("GEMINI_API_KEY", "").strip()
+        if not key:
+            return None
+        from google import genai
+        _GEMINI_CLIENT = genai.Client(api_key=key)
+    return _GEMINI_CLIENT
+
+
+def _norm_text(t):
+    """照合用の正規化: NFKC・各種ハイフン統一・空白除去。"""
+    t = unicodedata.normalize("NFKC", t or "")
+    t = re.sub(r"[－―–−ー‐]", "-", t)
+    return re.sub(r"\s+", "", t)
+
+
+def resolve_gnews_url(link):
+    """Google Newsのリダイレクト用URLから配信元の実URLを取り出す。失敗時はNone。"""
+    if "news.google.com" not in link:
+        return link
+    try:
+        r = requests.get(link, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
+        node = BeautifulSoup(r.text, "html.parser").find(attrs={"data-n-a-sg": True})
+        if node is None:
+            return None
+        gid = link.split("/articles/")[1].split("?")[0]
+        inner = json.dumps(["garturlreq", [["X", "X", ["X", "X"], None, None, 1, 1, "US:en", None, 1, None, None, None, None,
+                                            None, 0, 1], "X", "X", 1, [1, 1, 1], 1, 1, None, 0, 0, None, 0],
+                            gid, int(node["data-n-a-ts"]), node["data-n-a-sg"]])
+        body = "f.req=" + urllib.parse.quote(json.dumps([[["Fbv4je", inner, None, "generic"]]]))
+        rr = requests.post("https://news.google.com/_/DotsSplashUi/data/batchexecute", data=body, timeout=REQUEST_TIMEOUT,
+                           headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8", "User-Agent": USER_AGENT})
+        m = re.search(r'\\"garturlres\\",\\"(https?://[^"\\]+)', rr.text)
+        return m.group(1) if m else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def fetch_article_text(url):
+    """(実URL, 本文テキスト)。取得不可・PDF等は (None, '')。"""
+    real = resolve_gnews_url(url)
+    if not real:
+        return None, ""
+    try:
+        r = requests.get(real, headers={"User-Agent": USER_AGENT, "Accept-Language": "ja"}, timeout=REQUEST_TIMEOUT)
+        if r.status_code >= 400 or "html" not in r.headers.get("Content-Type", "").lower():
+            return None, ""
+        r.encoding = r.apparent_encoding or r.encoding
+        soup = BeautifulSoup(r.text, "html.parser")
+        for t in soup(["script", "style", "noscript", "nav", "header", "footer", "aside", "form"]):
+            t.decompose()
+        root = soup.find("article") or soup.find("main") or soup.body or soup
+        text = re.sub(r"\n\s*\n+", "\n", root.get_text("\n", strip=True))
+        return r.url, text[:ARTICLE_TEXT_LIMIT]
+    except Exception:  # noqa: BLE001
+        return None, ""
+
+
+def _extract_details(title, text):
+    client = _gemini()
+    if client is None or len(text) < 80:
+        return None
+    from google.genai import types
+    try:
+        resp = client.models.generate_content(
+            model=GEMINI_MODEL_NAME, contents=DETAIL_PROMPT.replace("{title}", title).replace("{text}", text),
+            config=types.GenerateContentConfig(response_mime_type="application/json"))
+        d = json.loads(resp.text)
+        return d if isinstance(d, dict) else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _names_in_text(name, text_n):
+    """『A/B』『A・B』形式の選手名/チーム名の各要素が本文に実在するか。"""
+    toks = [t for t in re.split(r"[/／・&＆,、]", _norm_text(name or "")) if t]
+    return bool(toks) and all(len(t) >= 2 and t in text_n for t in toks)
+
+
+def verify_details(d, text):
+    """Gemini出力を本文と照合し、実在が確認できた項目だけを残す。"""
+    tn = _norm_text(text)
+    out = {"headline": None, "tie_score": None, "rubbers": [], "summary": [], "next_opponent": None,
+           "is_match_report": bool(d.get("is_match_report")), "team_a": None, "team_b": None}
+    ts = _norm_text(str(d.get("tie_score") or ""))
+    if re.fullmatch(r"\d-\d", ts) and ts in tn:
+        out["tie_score"] = ts
+    for k in ("team_a", "team_b"):
+        v = d.get(k)
+        if v and _norm_text(v) in tn:
+            out[k] = v
+    if out["tie_score"] and out["team_a"] and out["team_b"] and d.get("headline"):
+        out["headline"] = str(d["headline"])[:120]
+    for r in d.get("rubbers") or []:
+        if not isinstance(r, dict) or not _names_in_text(r.get("side_a"), tn) or not _names_in_text(r.get("side_b"), tn):
+            continue
+        games = [_norm_text(g) for g in (r.get("games") or []) if re.fullmatch(r"\d{1,2}-\d{1,2}", _norm_text(str(g)))]
+        games = [g for g in games if g in tn]
+        gc = _norm_text(str(r.get("game_count") or ""))
+        gc = gc if (re.fullmatch(r"\d-\d", gc) and gc in tn) else None
+        if not games and not gc:
+            continue  # スコアが本文で確認できない対戦は載せない
+        out["rubbers"].append({"label": str(r.get("label") or "")[:20], "side_a": r["side_a"], "side_b": r["side_b"],
+                               "game_count": gc, "games": games})
+    no = d.get("next_opponent")
+    if no and _norm_text(no) in tn:
+        out["next_opponent"] = no
+    out["summary"] = [str(x)[:90] for x in (d.get("summary") or []) if str(x).strip()][:3]
+    return out
+
+
+def _search_score_pages(team_a, team_b, headline_or_title, exclude_url):
+    """団体戦のスコア補完用に、検索グラウンディングで候補ページURL(最大6件)を集める。"""
+    client = _gemini()
+    if client is None:
+        return []
+    from google.genai import types
+    queries = [f"{team_a} {team_b} バドミントン 団体戦 各試合 第1シングルス スコア 結果 {datetime.datetime.now().year}",
+               f"{headline_or_title} 対戦結果 選手 スコア 詳細"]
+    urls = []
+    for q in queries:
+        try:
+            resp = client.models.generate_content(
+                model=GEMINI_MODEL_NAME, contents=f"次の試合の各対戦の選手名とゲームスコアが載っているページを検索: {q}",
+                config=types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())]))
+        except Exception:  # noqa: BLE001
+            continue
+        for cand in resp.candidates or []:
+            gm = getattr(cand, "grounding_metadata", None)
+            for ch in (getattr(gm, "grounding_chunks", None) or []):
+                u = getattr(getattr(ch, "web", None), "uri", None)
+                if u and u not in urls and u != exclude_url:
+                    urls.append(u)
+    return urls[:6]
+
+
+def enrich_article(a):
+    """記事 {title,url} に試合詳細(details)を付与して返す。失敗時は details=None(従来のリンクのみ表示に退避)。"""
+    key = a["url"]
+    if key in _ENRICH_CACHE:
+        return _ENRICH_CACHE[key]
+    res = dict(a, details=None, real_url=None, excerpt="")
+    try:
+        real, text = fetch_article_text(a["url"])
+        if real:
+            res["real_url"] = real
+            good = [ln for ln in text.split("\n") if len(ln) >= 30]
+            res["excerpt"] = " ".join(good[:2])[:150]
+            raw = _extract_details(a["title"], text)
+            if raw:
+                det = verify_details(raw, text)
+                # 団体戦で本文に対戦別スコアが無い → 検索で補完ページを探し、同じ照合を通ったものだけ採用
+                if det["tie_score"] and det["team_a"] and det["team_b"] and len(det["rubbers"]) < 2:
+                    orig_n = _norm_text(text)
+                    tie_id = _norm_text(f"{det['team_a']}|{det['team_b']}|{det['tie_score']}")
+                    if tie_id in _TIE_SUPPLEMENT_CACHE:  # 同じ対戦の関連記事では再検索しない
+                        cached = _TIE_SUPPLEMENT_CACHE[tie_id]
+                        if cached:
+                            det["rubbers"], det["score_source"] = cached
+                        candidates = []
+                    else:
+                        candidates = _search_score_pages(det["team_a"], det["team_b"], det["headline"] or a["title"], real)
+                        _TIE_SUPPLEMENT_CACHE[tie_id] = None
+                    for u in candidates:
+                        r2, t2 = fetch_article_text(u)
+                        if not r2:
+                            continue
+                        t2n = _norm_text(t2)
+                        # 同じ大会・同じ対戦のページだけを採用する(過去大会の同名対戦を掴まないための3重チェック)
+                        #  ① URLに別の年(2010〜2025)が含まれない ② 今年の表記がページ内にある
+                        #  ③ 両チーム名がページ内にある
+                        year = str(datetime.datetime.now(JST).year) if "JST" in globals() else str(datetime.datetime.now().year)
+                        if re.search(r"20(1\d|2[0-4])", r2) and year not in r2:
+                            continue
+                        if year not in t2n or _norm_text(det["team_a"]) not in t2n or _norm_text(det["team_b"]) not in t2n:
+                            continue
+                        raw2 = _extract_details(a["title"], t2)
+                        d2 = verify_details(raw2, t2) if raw2 else None
+                        if not d2 or len(d2["rubbers"]) <= len(det["rubbers"]) or d2["tie_score"] not in (None, det["tie_score"]):
+                            continue
+                        # ④ 補完ページの出場選手が、元記事に登場する選手と一致すること
+                        if not any(_names_in_text(r["side_a"], orig_n) for r in d2["rubbers"]):
+                            continue
+                        det["rubbers"], det["score_source"] = d2["rubbers"], r2
+                        _TIE_SUPPLEMENT_CACHE[tie_id] = (d2["rubbers"], r2)
+                        break
+                res["details"] = det
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] 試合詳細の抽出に失敗(リンクのみで通知します): {a['title'][:30]}: {err}")
+    _ENRICH_CACHE[key] = res
+    return res
+
+
+def render_article_description(a):
+    """通知本文(description)を組み立てる。詳細が取れない記事は本文冒頭の抜粋+リンク。"""
+    e = enrich_article(a)
+    url = e.get("real_url") or a["url"]
+    det = e.get("details")
+    lines = []
+    if det and (det["headline"] or det["rubbers"]):
+        if det["headline"]:
+            lines.append(f"**{det['headline']}**")
+        tie_key = _norm_text(det["headline"] or "")
+        repeat = bool(tie_key) and tie_key in _SHOWN_TIES
+        if repeat:
+            lines.append("（この対戦の各試合スコアは、同時に届いた前の通知に掲載済み）")
+        elif tie_key and det["rubbers"]:
+            _SHOWN_TIES.add(tie_key)
+        for r in ([] if repeat else det["rubbers"]):
+            gc = f" {r['game_count'].replace('-', ' - ')}" if r["game_count"] else ""
+            games = f"（{', '.join(r['games'])}）" if r["games"] else ""
+            lines.append(f"・{r['label'] + '：' if r['label'] else ''}{r['side_a']}{gc} {r['side_b']}{games}")
+        if det.get("score_source") and not repeat:
+            lines.append(f"　└ 対戦別スコアの出典: {det['score_source']}")
+    if det and det["summary"]:
+        lines += [f"※{x}" for x in det["summary"]]
+    if det and det["next_opponent"] and not any(det["next_opponent"] in x for x in det["summary"]):
+        lines.append(f"※次戦の相手: {det['next_opponent']}")
+    if det and det["is_match_report"] and not det["rubbers"] and not det["headline"]:
+        lines.append("（対戦別のスコア詳細は記事本文に記載がありませんでした）")
+    if not lines and e.get("excerpt"):
+        lines.append(f"本文冒頭: {e['excerpt']}…")
+    lines.append(f"[記事全文を読む](<{url}>)")
+    return "\n".join(lines)[:4000]
+
+
+
 def build_badspi_embeds(articles):
     """記事単位でタイトル+リンクをそのままEmbed化する(選手名マッチングは
     行わず、バド×スピが日本代表・国内大会関連の記事を書いた時点でそのまま
@@ -542,7 +811,7 @@ def build_badspi_embeds(articles):
     for a in articles:
         embeds.append({
             "title": f"🏸 {a['title']}"[:256],
-            "description": f"[記事を読む](<{a['url']}>)",
+            "description": render_article_description(a),
             "color": COLOR_BADSPI,
         })
     return embeds
@@ -619,7 +888,7 @@ def build_google_news_badminton_embeds(articles):
     for a in articles:
         embeds.append({
             "title": f"🏸 {a['title']}"[:256],
-            "description": f"[記事を読む](<{a['url']}>)",
+            "description": render_article_description(a),
             "color": COLOR_GNEWS_BADMINTON,
         })
     return embeds

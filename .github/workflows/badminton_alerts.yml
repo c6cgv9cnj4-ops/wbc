@@ -25,7 +25,7 @@ permissions:
 jobs:
   fetch-badminton-alerts:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     concurrency:
       group: badminton-alerts
       cancel-in-progress: false
@@ -42,6 +42,7 @@ jobs:
       - name: 指定選手の試合結果を取得してDiscordへ配信
         env:
           DISCORD_WEBHOOK_SPORTS_CULTURE: ${{ secrets.WEBHOOK_SPORTS_CULTURE }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}  # 記事本文から試合結果(スコア)を抽出
         run: python scripts/fetch_badminton_alerts.py
 
       - name: 既送信記録をコミット
