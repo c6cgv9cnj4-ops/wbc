@@ -1983,7 +1983,7 @@
         // Googleマップの店舗検索URL(Maps URLs: APIキー・課金なし)。mapsUrl を個別指定した店はそれを優先
         function buildMapsUrl(spot) {
             if (spot.mapsUrl) return spot.mapsUrl;
-            const pref = spot.area === '東京' ? '東京都' : (spot.area === '埼玉' ? '埼玉県' : (spot.area === '千葉' ? '千葉県' : ''));
+            const pref = ({ '東京': '東京都', '埼玉': '埼玉県', '千葉': '千葉県', '栃木': '栃木県', '群馬': '群馬県' })[spot.area] || '';
             const q = spot.name.replace(/\s*[(（].*?[)）]/g, '') + ' ' + pref + (spot.addr || spot.address || '');
             return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q) + (spot.pid ? '&query_place_id=' + encodeURIComponent(spot.pid) : '');
         }
@@ -2048,13 +2048,13 @@
                 const d = await res.json();
                 for (const s of (d.shops || [])) {
                     const spot = {
-                        name: s.n, short: s.s, lat: s.lat, lng: s.lng, addr: (s.a || '').replace(/^埼玉県/, ''),
-                        cat: s.c === 's' ? '立ち食いそば' : '着席型蕎麦', area: '埼玉', auto: true, pid: s.pid,
+                        name: s.n, short: s.s, lat: s.lat, lng: s.lng, addr: (s.a || '').replace(/^(埼玉県|東京都|栃木県|群馬県)/, ''),
+                        cat: s.c === 's' ? '立ち食いそば' : '着席型蕎麦', area: /^東京都/.test(s.a) ? '東京' : (/^栃木県/.test(s.a) ? '栃木' : (/^群馬県/.test(s.a) ? '群馬' : '埼玉')), auto: true, pid: s.pid,
                         isMustVisit: s.m === 1, mustVisit: s.m === 1,
                         meibutsu: (s.f && s.f.length) ? s.f.join('・') : '',
                         sobamae: (s.b && s.b.length) ? s.b.join('・') : '',
                         hours: s.h || '', closed: s.x || '',
-                        note: '埼玉スクリーニングで自動選定（' + d.screenedAt + '時点）' + ((s.h || s.x) ? '' : '。営業時間・定休日は掲載準備中')
+                        note: '自動スクリーニングで選定（' + d.screenedAt + '時点）' + ((s.h || s.x) ? '' : '。営業時間・定休日は掲載準備中')
                     };
                     tokyoSobaAutoSpots.push(spot);
                     buildMarker(spot);
