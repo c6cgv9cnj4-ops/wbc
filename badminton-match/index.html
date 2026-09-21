@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -11,12 +11,12 @@
 <title>バド対戦表</title>
 <style>
 :root{
-  --bg:#f5f5f7; --card:#fff; --card2:#f2f2f7; --label:#1d1d1f; --label2:rgba(60,60,67,.6); --label3:rgba(60,60,67,.3);
+  --bg:#f2f2f7; --card:#fff; --card2:#f2f2f7; --label:#1d1d1f; --label2:rgba(60,60,67,.6); --label3:rgba(60,60,67,.3);
   --sep:rgba(60,60,67,.12); --fill:rgba(118,118,128,.12);
   --blue:#007aff; --blue-t:rgba(0,122,255,.12); --green:#34c759; --green-t:rgba(52,199,89,.14);
   --orange:#ff9500; --orange-t:rgba(255,149,0,.15); --red:#ff3b30; --red-t:rgba(255,59,48,.12);
   --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);
-  --nav:rgba(245,245,247,.82);
+  --nav:rgba(242,242,247,.82);
 }
 @media (prefers-color-scheme:dark){
   :root{
@@ -109,7 +109,7 @@ main{max-width:560px;margin:0 auto;padding:16px}
 .list>.li:first-child{border-top:0}
 .li .t{font-weight:600;font-size:16px}
 .check{width:28px;height:28px;border-radius:50%;border:2px solid var(--label3);flex:none;display:grid;place-items:center;color:transparent;transition:all .15s;background:transparent}
-.li.on .check{background:var(--green);border-color:var(--green);color:#fff}
+.li.on .check{background:var(--blue);border-color:var(--blue);color:#fff}
 .li.tap{cursor:pointer} .li.tap:active{background:var(--fill)}
 .input{appearance:none;width:100%;border:0;background:var(--fill);border-radius:14px;min-height:50px;padding:0 16px;font-size:17px;outline:none}
 .input:focus{box-shadow:0 0 0 2px var(--blue)}
@@ -134,20 +134,37 @@ select.input{padding-right:12px}
 @keyframes fade{from{opacity:0}} @keyframes up{from{transform:translateY(40px);opacity:0}}
 .toast{animation:toast .25s} @keyframes toast{from{opacity:0;transform:translate(-50%,16px)}}
 
-/* pair colors & tap-pairing */
-.pr0{--pc:#007aff;--pt:rgba(0,122,255,.14)} .pr1{--pc:#ff9500;--pt:rgba(255,149,0,.16)} .pr2{--pc:#af52de;--pt:rgba(175,82,222,.16)}
-.pr3{--pc:#34c759;--pt:rgba(52,199,89,.16)} .pr4{--pc:#ff2d55;--pt:rgba(255,45,85,.14)} .pr5{--pc:#00b5d8;--pt:rgba(0,181,216,.16)}
-@media (prefers-color-scheme:dark){.pr0{--pc:#0a84ff}.pr1{--pc:#ff9f0a}.pr2{--pc:#bf5af2}.pr3{--pc:#30d158}.pr4{--pc:#ff375f}.pr5{--pc:#64d2ff}}
-.pcard{cursor:pointer;-webkit-user-select:none;user-select:none;transition:background .15s,box-shadow .15s}
-.pcard:active{background:var(--fill)}
-.pcard.paired{box-shadow:inset 5px 0 0 var(--pc)}
-.pcard.psel{background:var(--blue-t);box-shadow:inset 0 0 0 3px var(--blue)}
-.pbadge{appearance:none;border:0;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:800;background:var(--pt);color:var(--pc);cursor:pointer;display:inline-flex;align-items:center;gap:4px;min-height:30px}
-.pbadge:active{transform:scale(.94)}
-.pbadge .x{font-size:11px;opacity:.7}
-.pbtn{border:0;border-radius:999px;padding:0 14px;min-height:34px;font-size:14px;font-weight:700;background:var(--blue-t);color:var(--blue)}
-.psel .pbtn{background:var(--blue);color:#fff}
-.hint{position:sticky;top:64px;z-index:5}
+/* iOS Inset Grouped (管理タブ) */
+.gt{font-size:13px;font-weight:400;color:var(--label2);text-transform:uppercase;letter-spacing:.02em;margin:26px 20px 7px}
+.gt:first-child{margin-top:4px}
+.grp{background:var(--card);border-radius:12px;overflow:hidden}
+.grp>.cell{display:flex;align-items:center;gap:12px;min-height:56px;padding:9px 16px;position:relative;-webkit-user-select:none;user-select:none}
+.grp>.cell+.cell::before{content:"";position:absolute;top:0;left:16px;right:0;border-top:.5px solid var(--sep)}
+.cell.pick{cursor:pointer;transition:background .15s} .cell.pick:active{background:var(--fill)}
+.cell.on{background:var(--blue-t)}
+.cell .nm2{font-size:17px;font-weight:600;line-height:1.25} .cell .sb{font-size:13px;color:var(--label2);margin-top:1px}
+.cell.dim .nm2{color:var(--label2)}
+.cell .lead{width:24px;height:24px;border-radius:50%;flex:none;border:1.5px solid var(--label3);display:grid;place-items:center;color:transparent;font-size:14px;font-weight:800}
+.cell.on .lead{background:var(--blue);border-color:var(--blue);color:#fff}
+.more{appearance:none;border:0;width:34px;height:34px;border-radius:50%;background:var(--fill);color:var(--blue);font-size:18px;font-weight:800;line-height:1;cursor:pointer;flex:none;display:grid;place-items:center;padding:0;padding-bottom:5px}
+.more:active{opacity:.6}
+.pairbox{display:flex;align-items:stretch;min-height:64px}
+.pairbox .half{flex:1;min-width:0;padding:10px 6px 10px 16px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;-webkit-user-select:none;user-select:none}
+.pairbox .half+.half{padding-left:6px;padding-right:6px}
+.pairbox .half:active{background:var(--fill)}
+.pairbox .amp{align-self:center;font-size:18px;flex:none;padding:0 2px}
+.unpair{appearance:none;border:0;background:transparent;color:var(--blue);font-size:15px;font-weight:600;padding:0 16px 0 10px;cursor:pointer;flex:none}
+.unpair:active{opacity:.5}
+.cell.link{color:var(--blue);font-size:17px;cursor:pointer} .cell.link:active{background:var(--fill)}
+.cell .urlt{font-size:13px;color:var(--label2);word-break:break-all}
+/* action sheet */
+.as-ov{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:55;display:flex;align-items:flex-end;justify-content:center;animation:fade .2s}
+.as{width:100%;max-width:560px;padding:0 10px calc(10px + env(safe-area-inset-bottom));animation:up .28s cubic-bezier(.2,.9,.3,1)}
+.as-g{background:var(--card);border-radius:14px;overflow:hidden;margin-top:8px}
+.as-t{text-align:center;padding:14px 16px 12px;font-size:13px;color:var(--label2);font-weight:600}
+.as-b{display:block;width:100%;appearance:none;border:0;background:transparent;font-size:20px;color:var(--blue);min-height:56px;cursor:pointer;border-top:.5px solid var(--sep)}
+.as-t+.as-b{border-top:.5px solid var(--sep)}
+.as-b:active{background:var(--fill)} .as-b.bold{font-weight:700}
 .hidden{display:none!important}
 </style>
 </head>
@@ -274,6 +291,16 @@ function sheet({ title, msg, input, actions }) {
       h('div', { class: 'sheet' }, h('h3', null, title), msg ? h('p', null, msg) : null, inp,
         h('div', { class: 'acts' }, actions.map(a => h('button', { class: 'btn block ' + (a.cls || ''), onclick: () => close({ value: a.value, text: inp ? inp.value : '' }) }, a.label)))));
     document.body.append(ov); if (inp) setTimeout(() => inp.focus(), 60);
+  });
+}
+function actionSheet(title, actions) { // iOS標準のアクションシート（下からスライド）
+  return new Promise(res => {
+    const close = v => { ov.remove(); res(v); };
+    const ov = h('div', { class: 'as-ov', onclick: e => { if (e.target === ov) close(null); } },
+      h('div', { class: 'as' },
+        h('div', { class: 'as-g' }, h('div', { class: 'as-t' }, title), actions.map(a => h('button', { class: 'as-b', type: 'button', onclick: () => close(a.value) }, a.label))),
+        h('div', { class: 'as-g' }, h('button', { class: 'as-b bold', type: 'button', style: 'border-top:0', onclick: () => close(null) }, 'キャンセル'))));
+    document.body.append(ov);
   });
 }
 const segCache = {};
@@ -616,35 +643,62 @@ async function removeAttendee(m) {
   if (played) { const r = await sheet({ title: `${m.name}さんを欠席にしますか？`, msg: `本日${played}試合プレー済みです。欠席にすると次の組から外れます。`, actions: [{ label: '欠席にする', cls: 'danger', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] }); if (!r || r.value !== 'ok') return; }
   await guard(() => DB.commit([{ op: 'del', path: ['bm_sessions', S.date, 'attendees', m.id] }]));
 }
+function memberSub(a, stats) {
+  const bits = [`${stats.games[a.id] || 0}試合`];
+  if (a.status === 'left') bits.push('帰宅'); else if (a.forcedRest) bits.push('休憩中'); else if (a.restLeft > 0) bits.push(`休み予約${a.restLeft}`);
+  return bits.join('・');
+}
+async function memberMenu(a, paired) {
+  const acts = [];
+  if (paired) acts.push({ label: 'ペアを解除', value: 'unpair' }); else acts.push({ label: 'ペアにする', value: 'pair' });
+  acts.push({ label: a.forcedRest ? '休憩を解除する' : '休憩にする', value: 'rest' });
+  acts.push({ label: a.status === 'left' ? '参加に戻す' : '早退にする', value: 'left' });
+  const v = await actionSheet(a.name, acts);
+  if (v === 'pair') { S.pairSel = a.id; renderAll(); }
+  else if (v === 'unpair') unpair(a.id);
+  else if (v === 'rest') patchAtt(a.id, { forcedRest: !a.forcedRest, restLeft: 0 });
+  else if (v === 'left') patchAtt(a.id, a.status === 'left' ? { status: 'active', restLeft: 0 } : { status: 'left' });
+}
 function adminMgr(body) {
-  const s = S.session, stats = s ? computeStats(s, true) : { games: {} }, pres = presentAtts().sort((a, b) => a.joinedAt - b.joinedAt), stack = h('div', { class: 'stack' });
-  const locks = (s && s.locks) || [];
-  const stop = fn => e => { e.stopPropagation(); fn(); };
-  const pairInfo = id => { const k = locks.findIndex(l => l.a === id || l.b === id); if (k < 0) return null; const l = locks[k], n = l.n ?? k; return { n, letter: String.fromCharCode(65 + n % 26), color: n % 6, partner: l.a === id ? l.b : l.a }; };
+  const s = S.session, stats = s ? computeStats(s, true) : { games: {} }, pres = presentAtts().sort((a, b) => a.joinedAt - b.joinedAt), stack = h('div');
+  const locks = ((s && s.locks) || []).filter(l => S.attMap[l.a] && S.attMap[l.b] && S.attMap[l.a].present !== false && S.attMap[l.b].present !== false);
+  const pairedIds = new Set(locks.flatMap(l => [l.a, l.b])), free = pres.filter(a => !pairedIds.has(a.id));
+  const dim = a => a.status === 'left' || a.forcedRest || a.restLeft > 0;
   const selName = S.pairSel && S.attMap[S.pairSel] ? S.attMap[S.pairSel].name : '';
-  stack.append(h('div', null, h('div', { class: 'title' }, `メンバー管理（出席 ${pres.length}人）`),
-    S.pairSel && selName ? h('div', { class: 'banner info hint', style: 'margin-bottom:10px' }, `「${selName}」さんのペア相手をタップ（もう一度タップ／余白タップでキャンセル）`)
-      : (pres.length > 1 ? h('div', { class: 'small muted', style: 'margin:0 4px 10px' }, 'ペア固定：1人目をタップ → 2人目をタップで成立。バッジをタップで解除。') : null),
-    pres.length ? h('div', { class: 'card flush list' }, pres.map(a => {
-      const pi = pairInfo(a.id), picked = S.pairSel === a.id;
-      const st = a.status === 'left' ? h('span', { class: 'pill red' }, '帰宅') : a.forcedRest ? h('span', { class: 'pill orange' }, '強制休憩') : a.restLeft > 0 ? h('span', { class: 'pill orange' }, `休み${a.restLeft}`) : h('span', { class: 'pill green' }, '参加中');
-      const badge = pi ? h('button', { class: `pbadge pr${pi.color}`, type: 'button', title: 'タップでペア解除', onclick: stop(() => unpair(a.id)) }, `🤝 ペア${pi.letter}`, h('span', { class: 'x' }, '✕')) : null;
-      return h('div', { class: 'li pcard' + (pi ? ` paired pr${pi.color}` : '') + (picked ? ' psel' : ''), 'data-id': a.id, style: 'flex-direction:column;align-items:stretch;gap:8px', onclick: () => pickPair(a.id) },
-        h('div', { class: 'row between' }, h('div', { class: 'row wrap', style: 'gap:8px' }, h('span', { class: 't' }, a.name), st, badge), h('span', { class: 'tiny muted' }, `${stats.games[a.id] || 0}試合`)),
-        h('div', { class: 'row wrap' }, h('span', { class: 'pbtn', style: 'display:inline-flex;align-items:center' }, picked ? '選択中（もう一度でキャンセル）' : '🤝 ペア'),
-          h('button', { class: 'btn sm ' + (a.forcedRest ? 'green' : 'orange'), onclick: stop(() => patchAtt(a.id, { forcedRest: !a.forcedRest, restLeft: 0 })) }, a.forcedRest ? '休憩解除' : '強制休憩'),
-          a.status === 'left' ? h('button', { class: 'btn sm green', onclick: stop(() => patchAtt(a.id, { status: 'active', restLeft: 0 })) }, '戻す') : h('button', { class: 'btn sm danger', onclick: stop(() => patchAtt(a.id, { status: 'left' })) }, '早退・帰宅')));
-    })) : h('div', { class: 'card empty' }, '出席者がいません')));
+  if (selName) stack.append(h('div', { class: 'banner info hint', style: 'margin-bottom:6px' }, `「${selName}」さんの相手をタップ（もう一度タップ／余白でキャンセル）`));
+  if (!pres.length) stack.append(h('div', { class: 'grp' }, h('div', { class: 'cell', style: 'justify-content:center;color:var(--label2)' }, '出席者がいません')));
+  // ペア（合体カード）
+  if (locks.length) {
+    stack.append(h('div', { class: 'gt' }, `ペア（${locks.length}組）`));
+    const g = h('div', { style: 'display:flex;flex-direction:column;gap:10px' });
+    locks.forEach(l => {
+      const half = id => { const a = S.attMap[id]; return h('div', { class: 'half pick' + (dim(a) ? ' dim' : ''), onclick: () => S.pairSel ? toast('先にペアを解除してください') : memberMenu(a, true) },
+        h('div', { class: 'nm2', style: 'font-size:17px;font-weight:600' + (dim(a) ? ';color:var(--label2)' : '') }, a.name), h('div', { class: 'sb', style: 'font-size:13px;color:var(--label2)' }, memberSub(a, stats))); };
+      g.append(h('div', { class: 'grp pairbox' }, half(l.a), h('span', { class: 'amp' }, '🤝'), half(l.b), h('button', { class: 'unpair', type: 'button', onclick: () => unpair(l.a) }, '解除')));
+    });
+    stack.append(g);
+  }
+  // フリー
+  if (free.length) {
+    stack.append(h('div', { class: 'gt' }, `${locks.length ? 'フリー' : '出席者'}（${free.length}人）` + (free.length > 1 && !S.pairSel ? '　タップでペア作成' : '')));
+    stack.append(h('div', { class: 'grp' }, free.map(a => { const on = S.pairSel === a.id;
+      return h('div', { class: 'cell pick' + (on ? ' on' : '') + (dim(a) ? ' dim' : ''), onclick: () => pickPair(a.id) },
+        S.pairSel ? h('div', { class: 'lead' }, '✓') : null,
+        h('div', { class: 'grow' }, h('div', { class: 'nm2' }, a.name), h('div', { class: 'sb' }, memberSub(a, stats))),
+        h('button', { class: 'more', type: 'button', 'aria-label': '詳細メニュー', onclick: e => { e.stopPropagation(); memberMenu(a, false); } }, '⋯')); })));
+  }
   const url = location.href.split('#')[0].replace(/[?&]mock=1/, '');
-  stack.append(h('div', { class: 'card stack' }, h('div', { class: 'title', style: 'margin:0' }, '参加者用URL'), h('div', { class: 'small', style: 'word-break:break-all' }, url),
-    h('button', { class: 'btn tint block', onclick: async () => { try { await navigator.clipboard.writeText(url); toast('URLをコピーしました'); } catch { toast('コピーできませんでした。手動でコピーしてください'); } } }, 'URLをコピー')));
-  stack.append(h('div', null, h('div', { class: 'title' }, `名簿の管理（${S.members.length}人）`),
-    h('div', { class: 'card flush list' }, S.members.slice().sort((x, y) => (x.name > y.name ? 1 : -1)).map(m => h('div', { class: 'li' }, h('div', { class: 'grow t' }, m.name), h('span', { class: 'tiny muted' }, `${m.count || 0}回`),
-      h('button', { class: 'btn sm tint', onclick: () => renameMember(m) }, '名前変更'), h('button', { class: 'btn sm danger', onclick: () => deleteMember(m) }, '削除'))))));
-  stack.append(h('div', { class: 'card stack' }, h('div', { class: 'title', style: 'margin:0' }, 'その他'),
-    h('button', { class: 'btn danger block', onclick: resetSession }, '本日の試合をリセット（出席は残す）'),
-    h('button', { class: 'btn block', onclick: changePin }, 'PINを変更'),
-    h('button', { class: 'btn block', onclick: () => { ssDel('bm_admin_ok'); S.isAdmin = false; renderAll(); } }, '主催者画面をロック')));
+  stack.append(h('div', { class: 'gt' }, '参加者用URL'), h('div', { class: 'grp' },
+    h('div', { class: 'cell' }, h('div', { class: 'urlt' }, url)),
+    h('div', { class: 'cell link', onclick: async () => { try { await navigator.clipboard.writeText(url); toast('URLをコピーしました'); } catch { toast('コピーできませんでした。手動でコピーしてください'); } } }, 'URLをコピー')));
+  stack.append(h('div', { class: 'gt' }, `名簿（${S.members.length}人）`), h('div', { class: 'grp' }, S.members.length ? S.members.slice().sort((x, y) => (x.name > y.name ? 1 : -1)).map(m =>
+    h('div', { class: 'cell' }, h('div', { class: 'grow nm2' }, m.name), h('span', { class: 'sb' }, `${m.count || 0}回`),
+      h('button', { class: 'more', type: 'button', 'aria-label': '名簿メニュー', onclick: async () => { const v = await actionSheet(m.name, [{ label: '名前を変更', value: 'rename' }, { label: '名簿から削除', value: 'del' }]); if (v === 'rename') renameMember(m); else if (v === 'del') deleteMember(m); } }, '⋯')))
+    : h('div', { class: 'cell', style: 'color:var(--label2)' }, '名簿はまだ空です')));
+  stack.append(h('div', { class: 'gt' }, 'その他'), h('div', { class: 'grp' },
+    h('div', { class: 'cell link', onclick: resetSession }, '本日の試合をリセット'),
+    h('div', { class: 'cell link', onclick: changePin }, 'PINを変更'),
+    h('div', { class: 'cell link', onclick: () => { ssDel('bm_admin_ok'); S.isAdmin = false; renderAll(); } }, '主催者画面をロック')));
   body.replaceChildren(stack);
 }
 function pickPair(id) {
@@ -709,7 +763,7 @@ function startSubs() {
   unsubs.push(DB.sub(['bm_config', 'admin'], d => { S.config = d; S.ready.c = true; renderAll(); }, false, err));
 }
 addEventListener('hashchange', () => { S.sel = null; S.pairSel = null; renderAll(); });
-document.addEventListener('click', e => { if (S.pairSel && !e.target.closest('.pcard') && !e.target.closest('.sheet')) { S.pairSel = null; renderAll(); } });
+document.addEventListener('click', e => { if (S.pairSel && !e.target.closest('.pick') && !e.target.closest('.as-ov') && !e.target.closest('.sheet')) { S.pairSel = null; renderAll(); } });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && todayStr() !== S.date) { S.date = todayStr(); startSubs(); } });
 await initDB();
 renderAll(); startSubs();
