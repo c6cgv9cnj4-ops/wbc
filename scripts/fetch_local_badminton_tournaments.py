@@ -473,8 +473,11 @@ def main():
     log.append(f"[docs] 抽出対象ページ合計 {len(uniq)}件")
 
     merged, dropped = {}, []
-    for doc in uniq:
-        for t in extract_tournaments(client, doc):
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        extracted = list(ex.map(lambda d: extract_tournaments(client, d), uniq))
+    for doc, tournaments in zip(uniq, extracted):
+        for t in tournaments:
             t, _why = verify_and_normalize(t, doc, today) if t.get("date") else (None, "開催日なし")
             if t is None:
                 continue
