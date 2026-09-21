@@ -40,8 +40,10 @@ state/gourmet_shops_seen.json に蓄積する。
 import json
 import math
 import os
+import re
 import sys
 import time
+import unicodedata
 
 import requests
 
@@ -78,14 +80,33 @@ KNOWN_SHOP_NAMES = [
 # 実在店「手打ちそば 禅味 あら井」(北本市高尾1-299)と混同された可能性が高い。
 
 # 全国・広域チェーンの明示的除外リスト（個人店発掘の趣旨に反するため）
+# 照合は _norm_name() で正規化（全角半角・大小文字・空白・中黒・アポストロフィを無視）してから
+# 部分一致で行うため、「Starbucks」「TULLY'S」「カフェ・ベローチェ」のような表記ゆれも拾える。
+# 注意: Places API(searchText)は運営会社名を返さないため、判定は店名のみ。
 CHAIN_NAME_KEYWORDS = [
+    # ハンバーガー・牛丼・ファストフード・ファミレス・麺・ドーナツ・コンビニ
     "マクドナルド", "モスバーガー", "バーガーキング", "ケンタッキー",
-    "すき家", "吉野家", "松屋", "なか卯", "ガスト", "サイゼリヤ", "ジョナサン",
-    "デニーズ", "ココイチ", "CoCo壱番屋", "丸亀製麺", "はなまるうどん",
-    "スターバックス", "ドトール", "タリーズ", "コメダ珈琲店", "サンマルクカフェ",
-    "餃子の王将", "日高屋", "幸楽苑", "リンガーハット", "びっくりドンキー",
-    "ミスタードーナツ", "セブンイレブン", "ファミリーマート", "ローソン",
+    "すき家", "吉野家", "松屋", "なか卯", "サイゼリヤ", "ココイチ", "CoCo壱番屋",
+    "丸亀製麺", "はなまるうどん", "餃子の王将", "日高屋", "幸楽苑", "リンガーハット",
+    "びっくりドンキー", "ミスタードーナツ", "セブンイレブン", "ファミリーマート", "ローソン",
+    # すかいらーく系・ファミレス系（カフェ業態含む）
+    "すかいらーく", "むさしの森珈琲", "ガスト", "ジョナサン", "デニーズ", "ココス", "ロイヤルホスト",
+    # 大手カフェチェーン
+    "スターバックス", "Starbucks", "ドトール", "DOUTOR", "エクセルシオール", "EXCELSIOR",
+    "コメダ珈琲", "星乃珈琲", "上島珈琲", "タリーズ", "TULLY'S",
+    "サンマルクカフェ", "ベローチェ", "プロント", "PRONTO", "高倉町珈琲",
+    # その他大手複合チェーン
+    "倉式珈琲", "元町珈琲",
 ]
+
+
+def _norm_name(text):
+    """表記ゆれ吸収: NFKC・小文字化・空白/中黒/アポストロフィ/ハイフン類の除去。"""
+    t = unicodedata.normalize("NFKC", text or "").casefold()
+    return re.sub(r"[\s・･'’`´\-‐―－]", "", t)
+
+
+_CHAIN_NORMS = [_norm_name(kw) for kw in CHAIN_NAME_KEYWORDS]
 
 # ジャンル別クエリと、Places APIからは分からない健康度の暫定割当て
 # （health_level は自動判定の暫定値。確定はメニュー確認後に人手で行う）
@@ -144,7 +165,8 @@ def save_seen_state(state):
 
 
 def is_chain(name):
-    return any(kw in name for kw in CHAIN_NAME_KEYWORDS)
+    n = _norm_name(name)
+    return any(kw in n for kw in _CHAIN_NORMS)
 
 
 def is_known(name):
