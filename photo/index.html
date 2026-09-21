@@ -748,40 +748,40 @@
         // 評価・件数は固定値を持たない（hydrateSobaSpots で実測取得）。meibutsu は各店の紹介記事・公式情報で確認した名物。
         const tokyoSobaSpots = [
             // --- 中央区 ---
-            { name: '峠そば (茅場町)', short: '峠そば', lat: 35.67900, lng: 139.77931, addr: '中央区日本橋茅場町2-8-6', cat: '立ち食いそば', meibutsu: '鯵天そば（ごま油香る江戸前）', holiday: '水曜・日曜' },
-            { name: 'そば処 亀島 (茅場町)', short: '亀島', lat: 35.67947, lng: 139.78154, addr: '中央区日本橋茅場町1-14-2', cat: '立ち食いそば', meibutsu: '春菊天そば' },
-            { name: '立ち食い 福そば (人形町)', short: '福そば', lat: 35.68468, lng: 139.78309, addr: '中央区日本橋人形町1-16-3', cat: '立ち食いそば', meibutsu: '天ぷらそば（かき揚げ・げそ・春菊など6種から選択）' },
-            { name: 'そば処 おか田 (小伝馬町)', short: 'おか田', lat: 35.69109, lng: 139.77937, addr: '中央区日本橋小伝馬町13-6', cat: '立ち食いそば', meibutsu: 'かき揚げ天そば・春菊天そば' },
-            { name: 'よもだそば (日本橋店)', short: 'よもだそば', lat: 35.68251, lng: 139.77223, addr: '中央区日本橋2-1-20', cat: '立ち食いそば', meibutsu: '玉ねぎ1個分のかき揚げ・インドカレー' },
+            { name: '峠そば (茅場町)', closed: '水曜・日曜', short: '峠そば', lat: 35.67900, lng: 139.77931, addr: '中央区日本橋茅場町2-8-6', cat: '立ち食いそば', meibutsu: '鯵天そば（ごま油香る江戸前）' },
+            { name: 'そば処 亀島 (茅場町)', hours: '7:00〜17:00（土は〜15:00）', closed: '日曜・祝日', short: '亀島', lat: 35.67947, lng: 139.78154, addr: '中央区日本橋茅場町1-14-2', cat: '立ち食いそば', meibutsu: '春菊天そば' },
+            { name: '立ち食い 福そば (人形町)', hours: '7:30〜17:30（売切じまい）', closed: '土日祝', short: '福そば', lat: 35.68468, lng: 139.78309, addr: '中央区日本橋人形町1-16-3', cat: '立ち食いそば', meibutsu: '天ぷらそば（かき揚げ・げそ・春菊など6種から選択）' },
+            { name: 'そば処 おか田 (小伝馬町)', hours: '11:15〜14:00', closed: '土日祝', short: 'おか田', lat: 35.69109, lng: 139.77937, addr: '中央区日本橋小伝馬町13-6', cat: '立ち食いそば', meibutsu: 'かき揚げ天そば・春菊天そば' },
+            { name: 'よもだそば (日本橋店)', hours: '平日 7:00〜22:00／土日祝 10:00〜15:00', closed: '無休', short: 'よもだそば', lat: 35.68251, lng: 139.77223, addr: '中央区日本橋2-1-20', cat: '立ち食いそば', meibutsu: '玉ねぎ1個分のかき揚げ・インドカレー' },
             // --- 千代田区 ---
-            { name: 'めんや (神田須田町)', short: 'めんや', lat: 35.69535, lng: 139.76989, addr: '千代田区神田須田町1-14', cat: '立ち食いそば', meibutsu: '明日葉天そば', holiday: '土日祝' },
-            { name: 'そば千 (東神田)', short: 'そば千', lat: 35.69510, lng: 139.78128, addr: '千代田区東神田1-17-4', cat: '立ち食いそば', meibutsu: 'おきあみ天そば（漆黒のつゆ）' },
-            { name: '六文そば (須田町店)', short: '六文そば', lat: 35.69645, lng: 139.76851, addr: '千代田区神田須田町1-17', cat: '立ち食いそば', meibutsu: 'げそ天そば・ジャンボいか天', isSpecial: true, note: '路麺文化の名店として殿堂入り（★基準に関わらず掲載）' },
+            { name: 'めんや (神田須田町)', closed: '土日祝', short: 'めんや', lat: 35.69535, lng: 139.76989, addr: '千代田区神田須田町1-14', cat: '立ち食いそば', meibutsu: '明日葉天そば' },
+            { name: 'そば千 (東神田)', hours: '月〜金 2:00〜19:00／土 3:00〜13:00', closed: '日曜・第1土曜', short: 'そば千', lat: 35.69510, lng: 139.78128, addr: '千代田区東神田1-17-4', cat: '立ち食いそば', meibutsu: 'おきあみ天そば（漆黒のつゆ）' },
+            { name: '六文そば (須田町店)', hours: '月〜金 7:00〜14:00', closed: '土日', short: '六文そば', lat: 35.69645, lng: 139.76851, addr: '千代田区神田須田町1-17', cat: '立ち食いそば', meibutsu: 'げそ天そば・ジャンボいか天', isSpecial: true, note: '路麺文化の名店として殿堂入り（★基準に関わらず掲載）' },
             // --- 台東区 ---
-            { name: '川一 (秋葉原・台東)', short: '川一', lat: 35.70078, lng: 139.77968, addr: '台東区台東1-2-7', cat: '立ち食いそば', meibutsu: 'げそ天そば・春菊天そば', holiday: '日曜' },
-            { name: 'スタンドそば 野むら (浅草橋)', short: '野むら', lat: 35.70120, lng: 139.78101, addr: '台東区浅草橋5-20-8', cat: '立ち食いそば', meibutsu: '春菊天そば（継ぎ足しの黒いつゆ「暗黒汁」）', hours: '8:00-14:00', holiday: '土日祝' },
-            { name: 'そば・うどん ひさご (浅草橋)', short: 'ひさご', lat: 35.69739, lng: 139.78547, addr: '台東区浅草橋1-17-2 駅ガード下', cat: '立ち食いそば', meibutsu: '自家製麺の天ぷらそば・たぬきそば' },
-            { name: '鶏だし そば・うどん 三丁目 (仲御徒町)', short: '三丁目', lat: 35.70577, lng: 139.77663, addr: '台東区台東3-42-7', cat: '立ち食いそば', meibutsu: '鶏だしそば・朝そば（10時まで）' },
-            { name: 'そば うどん 元長 (稲荷町)', short: '元長', lat: 35.71418, lng: 139.77982, addr: '台東区東上野4-10-7', cat: '立ち食いそば', meibutsu: '自家製麺のかき揚げそば' },
+            { name: '川一 (秋葉原・台東)', hours: '平日 7:00〜14:00／土 10:00〜13:00', closed: '日曜', short: '川一', lat: 35.70078, lng: 139.77968, addr: '台東区台東1-2-7', cat: '立ち食いそば', meibutsu: 'げそ天そば・春菊天そば' },
+            { name: 'スタンドそば 野むら (浅草橋)', hours: '8:00〜14:00', closed: '土日祝', short: '野むら', lat: 35.70120, lng: 139.78101, addr: '台東区浅草橋5-20-8', cat: '立ち食いそば', meibutsu: '春菊天そば（継ぎ足しの黒いつゆ「暗黒汁」）' },
+            { name: 'そば・うどん ひさご (浅草橋)', hours: '6:45〜18:00頃', closed: '土日祝', short: 'ひさご', lat: 35.69739, lng: 139.78547, addr: '台東区浅草橋1-17-2 駅ガード下', cat: '立ち食いそば', meibutsu: '自家製麺の天ぷらそば・たぬきそば' },
+            { name: '鶏だし そば・うどん 三丁目 (仲御徒町)', hours: '6:00〜14:00', closed: '土日祝', short: '三丁目', lat: 35.70577, lng: 139.77663, addr: '台東区台東3-42-7', cat: '立ち食いそば', meibutsu: '鶏だしそば・朝そば（10時まで）' },
+            { name: 'そば うどん 元長 (稲荷町)', hours: '月〜金 6:00〜22:00', closed: '土日祝', short: '元長', lat: 35.71418, lng: 139.77982, addr: '台東区東上野4-10-7', cat: '立ち食いそば', meibutsu: '自家製麺のかき揚げそば' },
             // --- 港区 ---
-            { name: '立喰 そば うどん 丹波屋 (新橋)', short: '丹波屋', lat: 35.66628, lng: 139.75700, addr: '港区新橋2-16-1 ニュー新橋ビル1F', cat: '立ち食いそば', meibutsu: '春菊天そば・スパイス調合のインドカレー' },
-            { name: 'そば うどん おくとね (新橋)', short: 'おくとね', lat: 35.66621, lng: 139.75954, addr: '港区新橋2-20-15 新橋駅前ビル1号館B1F', cat: '立ち食いそば', meibutsu: '舞茸天そば（薄く広げた大判の天ぷら）', hours: '7:00-20:00' },
+            { name: '立喰 そば うどん 丹波屋 (新橋)', hours: '月〜金 7:00〜23:00／土 7:30〜19:00', closed: '日曜・祝日', short: '丹波屋', lat: 35.66628, lng: 139.75700, addr: '港区新橋2-16-1 ニュー新橋ビル1F', cat: '立ち食いそば', meibutsu: '春菊天そば・スパイス調合のインドカレー' },
+            { name: 'そば うどん おくとね (新橋)', hours: '7:00〜20:00', short: 'おくとね', lat: 35.66621, lng: 139.75954, addr: '港区新橋2-20-15 新橋駅前ビル1号館B1F', cat: '立ち食いそば', meibutsu: '舞茸天そば（薄く広げた大判の天ぷら）' },
             // --- 新宿区 ---
-            { name: '立喰い そば・うどん 山吹 (山吹町)', short: '山吹', lat: 35.70754, lng: 139.73141, addr: '新宿区山吹町265-6', cat: '立ち食いそば', meibutsu: 'カレー南蛮（豚肉ごろごろ）' },
-            { name: '白河そば (牛込柳町)', short: '白河そば', lat: 35.69952, lng: 139.72401, addr: '新宿区原町2-8', cat: '立ち食いそば', meibutsu: '塩だしつゆ・ごぼう天・カレーうどん', hours: '7:00-13:00頃', holiday: '土日祝' },
+            { name: '立喰い そば・うどん 山吹 (山吹町)', hours: '6:00〜15:00', closed: '日曜・祝日', short: '山吹', lat: 35.70754, lng: 139.73141, addr: '新宿区山吹町265-6', cat: '立ち食いそば', meibutsu: 'カレー南蛮（豚肉ごろごろ）' },
+            { name: '白河そば (牛込柳町)', hours: '7:00〜13:00頃', closed: '土日祝', short: '白河そば', lat: 35.69952, lng: 139.72401, addr: '新宿区原町2-8', cat: '立ち食いそば', meibutsu: '塩だしつゆ・ごぼう天・カレーうどん' },
             // --- 文京区 ---
-            { name: 'そば処 はるな (本郷三丁目)', short: 'はるな', lat: 35.70544, lng: 139.76072, addr: '文京区本郷2-26-10', cat: '立ち食いそば', meibutsu: 'ハゼ天そば・かき揚げ天そば' },
-            { name: '名代 白木そば (本郷・水道橋)', short: '白木そば', lat: 35.70582, lng: 139.75464, addr: '文京区本郷1-33-7', cat: '立ち食いそば', meibutsu: '牛肉そば（硬めの太そば）' },
+            { name: 'そば処 はるな (本郷三丁目)', hours: '7:30〜18:30', closed: '土日祝', short: 'はるな', lat: 35.70544, lng: 139.76072, addr: '文京区本郷2-26-10', cat: '立ち食いそば', meibutsu: 'ハゼ天そば・かき揚げ天そば' },
+            { name: '名代 白木そば (本郷・水道橋)', hours: '月〜金 11:00〜17:00', closed: '土日祝', short: '白木そば', lat: 35.70582, lng: 139.75464, addr: '文京区本郷1-33-7', cat: '立ち食いそば', meibutsu: '牛肉そば（硬めの太そば）' },
             // --- 墨田区 ---
             { name: '文殊 両国本店', short: '文殊', lat: 35.69496, lng: 139.79635, addr: '墨田区両国4-34-1', cat: '立ち食いそば', meibutsu: 'かき揚げそば・春菊天そば・あなご天そば', note: '都内10店舗規模の地域チェーン（本店を掲載）' },
             // --- 江東区 ---
             { name: '立喰いそば 遠野屋 (南砂町)', short: '遠野屋', lat: 35.67280, lng: 139.83295, addr: '江東区南砂6-3-4', cat: '立ち食いそば', meibutsu: '小柱のかき揚げそば・えびかき揚げ' },
-            { name: '立喰そば 大むら (潮見)', short: '大むら', lat: 35.65748, lng: 139.81525, addr: '江東区潮見1-27-5', cat: '立ち食いそば', meibutsu: '春菊天（器からはみ出す大きさ）・かけそば200円台', hours: '6:00-14:00' },
-            { name: '文殊 亀戸店', short: '文殊 亀戸', lat: 35.69717, lng: 139.82829, addr: '江東区亀戸6-61-1', cat: '立ち食いそば', meibutsu: '岩のりそば・かき揚げそば', isSpecial: true, note: '路麺文化の名店として殿堂入り（★基準に関わらず掲載）' },
+            { name: '立喰そば 大むら (潮見)', hours: '6:00〜14:00', short: '大むら', lat: 35.65748, lng: 139.81525, addr: '江東区潮見1-27-5', cat: '立ち食いそば', meibutsu: '春菊天（器からはみ出す大きさ）・かけそば200円台' },
+            { name: '文殊 亀戸店', hours: '月〜金 6:00〜23:00／土日祝 7:00〜20:00', closed: '無休', short: '文殊 亀戸', lat: 35.69717, lng: 139.82829, addr: '江東区亀戸6-61-1', cat: '立ち食いそば', meibutsu: '岩のりそば・かき揚げそば', isSpecial: true, note: '路麺文化の名店として殿堂入り（★基準に関わらず掲載）' },
             // --- 荒川区・北区・豊島区 ---
-            { name: '一由そば (日暮里)', short: '一由そば', lat: 35.73025, lng: 139.77084, addr: '荒川区西日暮里2-26-8', cat: '立ち食いそば', isMustVisit: true, meibutsu: 'ジャンボゲソ天そば（太そば）', hours: '24時間営業' },
-            { name: '立喰そば かしやま (田端)', short: 'かしやま', lat: 35.73902, lng: 139.76201, addr: '北区東田端1-17-20', cat: '立ち食いそば', meibutsu: '天玉そば（朝のみ営業）', hours: '6:00-10:00', holiday: '日曜・祝日' },
-            { name: '肉そば 南天 (椎名町)', short: '南天', lat: 35.72664, lng: 139.69510, addr: '豊島区長崎1-2-2', cat: '立ち食いそば', meibutsu: '肉そば（玉ねぎの甘みの豚肉山盛り）', hours: '5:30-25:30' }
+            { name: '一由そば (日暮里)', hours: '24時間営業', short: '一由そば', lat: 35.73025, lng: 139.77084, addr: '荒川区西日暮里2-26-8', cat: '立ち食いそば', isMustVisit: true, meibutsu: 'ジャンボゲソ天そば（太そば）' },
+            { name: '立喰そば かしやま (田端)', hours: '6:00〜10:00（朝のみ）', closed: '日曜・祝日', short: 'かしやま', lat: 35.73902, lng: 139.76201, addr: '北区東田端1-17-20', cat: '立ち食いそば', meibutsu: '天玉そば（朝のみ営業）' },
+            { name: '肉そば 南天 (椎名町)', hours: '5:30〜翌1:30', short: '南天', lat: 35.72664, lng: 139.69510, addr: '豊島区長崎1-2-2', cat: '立ち食いそば', meibutsu: '肉そば（玉ねぎの甘みの豚肉山盛り）' }
         ];
 
         // 着席型蕎麦屋（老舗・手打ちの名店／大手チェーン除外）
@@ -789,40 +789,40 @@
         // meibutsu は各店の公式・紹介記事で確認した名物。
         const tokyoSobaSeatedSpots = [
             // --- 東京23区（老舗・名店） ---
-            { name: '神田まつや 本店', short: 'まつや', lat: 35.69611, lng: 139.76879, addr: '千代田区神田須田町1-13', sobamae: 'あかね鶏の焼鳥・わさびかまぼこ・焼のり・蕎麦味噌（酒のお通し）', mori: 'もりそば・鴨せいろ', cat: '着席型蕎麦', isMustVisit: true, area: '東京', meibutsu: '鴨南ばん・かしわ南ばん・鴨せいろ（明治17年創業）' },
-            { name: 'かんだやぶそば', short: '神田やぶ', lat: 35.69700, lng: 139.76869, addr: '千代田区神田淡路町2-10', sobamae: '板わさ・焼のりなどの一品料理と日本酒', mori: 'せいろうそば', cat: '着席型蕎麦', isMustVisit: true, area: '東京', meibutsu: 'せいろうそば・天ぷらそば（小海老のかき揚げ）・鴨せいろう' },
-            { name: '神田錦町 更科', short: '錦町更科', lat: 35.69378, lng: 139.76170, addr: '千代田区神田錦町3-14', cat: '着席型蕎麦', area: '東京', meibutsu: 'とり汁せいろ・季節の変わりそば（白い更科そば）' },
-            { name: '並木藪蕎麦', short: '並木藪', lat: 35.70968, lng: 139.79594, addr: '台東区雷門2-11-9', isMustVisit: true, sobamae: '日本酒・ビール', mori: 'せいろ（ざる）・天ざるそば', cat: '着席型蕎麦', area: '東京', meibutsu: '天ざるそば・鴨南蛮・せいろ（辛口のつゆ）' },
-            { name: '室町 砂場', short: '室町砂場', lat: 35.68935, lng: 139.77177, addr: '中央区日本橋室町4-1-13', isMustVisit: true, sobamae: '板わさ・そば味噌・焼き鳥・玉子焼き', mori: 'もり・ざる（天もり・天ざるも）', cat: '着席型蕎麦', area: '東京', meibutsu: '天ざる・天もり（発祥の店）・天ぷらそば' },
-            { name: '上野 藪そば', short: '上野藪', lat: 35.71020, lng: 139.77546, addr: '台東区上野6-9-16', isMustVisit: true, cat: '着席型蕎麦', area: '東京', meibutsu: '天せいろう・鴨せいろう' },
-            { name: '総本家 更科堀井 本店', short: '更科堀井', lat: 35.65680, lng: 139.73288, addr: '港区元麻布3-11-4', isMustVisit: true, cat: '着席型蕎麦', area: '東京', meibutsu: 'さらしなそば（寛政元年創業）・季節の変わりそば' },
-            { name: '虎ノ門 大坂屋 砂場', short: '大坂屋砂場', lat: 35.66822, lng: 139.75070, addr: '港区虎ノ門1-10-6', isMustVisit: true, sobamae: '日本酒・焼酎と、玉子焼き・焼き鳥・天ぷらなどのつまみ', mori: 'もりそば・天せいろ', cat: '着席型蕎麦', area: '東京', meibutsu: '天ぷらそば・天せいろ（登録有形文化財の建物）' },
-            { name: '蕎麦きり みまき', short: 'みまき', lat: 35.67593, lng: 139.73575, addr: '港区赤坂4-2-3', cat: '着席型蕎麦', area: '東京', meibutsu: '天せいろ（車海老と旬野菜）・季節の天ぷら' },
-            { name: '翁庵', short: '翁庵', lat: 35.71184, lng: 139.77886, addr: '台東区東上野3-39-8', sobamae: '板わさ・油揚甘辛煮・かつ煮・そばがき', mori: '大もり・ねぎせいろ', cat: '着席型蕎麦', area: '東京', meibutsu: 'ねぎせいろ（イカのかき揚げ入りの汁）' },
+            { name: '神田まつや 本店', hours: '平日 11:00〜20:30（L.O.20:00）／土・祝 11:00〜19:30（L.O.19:00）', closed: '日曜・月曜', short: 'まつや', lat: 35.69611, lng: 139.76879, addr: '千代田区神田須田町1-13', sobamae: 'あかね鶏の焼鳥・わさびかまぼこ・焼のり・蕎麦味噌（酒のお通し）', mori: 'もりそば・鴨せいろ', cat: '着席型蕎麦', isMustVisit: true, area: '東京', meibutsu: '鴨南ばん・かしわ南ばん・鴨せいろ（明治17年創業）' },
+            { name: 'かんだやぶそば', hours: '11:30〜20:00（L.O.）', closed: '水曜', short: '神田やぶ', lat: 35.69700, lng: 139.76869, addr: '千代田区神田淡路町2-10', sobamae: '板わさ・焼のりなどの一品料理と日本酒', mori: 'せいろうそば', cat: '着席型蕎麦', isMustVisit: true, area: '東京', meibutsu: 'せいろうそば・天ぷらそば（小海老のかき揚げ）・鴨せいろう' },
+            { name: '神田錦町 更科', hours: '月〜金 11:00〜14:30／17:00〜19:30／土 11:00〜14:00（売切次第）', closed: '土曜夜・日曜・祝日', short: '錦町更科', lat: 35.69378, lng: 139.76170, addr: '千代田区神田錦町3-14', cat: '着席型蕎麦', area: '東京', meibutsu: 'とり汁せいろ・季節の変わりそば（白い更科そば）' },
+            { name: '並木藪蕎麦', hours: '11:00〜19:30', closed: '木曜・第2水曜', short: '並木藪', lat: 35.70968, lng: 139.79594, addr: '台東区雷門2-11-9', isMustVisit: true, sobamae: '日本酒・ビール', mori: 'せいろ（ざる）・天ざるそば', cat: '着席型蕎麦', area: '東京', meibutsu: '天ざるそば・鴨南蛮・せいろ（辛口のつゆ）' },
+            { name: '室町 砂場', hours: '月〜金 11:30〜15:30／16:30〜21:00／土 11:30〜16:00', closed: '日曜・祝日', short: '室町砂場', lat: 35.68935, lng: 139.77177, addr: '中央区日本橋室町4-1-13', isMustVisit: true, sobamae: '板わさ・そば味噌・焼き鳥・玉子焼き', mori: 'もり・ざる（天もり・天ざるも）', cat: '着席型蕎麦', area: '東京', meibutsu: '天ざる・天もり（発祥の店）・天ぷらそば' },
+            { name: '上野 藪そば', hours: '月火木金 11:30〜15:00／17:30〜21:00／土日祝 11:30〜21:00', closed: '水曜・第2・4火曜', short: '上野藪', lat: 35.71020, lng: 139.77546, addr: '台東区上野6-9-16', isMustVisit: true, cat: '着席型蕎麦', area: '東京', meibutsu: '天せいろう・鴨せいろう' },
+            { name: '総本家 更科堀井 本店', hours: '平日 11:30〜15:30／17:00〜20:30／土日祝 11:00〜20:30', closed: '1/1〜3・7/31〜8/3', short: '更科堀井', lat: 35.65680, lng: 139.73288, addr: '港区元麻布3-11-4', isMustVisit: true, cat: '着席型蕎麦', area: '東京', meibutsu: 'さらしなそば（寛政元年創業）・季節の変わりそば' },
+            { name: '虎ノ門 大坂屋 砂場', hours: '月火 11:00〜20:00／水〜金 11:00〜21:00／土 11:00〜15:00', closed: '日曜・祝日・第3土曜', short: '大坂屋砂場', lat: 35.66822, lng: 139.75070, addr: '港区虎ノ門1-10-6', isMustVisit: true, sobamae: '日本酒・焼酎と、玉子焼き・焼き鳥・天ぷらなどのつまみ', mori: 'もりそば・天せいろ', cat: '着席型蕎麦', area: '東京', meibutsu: '天ぷらそば・天せいろ（登録有形文化財の建物）' },
+            { name: '蕎麦きり みまき', hours: '月〜金 10:00〜22:00／土 11:00〜20:00', closed: '日曜・祝日', short: 'みまき', lat: 35.67593, lng: 139.73575, addr: '港区赤坂4-2-3', cat: '着席型蕎麦', area: '東京', meibutsu: '天せいろ（車海老と旬野菜）・季節の天ぷら' },
+            { name: '翁庵', hours: '11:00〜20:00（L.O.19:30）', closed: '日曜・祝日', short: '翁庵', lat: 35.71184, lng: 139.77886, addr: '台東区東上野3-39-8', sobamae: '板わさ・油揚甘辛煮・かつ煮・そばがき', mori: '大もり・ねぎせいろ', cat: '着席型蕎麦', area: '東京', meibutsu: 'ねぎせいろ（イカのかき揚げ入りの汁）' },
             // --- 東京の名店（ご指定・全国トップ評価クラス。isMustVisit で🔥必訪） ---
-            { name: '手打蕎麦 じゆうさん', short: 'じゆうさん', lat: 35.72991, lng: 139.67711, addr: '中野区江原町3-1-4', cat: '着席型蕎麦', area: '東京', isMustVisit: true, meibutsu: '石臼自家製粉の手打ち十割そば・田舎そば', mori: '十割そば・田舎そば', sobamae: '厳選の日本酒とのペアリング・季節の野菜料理' },
-            { name: '蕎楽亭', short: '蕎楽亭', lat: 35.70078, lng: 139.73951, addr: '新宿区神楽坂3-6 神楽坂館1階', cat: '着席型蕎麦', area: '東京', isMustVisit: true, meibutsu: '会津の玄そばを石臼挽き・むぎめお（蕎麦と冷麦の合い盛り）', mori: 'せいろ（石臼挽き）・むぎめお', sobamae: '江戸前の天ぷら（シシャモ天など）・会津の日本酒（昼飲みにも）' },
-            { name: '手打そば 菊谷 巣鴨本店', short: '菊谷', lat: 35.73804, lng: 139.73142, addr: '豊島区巣鴨4-14-15', cat: '着席型蕎麦', area: '東京', isMustVisit: true, meibutsu: '唎き蕎麦（産地違いのもりの食べ比べ）', mori: '唎き蕎麦・もりそば', sobamae: 'お任せ酒肴五品盛り・日本酒', note: 'ミシュラン・食べログ百名店に選出（紹介記事より）' },
-            { name: '吟八亭 やざ和', short: 'やざ和', lat: 35.76289, lng: 139.84639, addr: '葛飾区亀有1-27-8', cat: '着席型蕎麦', area: '東京', isMustVisit: true, meibutsu: 'そばがき（ポタージュ状の蕎麦湯で）・限定の田舎せいろ', mori: '田舎せいろ・せいろそば', sobamae: 'そばがき・出汁巻き玉子・磯自慢や十四代などの日本酒' },
-            { name: '手打ちそば 根津 鷹匠', short: '鷹匠', lat: 35.72059, lng: 139.76444, addr: '文京区根津2-32-8', cat: '着席型蕎麦', area: '東京', isMustVisit: true, tags: ['🔥 必訪', '🍶 蕎麦前OK', '自家製粉'], meibutsu: 'コシの強い田舎そば「深山」・二色せいろ', mori: 'せいろ・二色せいろ・鴨せいろ', sobamae: '蕎麦前・蕎麦掻き', note: '食べログ蕎麦百名店（紹介記事より）／数に限りがあり売り切れ次第終了' },
-            { name: '江戸蕎麦 ほそ川', short: 'ほそ川', lat: 35.69672, lng: 139.79805, addr: '墨田区亀沢1-6-5', cat: '着席型蕎麦', area: '東京', isMustVisit: true, isSpecial: true, meibutsu: '穴子天せいろ・冷やし牡蠣そば（季節限定）', mori: 'せいろ蕎麦（2枚目は産地違いの蕎麦）', sobamae: '季節の一品料理・お酒', note: 'ミシュラン一つ星・玄蕎麦を低温保存し毎日自家製粉（紹介記事より）。Google実測は★基準未満だが、別格の名店として掲載' },
+            { name: '手打蕎麦 じゆうさん', hours: '火〜金 11:30〜14:30／17:30〜20:30／土 11:30〜14:30／17:30〜20:00／日 11:30〜17:00', closed: '月曜（祝日は営業）', short: 'じゆうさん', lat: 35.72991, lng: 139.67711, addr: '中野区江原町3-1-4', cat: '着席型蕎麦', area: '東京', isMustVisit: true, meibutsu: '石臼自家製粉の手打ち十割そば・田舎そば', mori: '十割そば・田舎そば', sobamae: '厳選の日本酒とのペアリング・季節の野菜料理' },
+            { name: '蕎楽亭', hours: '11:30〜15:00／17:00〜21:00', closed: '日曜・月曜・祝日', short: '蕎楽亭', lat: 35.70078, lng: 139.73951, addr: '新宿区神楽坂3-6 神楽坂館1階', cat: '着席型蕎麦', area: '東京', isMustVisit: true, meibutsu: '会津の玄そばを石臼挽き・むぎめお（蕎麦と冷麦の合い盛り）', mori: 'せいろ（石臼挽き）・むぎめお', sobamae: '江戸前の天ぷら（シシャモ天など）・会津の日本酒（昼飲みにも）' },
+            { name: '手打そば 菊谷 巣鴨本店', hours: '11:30〜15:00／18:00〜20:30', closed: '月曜', short: '菊谷', lat: 35.73804, lng: 139.73142, addr: '豊島区巣鴨4-14-15', cat: '着席型蕎麦', area: '東京', isMustVisit: true, meibutsu: '唎き蕎麦（産地違いのもりの食べ比べ）', mori: '唎き蕎麦・もりそば', sobamae: 'お任せ酒肴五品盛り・日本酒', note: 'ミシュラン・食べログ百名店に選出（紹介記事より）' },
+            { name: '吟八亭 やざ和', hours: '平日 11:30〜15:00／17:00〜20:00／日 11:30〜15:00', closed: '水曜・木曜', short: 'やざ和', lat: 35.76289, lng: 139.84639, addr: '葛飾区亀有1-27-8', cat: '着席型蕎麦', area: '東京', isMustVisit: true, meibutsu: 'そばがき（ポタージュ状の蕎麦湯で）・限定の田舎せいろ', mori: '田舎せいろ・せいろそば', sobamae: 'そばがき・出汁巻き玉子・磯自慢や十四代などの日本酒' },
+            { name: '手打ちそば 根津 鷹匠', hours: '7:30〜9:30／12:00〜18:00', closed: '月曜・火曜', short: '鷹匠', lat: 35.72059, lng: 139.76444, addr: '文京区根津2-32-8', cat: '着席型蕎麦', area: '東京', isMustVisit: true, tags: ['🔥 必訪', '🍶 蕎麦前OK', '自家製粉'], meibutsu: 'コシの強い田舎そば「深山」・二色せいろ', mori: 'せいろ・二色せいろ・鴨せいろ', sobamae: '蕎麦前・蕎麦掻き', note: '食べログ蕎麦百名店（紹介記事より）／数に限りがあり売り切れ次第終了' },
+            { name: '江戸蕎麦 ほそ川', hours: '11:45〜14:30／17:30〜20:00（L.O.）', closed: '月曜・第3火曜', short: 'ほそ川', lat: 35.69672, lng: 139.79805, addr: '墨田区亀沢1-6-5', cat: '着席型蕎麦', area: '東京', isMustVisit: true, isSpecial: true, meibutsu: '穴子天せいろ・冷やし牡蠣そば（季節限定）', mori: 'せいろ蕎麦（2枚目は産地違いの蕎麦）', sobamae: '季節の一品料理・お酒', note: 'ミシュラン一つ星・玄蕎麦を低温保存し毎日自家製粉（紹介記事より）。Google実測は★基準未満だが、別格の名店として掲載' },
             // --- 特選の遠征ドライブ名店（北本から150km圏内・自家製粉／手挽きの求道店。isMustVisit で🔥必訪） ---
-            { name: '會津野 茂三郎', short: '茂三郎', lat: 36.04491, lng: 139.33845, addr: '比企郡滑川町月輪879-1', cat: '着席型蕎麦', area: '埼玉', isMustVisit: true, tags: ['🔥 必訪', '🚗 遠征ドライブ', '自家製粉'], meibutsu: '会津産のそば粉を石臼で自家製粉した手打ちそば' },
-            { name: '竹やぶ 柏本店', short: '竹やぶ', lat: 35.86584, lng: 139.98785, addr: '柏市柏1144-2', cat: '着席型蕎麦', area: '千葉', isMustVisit: true, tags: ['🔥 必訪', '🚗 遠征ドライブ', '手挽き粗挽き'], meibutsu: '毎朝石臼で手挽きする自家製粉・粗挽きそばがき・田舎そば・せいろ', note: '手賀沼を望む高台の竹林の店。黒姫高原の契約農家の玄そばを使用（紹介記事より）' },
-            { name: 'そば工房 そば福', short: 'そば福', lat: 35.97777, lng: 138.97061, addr: '秩父市荒川贄川1311', cat: '着席型蕎麦', area: '埼玉', isMustVisit: true, tags: ['🔥 必訪', '🚗 遠征ドライブ', '自家製粉'], meibutsu: '地元・荒川産のそば粉を石臼挽きした手打ちそば', note: '荒川のそば畑を望む山あいの店。定休日は月曜（実測の営業時間を優先表示）' },
+            { name: '會津野 茂三郎', hours: '11:00〜19:00', closed: '月曜（祝日は営業）', short: '茂三郎', lat: 36.04491, lng: 139.33845, addr: '比企郡滑川町月輪879-1', cat: '着席型蕎麦', area: '埼玉', isMustVisit: true, tags: ['🔥 必訪', '🚗 遠征ドライブ', '自家製粉'], meibutsu: '会津産のそば粉を石臼で自家製粉した手打ちそば' },
+            { name: '竹やぶ 柏本店', hours: '11:30〜19:00（L.O.・蕎麦がなくなり次第終了）', closed: '火曜（祝日は営業）', short: '竹やぶ', lat: 35.86584, lng: 139.98785, addr: '柏市柏1144-2', cat: '着席型蕎麦', area: '千葉', isMustVisit: true, tags: ['🔥 必訪', '🚗 遠征ドライブ', '手挽き粗挽き'], meibutsu: '毎朝石臼で手挽きする自家製粉・粗挽きそばがき・田舎そば・せいろ', note: '手賀沼を望む高台の竹林の店。黒姫高原の契約農家の玄そばを使用（紹介記事より）' },
+            { name: 'そば工房 そば福', hours: '11:30〜15:00', closed: '月曜', short: 'そば福', lat: 35.97777, lng: 138.97061, addr: '秩父市荒川贄川1311', cat: '着席型蕎麦', area: '埼玉', isMustVisit: true, tags: ['🔥 必訪', '🚗 遠征ドライブ', '自家製粉'], meibutsu: '地元・荒川産のそば粉を石臼挽きした手打ちそば', note: '荒川のそば畑を望む山あいの店。定休日は月曜（実測の営業時間を優先表示）' },
             // --- 埼玉県（北本〜大宮・浦和・上尾・川越） ---
-            { name: '太治平', short: '太治平', lat: 36.01659, lng: 139.55062, addr: '北本市二ツ家2-151', cat: '着席型蕎麦', area: '埼玉', meibutsu: '鴨汁せいろ・肉汁せいろ（外一の手打ち）' },
-            { name: '手打そば すゞ木', short: 'すゞ木', lat: 36.02821, lng: 139.53874, addr: '北本市本宿2-81', cat: '着席型蕎麦', area: '埼玉', meibutsu: '鴨汁そば・十割そば・鴨汁きしめん' },
-            { name: '萬吉禎', short: '萬吉禎', lat: 36.01920, lng: 139.50899, addr: '北本市荒井4-255', cat: '着席型蕎麦', area: '埼玉', meibutsu: '天付鴨汁そば・わさび丼' },
-            { name: '手打ちそば処 久霧', short: '久霧', lat: 35.90013, lng: 139.62388, addr: 'さいたま市中央区上落合9-9-4', sobamae: '地酒・埼玉産クラフトビール・蕎麦味噌・そばがき', mori: '手挽きせいろ・十割そば', cat: '着席型蕎麦', area: '埼玉', meibutsu: 'そばの味くらべ（そばがき・十割・手挽き）・手挽きせいろ' },
-            { name: '手打ちそば きくち', short: 'きくち', lat: 35.92587, lng: 139.62794, addr: 'さいたま市北区盆栽町377-3', cat: '着席型蕎麦', area: '埼玉', meibutsu: '三色そば（変わりそば＋えび天）・鴨そば' },
-            { name: '蕎麦 孤丘', short: '孤丘', lat: 35.88606, lng: 139.63721, addr: 'さいたま市浦和区上木崎1-11-12', isMustVisit: true, cat: '着席型蕎麦', area: '埼玉', meibutsu: '十割そば・海老天せいろ・鴨南蛮そば' },
-            { name: '分上野薮 かねこ', short: '薮かねこ', lat: 35.86118, lng: 139.65025, addr: 'さいたま市浦和区仲町2-9-11', cat: '着席型蕎麦', area: '埼玉', meibutsu: 'せいろう・鴨南蛮（上野藪の暖簾分け）' },
-            { name: '内藤流手打ちそば あさきや', short: 'あさきや', lat: 35.86005, lng: 139.64708, addr: 'さいたま市浦和区仲町3-13-6', cat: '着席型蕎麦', area: '埼玉', meibutsu: '信州内藤流の石臼自家製粉・手打ち／手毬唄（かき揚げ天丼とそば）' },
-            { name: '石挽手打そば わかお', short: 'わかお', lat: 35.96032, lng: 139.55125, addr: '上尾市小敷谷331-3', cat: '着席型蕎麦', area: '埼玉', meibutsu: '特製二味そば（もり汁＋辛味大根汁）・十割そば' },
-            { name: '文楽 東蔵', short: '東蔵', lat: 35.97788, lng: 139.58630, addr: '上尾市上町2-5-5', sobamae: '酒蔵「文楽」直結の地酒・季節の焼き物／煮物・前菜セット', mori: 'せいろそば・くるみだれせいろ', cat: '着席型蕎麦', area: '埼玉', meibutsu: '海老天上せいろ・くるみだれせいろ（酒蔵を改修した店）' },
-            { name: '手打そば 百丈', short: '百丈', lat: 35.92460, lng: 139.48523, addr: '川越市元町1-1-15', cat: '着席型蕎麦', area: '埼玉', meibutsu: '天もりそば・揚もちそば（会津・山都町産粉の二八）' },
-            { name: '蕎麦.酒 十限無', short: '十限無', lat: 35.91955, lng: 139.48735, addr: '川越市久保町6-6', sobamae: '種類豊富なお酒・自家製梅酒・蕎麦とのペアリング（昼飲みも歓迎）', mori: '十割そば切り', cat: '着席型蕎麦', area: '埼玉', meibutsu: '十割そば切り・韃靼そば・ごま豆乳そば' }
+            { name: '太治平', hours: '11:30〜14:00／17:30〜22:30', closed: '月曜', short: '太治平', lat: 36.01659, lng: 139.55062, addr: '北本市二ツ家2-151', cat: '着席型蕎麦', area: '埼玉', meibutsu: '鴨汁せいろ・肉汁せいろ（外一の手打ち）' },
+            { name: '手打そば すゞ木', hours: '11:30〜14:30／16:30〜20:00', closed: '水曜', short: 'すゞ木', lat: 36.02821, lng: 139.53874, addr: '北本市本宿2-81', cat: '着席型蕎麦', area: '埼玉', meibutsu: '鴨汁そば・十割そば・鴨汁きしめん' },
+            { name: '萬吉禎', hours: '平日 11:00〜15:00／土日祝 11:00〜20:00', closed: '木曜', short: '萬吉禎', lat: 36.01920, lng: 139.50899, addr: '北本市荒井4-255', cat: '着席型蕎麦', area: '埼玉', meibutsu: '天付鴨汁そば・わさび丼' },
+            { name: '手打ちそば処 久霧', hours: '平日 11:30〜14:15／17:30〜21:00／土・祝 11:30〜14:15', closed: '日曜・不定休', short: '久霧', lat: 35.90013, lng: 139.62388, addr: 'さいたま市中央区上落合9-9-4', sobamae: '地酒・埼玉産クラフトビール・蕎麦味噌・そばがき', mori: '手挽きせいろ・十割そば', cat: '着席型蕎麦', area: '埼玉', meibutsu: 'そばの味くらべ（そばがき・十割・手挽き）・手挽きせいろ' },
+            { name: '手打ちそば きくち', hours: '11:00〜19:00（土日祝は14:30〜16:30休憩・売切次第）', closed: '月曜・第3火曜', short: 'きくち', lat: 35.92587, lng: 139.62794, addr: 'さいたま市北区盆栽町377-3', cat: '着席型蕎麦', area: '埼玉', meibutsu: '三色そば（変わりそば＋えび天）・鴨そば' },
+            { name: '蕎麦 孤丘', hours: '11:30〜15:00／18:00〜21:00（日曜・祝日の月曜は11:30〜18:00）', short: '孤丘', lat: 35.88606, lng: 139.63721, addr: 'さいたま市浦和区上木崎1-11-12', isMustVisit: true, cat: '着席型蕎麦', area: '埼玉', meibutsu: '十割そば・海老天せいろ・鴨南蛮そば' },
+            { name: '分上野薮 かねこ', hours: '月火金 11:00〜14:30／17:00〜20:00／木 16:00〜20:00／土日 11:00〜20:00', closed: '水曜', short: '薮かねこ', lat: 35.86118, lng: 139.65025, addr: 'さいたま市浦和区仲町2-9-11', cat: '着席型蕎麦', area: '埼玉', meibutsu: 'せいろう・鴨南蛮（上野藪の暖簾分け）' },
+            { name: '内藤流手打ちそば あさきや', hours: '11:30〜15:00／17:00〜20:00', closed: '火曜・第3水曜', short: 'あさきや', lat: 35.86005, lng: 139.64708, addr: 'さいたま市浦和区仲町3-13-6', cat: '着席型蕎麦', area: '埼玉', meibutsu: '信州内藤流の石臼自家製粉・手打ち／手毬唄（かき揚げ天丼とそば）' },
+            { name: '石挽手打そば わかお', hours: '11:00〜15:30（売切次第）', closed: '水曜・第3火曜', short: 'わかお', lat: 35.96032, lng: 139.55125, addr: '上尾市小敷谷331-3', cat: '着席型蕎麦', area: '埼玉', meibutsu: '特製二味そば（もり汁＋辛味大根汁）・十割そば' },
+            { name: '文楽 東蔵', hours: '昼 11:00〜17:00／夜 17:00〜22:00（L.O.21:00）', closed: '無休', short: '東蔵', lat: 35.97788, lng: 139.58630, addr: '上尾市上町2-5-5', sobamae: '酒蔵「文楽」直結の地酒・季節の焼き物／煮物・前菜セット', mori: 'せいろそば・くるみだれせいろ', cat: '着席型蕎麦', area: '埼玉', meibutsu: '海老天上せいろ・くるみだれせいろ（酒蔵を改修した店）' },
+            { name: '手打そば 百丈', closed: '木曜', short: '百丈', lat: 35.92460, lng: 139.48523, addr: '川越市元町1-1-15', cat: '着席型蕎麦', area: '埼玉', meibutsu: '天もりそば・揚もちそば（会津・山都町産粉の二八）' },
+            { name: '蕎麦.酒 十限無', hours: '11:30〜15:00／18:00〜', closed: '水曜・第3木曜', short: '十限無', lat: 35.91955, lng: 139.48735, addr: '川越市久保町6-6', sobamae: '種類豊富なお酒・自家製梅酒・蕎麦とのペアリング（昼飲みも歓迎）', mori: '十割そば切り', cat: '着席型蕎麦', area: '埼玉', meibutsu: '十割そば切り・韃靼そば・ごま豆乳そば' }
         ];
 
         const tokyoCoffeeSpots = [
@@ -1963,9 +1963,9 @@
 
         // 立ち食いそば: Places API (New) で評価・件数・営業状況を実測し、基準(★3.8以上/100件以上/営業中)未達はピンを外す
         // APIキー無し・通信失敗時は基準を判定できないためピンは残し、評価は「Googleマップで確認」表示にする
-        // 実測営業時間(Places)があれば優先、無ければ静的値(hoursPopup)を使う
+        // 自前の hours があればそれを使い、無い場合のみ実測営業時間(Places・SOBA_LIVE_PLACES=true時)を使う
         function liveHoursHtml(spot, fallbackHtml) {
-            if (!spot.hoursLive) return fallbackHtml;
+            if (!spot.hoursLive || spot.hours) return fallbackHtml;
             const week = spot.weekLive ? '<details class="mt-0.5"><summary class="cursor-pointer text-[10px] text-slate-500">週間の営業時間</summary><div class="text-[10px] text-slate-600 leading-snug">' + spot.weekLive.map(escapeHtml).join('<br>') + '</div></details>' : '';
             return '<div class="text-emerald-600 font-semibold text-[11px] mt-1">🕒 ' + escapeHtml(spot.hoursLive) + (spot.holidayLive ? '<br>📅 定休日: ' + escapeHtml(spot.holidayLive) : '') + '</div>' + week;
         }
@@ -1973,6 +1973,17 @@
         // 🔥必訪は「遠出してでも行きたい別格の名店」だけ。評価値では自動付与せず、isMustVisit:true の個別指定のみ。
         //  対象: ①歴史的な江戸前御三家・超名店(藪/更科/砂場系の老舗など) ②自家製粉・玄そば管理などの全国トップ評価店
         //  地元の実力店は🥢(藍色)のまま。
+        // Google Places API の実測(評価・営業時間の取得)は従量課金・利用規約リスクを避けるため既定で停止。
+        // 営業時間(hours)・定休日(closed)は各店の公式・紹介情報から自前データとして保持し、
+        // 口コミ・最新情報は Googleマップへのリンク(mapsUrl)で確認してもらう。true にすると従来のライブ実測を再開する。
+        const SOBA_LIVE_PLACES = false;
+        // Googleマップの店舗検索URL(Maps URLs: APIキー・課金なし)。mapsUrl を個別指定した店はそれを優先
+        function buildMapsUrl(spot) {
+            if (spot.mapsUrl) return spot.mapsUrl;
+            const pref = spot.area === '東京' ? '東京都' : (spot.area === '埼玉' ? '埼玉県' : (spot.area === '千葉' ? '千葉県' : ''));
+            const q = spot.name.replace(/\s*[(（].*?[)）]/g, '') + ' ' + pref + (spot.addr || spot.address || '');
+            return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q) + (spot.pid ? '&query_place_id=' + encodeURIComponent(spot.pid) : '');
+        }
         const SOBA_MIN_RATING = 3.8;
         const SOBA_MIN_REVIEWS = 100;
         // 埼玉: Google Places で自動スクリーニングした店(data/saitama_soba.json)。読込後に追加される
@@ -2039,7 +2050,7 @@
                         isMustVisit: s.m === 1, mustVisit: s.m === 1,
                         meibutsu: (s.f && s.f.length) ? s.f.join('・') : '',
                         sobamae: (s.b && s.b.length) ? s.b.join('・') : '',
-                        note: '埼玉スクリーニングで自動選定（' + d.screenedAt + '時点）。評価・営業時間は開いた時点の実測値'
+                        note: '埼玉スクリーニングで自動選定（' + d.screenedAt + '時点）。営業時間・定休日は掲載準備中'
                     };
                     tokyoSobaAutoSpots.push(spot);
                     buildMarker(spot);
@@ -2051,7 +2062,7 @@
 
         // 自動選定店は数が多いので、ポップアップを開いた時に1店だけ実測(Place Details)する
         async function hydrateAutoSobaSpot(spot, map, makeIcon) {
-            if (spot.hydrated || !GOOGLE_PLACES_API_KEY || !spot.pid) return;
+            if (!SOBA_LIVE_PLACES || spot.hydrated || !GOOGLE_PLACES_API_KEY || !spot.pid) return;
             spot.hydrated = true;
             try {
                 const ck = 'gpauto:' + spot.pid;
@@ -2097,7 +2108,7 @@
         // 蕎麦屋: Places API (New) で評価・件数・営業状況・営業時間を実測し、基準(★3.8以上/100件以上/営業中)未達はピンを外す
         // APIキー無し・通信失敗時は基準を判定できないためピンは残し、評価は「Googleマップで確認」表示にする
         async function hydrateSobaSpots(map, makeIcon) {
-            if (!GOOGLE_PLACES_API_KEY) return;
+            if (!SOBA_LIVE_PLACES || !GOOGLE_PLACES_API_KEY) return;
             const DAY_CHARS = ['月', '火', '水', '木', '金', '土', '日'];
             for (const spot of allSobaSpots()) {
                 try {
@@ -2389,7 +2400,7 @@
                         const safeCat = spot.cat || '';
                         const safeInfo = spot.info || '';
                         const safeHours = spot.hours || '';
-                        const safeHoliday = spot.holiday || '';
+                        const safeHoliday = spot.closed || spot.holiday || '';
 
                         let markerOpts = {};
                         if (safeCat === '主要駅') {
@@ -2424,16 +2435,24 @@
                         // 団地タブのポップアップと配色を統一（白背景で読みやすい濃いめの黄・緑、薄青バッジ）
                         const infoBadge = safeInfo ? '<div class="text-amber-500 font-bold text-[11px] mt-1">' + escapeHtml(safeInfo) + '</div>' : '';
                         const addressLine = safeAddress ? '<div class="text-slate-500 text-[10px] mt-0.5">' + escapeHtml(safeAddress) + '</div>' : '';
-                        const hoursPopup = (safeHours || safeHoliday) ? '<div class="text-emerald-600 font-semibold text-[11px] mt-1">' + (safeHours ? '🕒 営業時間: ' + escapeHtml(safeHours) : '') + (safeHours && safeHoliday ? '<br>' : '') + (safeHoliday ? '📅 定休日: ' + escapeHtml(safeHoliday) : '') + '</div>' : '';
+                        // 営業時間(🕒)・定休日(🗓️)。店舗系ピンは未設定でも行を出し「掲載準備中」でレイアウトを揃える
+                        const isShopPin = (safeCat === '立ち食いそば' || safeCat === '着席型蕎麦' || safeCat === '珈琲専門店');
+                        const hoursRow = function(icon, label, val) {
+                            return val
+                                ? '<div class="text-emerald-700 font-semibold text-[11px] mt-0.5">' + icon + ' ' + label + ': ' + escapeHtml(val) + '</div>'
+                                : (isShopPin ? '<div class="text-slate-400 text-[11px] mt-0.5">' + icon + ' ' + label + ': 掲載準備中</div>' : '');
+                        };
+                        const hoursPopup = '<div class="mt-1">' + hoursRow('🕒', '営業時間', safeHours) + hoursRow('🗓️', '定休日', safeHoliday) + '</div>';
 
                         // 店名などをそのままonclick属性へ文字列展開すると、引用符・特殊文字を含む
                         // 名称でSyntaxErrorになり得るため、inline onclickは使わずボタンだけ用意し、
                         // popupopen時にaddEventListenerで安全にバインドする(下記参照)。
                         // 関数で渡すと開くたびに再生成されるため、Places実測後の評価もそのまま反映される
                         marker.bindPopup(function() {
+                            // ライブ実測(SOBA_LIVE_PLACES=true)時のみ評価行を出す。既定では出さず、口コミはGoogleマップリンクで確認
                             const liveInfo = spot.ratingNum
                                 ? '<div class="text-amber-500 font-bold text-[11px] mt-1">Google評価 ★' + escapeHtml(spot.ratingNum) + '（' + escapeHtml(Number(spot.ratingCount).toLocaleString()) + '件）</div>'
-                                : ((spot.meibutsu || spot.auto) ? '<div class="text-slate-400 text-[10px] mt-1">' + (spot.auto ? 'Google評価: 取得中…' : 'Google評価: Googleマップで確認') + '</div>' : '');
+                                : '';
                             // 蕎麦前も愉しめる名店: 「酒を頼まないと入りづらい」印象にならないよう、蕎麦のみ利用を先に案内する
                             const sobamaeBlock = spot.sobamae ? '<div class="mt-1.5 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-1">' +
                                 '<div class="text-emerald-800 font-bold text-[10.5px]">🍶 蕎麦前も愉しめる名店<span class="font-normal">（食事・蕎麦のみも大歓迎）</span></div>' +
@@ -2451,16 +2470,19 @@
                             const driveLine = (spot.tags || []).some(function(t) { return t.indexOf('遠征ドライブ') >= 0; })
                                 ? '<div class="text-indigo-700 text-[10px] font-semibold">🚗 北本から直線で約' + Math.round(calcDist(KITAMOTO_LAT, KITAMOTO_LNG, spot.lat, spot.lng)) + 'km</div>' : '';
                             const noteLine = spot.note ? '<div class="text-slate-400 text-[10px] mt-0.5">' + escapeHtml(spot.note) + '</div>' : '';
-                            const mapLink = spot.gmapUri ? '<a href="' + escapeHtml(spot.gmapUri) + '" target="_blank" rel="noopener" class="text-sky-600 underline text-[10px] block mt-1">Googleマップで開く</a>' : '';
+                            const mapLink = isShopPin
+                                ? '<a href="' + escapeHtml(buildMapsUrl(spot)) + '" target="_blank" rel="noopener" class="block text-center text-sky-700 border border-sky-300 bg-sky-50 hover:bg-sky-100 rounded px-2 py-1 text-[10.5px] font-semibold mt-1.5">Googleマップで口コミ・最新情報を確認 ↗</a>' +
+                                  (spot.hours ? '<div class="text-slate-400 text-[9.5px] mt-0.5">※営業時間・定休日は目安です。お出かけ前に最新情報をご確認ください。</div>' : '')
+                                : '';
                             return '<div class="text-slate-900 text-xs font-sans">' +
                                 '<strong class="text-sm font-bold block mb-1">' + escapeHtml(safeName) + '</strong>' +
                                 '<span class="inline-block bg-sky-100 text-sky-800 font-semibold px-1.5 py-0.5 rounded text-[10px] mb-1">' + escapeHtml(safeCat) + '</span>' + specialBadge + (spot.sobamae ? '<span class="inline-block bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-1.5 py-0.5 rounded text-[10px] mb-1 ml-1">🍶 蕎麦前OK</span>' : '') +
                                 addressLine +
                                 (tagChips ? '<div class="mt-0.5">' + tagChips + '</div>' : '') + driveLine +
+                                liveHoursHtml(spot, hoursPopup) +
                                 ((spot.meibutsu || spot.auto) ? liveInfo : infoBadge) +
                                 meibutsuLine +
                                 sobamaeBlock +
-                                liveHoursHtml(spot, hoursPopup) +
                                 noteLine +
                                 mapLink +
                                 '<button type="button" class="js-add-waypoint-btn bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded text-xs w-full mt-2">' +
