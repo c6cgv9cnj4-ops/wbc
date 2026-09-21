@@ -22,11 +22,13 @@ b)終了日(単発イベントは開催日)のEVENT_REMINDER_DAYS日前を1日�
   DISCORD_WEBHOOK_OSHI (必須)
 """
 import datetime
+import hashlib
 import json
 import os
 import re
 import sys
 import time
+import unicodedata
 import urllib.parse
 
 import feedparser
@@ -82,7 +84,17 @@ OSHI_KEYWORDS = [
 ]
 
 STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "state", "oshi_news_seen.json")
-STATE_RETENTION_DAYS = 30
+# ── 重複配信の排除(dedup) ─────────────────────────────────────
+# 「一度通知した記事は二度と送らない」ための設計(2026-09-22 細川さん指定で強化)。
+#  1) 記事URL と 正規化タイトルのハッシュ の両方を送信済みとして記録する
+#     (Google Newsは同じ内容の記事でもURLが違う場合があるため、URLだけでは漏れる)
+#  2) 公開から MAX_ARTICLE_AGE_DAYS 日を超えた古い記事は、履歴に無くても送らない
+#     (履歴のパージ後に古い記事が『新着』として復活するのを防ぐ。
+#      必ず STATE_RETENTION_DAYS より短くすること＝パージされた記事は常に古すぎて弾かれる)
+#  3) 履歴は STATE_RETENTION_DAYS 日分 かつ 最大 STATE_MAX_ENTRIES 件まで保持し、古い順にパージ
+STATE_RETENTION_DAYS = 60
+MAX_ARTICLE_AGE_DAYS = 14
+STATE_MAX_ENTRIES = 5000
 REQUEST_TIMEOUT = 15
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -138,19 +150,59 @@ def save_seen_state(state):
         json.dump(state, f, ensure_ascii=False, indent=2)
 
 
-def prune_old_entries(state, now):
-    cutoff = now - datetime.timedelta(days=STATE_RETENTION_DAYS)
-    seen = state.get("seen_urls", {})
+def _prune_map(m, cutoff):
     pruned = {}
-    for url, iso_ts in seen.items():
+    for key, iso_ts in m.items():
         try:
             ts = datetime.datetime.fromisoformat(iso_ts)
-        except ValueError:
+        except (ValueError, TypeError):
             continue
         if ts >= cutoff:
-            pruned[url] = iso_ts
-    state["seen_urls"] = pruned
+            pruned[key] = iso_ts
+    if len(pruned) > STATE_MAX_ENTRIES:  # 肥大化防止: 新しいものから上限件数だけ残す
+        keep = sorted(pruned.items(), key=lambda kv: kv[1], reverse=True)[:STATE_MAX_ENTRIES]
+        pruned = dict(keep)
+    return pruned
+
+
+def prune_old_entries(state, now):
+    cutoff = now - datetime.timedelta(days=STATE_RETENTION_DAYS)
+    state["seen_urls"] = _prune_map(state.get("seen_urls", {}), cutoff)
+    state["seen_titles"] = _prune_map(state.get("seen_titles", {}), cutoff)
     return state
+
+
+def title_key(title):
+    """タイトルの正規化ハッシュ。Google Newsの『 - 媒体名』サフィックス、空白・記号、全半角、
+    大小文字の違いを吸収し、同一記事の別URL配信(転載・別トークン)を同一視する。"""
+    t = re.sub(r"\s[-－―–|｜]\s[^-－―–|｜]{1,30}$", "", title.strip())  # 末尾の「 - 媒体名」
+    t = unicodedata.normalize("NFKC", t).casefold()
+    t = re.sub(r"[\s\W_]+", "", t)
+    return hashlib.sha1(t.encode("utf-8")).hexdigest()[:16]
+
+
+def is_already_sent(state, item):
+    return item["url"] in state.get("seen_urls", {}) or title_key(item["title"]) in state.get("seen_titles", {})
+
+
+def mark_sent(state, item, now):
+    state.setdefault("seen_urls", {})[item["url"]] = now.isoformat()
+    state.setdefault("seen_titles", {})[title_key(item["title"])] = now.isoformat()
+
+
+def published_datetime(entry):
+    parsed = getattr(entry, "published_parsed", None) or getattr(entry, "updated_parsed", None)
+    if not parsed:
+        return None
+    try:
+        return datetime.datetime(*parsed[:6], tzinfo=datetime.timezone.utc)
+    except (TypeError, ValueError):
+        return None
+
+
+def is_too_old(published_dt, now):
+    """公開日時が取れない記事は判定不能のため古い扱いにせず通す(履歴dedupに任せる)。"""
+    return published_dt is not None and now - published_dt > datetime.timedelta(days=MAX_ARTICLE_AGE_DAYS)
 
 
 def format_published_jst(entry):
@@ -200,7 +252,8 @@ def fetch_keyword_news(keyword, retries=3):
 
     feed = feedparser.parse(resp.content)
     candidates = [
-        {"title": e.title, "url": e.link, "published": format_published_jst(e)}
+        {"title": e.title, "url": e.link, "published": format_published_jst(e),
+         "published_dt": published_datetime(e)}
         for e in feed.entries[:RAW_CANDIDATES_PER_KEYWORD]
     ]
     relevant = [c for c in candidates if is_title_relevant(keyword, c["title"])]
@@ -294,15 +347,28 @@ def build_reminder_calendar_url(event_title, article_url, end_date):
 
 def build_oshi_message(state, now):
     """新着が1件も無ければNoneを返す。"""
-    seen = state.setdefault("seen_urls", {})
+    state.setdefault("seen_urls", {})
+    state.setdefault("seen_titles", {})
     sections = []
     has_any_new = False
+    stats = {"fetched": 0, "dup": 0, "old": 0, "new": 0}
 
     for keyword in OSHI_KEYWORDS:
         items = fetch_keyword_news(keyword)
-        new_items = [item for item in items if item["url"] not in seen]
-        for item in new_items:
-            seen[item["url"]] = now.isoformat()
+        stats["fetched"] += len(items)
+        new_items = []
+        for item in items:
+            if is_already_sent(state, item):
+                stats["dup"] += 1
+                continue
+            if is_too_old(item.get("published_dt"), now):
+                stats["old"] += 1
+                # 古い記事は履歴にも記録しておく(以後の取得でも確実に弾き、統計を安定させる)
+                mark_sent(state, item, now)
+                continue
+            mark_sent(state, item, now)  # 同一実行内で別キーワードに同じ記事が出ても二重送信しない
+            new_items.append(item)
+        stats["new"] += len(new_items)
 
         if new_items:
             has_any_new = True
@@ -326,6 +392,8 @@ def build_oshi_message(state, now):
                     lines.append(f"  - ⏰ [終了{EVENT_REMINDER_DAYS}日前リマインダー追加](<{reminder_url}>)")
             sections.append("\n".join(lines))
 
+    print(f"[INFO] dedup結果: 取得{stats['fetched']}件 / 送信済みで除外{stats['dup']}件 / "
+          f"{MAX_ARTICLE_AGE_DAYS}日超で除外{stats['old']}件 / 新規{stats['new']}件")
     if not has_any_new:
         return None
 
