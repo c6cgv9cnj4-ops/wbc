@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="バド対戦表">
+<title>バド対戦表</title>
+<style>
+:root{
+  --bg:#f5f5f7; --card:#fff; --card2:#f2f2f7; --label:#1d1d1f; --label2:rgba(60,60,67,.6); --label3:rgba(60,60,67,.3);
+  --sep:rgba(60,60,67,.12); --fill:rgba(118,118,128,.12);
+  --blue:#007aff; --blue-t:rgba(0,122,255,.12); --green:#34c759; --green-t:rgba(52,199,89,.14);
+  --orange:#ff9500; --orange-t:rgba(255,149,0,.15); --red:#ff3b30; --red-t:rgba(255,59,48,.12);
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);
+  --nav:rgba(245,245,247,.82);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#000; --card:#1c1c1e; --card2:#2c2c2e; --label:#fff; --label2:rgba(235,235,245,.6); --label3:rgba(235,235,245,.3);
+    --sep:rgba(84,84,88,.55); --fill:rgba(118,118,128,.24);
+    --blue:#0a84ff; --blue-t:rgba(10,132,255,.2); --green:#30d158; --green-t:rgba(48,209,88,.2);
+    --orange:#ff9f0a; --orange-t:rgba(255,159,10,.2); --red:#ff453a; --red-t:rgba(255,69,58,.2);
+    --shadow:0 0 0 .5px rgba(255,255,255,.06); --nav:rgba(0,0,0,.72);
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--label);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
+  font-size:16px;line-height:1.4;padding-bottom:calc(40px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+.nav{position:sticky;top:0;z-index:20;background:var(--nav);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  padding:calc(10px + env(safe-area-inset-top)) 16px 10px;border-bottom:.5px solid var(--sep)}
+.nav-in{max-width:560px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.nav h1{font-size:20px;font-weight:800;letter-spacing:-.02em;margin:0}
+.nav .sub{font-size:12px;color:var(--label2);font-weight:600}
+main{max-width:560px;margin:0 auto;padding:16px}
+.stack>*+*{margin-top:14px}
+.card{background:var(--card);border-radius:24px;box-shadow:var(--shadow);padding:18px}
+.card.flush{padding:0;overflow:hidden}
+.title{font-size:13px;font-weight:700;color:var(--label2);text-transform:none;letter-spacing:.02em;margin:0 4px 8px}
+.h2{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0}
+.muted{color:var(--label2)} .small{font-size:13px} .tiny{font-size:12px}
+.row{display:flex;align-items:center;gap:10px} .between{justify-content:space-between} .wrap{flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+
+/* buttons: iOS pill */
+.btn{appearance:none;border:0;border-radius:999px;min-height:46px;padding:0 22px;font-weight:700;font-size:16px;cursor:pointer;
+  background:var(--fill);color:var(--blue);transition:transform .12s ease,opacity .12s ease,background .2s;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-align:center}
+.btn:active{transform:scale(.95);opacity:.8}
+.btn[disabled]{opacity:.35;pointer-events:none}
+.btn.primary{background:var(--blue);color:#fff}
+.btn.green{background:var(--green);color:#fff}
+.btn.tint{background:var(--blue-t);color:var(--blue)}
+.btn.orange{background:var(--orange-t);color:var(--orange)}
+.btn.danger{background:var(--red-t);color:var(--red)}
+.btn.plain{background:transparent;padding:0 10px;min-height:34px;font-weight:600;font-size:14px}
+.btn.big{min-height:60px;font-size:18px;width:100%;border-radius:30px;padding:10px 18px;line-height:1.25}
+.btn.sm{min-height:34px;padding:0 14px;font-size:14px}
+.btn.block{width:100%}
+
+/* segmented control (sliding) */
+.seg{position:relative;display:grid;grid-template-columns:repeat(var(--n),1fr);background:var(--fill);border-radius:12px;padding:2px;isolation:isolate}
+.seg .thumb{position:absolute;z-index:-1;top:2px;bottom:2px;left:2px;width:calc((100% - 4px)/var(--n));border-radius:10px;background:var(--card);
+  box-shadow:0 3px 8px rgba(0,0,0,.12),0 1px 1px rgba(0,0,0,.06);transform:translateX(calc(var(--i)*100%));transition:transform .28s cubic-bezier(.3,.9,.3,1)}
+@media (prefers-color-scheme:dark){.seg .thumb{background:#636366}}
+.seg-b{appearance:none;border:0;background:transparent;min-height:38px;font-weight:600;font-size:14px;border-radius:10px;cursor:pointer;color:var(--label);white-space:nowrap}
+.seg-b.on{font-weight:700}
+.seg.lg .seg-b{min-height:46px;font-size:15px}
+
+/* court cards */
+.court{position:relative}
+.court-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.court-h .n{font-size:15px;font-weight:800;letter-spacing:.01em}
+.pill{display:inline-block;border-radius:999px;padding:3px 11px;font-size:12px;font-weight:700;background:var(--fill);color:var(--label2)}
+.pill.blue{background:var(--blue-t);color:var(--blue)} .pill.green{background:var(--green-t);color:var(--green)}
+.pill.orange{background:var(--orange-t);color:var(--orange)} .pill.red{background:var(--red-t);color:var(--red)}
+.team{background:var(--card2);border-radius:18px;padding:14px 10px;text-align:center;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.35;
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 2px}
+.vs{text-align:center;font-size:12px;font-weight:800;color:var(--label3);letter-spacing:.12em;margin:6px 0}
+.dot{color:var(--label3);font-weight:600;margin:0 4px}
+.nm{display:inline-block;padding:1px 10px;border-radius:999px;border:0;background:transparent;font:inherit;font-weight:inherit;color:inherit;cursor:default}
+.nm.me{background:var(--blue);color:#fff}
+.nm.edit{cursor:pointer;background:transparent}
+.nm.edit:active{transform:scale(.95)}
+.nm.sel{background:var(--orange);color:#fff}
+.court.mine{box-shadow:0 0 0 2.5px var(--blue),var(--shadow)}
+.court.sub{padding:12px 14px;border-radius:20px}
+.court.sub .line{font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:2px}
+.court.sub .line .vsm{font-size:11px;font-weight:800;color:var(--label3);margin:0 8px}
+.court.sub .court-h{margin-bottom:6px}
+.court.sub .court-h .n{font-size:13px;color:var(--label2)}
+.court.sub .nm{padding:1px 6px}
+.bench{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;background:var(--fill);font-weight:600;font-size:15px}
+.chip.me{background:var(--blue);color:#fff}
+.chip.off{opacity:.45}
+.chip .x{font-size:12px;opacity:.7}
+.status{border-radius:24px;padding:18px 20px;display:flex;flex-direction:column;gap:2px}
+.status .k{font-size:13px;font-weight:700;opacity:.85} .status .v{font-size:24px;font-weight:800;letter-spacing:-.02em}
+.status.play{background:var(--blue);color:#fff} .status.rest{background:var(--orange);color:#fff} .status.next{background:var(--green);color:#fff} .status.idle{background:var(--card);box-shadow:var(--shadow)}
+.status.idle .k{color:var(--label2)}
+
+/* lists */
+.list>.li{display:flex;align-items:center;gap:12px;padding:12px 16px;min-height:52px;border-top:.5px solid var(--sep)}
+.list>.li:first-child{border-top:0}
+.li .t{font-weight:600;font-size:16px}
+.check{width:28px;height:28px;border-radius:50%;border:2px solid var(--label3);flex:none;display:grid;place-items:center;color:transparent;transition:all .15s;background:transparent}
+.li.on .check{background:var(--green);border-color:var(--green);color:#fff}
+.li.tap{cursor:pointer} .li.tap:active{background:var(--fill)}
+.input{appearance:none;width:100%;border:0;background:var(--fill);border-radius:14px;min-height:50px;padding:0 16px;font-size:17px;outline:none}
+.input:focus{box-shadow:0 0 0 2px var(--blue)}
+select.input{padding-right:12px}
+.suggest{max-height:220px;overflow:auto;border-radius:16px;background:var(--card2);margin-top:8px}
+.suggest .li{padding:11px 14px;min-height:46px}
+.avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#5ac8fa,var(--blue));color:#fff;display:grid;place-items:center;font-size:22px;font-weight:800;flex:none}
+.switch{position:relative;width:51px;height:31px;border-radius:999px;background:var(--fill);flex:none;transition:background .2s}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.25);transition:transform .2s}
+.switch.on{background:var(--green)} .switch.on::after{transform:translateX(20px)}
+.banner{border-radius:16px;padding:12px 16px;font-size:14px;font-weight:600}
+.banner.warn{background:var(--orange-t);color:var(--orange)} .banner.err{background:var(--red-t);color:var(--red)} .banner.info{background:var(--blue-t);color:var(--blue)}
+.empty{text-align:center;color:var(--label2);padding:26px 10px;font-weight:600}
+.link{color:var(--blue);font-weight:600;font-size:14px;background:none;border:0;padding:6px 4px;cursor:pointer}
+
+/* sheet & toast */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:50;display:flex;align-items:flex-end;justify-content:center;animation:fade .2s}
+.sheet{width:100%;max-width:560px;background:var(--card);border-radius:28px 28px 0 0;padding:22px 18px calc(18px + env(safe-area-inset-bottom));animation:up .28s cubic-bezier(.2,.9,.3,1)}
+.sheet h3{margin:0 0 6px;font-size:19px;font-weight:800} .sheet p{margin:0 0 14px;color:var(--label2);font-size:14px}
+.sheet .acts{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;background:rgba(40,40,42,.95);color:#fff;padding:12px 20px;border-radius:999px;font-weight:600;font-size:14px;max-width:90%;animation:up .25s}
+@keyframes fade{from{opacity:0}} @keyframes up{from{transform:translateY(40px);opacity:0}}
+.toast{animation:toast .25s} @keyframes toast{from{opacity:0;transform:translate(-50%,16px)}}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script type="module">
+/* =========================================================
+   バド対戦表 — 名前記憶・履歴付き 組み合わせ / コート管理
+   DB: Firestore (bm_* コレクション。既存アプリのコレクションとは分離)
+   ?mock=1 でローカル保存モード（Firestoreに一切書き込まない動作確認用）
+   ========================================================= */
+const MOCK = new URLSearchParams(location.search).has('mock');
+const firebaseConfig = { // Firebase Webの設定値は公開前提（アクセス制御は Firestore ルールで行う）
+  apiKey: "AIzaSyCldmf_WfKx2BubIg91vc79cLzlGrAzpH4",
+  authDomain: "newwbc-a6e29.firebaseapp.com",
+  projectId: "newwbc-a6e29",
+  storageBucket: "newwbc-a6e29.firebasestorage.app",
+  messagingSenderId: "1022221182643",
+  appId: "1:1022221182643:web:b73a31c9aa447bdb7bf2c6"
+};
+
+/* ---------- util ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+function h(tag, attrs, ...kids) { // textContent 経由のみ＝XSS安全
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k === 'style') e.style.cssText = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of kids.flat(Infinity)) { if (c == null || c === false) continue; e.append(c.nodeType ? c : document.createTextNode(String(c))); }
+  return e;
+}
+const clone = o => JSON.parse(JSON.stringify(o));
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pad = n => String(n).padStart(2, '0');
+const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const memStore = {};
+const lsGet = k => { try { const v = localStorage.getItem(k); return v == null ? (memStore[k] ?? null) : v; } catch { return memStore[k] ?? null; } };
+const lsSet = (k, v) => { memStore[k] = v; try { localStorage.setItem(k, v); } catch {} };
+const lsDel = k => { delete memStore[k]; try { localStorage.removeItem(k); } catch {} };
+const ssGet = k => { try { return sessionStorage.getItem(k); } catch { return memStore['s' + k] ?? null; } };
+const ssSet = (k, v) => { memStore['s' + k] = v; try { sessionStorage.setItem(k, v); } catch {} };
+const ssDel = k => { delete memStore['s' + k]; try { sessionStorage.removeItem(k); } catch {} };
+
+/* ---------- 名前の正規化（誤字・表記ゆれによる多重登録防止） ---------- */
+function cleanName(s) {
+  return String(s || '').replace(/[\u0000-\u001f\u007f<>&"'`\\\/]/g, '').replace(/[\s\u3000]+/g, ' ').trim().slice(0, 16);
+}
+function normKey(s) { // 全半角・大小・空白・カタカナ/ひらがな差を吸収
+  return String(s).normalize('NFKC').replace(/[\s　]+/g, '').toLowerCase().replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+}
+function idFromKey(key) { return 'm_' + Array.from(new TextEncoder().encode(key)).map(b => b.toString(16).padStart(2, '0')).join(''); }
+function lev(a, b) {
+  const m = a.length, n = b.length; if (!m) return n; if (!n) return m;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) { const cur = [i]; for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; }
+  return prev[n];
+}
+
+/* ---------- データ層（Firestore / Mock 切替） ---------- */
+let DB;
+async function initDB() {
+  if (MOCK) {
+    const MK = 'bm_mock_db', subs = new Set();
+    const load = () => { try { return JSON.parse(localStorage.getItem(MK) || '{}'); } catch { return {}; } };
+    const fire = () => subs.forEach(f => f());
+    addEventListener('storage', e => { if (e.key === MK) fire(); });
+    DB = {
+      sub(path, cb, isCol) {
+        const key = path.join('/');
+        const f = () => { const db = load(); if (isCol) cb(Object.keys(db).filter(k => k.startsWith(key + '/') && k.split('/').length === path.length + 1).map(k => ({ id: k.split('/').pop(), ...db[k] }))); else cb(db[key] ?? null); };
+        subs.add(f); setTimeout(f, 0); return () => subs.delete(f);
+      },
+      async commit(ops) {
+        const db = load();
+        for (const o of ops) {
+          const key = o.path.join('/');
+          if (o.op === 'del') delete db[key];
+          else { const cur = db[key] || {}, d = { ...o.data }; for (const k in d) if (d[k] && d[k].__inc !== undefined) d[k] = (cur[k] || 0) + d[k].__inc; db[key] = { ...cur, ...d }; }
+        }
+        localStorage.setItem(MK, JSON.stringify(db)); fire();
+      }
+    };
+    return;
+  }
+  const A = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+  const F = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+  const U = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+  const app = A.initializeApp(firebaseConfig), fs = F.getFirestore(app), auth = U.getAuth(app);
+  try { await U.signInAnonymously(auth); } catch (e) { console.warn('anon auth failed', e); }
+  const conv = d => { const o = {}; for (const k in d) o[k] = (d[k] && d[k].__inc !== undefined) ? F.increment(d[k].__inc) : d[k]; return o; };
+  DB = {
+    sub(path, cb, isCol, onErr) {
+      const ref = isCol ? F.collection(fs, ...path) : F.doc(fs, ...path);
+      return F.onSnapshot(ref, s => { if (isCol) cb(s.docs.map(d => ({ id: d.id, ...d.data() }))); else cb(s.exists() ? s.data() : null); }, e => { console.error(e); onErr && onErr(e); });
+    },
+    async commit(ops) {
+      const b = F.writeBatch(fs);
+      for (const o of ops) { const ref = F.doc(fs, ...o.path); if (o.op === 'del') b.delete(ref); else b.set(ref, conv(o.data), { merge: true }); }
+      await b.commit();
+    }
+  };
+}
+
+/* ---------- 状態 ---------- */
+const S = { date: todayStr(), members: [], memberMap: {}, session: null, atts: [], attMap: {}, config: undefined,
+  ready: { m: false, s: false, a: false, c: false }, err: null, me: null, isAdmin: false, adminTab: 'game', sel: null, search: '', rosterSearch: '' };
+try { S.me = JSON.parse(lsGet('bm_me') || 'null'); } catch { S.me = null; }
+const setMe = me => { S.me = me; me ? lsSet('bm_me', JSON.stringify(me)) : lsDel('bm_me'); };
+const nameOf = id => (S.memberMap[id] && S.memberMap[id].name) || (S.attMap[id] && S.attMap[id].name) || '？';
+const isAdminRoute = () => location.hash === '#admin';
+
+/* ---------- UI 部品 ---------- */
+function toast(msg, ms = 2600) { const t = h('div', { class: 'toast' }, msg); document.body.append(t); setTimeout(() => t.remove(), ms); }
+function sheet({ title, msg, input, actions }) {
+  return new Promise(res => {
+    const inp = input ? h('input', { class: 'input', type: input.type || 'text', inputmode: input.inputmode, placeholder: input.placeholder || '', maxlength: input.maxlength || 40, value: input.value || '', autocomplete: 'off' }) : null;
+    const close = v => { ov.remove(); res(v); };
+    const ov = h('div', { class: 'ov', onclick: e => { if (e.target === ov) close(null); } },
+      h('div', { class: 'sheet' }, h('h3', null, title), msg ? h('p', null, msg) : null, inp,
+        h('div', { class: 'acts' }, actions.map(a => h('button', { class: 'btn block ' + (a.cls || ''), onclick: () => close({ value: a.value, text: inp ? inp.value : '' }) }, a.label)))));
+    document.body.append(ov); if (inp) setTimeout(() => inp.focus(), 60);
+  });
+}
+const segCache = {};
+function seg(id, options, value, onChange, cls = '') { // スライド式セグメント（要素を再利用しアニメを維持）
+  const idx = Math.max(0, options.findIndex(o => o.v === value));
+  let el = segCache[id];
+  if (!el || el._n !== options.length) {
+    el = h('div', { class: 'seg ' + cls }, h('div', { class: 'thumb' }));
+    el._n = options.length;
+    options.forEach((o, i) => el.append(h('button', { class: 'seg-b', onclick: () => el._cb(options[i].v) }, o.t)));
+    segCache[id] = el;
+  }
+  el._cb = onChange; el.style.setProperty('--n', options.length); el.style.setProperty('--i', idx);
+  [...el.querySelectorAll('.seg-b')].forEach((b, i) => { b.classList.toggle('on', i === idx); b.textContent = options[i].t; });
+  return el;
+}
+const initial = n => (n || '？').trim().slice(0, 1);
+
+/* ---------- 出席・名簿ロジック ---------- */
+function eligibleIds() {
+  return S.atts.filter(a => a.present !== false && a.status === 'active' && !(a.restLeft > 0) && !a.forcedRest).map(a => a.id);
+}
+function presentAtts() { return S.atts.filter(a => a.present !== false); }
+async function resolveMember(rawName, { allowFuzzyPrompt = true } = {}) {
+  const name = cleanName(rawName); if (!name) { toast('名前を入力してください'); return null; }
+  const key = normKey(name); if (!key) { toast('名前を入力してください'); return null; }
+  const id = idFromKey(key);
+  if (S.memberMap[id]) return { id, name: S.memberMap[id].name, isNew: false };
+  if (allowFuzzyPrompt) {
+    const near = S.members.find(m => { const k = normKey(m.name), L = Math.max(k.length, key.length); return L >= 4 ? lev(k, key) <= 1 : (L === 3 && k[0] === key[0] && lev(k, key) <= 1); });
+    if (near) {
+      const r = await sheet({ title: `「${near.name}」さんではありませんか？`, msg: `入力「${name}」は登録済みの「${near.name}」に似ています。誤字による二重登録を防ぐため確認します。`,
+        actions: [{ label: `${near.name}さんで参加`, cls: 'primary', value: 'same' }, { label: `別の人として「${name}」を新規登録`, value: 'new' }, { label: 'キャンセル', cls: 'plain', value: 'cancel' }] });
+      if (!r || r.value === 'cancel') return null;
+      if (r.value === 'same') return { id: near.id, name: near.name, isNew: false };
+    }
+  }
+  return { id, name, isNew: true };
+}
+async function enterAttendee(m) { // 名簿へ（未登録なら）登録し、本日の出席にする
+  const ops = [], today = S.date, ex = S.memberMap[m.id];
+  if (!ex) ops.push({ op: 'set', path: ['bm_members', m.id], data: { name: m.name, key: normKey(m.name), count: 1, firstDate: today, lastDate: today } });
+  else if (ex.lastDate !== today) ops.push({ op: 'set', path: ['bm_members', m.id], data: { lastDate: today, count: { __inc: 1 } } });
+  const a = S.attMap[m.id];
+  if (!a || a.present === false || a.status === 'left') ops.push({ op: 'set', path: ['bm_sessions', today, 'attendees', m.id], data: { name: m.name, status: 'active', restLeft: 0, forcedRest: false, present: true, joinedAt: Date.now() } });
+  if (ops.length) await guard(() => DB.commit(ops));
+}
+async function guard(fn) { try { await fn(); } catch (e) { console.error(e); toast('保存に失敗しました。通信または権限を確認してください', 4200); S.err = S.err || '保存に失敗: ' + (e.code || e.message); renderAll(); } }
+const patchAtt = (id, data) => guard(() => DB.commit([{ op: 'set', path: ['bm_sessions', S.date, 'attendees', id], data }]));
+const patchSession = data => guard(() => DB.commit([{ op: 'set', path: ['bm_sessions', S.date], data }]));
+
+/* ---------- 組み合わせ生成 ---------- */
+const pk = (x, y) => [x, y].sort().join('|');
+function computeStats(session, includeCurrent) {
+  const games = {}, last = {}, pc = {}, oc = {}, inc = (o, k) => { o[k] = (o[k] || 0) + 1; };
+  const rounds = [...(session.history || [])]; if (includeCurrent && session.current) rounds.push(session.current);
+  rounds.forEach((r, idx) => (r.courts || []).forEach(c => {
+    [...c.a, ...c.b].forEach(id => { games[id] = (games[id] || 0) + 1; last[id] = idx; });
+    inc(pc, pk(c.a[0], c.a[1])); inc(pc, pk(c.b[0], c.b[1]));
+    c.a.forEach(x => c.b.forEach(y => inc(oc, pk(x, y))));
+  }));
+  return { games, last, pc, oc, n: rounds.length };
+}
+function makeSig(ids, override, locks) { return [ids.slice().sort().join(','), override || 0, (locks || []).map(l => pk(l.a, l.b)).sort().join(',')].join('|'); }
+function genRound(elig, stats, locks, override) {
+  const maxC = Math.min(3, Math.floor(elig.length / 4), override || 3);
+  for (let c = maxC; c >= 1; c--) { const r = tryRound(elig, c, stats, locks); if (r) return r; }
+  return null;
+}
+function tryRound(elig, c, stats, locks) {
+  const inE = new Set(elig), used = new Set(), units = [];
+  for (const l of locks || []) if (inE.has(l.a) && inE.has(l.b) && !used.has(l.a) && !used.has(l.b)) { units.push({ ids: [l.a, l.b], locked: true }); used.add(l.a); used.add(l.b); }
+  for (const id of elig) if (!used.has(id)) units.push({ ids: [id], locked: false });
+  const avg = (u, f) => u.ids.reduce((s, id) => s + f(id), 0) / u.ids.length;
+  units.forEach(u => { u.g = avg(u, id => stats.games[id] || 0); u.l = avg(u, id => stats.last[id] ?? -1); u.r = Math.random(); });
+  units.sort((x, y) => x.g - y.g || x.l - y.l || x.r - y.r);
+  const need = c * 4, chosen = []; let cnt = 0;
+  for (const u of units) if (cnt + u.ids.length <= need) { chosen.push(u); cnt += u.ids.length; }
+  if (cnt < need) return null;
+  const chosenIds = new Set(chosen.flatMap(u => u.ids));
+  const singles = chosen.filter(u => !u.locked).map(u => u.ids[0]), fixed = chosen.filter(u => u.locked).map(u => u.ids);
+  let best = null, bestCost = Infinity;
+  for (let t = 0; t < 400; t++) {
+    const sh = shuffle(singles), pairs = fixed.slice();
+    for (let i = 0; i < sh.length; i += 2) pairs.push([sh[i], sh[i + 1]]);
+    const ps = shuffle(pairs), courts = []; let cost = 0;
+    for (let k = 0; k < c; k++) {
+      const a = ps[2 * k], b = ps[2 * k + 1];
+      cost += 4 * ((stats.pc[pk(a[0], a[1])] || 0) + (stats.pc[pk(b[0], b[1])] || 0));
+      a.forEach(x => b.forEach(y => { cost += 1.5 * (stats.oc[pk(x, y)] || 0); }));
+      courts.push({ a, b });
+    }
+    if (cost < bestCost) { bestCost = cost; best = courts; if (cost === 0) break; }
+  }
+  return { courts: best, bench: elig.filter(id => !chosenIds.has(id)) };
+}
+function newRound(includeCurrent, eligOverride) {
+  const s = S.session, elig = eligOverride || eligibleIds();
+  const r = genRound(elig, computeStats(s, includeCurrent), s.locks || [], s.courtsOverride);
+  return r ? { ...r, sig: makeSig(elig, s.courtsOverride, s.locks), manual: false } : null;
+}
+
+/* ---------- 主催者アクション ---------- */
+let busy = false;
+async function advance() {
+  const s = S.session; if (!s || busy) return;
+  if (s.current && s.next && s.next.manual && s.next.sig !== makeSig(eligibleIds(), s.courtsOverride, s.locks)) {
+    const r = await sheet({ title: '参加状況が変わっています', msg: '手動調整した「次の組」に、休み・帰宅した人が含まれている可能性があります。', actions: [{ label: '再生成して開始', cls: 'primary', value: 'regen' }, { label: 'このまま開始', value: 'go' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
+    if (!r || r.value === 'x') return; if (r.value === 'regen') { s.next = null; }
+  }
+  let cur = s.next && (s.next.manual || s.next.sig === makeSig(eligibleIds(), s.courtsOverride, s.locks)) ? s.next : newRound(!!s.current);
+  if (!cur) { toast('4人以上の出席者が必要です（休み・帰宅を除く）'); return; }
+  busy = true;
+  const history = s.current ? [...(s.history || []), s.current] : (s.history || []);
+  const dec = S.atts.filter(a => a.restLeft > 0);
+  const newAtts = S.atts.map(a => a.restLeft > 0 ? { ...a, restLeft: a.restLeft - 1 } : a);
+  const eligAfter = newAtts.filter(a => a.present !== false && a.status === 'active' && !(a.restLeft > 0) && !a.forcedRest).map(a => a.id);
+  const sim = { ...s, history, current: cur };
+  const nxt = genRound(eligAfter, computeStats(sim, true), s.locks || [], s.courtsOverride);
+  const ops = [{ op: 'set', path: ['bm_sessions', S.date], data: { current: { ...cur, manual: false }, next: nxt ? { ...nxt, sig: makeSig(eligAfter, s.courtsOverride, s.locks), manual: false } : null, history, gameNo: (s.gameNo || 0) + 1 } }];
+  dec.forEach(a => ops.push({ op: 'set', path: ['bm_sessions', S.date, 'attendees', a.id], data: { restLeft: a.restLeft - 1 } }));
+  await guard(() => DB.commit(ops)); busy = false;
+}
+async function regenNext() {
+  const s = S.session; if (!s) return;
+  const n = newRound(true); await patchSession({ next: n });
+  if (!n) toast('次の組を作れません（4人以上必要）');
+}
+function swapIds(round, x, y) { const map = id => id === x ? y : id === y ? x : id; return { ...round, courts: round.courts.map(c => ({ a: c.a.map(map), b: c.b.map(map) })), bench: round.bench.map(map) }; }
+function pickPlayer(key, id) {
+  if (!S.sel || S.sel.key !== key) { S.sel = { key, id }; return renderAll(); }
+  if (S.sel.id === id) { S.sel = null; return renderAll(); }
+  const r = swapIds(S.session[key], S.sel.id, id); if (key === 'next') r.manual = true; S.sel = null;
+  patchSession({ [key]: r });
+}
+let autoBusy = false;
+function adminAuto() { // 参加状況の変化に合わせて「次の組」を自動で組み直す（主催者画面のみ）
+  if (!S.isAdmin || autoBusy || !S.ready.s || !S.ready.a) return;
+  const s = S.session;
+  if (!s) { autoBusy = true; patchSession({ date: S.date, courtsOverride: null, current: null, next: null, history: [], gameNo: 0, locks: [] }).finally(() => { autoBusy = false; }); return; }
+  if (!s.current) return;
+  const elig = eligibleIds(), canGen = elig.length >= 4, sig = makeSig(elig, s.courtsOverride, s.locks);
+  if ((!s.next && canGen) || (s.next && !s.next.manual && s.next.sig !== sig)) {
+    autoBusy = true; const n = newRound(true, elig);
+    patchSession({ next: n }).finally(() => { autoBusy = false; });
+  }
+}
+
+/* ---------- 共通レンダリング: コート ---------- */
+function nameEl(id, key, editable, meId) {
+  const cls = 'nm' + (id === meId ? ' me' : '') + (editable ? ' edit' : '') + (S.sel && S.sel.key === key && S.sel.id === id ? ' sel' : '');
+  const gone = S.attMap[id] && (S.attMap[id].status === 'left' || S.attMap[id].present === false);
+  return h('button', { class: cls, type: 'button', onclick: editable ? () => pickPlayer(key, id) : null, style: gone ? 'text-decoration:line-through;opacity:.6' : '' }, nameOf(id));
+}
+function teamEl(ids, key, editable, meId) { return h('div', { class: 'team' }, ids.map((id, i) => [i ? h('span', { class: 'dot' }, '・') : null, nameEl(id, key, editable, meId)])); }
+function courtCard(round, key, i, gameNo, editable, meId) {
+  const c = round.courts[i], mine = meId && [...c.a, ...c.b].includes(meId);
+  return h('div', { class: 'card court' + (mine ? ' mine' : '') },
+    h('div', { class: 'court-h' }, h('span', { class: 'n' }, `コート${i + 1}（第${gameNo}試合）`), mine ? h('span', { class: 'pill blue' }, 'あなた') : (editable ? h('span', { class: 'pill' }, '名前をタップで入替') : null)),
+    teamEl(c.a, key, editable, meId), h('div', { class: 'vs' }, 'VS'), teamEl(c.b, key, editable, meId));
+}
+function subCard(round, key, i, gameNo, editable, meId) {
+  const c = round.courts[i], mine = meId && [...c.a, ...c.b].includes(meId);
+  const line = ids => ids.map((id, k) => [k ? h('span', { class: 'dot', style: 'margin:0 2px' }, '・') : null, nameEl(id, key, editable, meId)]);
+  return h('div', { class: 'card court sub' + (mine ? ' mine' : '') },
+    h('div', { class: 'court-h' }, h('span', { class: 'n' }, `ネクスト｜コート${i + 1}（第${gameNo}試合）`), mine ? h('span', { class: 'pill green' }, 'あなた') : null),
+    h('div', { class: 'line' }, line(c.a), h('span', { class: 'vsm' }, 'VS'), line(c.b)));
+}
+function benchEl(round, key, editable, meId, label) {
+  if (!round || !round.bench || !round.bench.length) return null;
+  return h('div', { class: 'card', style: 'padding:14px 16px' }, h('div', { class: 'title', style: 'margin-left:0' }, label),
+    h('div', { class: 'bench' }, round.bench.map(id => editable
+      ? h('button', { class: 'chip' + (S.sel && S.sel.key === key && S.sel.id === id ? ' me' : ''), type: 'button', style: 'border:0;cursor:pointer', onclick: () => pickPlayer(key, id) }, nameOf(id))
+      : h('span', { class: 'chip' + (id === meId ? ' me' : '') }, nameOf(id)))));
+}
+function gameBoard(editable, meId) {
+  const s = S.session, wrap = h('div', { class: 'stack' });
+  if (!s || (!s.current && !s.next)) { wrap.append(h('div', { class: 'card empty' }, s ? 'まだ試合が始まっていません' : '本日のセッションはまだありません')); return wrap; }
+  const gn = s.gameNo || 0;
+  if (s.current) { s.current.courts.forEach((_, i) => wrap.append(courtCard(s.current, 'current', i, gn, editable, meId))); const b = benchEl(s.current, 'current', editable, meId, '休憩（ベンチ）'); b && wrap.append(b); }
+  if (s.next) {
+    wrap.append(h('div', { class: 'title', style: 'margin:22px 4px -4px' }, 'ネクスト（控）' + (s.next.manual ? '　手動調整済み' : '')));
+    s.next.courts.forEach((_, i) => wrap.append(subCard(s.next, 'next', i, gn + 1, editable, meId)));
+    const b = benchEl(s.next, 'next', editable, meId, '次の休憩'); b && wrap.append(b);
+  }
+  return wrap;
+}
+function myStatusCard(meId) {
+  const s = S.session, a = S.attMap[meId], find = r => r && r.courts.findIndex(c => [...c.a, ...c.b].includes(meId));
+  let cls = 'idle', k = 'あなたの状況', v = '試合開始をお待ちください';
+  if (a && a.status === 'left') { k = 'あなたの状況'; v = '退出中'; }
+  else if (a && a.forcedRest) { cls = 'rest'; v = '主催者指定で休憩中'; }
+  else if (a && a.restLeft > 0) { cls = 'rest'; v = `休み予約中（あと${a.restLeft}試合）`; }
+  else if (s && s.current) {
+    const ci = find(s.current), ni = find(s.next);
+    if (ci >= 0) { cls = 'play'; k = '現在'; v = `コート${ci + 1} でプレー中`; }
+    else if (s.current.bench.includes(meId)) { cls = 'rest'; k = '現在'; v = '休憩中' + (ni >= 0 ? `（次はコート${ni + 1}）` : ''); }
+    else v = '次の組をお待ちください';
+    if (ci >= 0 && ni >= 0) v += `　→ 次: コート${ni + 1}`; else if (ci >= 0 && s.next && s.next.bench.includes(meId)) v += '　→ 次: 休憩';
+    if (ci < 0 && ni >= 0 && s.current.bench.includes(meId)) cls = 'next';
+  }
+  return h('div', { class: 'status ' + cls }, h('span', { class: 'k' }, k), h('span', { class: 'v' }, v));
+}
+
+/* ---------- 参加者ビュー ---------- */
+let pIdentityMode = null;
+function renderParticipant(root) {
+  if (!root.querySelector('#pIdentity')) { root.replaceChildren(h('div', { class: 'stack' }, h('div', { id: 'pIdentity' }), h('div', { id: 'pStatus' }), h('div', { id: 'pBoard' }), h('div', { id: 'pWho' }))); pIdentityMode = null; }
+  const me = S.me, a = me && S.attMap[me.id];
+  const mode = !S.ready.a ? 'loading' : (me ? (a && a.present !== false ? 'in' : 'onetap') : 'new');
+  const box = $('#pIdentity');
+  if (mode !== pIdentityMode || mode === 'in') { pIdentityMode = mode; box.replaceChildren(identityCard(mode, a)); }
+  if (mode === 'new') renderSuggest();
+  const st = $('#pStatus'), bd = $('#pBoard'), who = $('#pWho');
+  st.replaceChildren(mode === 'in' ? myStatusCard(me.id) : '');
+  bd.replaceChildren(gameBoard(false, mode === 'in' ? me.id : null));
+  const pres = presentAtts();
+  who.replaceChildren(pres.length ? h('div', { class: 'card' }, h('div', { class: 'title', style: 'margin-left:0' }, `本日の参加者 ${pres.length}人`),
+    h('div', { class: 'bench' }, pres.map(x => h('span', { class: 'chip' + (x.id === (me && me.id) ? ' me' : '') + ((x.status === 'left' || x.restLeft > 0 || x.forcedRest) ? ' off' : '') }, x.name)))) : '');
+}
+function identityCard(mode, a) {
+  if (mode === 'loading') return h('div', { class: 'card empty' }, '読み込み中…');
+  if (mode === 'onetap') {
+    return h('div', { class: 'card stack' },
+      h('div', { class: 'row' }, h('div', { class: 'avatar' }, initial(S.me.name)), h('div', { class: 'grow' }, h('div', { class: 'title', style: 'margin:0' }, '前回の名前'), h('div', { class: 'h2' }, S.me.name + ' さん'))),
+      h('button', { class: 'btn primary big', onclick: () => oneTapCheckIn() }, `${S.me.name}さんとしてチェックイン`),
+      h('div', { style: 'text-align:center' }, h('button', { class: 'btn plain', onclick: () => resetIdentity(false) }, '別名で入る')));
+  }
+  if (mode === 'in') {
+    const left = a.status === 'left', resting = a.restLeft > 0 || a.forcedRest;
+    const stack = h('div', { class: 'card stack' },
+      h('div', { class: 'row' }, h('div', { class: 'avatar' }, initial(a.name)),
+        h('div', { class: 'grow' }, h('div', { class: 'h2' }, a.name + ' さん'), h('div', { class: 'small muted' }, left ? '退出中' : '✓ チェックイン済み')),
+        h('button', { class: 'btn plain', onclick: () => resetIdentity(true) }, '別名で入る')));
+    if (left) stack.append(h('button', { class: 'btn green big', onclick: () => patchAtt(a.id, { status: 'active', restLeft: 0 }) }, '参加に戻る'));
+    else if (a.forcedRest) stack.append(h('div', { class: 'banner warn' }, '主催者の指定で休憩中です。復帰は主催者にお伝えください。'));
+    else if (resting) stack.append(h('button', { class: 'btn green big', onclick: () => patchAtt(a.id, { restLeft: 0 }) }, '復帰する'), h('div', { class: 'tiny muted', style: 'text-align:center' }, '次の組み合わせから入ります'));
+    else stack.append(h('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:10px' },
+      h('button', { class: 'btn orange big', onclick: () => patchAtt(a.id, { restLeft: 1 }) }, '次ゲーム休み'),
+      h('button', { class: 'btn orange big', onclick: () => patchAtt(a.id, { restLeft: 2 }) }, '2試合休む')));
+    if (!left) stack.append(h('div', { style: 'text-align:center' }, h('button', { class: 'btn plain danger', style: 'color:var(--red)', onclick: leaveConfirm }, '帰る（退出）')));
+    return stack;
+  }
+  // new
+  const inp = h('input', { id: 'nameInput', class: 'input', placeholder: '名前を入力（新規の方）', maxlength: 16, autocomplete: 'off', enterkeyhint: 'go', oninput: () => { S.search = inp.value; renderSuggest(); }, onkeydown: e => { if (e.key === 'Enter') newNameCheckIn(); } });
+  inp.value = S.search || '';
+  return h('div', { class: 'card stack' },
+    h('div', null, h('div', { class: 'h2' }, 'チェックイン'), h('div', { class: 'small muted', style: 'margin-top:2px' }, '過去のメンバーから選ぶか、初めての方は名前を入力')),
+    inp, h('div', { id: 'suggest' }),
+    h('button', { class: 'btn primary big', onclick: newNameCheckIn }, '参加する'));
+}
+function renderSuggest() {
+  const box = $('#suggest'); if (!box) return;
+  const q = normKey(S.search || ''), list = S.members.slice().sort((x, y) => (y.count || 0) - (x.count || 0) || x.name.localeCompare(x.name === y.name ? '' : y.name, 'ja')).filter(m => !q || normKey(m.name).includes(q));
+  if (!S.members.length) { box.replaceChildren(h('div', { class: 'small muted' }, '過去のメンバーはまだいません。名前を入力してください。')); return; }
+  box.replaceChildren(h('div', { class: 'suggest list' }, list.length ? list.map(m => h('div', { class: 'li tap', onclick: () => pickMember(m) }, h('div', { class: 'grow t' }, m.name), h('span', { class: 'tiny muted' }, `${m.count || 0}回`))) : h('div', { class: 'li muted small' }, '該当なし → 「参加する」で新規登録')));
+}
+async function pickMember(m) { await finishCheckIn({ id: m.id, name: m.name, isNew: false }); }
+async function newNameCheckIn() { const r = await resolveMember(($('#nameInput') || {}).value || ''); if (r) { S.search = ''; await finishCheckIn(r); } }
+async function oneTapCheckIn() { const me = S.me; const m = S.memberMap[me.id] || { name: me.name }; await finishCheckIn({ id: me.id, name: m.name, isNew: !S.memberMap[me.id] }); }
+async function finishCheckIn(m) { await enterAttendee(m); setMe({ id: m.id, name: m.name }); toast(`${m.name}さん、チェックインしました`); renderAll(); }
+async function resetIdentity(checkedIn) {
+  if (!checkedIn) { setMe(null); S.search = ''; return renderAll(); }
+  const me = S.me;
+  const r = await sheet({ title: '別名で入り直しますか？', msg: `「${me.name}」さんのチェックインを取り消して名前を選び直します。`, actions: [{ label: 'チェックインを取り消して別名で入る', cls: 'primary', value: 'undo' }, { label: 'この端末の記憶だけ消す（参加は継続）', value: 'forget' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
+  if (!r || r.value === 'x') return;
+  if (r.value === 'undo') await guard(() => DB.commit([{ op: 'del', path: ['bm_sessions', S.date, 'attendees', me.id] }]));
+  setMe(null); S.search = ''; renderAll();
+}
+async function leaveConfirm() { const r = await sheet({ title: '帰りますか？', msg: '退出すると次の組み合わせから外れます。戻るときは「参加に戻る」を押してください。', actions: [{ label: '帰る（退出）', cls: 'danger', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] }); if (r && r.value === 'ok') patchAtt(S.me.id, { status: 'left' }); }
+
+/* ---------- 主催者ビュー ---------- */
+const hashPin = async pin => {
+  const data = new TextEncoder().encode('bm-v1:' + pin);
+  if (crypto && crypto.subtle) return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', data))).map(b => b.toString(16).padStart(2, '0')).join('');
+  let x = 5381; for (const b of data) x = ((x << 5) + x + b) >>> 0; return 'w' + x.toString(16);
+};
+let pinFails = 0, pinLockUntil = 0;
+function renderGate(root) {
+  const cfg = S.config;
+  if (cfg === undefined) { root.replaceChildren(h('div', { class: 'card empty' }, '読み込み中…')); return; }
+  const first = cfg === null || !cfg.pinHash;
+  const p1 = h('input', { class: 'input', type: 'password', inputmode: 'numeric', maxlength: 8, placeholder: first ? 'PINを決める（4〜8桁の数字）' : 'PIN', autocomplete: 'off' });
+  const p2 = first ? h('input', { class: 'input', type: 'password', inputmode: 'numeric', maxlength: 8, placeholder: 'もう一度入力', autocomplete: 'off' }) : null;
+  const go = async () => {
+    const pin = p1.value.trim();
+    if (!/^\d{4,8}$/.test(pin)) return toast('4〜8桁の数字で入力してください');
+    if (first) { if (pin !== p2.value.trim()) return toast('PINが一致しません'); const ph = await hashPin(pin); await guard(() => DB.commit([{ op: 'set', path: ['bm_config', 'admin'], data: { pinHash: ph, updatedAt: Date.now() } }])); ssSet('bm_admin_ok', ph); S.isAdmin = true; return renderAll(); }
+    if (Date.now() < pinLockUntil) return toast(`しばらくしてから再試行してください（あと${Math.ceil((pinLockUntil - Date.now()) / 1000)}秒）`);
+    const ph = await hashPin(pin);
+    if (ph === cfg.pinHash) { pinFails = 0; ssSet('bm_admin_ok', ph); S.isAdmin = true; renderAll(); }
+    else { if (++pinFails >= 5) { pinLockUntil = Date.now() + 30000; pinFails = 0; } toast('PINが違います'); p1.value = ''; }
+  };
+  p1.addEventListener('keydown', e => { if (e.key === 'Enter' && !p2) go(); });
+  root.replaceChildren(h('div', { class: 'card stack', style: 'margin-top:8vh' }, h('div', null, h('div', { class: 'h2' }, first ? '主催者PINの設定' : '主催者ログイン'), h('div', { class: 'small muted', style: 'margin-top:2px' }, first ? '初回のみ。設定したPINは主催者画面に入るときに使います。' : 'PINを入力してください')), p1, p2, h('button', { class: 'btn primary big', onclick: go }, first ? '設定して開始' : '開く')));
+  setTimeout(() => p1.focus(), 50);
+}
+function renderAdmin(root) {
+  if (!root.querySelector('#admTabs')) root.replaceChildren(h('div', { class: 'stack' }, h('div', { id: 'admTabs' }), h('div', { id: 'admBody' })));
+  $('#admTabs').replaceChildren(seg('admTab', [{ v: 'game', t: '試合' }, { v: 'att', t: '出席' }, { v: 'mgr', t: '管理' }], S.adminTab, v => { S.adminTab = v; S.sel = null; renderAll(); }, 'lg'));
+  const body = $('#admBody');
+  if (S.adminTab === 'game') adminGame(body); else if (S.adminTab === 'att') adminAtt(body); else adminMgr(body);
+}
+function adminGame(body) {
+  const s = S.session, elig = eligibleIds(), maxC = Math.min(3, Math.floor(elig.length / 4));
+  const stack = h('div', { class: 'stack' });
+  stack.append(h('div', { class: 'card stack' },
+    h('div', { class: 'row between' }, h('div', { class: 'title', style: 'margin:0' }, 'コート面数'), h('span', { class: 'tiny muted' }, `プレー可能 ${elig.length}人 → 最大${maxC}面`)),
+    seg('courts', [{ v: 0, t: '自動' }, { v: 1, t: '1面' }, { v: 2, t: '2面' }, { v: 3, t: '3面' }], (s && s.courtsOverride) || 0, v => patchSession({ courtsOverride: v || null }), 'lg'),
+    h('div', { style: 'display:grid;grid-template-columns:1fr;gap:10px' },
+      h('button', { class: 'btn primary big', disabled: !s || elig.length < 4, onclick: advance }, s && s.current ? '次のゲーム開始' : '試合開始'),
+      s && s.current ? h('button', { class: 'btn tint block', onclick: regenNext }, '次の組を組み直す（シャッフル）') : null)));
+  if (elig.length < 4 && S.ready.a) stack.append(h('div', { class: 'banner warn' }, 'プレー可能な人が4人未満です。「出席」タブで出席者を選んでください。'));
+  if (s && s.next && s.next.manual && s.next.sig !== makeSig(elig, s.courtsOverride, s.locks)) stack.append(h('div', { class: 'banner warn' }, '参加状況が変わりました。手動調整した次の組が古い可能性があります。', h('button', { class: 'link', onclick: regenNext }, '組み直す')));
+  if (S.sel) stack.append(h('div', { class: 'banner info' }, `「${nameOf(S.sel.id)}」を選択中 — 入れ替える相手の名前をタップ（もう一度タップで解除）`));
+  stack.append(gameBoard(true, null)); body.replaceChildren(stack);
+}
+function adminAtt(body) {
+  if (body.querySelector('#rosterList') && document.activeElement && document.activeElement.tagName === 'INPUT' && body.contains(document.activeElement)) { renderRosterList(); return; } // 入力中はフォーカスを保つ
+  const stack = h('div', { class: 'stack' });
+  const inp = h('input', { class: 'input', placeholder: '検索、または新しい名前を入力', maxlength: 16, value: S.rosterSearch || '', oninput: () => { S.rosterSearch = inp.value; renderRosterList(); }, onkeydown: e => { if (e.key === 'Enter') addNew(); } });
+  const addNew = async () => { const r = await resolveMember(inp.value); if (r) { await enterAttendee(r); S.rosterSearch = ''; inp.value = ''; toast(`${r.name}さんを出席にしました`); renderAll(); } };
+  stack.append(h('div', { class: 'card stack' }, h('div', { class: 'row between' }, h('div', { class: 'h2' }, '本日の出席者'), h('span', { class: 'pill green', id: 'attCount' })),
+    h('div', { class: 'small muted' }, '名前をタップで出席／欠席を切り替え。すぐ反映されます。'),
+    h('div', { class: 'row' }, h('div', { class: 'grow' }, inp), h('button', { class: 'btn tint', onclick: addNew }, '追加'))), h('div', { class: 'card flush list', id: 'rosterList' }));
+  body.replaceChildren(stack); renderRosterList();
+}
+function renderRosterList() {
+  const box = $('#rosterList'); if (!box) return;
+  const present = new Set(presentAtts().map(a => a.id)), q = normKey(S.rosterSearch || '');
+  const l = S.members.slice().sort((x, y) => (y.count || 0) - (x.count || 0) || (x.name > y.name ? 1 : -1)).filter(m => !q || normKey(m.name).includes(q));
+  $('#attCount').textContent = `${present.size}人 / 名簿${S.members.length}人`;
+  box.replaceChildren(...(l.length ? l.map(m => { const on = present.has(m.id);
+    return h('div', { class: 'li tap' + (on ? ' on' : ''), onclick: () => on ? removeAttendee(m) : enterAttendee({ id: m.id, name: m.name }) },
+      h('div', { class: 'check' }, '✓'), h('div', { class: 'grow t' }, m.name), h('span', { class: 'tiny muted' }, `${m.count || 0}回`)); })
+    : [h('div', { class: 'empty' }, S.members.length ? '該当なし（「追加」で新規登録）' : '名簿はまだ空です。上の欄から追加できます')]));
+}
+async function removeAttendee(m) {
+  const played = S.session && computeStats(S.session, true).games[m.id];
+  if (played) { const r = await sheet({ title: `${m.name}さんを欠席にしますか？`, msg: `本日${played}試合プレー済みです。欠席にすると次の組から外れます。`, actions: [{ label: '欠席にする', cls: 'danger', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] }); if (!r || r.value !== 'ok') return; }
+  await guard(() => DB.commit([{ op: 'del', path: ['bm_sessions', S.date, 'attendees', m.id] }]));
+}
+function adminMgr(body) {
+  const s = S.session, stats = s ? computeStats(s, true) : { games: {} }, pres = presentAtts().sort((a, b) => a.joinedAt - b.joinedAt), stack = h('div', { class: 'stack' });
+  const locks = (s && s.locks) || [];
+  stack.append(h('div', null, h('div', { class: 'title' }, `メンバー管理（出席 ${pres.length}人）`),
+    pres.length ? h('div', { class: 'card flush list' }, pres.map(a => {
+      const lk = locks.find(l => l.a === a.id || l.b === a.id), partner = lk ? (lk.a === a.id ? lk.b : lk.a) : '';
+      const sel = h('select', { class: 'input', style: 'min-height:38px;font-size:14px;padding:0 10px;width:auto;max-width:160px', onchange: () => setLock(a.id, sel.value) },
+        h('option', { value: '' }, 'ペア固定なし'), pres.filter(x => x.id !== a.id).map(x => h('option', { value: x.id }, `${x.name}と固定`)));
+      sel.value = partner;
+      const st = a.status === 'left' ? h('span', { class: 'pill red' }, '帰宅') : a.forcedRest ? h('span', { class: 'pill orange' }, '強制休憩') : a.restLeft > 0 ? h('span', { class: 'pill orange' }, `休み${a.restLeft}`) : h('span', { class: 'pill green' }, '参加中');
+      return h('div', { class: 'li', style: 'flex-direction:column;align-items:stretch;gap:8px' },
+        h('div', { class: 'row between' }, h('div', { class: 'row' }, h('span', { class: 't' }, a.name), st), h('span', { class: 'tiny muted' }, `${stats.games[a.id] || 0}試合`)),
+        h('div', { class: 'row wrap' }, sel,
+          h('button', { class: 'btn sm ' + (a.forcedRest ? 'green' : 'orange'), onclick: () => patchAtt(a.id, { forcedRest: !a.forcedRest, restLeft: 0 }) }, a.forcedRest ? '休憩解除' : '強制休憩'),
+          a.status === 'left' ? h('button', { class: 'btn sm green', onclick: () => patchAtt(a.id, { status: 'active', restLeft: 0 }) }, '戻す') : h('button', { class: 'btn sm danger', onclick: () => patchAtt(a.id, { status: 'left' }) }, '早退・帰宅')));
+    })) : h('div', { class: 'card empty' }, '出席者がいません')));
+  const url = location.href.split('#')[0].replace(/[?&]mock=1/, '');
+  stack.append(h('div', { class: 'card stack' }, h('div', { class: 'title', style: 'margin:0' }, '参加者用URL'), h('div', { class: 'small', style: 'word-break:break-all' }, url),
+    h('button', { class: 'btn tint block', onclick: async () => { try { await navigator.clipboard.writeText(url); toast('URLをコピーしました'); } catch { toast('コピーできませんでした。手動でコピーしてください'); } } }, 'URLをコピー')));
+  stack.append(h('div', null, h('div', { class: 'title' }, `名簿の管理（${S.members.length}人）`),
+    h('div', { class: 'card flush list' }, S.members.slice().sort((x, y) => (x.name > y.name ? 1 : -1)).map(m => h('div', { class: 'li' }, h('div', { class: 'grow t' }, m.name), h('span', { class: 'tiny muted' }, `${m.count || 0}回`),
+      h('button', { class: 'btn sm tint', onclick: () => renameMember(m) }, '名前変更'), h('button', { class: 'btn sm danger', onclick: () => deleteMember(m) }, '削除'))))));
+  stack.append(h('div', { class: 'card stack' }, h('div', { class: 'title', style: 'margin:0' }, 'その他'),
+    h('button', { class: 'btn danger block', onclick: resetSession }, '本日の試合をリセット（出席は残す）'),
+    h('button', { class: 'btn block', onclick: changePin }, 'PINを変更'),
+    h('button', { class: 'btn block', onclick: () => { ssDel('bm_admin_ok'); S.isAdmin = false; renderAll(); } }, '主催者画面をロック')));
+  body.replaceChildren(stack);
+}
+function setLock(x, y) {
+  const s = S.session, locks = ((s && s.locks) || []).filter(l => ![l.a, l.b].some(id => id === x || id === y));
+  if (y) locks.push({ a: x, b: y }); patchSession({ locks });
+}
+async function renameMember(m) {
+  const r = await sheet({ title: '名前を変更', msg: '誤字の修正用です。過去の履歴も同じ人として扱われます。', input: { value: m.name, maxlength: 16 }, actions: [{ label: '変更する', cls: 'primary', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
+  if (!r || r.value !== 'ok') return; const nm = cleanName(r.text); if (!nm) return;
+  const ops = [{ op: 'set', path: ['bm_members', m.id], data: { name: nm } }]; if (S.attMap[m.id]) ops.push({ op: 'set', path: ['bm_sessions', S.date, 'attendees', m.id], data: { name: nm } });
+  await guard(() => DB.commit(ops));
+}
+async function deleteMember(m) {
+  const r = await sheet({ title: `${m.name}さんを名簿から削除`, msg: '誤登録の掃除用です。本日の出席からも外れます。', actions: [{ label: '削除する', cls: 'danger', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
+  if (!r || r.value !== 'ok') return;
+  await guard(() => DB.commit([{ op: 'del', path: ['bm_members', m.id] }, { op: 'del', path: ['bm_sessions', S.date, 'attendees', m.id] }]));
+}
+async function resetSession() {
+  const r = await sheet({ title: '本日の試合をリセット', msg: '対戦履歴・現在／次の組・ペア固定を消します。出席者は残ります。', actions: [{ label: 'リセットする', cls: 'danger', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
+  if (!r || r.value !== 'ok') return;
+  const ops = [{ op: 'set', path: ['bm_sessions', S.date], data: { current: null, next: null, history: [], gameNo: 0, locks: [] } }];
+  S.atts.forEach(a => ops.push({ op: 'set', path: ['bm_sessions', S.date, 'attendees', a.id], data: { restLeft: 0, forcedRest: false } }));
+  await guard(() => DB.commit(ops)); toast('リセットしました');
+}
+async function changePin() {
+  const r = await sheet({ title: 'PINを変更', input: { type: 'password', inputmode: 'numeric', maxlength: 8, placeholder: '新しいPIN（4〜8桁）' }, actions: [{ label: '変更する', cls: 'primary', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
+  if (!r || r.value !== 'ok') return; const pin = r.text.trim(); if (!/^\d{4,8}$/.test(pin)) return toast('4〜8桁の数字で入力してください');
+  const ph = await hashPin(pin); await guard(() => DB.commit([{ op: 'set', path: ['bm_config', 'admin'], data: { pinHash: ph, updatedAt: Date.now() } }])); ssSet('bm_admin_ok', ph); toast('PINを変更しました');
+}
+
+/* ---------- シェル・ルーティング ---------- */
+function renderAll() {
+  S.isAdmin = isAdminRoute() && !!S.config && !!S.config.pinHash && ssGet('bm_admin_ok') === S.config.pinHash;
+  const app = $('#app');
+  if (!app.querySelector('main')) app.replaceChildren(h('header', { class: 'nav' }, h('div', { class: 'nav-in' }, h('div', null, h('h1', null, '🏸 バド対戦表'), h('div', { class: 'sub', id: 'navSub' })), h('a', { id: 'navLink', class: 'link', href: '#' }, ''))), h('div', { id: 'banners', style: 'max-width:560px;margin:12px auto 0;padding:0 16px' }), h('main', { id: 'view' }));
+  const admin = isAdminRoute();
+  $('#navSub').textContent = `${S.date.replace(/-/g, '/')}${MOCK ? '　デモモード' : ''}${admin ? '　主催者' : ''}`;
+  const lk = $('#navLink'); lk.textContent = admin ? '参加者画面へ' : '主催者'; lk.setAttribute('href', admin ? '#' : '#admin');
+  const bn = [];
+  if (S.err) bn.push(h('div', { class: 'banner err' }, 'データベースに接続できません: ' + S.err + '（Firestoreルール未設定の可能性）'));
+  if (MOCK) bn.push(h('div', { class: 'banner info', style: 'margin-top:8px' }, 'デモモード：このブラウザ内にのみ保存されます（本番DBには書き込みません）'));
+  $('#banners').replaceChildren(...bn);
+  const view = $('#view');
+  if (admin) { if (S.isAdmin) { if (view.dataset.v !== 'adm') { view.replaceChildren(); view.dataset.v = 'adm'; } renderAdmin(view); } else { view.dataset.v = 'gate'; if (!view.querySelector('.input') || S.config === undefined) renderGate(view); } }
+  else { if (view.dataset.v !== 'p') { view.replaceChildren(); view.dataset.v = 'p'; } renderParticipant(view); }
+  adminAuto();
+}
+let unsubs = [];
+function startSubs() {
+  unsubs.forEach(u => u()); unsubs = []; S.ready = { m: false, s: false, a: false, c: false };
+  const err = e => { S.err = e.code || e.message; renderAll(); };
+  unsubs.push(DB.sub(['bm_members'], l => { S.members = l.filter(m => m.name); S.memberMap = Object.fromEntries(S.members.map(m => [m.id, m])); S.ready.m = true; S.err = null; renderAll(); }, true, err));
+  unsubs.push(DB.sub(['bm_sessions', S.date, 'attendees'], l => { S.atts = l; S.attMap = Object.fromEntries(l.map(a => [a.id, a])); S.ready.a = true; renderAll(); }, true, err));
+  unsubs.push(DB.sub(['bm_sessions', S.date], d => { S.session = d; S.ready.s = true; renderAll(); }, false, err));
+  unsubs.push(DB.sub(['bm_config', 'admin'], d => { S.config = d; S.ready.c = true; renderAll(); }, false, err));
+}
+addEventListener('hashchange', () => { S.sel = null; renderAll(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && todayStr() !== S.date) { S.date = todayStr(); startSubs(); } });
+await initDB();
+renderAll(); startSubs();
+if (MOCK) window.__bm = { S, DB, advance, regenNext };
+</script>
+</body>
+</html>

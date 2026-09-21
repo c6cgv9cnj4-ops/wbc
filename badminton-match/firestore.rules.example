@@ -1,0 +1,32 @@
+// バド対戦表(badminton-match) 用 Firestore ルール案
+// ※ Firebaseコンソール > Firestore > ルール の「既存ルールはそのまま」に、以下の match ブロックを追加してください。
+//   （既存の members / events / reserves 等のルールには一切触れません）
+// ※ アプリは匿名認証（signInAnonymously）で接続します。Firebaseコンソールで「匿名」ログインが有効である必要があります。
+
+match /bm_members/{id} {
+  allow read: if request.auth != null;
+  allow create, update: if request.auth != null
+    && request.resource.data.name is string
+    && request.resource.data.name.size() > 0
+    && request.resource.data.name.size() <= 16;
+  allow delete: if request.auth != null;
+}
+
+match /bm_sessions/{date} {
+  allow read, write: if request.auth != null;
+  match /attendees/{id} {
+    allow read: if request.auth != null;
+    allow create, update: if request.auth != null
+      && request.resource.data.name is string
+      && request.resource.data.name.size() <= 16;
+    allow delete: if request.auth != null;
+  }
+}
+
+match /bm_config/{doc} {
+  allow read, write: if request.auth != null;
+}
+
+// 【注意】主催者PINはブラウザ側の簡易ロックです（誤操作防止用）。
+// Firestoreルール上は「認証済みなら誰でも書ける」ため、悪意ある操作までは防げません。
+// 身内利用の想定。より厳密にするなら Firebase Auth（メール/Google）＋ルールで主催者UIDのみ許可に変更してください。
