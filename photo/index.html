@@ -180,6 +180,22 @@
                 <button id="shopOpenNowBtn" type="button" class="flex-1 py-2 rounded-lg text-xs font-bold border bg-slate-900 border-slate-600 text-slate-300">🟢 いま営業中のみ</button>
                 <button id="shopMustBtn" type="button" class="flex-1 py-2 rounded-lg text-xs font-bold border bg-slate-900 border-slate-600 text-slate-300">🔥 必訪のみ</button>
             </div>
+            <div class="flex gap-1.5 mb-2">
+                <select id="shopTimeSel" class="flex-1 min-w-0 bg-slate-900 border border-slate-600 text-slate-200 text-xs rounded-lg px-2 py-2">
+                    <option value="now">⏱ リアルタイム（現在時刻）</option>
+                    <option value="noon">☀️ 昼どき（12:30）</option>
+                    <option value="late">🕒 遅めの昼（14:30）</option>
+                    <option value="dinner">🌙 夜・ディナー（18:30）</option>
+                    <option value="custom">🔧 任意時刻を指定</option>
+                </select>
+                <input id="shopTimeInput" type="time" value="13:45" class="hidden w-24 bg-slate-900 border border-slate-600 text-slate-200 text-xs rounded-lg px-2 py-2">
+                <select id="shopDaySel" class="hidden w-28 bg-slate-900 border border-slate-600 text-slate-200 text-xs rounded-lg px-2 py-2">
+                    <option value="auto">日付: 自動</option>
+                    <option value="today">今日</option>
+                    <option value="tomorrow">明日</option>
+                    <option value="dayafter">明後日</option>
+                </select>
+            </div>
             <select id="shopOriginSel" class="w-full bg-slate-900 border border-slate-600 text-slate-200 text-xs rounded-lg px-2 py-2 mb-1.5"><option value="current">📍 現在の起点（現在地 / 北本）</option></select>
             <div id="shopPanelMeta" class="text-[11px] text-slate-400 mb-2"></div>
             <div id="shopPanelList" class="space-y-2"></div>
@@ -1998,7 +2014,33 @@
         // 近場の店ファインダー(スマホ現地利用向け): カテゴリ切替 / いま営業中 / 距離順カード
         // ==========================================================
         const SHOP_DOW = '日月火水木金土'; // getDay() の添字と一致
-        const shopState = { cat: 'all', openNow: false, mustOnly: false, limit: 20, originKey: 'current' };
+        const shopState = { cat: 'all', openNow: false, mustOnly: false, limit: 20, originKey: 'current',
+                            timeMode: 'now', customTime: '13:45', dayMode: 'auto' };
+        const SHOP_TIME_PRESETS = { noon: '12:30', late: '14:30', dinner: '18:30' };
+        const SHOP_DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
+        // 営業判定に使う日時。リアルタイム=現在時刻。プリセット/任意時刻は「次にその時刻になる日」(既に過ぎていれば明日)を自動選択し、日付を手動指定も可
+        function shopNow() {
+            const now = new Date();
+            if (shopState.timeMode === 'now') return now;
+            const hhmm = shopState.timeMode === 'custom' ? (shopState.customTime || '12:30') : SHOP_TIME_PRESETS[shopState.timeMode];
+            const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm) || [null, '12', '30'];
+            const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), +m[1], +m[2], 0, 0);
+            if (shopState.dayMode === 'tomorrow') d.setDate(d.getDate() + 1);
+            else if (shopState.dayMode === 'dayafter') d.setDate(d.getDate() + 2);
+            else if (shopState.dayMode === 'auto' && d.getTime() < now.getTime()) d.setDate(d.getDate() + 1);
+            return d;
+        }
+        // 「明日(火) 12:30」「いま 23:35」など画面表示用
+        function shopTimeLabel(d) {
+            d = d || shopNow();
+            const hm = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+            if (shopState.timeMode === 'now') return 'いま ' + hm;
+            const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+            const d0 = new Date(d); d0.setHours(0, 0, 0, 0);
+            const diff = Math.round((d0 - t0) / 86400000);
+            const dayTxt = diff === 0 ? '今日' : (diff === 1 ? '明日' : (diff === 2 ? '明後日' : ((d.getMonth() + 1) + '/' + d.getDate())));
+            return dayTxt + '(' + SHOP_DAY_NAMES[d.getDay()] + ') ' + hm;
+        }
 
         function shopToHalf(str) {
             return String(str || '')
@@ -2158,7 +2200,7 @@
         }
         function applyOtherPinsFilter(mp) {
             if (!mp) return;
-            const now = new Date();
+            const now = shopNow();
             const apply = function (spot, kind) {
                 if (!spot._marker) return;
                 const show = shopPinVisible(spot, kind, now);
@@ -2184,15 +2226,18 @@
                 : '<span class="bg-indigo-900/60 text-indigo-200 text-[10px] font-bold px-1.5 py-0.5 rounded">🥢 着席型</span>';
         }
         function shopCardHtml(it, idx) {
-            const s = it.spot, o = shopOrigin(), now = new Date();
+            const s = it.spot, o = shopOrigin(), now = shopNow();
             const km = it.km;
             const isShop = it.kind !== 'photo';
             const st = isShop ? getOpenStatus(s, now) : null;
             const name = it.kind === 'photo' ? s.name : s.name;
             const must = (it.kind === 'soba' && s.mustVisit) ? '<span class="bg-amber-400 text-amber-950 text-[10px] font-extrabold px-1.5 py-0.5 rounded">🔥 必訪</span>' : '';
             const budget = isShop ? shopBudget(s) : '';
+            // 判定日が今日以外なら「本日」を「明日(火)」等に置き換える
+            const dayWord = (function () { const l = shopTimeLabel(now); const m = /^(今日|明日|明後日|\d+\/\d+)\(([日月火水木金土])\)/.exec(l); return (!m || m[1] === '今日') ? '本日' : m[1] + '(' + m[2] + ')'; })();
+            const fixDay = function (t) { return dayWord === '本日' ? t : String(t).replace(/^本日/, dayWord); };
             const hoursLine = isShop
-                ? (st.todayText ? '本日 ' + st.todayText : (s.hours ? s.hours : '営業時間 掲載準備中')) + (st.state === 'closed' && st.detail ? '（' + st.detail + '）' : (st.state === 'open' && st.detail ? '（' + st.detail + '）' : ''))
+                ? (st.todayText ? dayWord + ' ' + st.todayText : (s.hours ? s.hours : '営業時間 掲載準備中')) + (st.state === 'closed' && st.detail ? '（' + fixDay(st.detail) + '）' : (st.state === 'open' && st.detail ? '（' + st.detail + '）' : ''))
                 : (s.mainSubject || '');
             const dirUrl = 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=' + it.lat + ',' + it.lng + (o.isGPS && !o.custom ? '' : '&origin=' + o.lat + ',' + o.lng);
             const gmUrl = isShop ? buildMapsUrl(s) : 'https://www.google.com/maps/search/?api=1&query=' + it.lat + ',' + it.lng;
@@ -2217,7 +2262,7 @@
             const box = document.getElementById('shopPanelList');
             if (!box) return;
             try {
-                const o = shopOrigin(), now = new Date();
+                const o = shopOrigin(), now = shopNow();
                 let items = shopItems();
                 items.forEach(it => { it.km = calcDist(o.lat, o.lng, it.lat, it.lng); });
                 items = items.filter(it => isFinite(it.km));
@@ -2230,11 +2275,12 @@
                     b.className = 'py-2 rounded-lg text-xs font-bold border ' + (on ? 'bg-emerald-600 border-emerald-400 text-white' : 'bg-slate-900 border-slate-600 text-slate-300');
                 });
                 const ob = document.getElementById('shopOpenNowBtn');
+                if (ob) ob.textContent = shopState.timeMode === 'now' ? '🟢 いま営業中のみ' : '🟢 ' + shopTimeLabel(now) + ' に営業中のみ';
                 if (ob) ob.className = 'flex-1 py-2 rounded-lg text-xs font-bold border ' + (shopState.openNow ? 'bg-emerald-600 border-emerald-400 text-white' : 'bg-slate-900 border-slate-600 text-slate-300');
                 const mb = document.getElementById('shopMustBtn');
                 if (mb) mb.className = 'flex-1 py-2 rounded-lg text-xs font-bold border ' + (shopState.mustOnly ? 'bg-amber-400 border-amber-300 text-amber-950' : 'bg-slate-900 border-slate-600 text-slate-300');
                 const meta = document.getElementById('shopPanelMeta');
-                if (meta) meta.textContent = '起点: ' + o.name + ' ／ 近い順 ' + total + '件' + ((shopState.openNow && shopState.cat !== 'photo') ? '（いま ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') + ' に営業中の店のみ）' : '');
+                if (meta) meta.textContent = '起点: ' + o.name + ' ／ 近い順 ' + total + '件' + ((shopState.openNow && shopState.cat !== 'photo') ? '（' + shopTimeLabel(now) + (shopState.timeMode === 'now' ? ' に営業中の店のみ）' : ' に営業中の店のみ）') : (shopState.timeMode !== 'now' ? '（営業状況は ' + shopTimeLabel(now) + ' 時点）' : ''));
                 box.innerHTML = window.__shopShown.length
                     ? window.__shopShown.map((it, i) => shopCardHtml(it, i)).join('')
                     : '<div class="text-center text-slate-400 text-xs py-6">条件に合う店がありません' + (shopState.openNow ? '（営業時間が未掲載の店は「いま営業中」に含まれません）' : '') + '</div>';
@@ -2272,6 +2318,11 @@
             if (!document.getElementById('shopPanel').dataset.bound) {
                 document.getElementById('shopPanel').dataset.bound = '1';
                 document.querySelectorAll('[data-shop-cat]').forEach(b => b.addEventListener('click', function () { shopState.cat = b.getAttribute('data-shop-cat'); shopState.limit = 20; shopRefreshAll(); }));
+                const tsel = document.getElementById('shopTimeSel'), tin = document.getElementById('shopTimeInput'), dsel = document.getElementById('shopDaySel');
+                const syncTimeUi = function () { const nonReal = shopState.timeMode !== 'now'; tin.classList.toggle('hidden', shopState.timeMode !== 'custom'); dsel.classList.toggle('hidden', !nonReal); };
+                tsel.addEventListener('change', function () { shopState.timeMode = tsel.value; shopState.limit = 20; syncTimeUi(); shopRefreshAll(); });
+                tin.addEventListener('change', function () { if (tin.value) { shopState.customTime = tin.value; shopState.limit = 20; shopRefreshAll(); } });
+                dsel.addEventListener('change', function () { shopState.dayMode = dsel.value; shopState.limit = 20; shopRefreshAll(); });
                 document.getElementById('shopOpenNowBtn').addEventListener('click', function () { shopState.openNow = !shopState.openNow; shopState.limit = 20; shopRefreshAll(); });
                 document.getElementById('shopMustBtn').addEventListener('click', function () { shopState.mustOnly = !shopState.mustOnly; shopState.limit = 20; shopRefreshAll(); });
                 document.getElementById('shopMoreBtn').addEventListener('click', function () { shopState.limit += 20; renderShopPanel(); });
@@ -2283,7 +2334,7 @@
 
         // 立ち食い/着席型の表示切替。実測で基準未達となった店(excluded)は常に非表示
         function applySobaFilter(map) {
-            const sobaNow = new Date();
+            const sobaNow = shopNow();
             for (const spot of allSobaSpots()) {
                 if (!spot._marker) continue;
                 const catOk = sobaFilterMode === 'both'
