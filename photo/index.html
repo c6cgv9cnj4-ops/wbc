@@ -848,52 +848,26 @@
             { name: '蕎麦.酒 十限無', hours: '11:30〜15:00／18:00〜', closed: '水曜・第3木曜', short: '十限無', lat: 35.91955, lng: 139.48735, addr: '川越市久保町6-6', sobamae: '種類豊富なお酒・自家製梅酒・蕎麦とのペアリング（昼飲みも歓迎）', mori: '十割そば切り', cat: '着席型蕎麦', area: '埼玉', meibutsu: '十割そば切り・韃靼そば・ごま豆乳そば' }
         ];
 
+        // 珈琲専門店: 「ストレート(シングルオリジン)が1杯700〜900円台(上限1,000円以内)・注文後ハンドドリップの本格自家焙煎店」を目標に再整備(2026-09-21)。
+        // straightPrice は公式メニュー/紹介記事で確認できた価格のみ記載。未確認の店は空欄(画面では「価格 確認中」)で、確認でき次第反映する。
+        // 銀座など高額店と、500円前後の店(ARiSE・BAKU・Little Edo・宝登山の店など)は基準外のため掲載していない。
         const tokyoCoffeeSpots = [
-            { name: 'カフェーパウリスタ (銀座)', lat: 35.6714, lng: 139.7628, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 3,800件', hours: '09:00-20:00', holiday: '不定休' },
-            { name: '珈琲 伯爵 (日比谷)', lat: 35.6742, lng: 139.7589, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 1,400件', hours: '08:00-23:00', holiday: '無休' },
-            { name: 'さぼうる (神保町)', lat: 35.6958, lng: 139.7578, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 4,500件', hours: '09:30-23:00', holiday: '日曜・祝日' },
-            { name: 'ミロンガ・ヌォーバ (神保町)', lat: 35.6953, lng: 139.7572, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 980件', hours: '11:00-21:00', holiday: '月曜' },
-            { name: 'ラドリオ (神保町)', lat: 35.6961, lng: 139.7583, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 1,600件', hours: '11:30-22:00', holiday: '日曜' },
-            { name: 'CAFE DE L\'AMBRE (銀座琥珀)', lat: 35.6703, lng: 139.7642, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 2,200件', hours: '12:00-21:00', holiday: '不定休' },
-            { name: 'トリコロール 本店 (銀座)', lat: 35.6719, lng: 139.7631, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 2,500件', hours: '10:00-19:00', holiday: '無休' },
-            { name: '喫茶アメリカン (東銀座)', lat: 35.6678, lng: 139.7694, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 3,100件', hours: '08:00-14:00 (売切次第)', holiday: '土日祝' },
-            { name: '十一房珈琲店 (銀座)', lat: 35.6708, lng: 139.7619, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 450件', hours: '12:00-22:00', holiday: '不定休' },
-            { name: 'アロマ珈琲 (日本橋)', lat: 35.6814, lng: 139.7761, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 900件', hours: '07:00-18:00', holiday: '土日祝' },
-            { name: '大坊珈琲店 系譜・南青山', lat: 35.6653, lng: 139.7136, cat: '珈琲専門店', info: 'Google評価 ★4.6 / 投稿数 680件', hours: '11:00-20:00', holiday: '水曜' },
-            { name: '珈琲専門店 自家焙煎 じゅらく (新橋)', lat: 35.6664, lng: 139.7581, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 820件', hours: '08:00-22:00', holiday: '土日祝' },
-            { name: '西武珈琲ショップ (新橋)', lat: 35.6661, lng: 139.7572, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 540件', hours: '07:30-22:30', holiday: '日曜' },
-            { name: '東郷 (麻布十番)', lat: 35.6558, lng: 139.7344, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 390件', hours: '10:00-19:00', holiday: '火曜' },
-            { name: '珈琲西武 (新宿)', lat: 35.6922, lng: 139.7014, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 4,100件', hours: '07:30-23:30', holiday: '無休' },
-            { name: '名曲・珈琲 らんブル (新宿)', lat: 35.6919, lng: 139.7031, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 3,500件', hours: '11:30-22:30', holiday: '無休' },
-            { name: '珈琲茶館 集 (新宿)', lat: 35.6911, lng: 139.7008, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 1,100件', hours: '10:00-23:00', holiday: '無休' },
-            { name: 'ノーザンライツ (早稲田)', lat: 35.7094, lng: 139.7225, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 310件', hours: '12:00-20:00', holiday: '月火曜' },
-            { name: 'カフェ・ル・ルヴァン (神楽坂)', lat: 35.7011, lng: 139.7419, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 650件', hours: '09:00-19:00', holiday: '月曜' },
-            { name: '羽頭 (本郷三丁目)', lat: 35.7072, lng: 139.7583, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 1,100件', hours: '13:00-23:00', holiday: '不定休' },
-            { name: '珈琲 庵 (根津)', lat: 35.7192, lng: 139.7622, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 290件', hours: '11:00-19:00', holiday: '木曜' },
-            { name: 'みじんこ (湯島)', lat: 35.7061, lng: 139.7681, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 2,800件', hours: '11:00-21:00', holiday: '不定休' },
-            { name: '珈琲 天国 (浅草)', lat: 35.7131, lng: 139.7936, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 2,400件', hours: '12:00-18:30', holiday: '火曜・水曜' },
-            { name: 'カフェ カフェ (上野)', lat: 35.7128, lng: 139.7750, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 880件', hours: '10:00-20:00', holiday: '不定休' },
-            { name: '伯爵 上野店', lat: 35.7139, lng: 139.7764, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 1,900件', hours: '07:00-23:30', holiday: '無休' },
-            { name: 'すみだ珈琲 (錦糸町)', lat: 35.6983, lng: 139.8142, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 610件', hours: '10:00-19:00', holiday: '月曜・火曜' },
-            { name: '珈琲道場 侍 (錦糸町)', lat: 35.6958, lng: 139.8131, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 1,100件', hours: '12:00-23:00', holiday: '無休' },
-            { name: 'ハリマヤ (押上)', lat: 35.7094, lng: 139.8128, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 280件', hours: '10:00-18:00', holiday: '水曜・木曜' },
-            { name: 'ARiSE COFFEE ROASTERS (清澄白河)', lat: 35.6800, lng: 139.7983, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 950件', hours: '10:00-18:00', holiday: '不定休' },
-            { name: 'MONZ CAFE (門前仲町)', lat: 35.6722, lng: 139.7956, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 1,500件', hours: '08:00-18:00', holiday: '無休' },
-            { name: 'コクテル堂 (武蔵小山)', lat: 35.6208, lng: 139.7042, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 890件', hours: '09:00-20:00', holiday: '不定休' },
-            { name: '邪宗門 (大井町)', lat: 35.6083, lng: 139.7333, cat: '珈琲専門店', info: 'Google評価 ★4.4 / 投稿数 530件', hours: '13:00-19:00', holiday: '水曜・木曜' },
-            { name: '中目黒珈琲 (中目黒)', lat: 35.6442, lng: 139.6992, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 780件', hours: '10:00-19:00', holiday: '不定休' },
-            { name: 'カフェ・テナ・シカ (学芸大学)', lat: 35.6319, lng: 139.6833, cat: '珈琲専門店', info: 'Google評価 ★4.6 / 投稿数 350件', hours: '12:00-20:00', holiday: '月曜' },
-            { name: '珈琲ロード (蒲田)', lat: 35.5622, lng: 139.7150, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 620件', hours: '08:00-20:00', holiday: '日曜' },
-            { name: 'カフェ・バッハ (南千住)', lat: 35.7331, lng: 139.7997, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 1,800件', hours: '08:30-19:00', holiday: '金曜・第135月曜' },
-            { name: '堀口珈琲 (世田谷)', lat: 35.6483, lng: 139.6361, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 1,400件', hours: '11:00-19:00', holiday: '無休' },
-            { name: '茶亭 羽当 (渋谷)', lat: 35.6611, lng: 139.7019, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 2,900件', hours: '10:00-23:30', holiday: '無休' },
-            { name: 'モグラ珈琲 (中野)', lat: 35.7061, lng: 139.6650, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 390件', hours: '12:00-22:00', holiday: '火曜' },
-            { name: 'コクウ珈琲 (新井薬師)', lat: 35.7139, lng: 139.6719, cat: '珈琲専門店', info: 'Google評価 ★4.6 / 投稿数 410件', hours: '10:00-19:00', holiday: '水曜・木曜' },
-            { name: '珈琲 amp (西荻窪)', lat: 35.7033, lng: 139.5992, cat: '珈琲専門店', info: 'Google評価 ★4.6 / 投稿数 480件', hours: '12:00-20:00', holiday: '水曜' },
-            { name: 'モモル珈琲 (高円寺)', lat: 35.7058, lng: 139.6492, cat: '珈琲専門店', info: 'Google評価 ★4.5 / 投稿数 350件', hours: '11:00-19:00', holiday: '火曜' },
-            { name: '伯爵 池袋東口店', lat: 35.7297, lng: 139.7125, cat: '珈琲専門店', info: 'Google評価 ★4.2 / 投稿数 2,800件', hours: '07:00-23:30', holiday: '無休' },
-            { name: 'カド (赤羽)', lat: 35.7778, lng: 139.7208, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 910件', hours: '12:00-21:00', holiday: '水曜' },
-            { name: '珈琲館 蔵 (北千住)', lat: 35.7494, lng: 139.8050, cat: '珈琲専門店', info: 'Google評価 ★4.3 / 投稿数 1,200件', hours: '09:00-21:00', holiday: '無休' }
+            // --- 品川区（天王洲・目黒川・大井町・荏原町周辺） ---
+            { name: 'GLOBE COFFEE', lat: 35.61442, lng: 139.70041, addr: '品川区小山5-25-10', area: '東京', cat: '珈琲専門店', straightPrice: '約730円（店内・ブレンド／シングルオリジン）', style: '着席型カフェ・豆売り併設', hours: '10:00〜18:00', closed: '火曜', note: '公式カフェメニューの価格（テイクアウトは630円）。豆の販売は19:00まで' },
+            { name: 'NorthStar Beans', lat: 35.62259, lng: 139.73981, addr: '品川区北品川1-3-18 KIビル2F', area: '東京', cat: '珈琲専門店', straightPrice: '約680円（ハンドドリップ）', style: '豆売り併設', hours: '11:00〜17:00', closed: '', note: '営業時間は情報源で8時/11時開店と食い違い（要確認）。150種以上の豆から選べる' },
+            { name: 'MAHIRO COFFEE ROASTERY', lat: 35.61842, lng: 139.72993, addr: '品川区大崎1-20-8 1F', area: '東京', cat: '珈琲専門店', straightPrice: '約600円（ドリップ）', style: '焙煎所併設', hours: '8:00〜19:00', closed: '不定休（日曜が中心）', note: '営業日は公式Instagramで案内' },
+            { name: 'コーヴコーヒーロースターズ', lat: 35.60143, lng: 139.70885, addr: '品川区中延5-13-15', area: '東京', cat: '珈琲専門店', straightPrice: '', style: '着席型カフェ', hours: '9:00〜17:00', closed: '', note: '自家焙煎。注文を受けてからハンドドリップ。ストレート価格・定休日は確認中' },
+            { name: 'ミツマタコーヒー MITSUMATA COFFEE ROASTER', lat: 35.60375, lng: 139.73291, addr: '品川区大井4-1-2 メゾン・ド・ピュア101', area: '東京', cat: '珈琲専門店', straightPrice: '', style: '豆売り併設', hours: '10:00〜18:00', closed: '月曜（不定休あり）', note: '自家焙煎。シングルオリジンをハンドドリップで提供。ストレート価格は確認中' },
+            // --- 江東区（清澄白河） ---
+            { name: 'First Crop Coffee Roastery', lat: 35.68301, lng: 139.80275, addr: '江東区白河2-20-10', area: '東京', cat: '珈琲専門店', straightPrice: '', style: 'ロースタリー併設カフェ', hours: '水 10:00〜17:30／金 15:00〜19:00／土 10:00〜19:00／日 10:00〜17:30', closed: '月曜・火曜・木曜', note: '主にハンドドリップ。ストレート価格は確認中' },
+            // --- 秩父 ---
+            { name: '珈琲 千茶古', lat: 35.99234, lng: 139.08986, addr: '秩父市熊木町36-2', area: '埼玉', cat: '珈琲専門店', straightPrice: '', style: '着席型カフェ', hours: '平日 10:00〜18:00／土日祝 10:00〜19:00', closed: '毎月20日（土日祝の場合は翌日）', note: '炭火直火の自家焙煎。ストレート価格は確認中' },
+            { name: '炭火煎珈琲 喫茶タカノ', lat: 36.01166, lng: 139.09207, addr: '秩父市下宮地町10-19', area: '埼玉', cat: '珈琲専門店', straightPrice: '', style: '着席型喫茶', hours: '10:30〜18:00', closed: '火曜', note: '備長炭の自家焙煎。注文ごとに豆を挽いて淹れる。価格は確認中' },
+            // --- 川越 ---
+            { name: '川越メル珈琲', lat: 35.92617, lng: 139.48590, addr: '川越市宮下町1-4-21', area: '埼玉', cat: '珈琲専門店', straightPrice: '', style: '着席型喫茶', hours: '9:00〜17:00', closed: '木曜・金曜', note: '自家焙煎のネルドリップ。ストレート価格は確認中' },
+            { name: '珈琲専門店 音羽屋', lat: 35.92434, lng: 139.48602, addr: '川越市大手町7-16 柴田ビル1階', area: '埼玉', cat: '珈琲専門店', straightPrice: '', style: '着席型', hours: '11:00〜17:30', closed: '木曜', note: '自家焙煎。ワン・サード・メソッドで一杯ずつ抽出。価格は確認中' },
+            { name: 'COFFEE GALLERY', lat: 35.92098, lng: 139.48503, addr: '川越市松江町2-3-5', area: '埼玉', cat: '珈琲専門店', straightPrice: '', style: '豆売り併設（店内利用可）', hours: '10:00〜17:00', closed: '月曜（祝日は営業）', note: '注文後焙煎の豆をハンドドリップで。価格は確認中' },
+            { name: 'Tomarigi coffee', lat: 35.91730, lng: 139.48285, addr: '川越市新富町1-6-2 新富町テナント1F', area: '埼玉', cat: '珈琲専門店', straightPrice: '', style: 'テイクアウト・豆販売', hours: '7:30〜17:00', closed: '木曜', note: '自家焙煎のハンドドリップ。価格は確認中' }
         ];
 
         // 5. 統合散歩スポットリスト
@@ -2156,6 +2130,7 @@
         }
         function shopBudget(spot) {
             if (spot.budget) return spot.budget;
+            if (spot.cat === '珈琲専門店') return spot.straightPrice ? 'ストレート ' + spot.straightPrice : 'ストレート 価格 確認中';
             if (spot.straightPrice) return 'ストレート ' + spot.straightPrice;
             if (spot.cat === '立ち食いそば') return '蕎麦 〜600円前後（目安）';
             if (spot.cat === '着席型蕎麦') return '蕎麦 1,000〜1,800円前後（目安）';
@@ -2786,6 +2761,9 @@
                             }).join('');
                             const driveLine = (spot.tags || []).some(function(t) { return t.indexOf('遠征ドライブ') >= 0; })
                                 ? '<div class="text-indigo-700 text-[10px] font-semibold">🚗 北本から直線で約' + Math.round(calcDist(KITAMOTO_LAT, KITAMOTO_LNG, spot.lat, spot.lng)) + 'km</div>' : '';
+                            const coffeeBlock = (safeCat === '珈琲専門店')
+                                ? '<div class="text-amber-800 font-bold text-[11px] mt-1">☕ ストレート（シングルオリジン）: ' + (spot.straightPrice ? escapeHtml(spot.straightPrice) : '価格 確認中') + '</div>' +
+                                  (spot.style ? '<div class="text-slate-600 text-[10.5px]">' + escapeHtml(spot.style) + '</div>' : '') : '';
                             const noteLine = spot.note ? '<div class="text-slate-400 text-[10px] mt-0.5">' + escapeHtml(spot.note) + '</div>' : '';
                             const mapLink = isShopPin
                                 ? '<a href="' + escapeHtml(buildMapsUrl(spot)) + '" target="_blank" rel="noopener" class="block text-center text-sky-700 border border-sky-300 bg-sky-50 hover:bg-sky-100 rounded px-2 py-1 text-[10.5px] font-semibold mt-1.5">Googleマップで口コミ・最新情報を確認 ↗</a>' +
@@ -2798,6 +2776,7 @@
                                 (tagChips ? '<div class="mt-0.5">' + tagChips + '</div>' : '') + driveLine +
                                 liveHoursHtml(spot, hoursPopup) +
                                 ((spot.meibutsu || spot.auto) ? liveInfo : infoBadge) +
+                                coffeeBlock +
                                 meibutsuLine +
                                 sobamaeBlock +
                                 noteLine +
