@@ -12,8 +12,10 @@
      照合できない申込期間は「記載なし」に落とす。開催日が照合できない大会は破棄する
 
 収集ソース:
-  A. 鴻巣市バドミントン連盟HP（要項PDFまで辿る）
-  B. minton.jp（Web申込受付中の埼玉県大会）
+  A. 鴻巣市バドミントン連盟HP（要項PDFまで辿る）／北本市スポーツ協会・体育センターの案内ページ
+  B. minton.jp（埼玉県の今後の大会を全件巡回して会場の市町で絞る＋「北本」等の市町名キーワード検索。
+     エントリー受付前・告知段階の大会も拾う。北本バドミントン連盟の団体戦はここに載る）
+  E. 広報きたもと（北本市公式。画像PDFのためGeminiのPDF読取。直近3号、原文抜粋つき）
   C. saibad.jp RSS（埼玉県バドミントン協会）
   D. Gemini + Google検索グラウンディングによる自治体別の候補URL探索
      （北本市広報・スポーツ協会、近隣市町の連盟/体育館告知など）
@@ -36,7 +38,7 @@ import sys
 import unicodedata
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from urllib.parse import urljoin, urlparse
+from urllib.parse import quote, urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -45,6 +47,7 @@ JST = timezone(timedelta(hours=9))
 GEMINI_MODEL_NAME = "gemini-3.6-flash"
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 STATE_PATH = Path(__file__).resolve().parent.parent / "state" / "local_badminton_seen.json"
+KOHO_CACHE_PATH = Path(__file__).resolve().parent.parent / "state" / "local_badminton_koho_cache.json"
 LAST_RUN_PATH = Path(__file__).resolve().parent.parent / "state" / "local_badminton_last_run.json"
 
 MAX_DOC_CHARS = 14000
@@ -84,10 +87,18 @@ FACILITY_TO_MUNI = {
     "岩槻文化公園": "さいたま市", "宮原": "さいたま市", "大宮武道館": "さいたま市",
 }
 
+# (名称, URL, ページ内のPDFを辿るか)
 SEED_PAGES = [
-    ("鴻巣市バドミントン連盟", "https://www.r-kounosubad.com/"),
-    ("鴻巣市バドミントン連盟(スケジュール)", "https://www.r-kounosubad.com/schedule"),
+    ("鴻巣市バドミントン連盟", "https://www.r-kounosubad.com/", True),
+    ("鴻巣市バドミントン連盟(スケジュール)", "https://www.r-kounosubad.com/schedule", False),
+    ("北本市スポーツ協会(市公式)", "https://www.city.kitamoto.lg.jp/soshiki/kyoiku/shogaigaushu/gyomu/g1/sportsteam/1416919202062.html", False),
+    ("北本市スポーツ(市公式)", "https://www.city.kitamoto.lg.jp/kosodatebunka/sports/index.html", False),
+    ("北本市体育センター 大会・イベント", "https://www.kitamoto-taiikuc.jp/webcms913672/event", False),
 ]
+KOHO_INDEX = "https://www.city.kitamoto.lg.jp/soshiki/seisakusuisinbu/koushitsu/gyomu/koho/index.html"
+MINTON_NAME_KEYWORDS = ["北本", "鴻巣", "桶川", "上尾", "伊奈", "蓮田", "白岡", "行田", "熊谷", "加須", "羽生", "久喜",
+                        "吉見", "東松山", "川島", "坂戸", "鶴ヶ島", "川越", "滑川", "嵐山", "鳩山", "深谷", "日高",
+                        "大宮", "岩槻", "見沼"]
 
 SKIP_DOMAINS = ("youtube.com", "youtu.be", "twitter.com", "x.com", "facebook.com", "instagram.com",
                 "amazon.", "rakuten.", "yahoo.co.jp/shopping", "note.com/search", "tiktok.com")
@@ -149,7 +160,7 @@ def fetch_doc(url):
 
 def collect_seed_docs(log):
     docs = []
-    for name, url in SEED_PAGES:
+    for name, url, follow_pdf in SEED_PAGES:
         d = fetch_doc(url)
         if not d:
             log.append(f"[seed] 取得失敗: {name} {url}")
@@ -157,7 +168,7 @@ def collect_seed_docs(log):
         d["source"] = name
         docs.append(d)
         pdfs = []
-        for label, href in d["links"]:
+        for label, href in (d["links"] if follow_pdf else []):
             if href.lower().split("?")[0].endswith(".pdf") and href not in pdfs:
                 pdfs.append(href)
         for href in pdfs[:8]:
@@ -169,31 +180,124 @@ def collect_seed_docs(log):
     return docs
 
 
-def collect_minton_docs(log):
-    docs = []
-    seen = set()
-    for page in range(1, 6):
-        r = http_get(f"https://minton.jp/Competition/search?area=3&status=1&page={page}")
-        if r is None:
-            break
-        items = re.findall(r'<article class="listUnit">(.*?)</article>', r.text, re.S)
+def parse_minton_list(html_text):
+    out = []
+    for b in re.findall(r'<article class="listUnit">(.*?)</article>', html_text, re.S):
+        d = re.search(r'href="(/Competition/(?:detail|other)/\d+)"', b)
+        t = re.search(r'<h2 class="ttl">(.*?)</h2>', b, re.S)
+        day = re.search(r"開催日：([^<]*)<", b)
+        v = re.search(r"会場：([^<]*)<", b)
+        if not d:
+            continue
+        dm = re.search(r"(\d{4})年(\d{1,2})月(\d{1,2})日", day.group(1)) if day else None
+        out.append({
+            "path": d.group(1),
+            "title": re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", t.group(1))).strip() if t else "",
+            "venue": v.group(1).strip() if v else "",
+            "date": f"{dm.group(1)}-{int(dm.group(2)):02d}-{int(dm.group(3)):02d}" if dm else "",
+        })
+    return out
+
+
+def collect_minton_docs(log, today):
+    """埼玉県の今後の大会(エントリー受付前・告知段階を含む)を全件巡回して会場の市町で絞り、
+    さらに市町名キーワード検索(name=)も併用する。"""
+    cands = {}
+    total = 0
+    for page in range(1, 16):
+        r = http_get(f"https://minton.jp/Competition/search?area=3&page={page}")
+        items = parse_minton_list(r.text) if r is not None else []
         if not items:
             break
-        for b in items:
-            d = re.search(r'href="(/Competition/(?:detail|other)/\d+)"', b)
-            v = re.search(r"会場：([^<]*)<", b)
-            venue = (v.group(1).strip() if v else "")
-            if not d or d.group(1) in seen:
-                continue
-            seen.add(d.group(1))
-            if not region_of(venue):
-                continue  # 対象自治体外は取得しない
-            doc = fetch_doc("https://minton.jp" + d.group(1))
-            if doc:
-                doc["source"] = "minton"
-                docs.append(doc)
-    log.append(f"[minton] Web申込受付中リストから対象自治体の会場 {len(docs)}件")
+        total += len(items)
+        for it in items:
+            cands.setdefault(it["path"], it)
+    kw_hits = 0
+    for kw in MINTON_NAME_KEYWORDS:
+        r = http_get("https://minton.jp/Competition/search?name=" + quote(kw))
+        for it in (parse_minton_list(r.text) if r is not None else []):
+            if it["path"] not in cands:
+                kw_hits += 1
+            cands.setdefault(it["path"], it)
+    docs = []
+    for it in cands.values():
+        if it["date"] and it["date"] < today.isoformat():
+            continue  # 開催済み
+        if not (region_of(it["venue"]) or region_of(it["title"])):
+            continue  # 対象自治体外は取得しない
+        doc = fetch_doc("https://minton.jp" + it["path"])
+        if doc:
+            doc["source"] = "minton"
+            docs.append(doc)
+    log.append(f"[minton] 埼玉県の今後の大会{total}件を巡回＋市町名検索(追加{kw_hits}件) → 対象自治体の会場で今後開催 {len(docs)}件")
     return docs
+
+
+def collect_koho_items(client, log, today):
+    """広報きたもと(画像PDF)をGeminiのPDF読取で確認する。直近3号。号ごとに結果をキャッシュ。
+    -> [(疑似doc, [大会dict])]  疑似docの本文は原文抜粋(quote)で、後段の日付照合に使う。"""
+    from google.genai import types
+    try:
+        cache = json.loads(KOHO_CACHE_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        cache = {}
+    idx = fetch_doc(KOHO_INDEX)
+    if not idx:
+        log.append("[koho] 広報きたもと一覧に到達できず")
+        return []
+    reiwa = today.year - 2018
+    year_url = next((h for t, h in idx["links"] if re.search(rf"令和{reiwa}年|{today.year}年", t) and "広報" in t), None)
+    issues = []
+    year_doc = fetch_doc(year_url) if year_url else None
+    for t, h in (year_doc["links"] if year_doc else []):
+        if re.search(r"月号", t) and h not in [x[1] for x in issues]:
+            issues.append((t, h))
+    issues = issues[:3]
+    pairs = []
+    for label, url in issues:
+        page = http_get(url)
+        if page is None:
+            continue
+        pdf_url = None
+        page.encoding = page.apparent_encoding or "utf-8"
+        for a in BeautifulSoup(page.text, "html.parser").find_all("a", href=True):
+            tx = a.get_text(" ", strip=True)
+            if tx.startswith("全") and "片面" in tx and "印刷" not in tx:
+                pdf_url = urljoin(page.url, a["href"])
+                break
+        if not pdf_url:
+            continue
+        if pdf_url not in cache:
+            r = http_get(pdf_url, timeout=90)
+            if r is None or len(r.content) > 18_000_000:
+                continue
+            prompt = ("これは北本市の広報紙(画像PDF)です。バドミントンの【大会・試合形式のイベント】(市民体育大会 バドミントンの部、"
+                      "スポーツ協会・連盟主催の大会、参加者募集など)が載っているページを探し、掲載内容を抜き出してください。"
+                      "体験会・教室・講習会は含めない。該当が無ければ []。書かれていない項目は推測せず null。JSON配列のみ返す。\n"
+                      "キー: page(ページ番号), quote(原文の該当部分を一字一句そのまま100〜300字), name, date(YYYY-MM-DD。年が無ければ"
+                      f"{today.year}), venue, entry_start(YYYY-MM-DD), entry_end(YYYY-MM-DD), events(配列), classes(配列), eligibility, fee")
+            try:
+                resp = client.models.generate_content(
+                    model=GEMINI_MODEL_NAME,
+                    contents=[types.Part.from_bytes(data=r.content, mime_type="application/pdf"), prompt],
+                    config=types.GenerateContentConfig(response_mime_type="application/json"))
+                data = json.loads(resp.text)
+                cache[pdf_url] = [x for x in (data if isinstance(data, list) else [data]) if isinstance(x, dict)]
+            except Exception as ex:
+                log.append(f"[koho] {label} PDF読取失敗: {type(ex).__name__}")
+                continue
+        for x in cache.get(pdf_url, []):
+            if x.get("name") and x.get("quote"):
+                x["_quote"] = x["quote"]
+                doc = {"url": url, "text": str(x["quote"]), "is_pdf": True, "links": [], "source": f"広報きたもと {label}(PDF読取)"}
+                pairs.append((doc, [x]))
+        log.append(f"[koho] {label}: 大会関連の記載 {len(cache.get(pdf_url, []))}件")
+    try:
+        KOHO_CACHE_PATH.parent.mkdir(exist_ok=True)
+        KOHO_CACHE_PATH.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        pass
+    return pairs
 
 
 def collect_saibad_docs(log):
@@ -287,13 +391,28 @@ EXTRACT_PROMPT = """あなたはバドミントン大会情報の抽出器です
 - 各要素のキー:
   name(大会名), date(開催日), venue(会場名。所在市町がわかれば含める), entry_start(申込開始日), entry_end(申込締切日),
   events(種目の配列。例:["男子ダブルス","混合ダブルス","団体戦"]), classes(クラス/レベルの配列。例:["3部","シニア40歳以上"]),
-  eligibility(参加資格の要約), fee(参加費), organizer(主催)
+  eligibility(参加資格の要約), fee(参加費), organizer(主催),
+  detail_url(その大会の個別詳細/要項ページ。下の「ページ内リンク」に載っているURLからのみ選ぶ。無ければ null)
 - 出力はJSONのみ。説明文やコードフェンスは不要。
 
 URL: {url}
+--- ページ内リンク(テキスト | URL) ---
+{links}
 --- 本文 ---
 {text}
 """
+
+
+def links_for_prompt(doc):
+    seen, out = set(), []
+    for label, href in doc.get("links", []):
+        if href in seen or not href.startswith("http") or len(label) < 4 or href.lower().split("?")[0].endswith((".jpg", ".png", ".css", ".js")):
+            continue
+        seen.add(href)
+        out.append(f"{label[:50]} | {href}")
+        if len(out) >= 150:
+            break
+    return "\n".join(out) or "(なし)"
 
 
 def extract_tournaments(client, doc):
@@ -301,7 +420,7 @@ def extract_tournaments(client, doc):
     try:
         resp = client.models.generate_content(
             model=GEMINI_MODEL_NAME,
-            contents=EXTRACT_PROMPT.format(url=doc["url"], text=doc["text"]),
+            contents=EXTRACT_PROMPT.format(url=doc["url"], text=doc["text"], links=links_for_prompt(doc)),
             config=types.GenerateContentConfig(response_mime_type="application/json"),
         )
         data = json.loads(resp.text)
@@ -419,9 +538,11 @@ def build_embed(t, today, test=False, reminder=False):
         fields.append({"name": "👥 参加資格", "value": str(t["eligibility"])[:300], "inline": False})
     if t.get("fee"):
         fields.append({"name": "💴 参加費", "value": str(t["fee"])[:100], "inline": True})
+    if t.get("_quote"):
+        fields.append({"name": "📰 広報の原文抜粋", "value": ("> " + str(t["_quote"]).replace("\n", " "))[:400], "inline": False})
     fields.append({"name": "🔗 要項・情報元", "value": t["_url"][:900], "inline": False})
     return {"title": title[:250], "url": t["_url"], "color": color, "fields": fields,
-            "footer": {"text": f"出典: {t['_source']} ／ 本文照合済み"}}
+            "footer": {"text": f"出典: {t['_source']} ／ " + ("画像PDFをAI読取(原文と要照合)" if t.get("_quote") else "本文照合済み")}}
 
 
 def send_embeds(webhook, embeds, content=None, batch=10):
@@ -463,7 +584,7 @@ def main():
         print("[ERROR] GEMINI_API_KEY が未設定です。")
         return 1
 
-    docs = collect_seed_docs(log) + collect_minton_docs(log) + collect_saibad_docs(log) + collect_search_docs(client, log)
+    docs = collect_seed_docs(log) + collect_minton_docs(log, today) + collect_saibad_docs(log) + collect_search_docs(client, log)
     # 同一URLの重複除去
     uniq, seen_urls = [], set()
     for d in docs:
@@ -476,7 +597,8 @@ def main():
     from concurrent.futures import ThreadPoolExecutor
     with ThreadPoolExecutor(max_workers=6) as ex:
         extracted = list(ex.map(lambda d: extract_tournaments(client, d), uniq))
-    for doc, tournaments in zip(uniq, extracted):
+    pairs = list(zip(uniq, extracted)) + collect_koho_items(client, log, today)
+    for doc, tournaments in pairs:
         for t in tournaments:
             t, _why = verify_and_normalize(t, doc, today) if t.get("date") else (None, "開催日なし")
             if t is None:
@@ -489,7 +611,10 @@ def main():
             if not ok:
                 dropped.append((t.get("name"), why))
                 continue
-            t.update({"_muni": muni, "_prio": prio, "_url": doc["url"], "_source": doc["source"]})
+            link_set = {h for _, h in doc.get("links", [])}
+            detail = t.get("detail_url")
+            url = detail if detail and detail in link_set else doc["url"]  # 個別ページはページ内リンクと一致したものだけ採用
+            t.update({"_muni": muni, "_prio": prio, "_url": url, "_source": doc["source"]})
             t["_status"] = entry_status(t, today)
             k = key_of(t)
             old = merged.get(k)
