@@ -749,39 +749,39 @@
         const tokyoSobaSpots = [
             // --- 中央区 ---
             { name: '峠そば (茅場町)', closed: '水曜・日曜', short: '峠そば', lat: 35.67900, lng: 139.77931, addr: '中央区日本橋茅場町2-8-6', cat: '立ち食いそば', meibutsu: '鯵天そば（ごま油香る江戸前）' },
-            { name: 'そば処 亀島 (茅場町)', hours: '7:00〜17:00（土は〜15:00）', closed: '日曜・祝日', short: '亀島', lat: 35.67947, lng: 139.78154, addr: '中央区日本橋茅場町1-14-2', cat: '立ち食いそば', meibutsu: '春菊天そば' },
-            { name: '立ち食い 福そば (人形町)', hours: '7:30〜17:30（売切じまい）', closed: '土日祝', short: '福そば', lat: 35.68468, lng: 139.78309, addr: '中央区日本橋人形町1-16-3', cat: '立ち食いそば', meibutsu: '天ぷらそば（かき揚げ・げそ・春菊など6種から選択）' },
-            { name: 'そば処 おか田 (小伝馬町)', hours: '11:15〜14:00', closed: '土日祝', short: 'おか田', lat: 35.69109, lng: 139.77937, addr: '中央区日本橋小伝馬町13-6', cat: '立ち食いそば', meibutsu: 'かき揚げ天そば・春菊天そば' },
-            { name: 'よもだそば (日本橋店)', hours: '平日 7:00〜22:00／土日祝 10:00〜15:00', closed: '無休', short: 'よもだそば', lat: 35.68251, lng: 139.77223, addr: '中央区日本橋2-1-20', cat: '立ち食いそば', meibutsu: '玉ねぎ1個分のかき揚げ・インドカレー' },
+            { name: 'そば処 亀島 (茅場町)', featured: true, hours: '7:00〜17:00（土は〜15:00）', closed: '日曜・祝日', short: '亀島', lat: 35.67947, lng: 139.78154, addr: '中央区日本橋茅場町1-14-2', cat: '立ち食いそば', meibutsu: '春菊天そば' },
+            { name: '立ち食い 福そば (人形町)', featured: true, hours: '7:30〜17:30（売切じまい）', closed: '土日祝', short: '福そば', lat: 35.68468, lng: 139.78309, addr: '中央区日本橋人形町1-16-3', cat: '立ち食いそば', meibutsu: '天ぷらそば（かき揚げ・げそ・春菊など6種から選択）' },
+            { name: 'そば処 おか田 (小伝馬町)', featured: true, hours: '11:15〜14:00', closed: '土日祝', short: 'おか田', lat: 35.69109, lng: 139.77937, addr: '中央区日本橋小伝馬町13-6', cat: '立ち食いそば', meibutsu: 'かき揚げ天そば・春菊天そば' },
+            { name: 'よもだそば (日本橋店)', featured: true, hours: '平日 7:00〜22:00／土日祝 10:00〜15:00', closed: '無休', short: 'よもだそば', lat: 35.68251, lng: 139.77223, addr: '中央区日本橋2-1-20', cat: '立ち食いそば', meibutsu: '玉ねぎ1個分のかき揚げ・インドカレー' },
             // --- 千代田区 ---
             { name: 'めんや (神田須田町)', closed: '土日祝', short: 'めんや', lat: 35.69535, lng: 139.76989, addr: '千代田区神田須田町1-14', cat: '立ち食いそば', meibutsu: '明日葉天そば' },
-            { name: 'そば千 (東神田)', hours: '月〜金 2:00〜19:00／土 3:00〜13:00', closed: '日曜・第1土曜', short: 'そば千', lat: 35.69510, lng: 139.78128, addr: '千代田区東神田1-17-4', cat: '立ち食いそば', meibutsu: 'おきあみ天そば（漆黒のつゆ）' },
+            { name: 'そば千 (東神田)', featured: true, hours: '月〜金 2:00〜19:00／土 3:00〜13:00', closed: '日曜・第1土曜', short: 'そば千', lat: 35.69510, lng: 139.78128, addr: '千代田区東神田1-17-4', cat: '立ち食いそば', meibutsu: 'おきあみ天そば（漆黒のつゆ）' },
             { name: '六文そば (須田町店)', hours: '月〜金 7:00〜14:00', closed: '土日', short: '六文そば', lat: 35.69645, lng: 139.76851, addr: '千代田区神田須田町1-17', cat: '立ち食いそば', meibutsu: 'げそ天そば・ジャンボいか天', isSpecial: true, note: '路麺文化の名店として殿堂入り（★基準に関わらず掲載）' },
             // --- 台東区 ---
             { name: '川一 (秋葉原・台東)', hours: '平日 7:00〜14:00／土 10:00〜13:00', closed: '日曜', short: '川一', lat: 35.70078, lng: 139.77968, addr: '台東区台東1-2-7', cat: '立ち食いそば', meibutsu: 'げそ天そば・春菊天そば' },
             { name: 'スタンドそば 野むら (浅草橋)', hours: '8:00〜14:00', closed: '土日祝', short: '野むら', lat: 35.70120, lng: 139.78101, addr: '台東区浅草橋5-20-8', cat: '立ち食いそば', meibutsu: '春菊天そば（継ぎ足しの黒いつゆ「暗黒汁」）' },
             { name: 'そば・うどん ひさご (浅草橋)', hours: '6:45〜18:00頃', closed: '土日祝', short: 'ひさご', lat: 35.69739, lng: 139.78547, addr: '台東区浅草橋1-17-2 駅ガード下', cat: '立ち食いそば', meibutsu: '自家製麺の天ぷらそば・たぬきそば' },
             { name: '鶏だし そば・うどん 三丁目 (仲御徒町)', hours: '6:00〜14:00', closed: '土日祝', short: '三丁目', lat: 35.70577, lng: 139.77663, addr: '台東区台東3-42-7', cat: '立ち食いそば', meibutsu: '鶏だしそば・朝そば（10時まで）' },
-            { name: 'そば うどん 元長 (稲荷町)', hours: '月〜金 6:00〜22:00', closed: '土日祝', short: '元長', lat: 35.71418, lng: 139.77982, addr: '台東区東上野4-10-7', cat: '立ち食いそば', meibutsu: '自家製麺のかき揚げそば' },
+            { name: 'そば うどん 元長 (稲荷町)', featured: true, hours: '月〜金 6:00〜22:00', closed: '土日祝', short: '元長', lat: 35.71418, lng: 139.77982, addr: '台東区東上野4-10-7', cat: '立ち食いそば', meibutsu: '自家製麺のかき揚げそば' },
             // --- 港区 ---
             { name: '立喰 そば うどん 丹波屋 (新橋)', hours: '月〜金 7:00〜23:00／土 7:30〜19:00', closed: '日曜・祝日', short: '丹波屋', lat: 35.66628, lng: 139.75700, addr: '港区新橋2-16-1 ニュー新橋ビル1F', cat: '立ち食いそば', meibutsu: '春菊天そば・スパイス調合のインドカレー' },
-            { name: 'そば うどん おくとね (新橋)', hours: '7:00〜20:00', short: 'おくとね', lat: 35.66621, lng: 139.75954, addr: '港区新橋2-20-15 新橋駅前ビル1号館B1F', cat: '立ち食いそば', meibutsu: '舞茸天そば（薄く広げた大判の天ぷら）' },
+            { name: 'そば うどん おくとね (新橋)', featured: true, hours: '7:00〜20:00', short: 'おくとね', lat: 35.66621, lng: 139.75954, addr: '港区新橋2-20-15 新橋駅前ビル1号館B1F', cat: '立ち食いそば', meibutsu: '舞茸天そば（薄く広げた大判の天ぷら）' },
             // --- 新宿区 ---
-            { name: '立喰い そば・うどん 山吹 (山吹町)', hours: '6:00〜15:00', closed: '日曜・祝日', short: '山吹', lat: 35.70754, lng: 139.73141, addr: '新宿区山吹町265-6', cat: '立ち食いそば', meibutsu: 'カレー南蛮（豚肉ごろごろ）' },
-            { name: '白河そば (牛込柳町)', hours: '7:00〜13:00頃', closed: '土日祝', short: '白河そば', lat: 35.69952, lng: 139.72401, addr: '新宿区原町2-8', cat: '立ち食いそば', meibutsu: '塩だしつゆ・ごぼう天・カレーうどん' },
+            { name: '立喰い そば・うどん 山吹 (山吹町)', featured: true, hours: '6:00〜15:00', closed: '日曜・祝日', short: '山吹', lat: 35.70754, lng: 139.73141, addr: '新宿区山吹町265-6', cat: '立ち食いそば', meibutsu: 'カレー南蛮（豚肉ごろごろ）' },
+            { name: '白河そば (牛込柳町)', featured: true, hours: '7:00〜13:00頃', closed: '土日祝', short: '白河そば', lat: 35.69952, lng: 139.72401, addr: '新宿区原町2-8', cat: '立ち食いそば', meibutsu: '塩だしつゆ・ごぼう天・カレーうどん' },
             // --- 文京区 ---
             { name: 'そば処 はるな (本郷三丁目)', hours: '7:30〜18:30', closed: '土日祝', short: 'はるな', lat: 35.70544, lng: 139.76072, addr: '文京区本郷2-26-10', cat: '立ち食いそば', meibutsu: 'ハゼ天そば・かき揚げ天そば' },
             { name: '名代 白木そば (本郷・水道橋)', hours: '月〜金 11:00〜17:00', closed: '土日祝', short: '白木そば', lat: 35.70582, lng: 139.75464, addr: '文京区本郷1-33-7', cat: '立ち食いそば', meibutsu: '牛肉そば（硬めの太そば）' },
             // --- 墨田区 ---
-            { name: '文殊 両国本店', short: '文殊', lat: 35.69496, lng: 139.79635, addr: '墨田区両国4-34-1', cat: '立ち食いそば', meibutsu: 'かき揚げそば・春菊天そば・あなご天そば', note: '都内10店舗規模の地域チェーン（本店を掲載）' },
+            { name: '文殊 両国本店', featured: true, short: '文殊', lat: 35.69496, lng: 139.79635, addr: '墨田区両国4-34-1', cat: '立ち食いそば', meibutsu: 'かき揚げそば・春菊天そば・あなご天そば', note: '都内10店舗規模の地域チェーン（本店を掲載）' },
             // --- 江東区 ---
             { name: '立喰いそば 遠野屋 (南砂町)', short: '遠野屋', lat: 35.67280, lng: 139.83295, addr: '江東区南砂6-3-4', cat: '立ち食いそば', meibutsu: '小柱のかき揚げそば・えびかき揚げ' },
             { name: '立喰そば 大むら (潮見)', hours: '6:00〜14:00', short: '大むら', lat: 35.65748, lng: 139.81525, addr: '江東区潮見1-27-5', cat: '立ち食いそば', meibutsu: '春菊天（器からはみ出す大きさ）・かけそば200円台' },
             { name: '文殊 亀戸店', hours: '月〜金 6:00〜23:00／土日祝 7:00〜20:00', closed: '無休', short: '文殊 亀戸', lat: 35.69717, lng: 139.82829, addr: '江東区亀戸6-61-1', cat: '立ち食いそば', meibutsu: '岩のりそば・かき揚げそば', isSpecial: true, note: '路麺文化の名店として殿堂入り（★基準に関わらず掲載）' },
             // --- 荒川区・北区・豊島区 ---
             { name: '一由そば (日暮里)', hours: '24時間営業', short: '一由そば', lat: 35.73025, lng: 139.77084, addr: '荒川区西日暮里2-26-8', cat: '立ち食いそば', isMustVisit: true, meibutsu: 'ジャンボゲソ天そば（太そば）' },
-            { name: '立喰そば かしやま (田端)', hours: '6:00〜10:00（朝のみ）', closed: '日曜・祝日', short: 'かしやま', lat: 35.73902, lng: 139.76201, addr: '北区東田端1-17-20', cat: '立ち食いそば', meibutsu: '天玉そば（朝のみ営業）' },
-            { name: '肉そば 南天 (椎名町)', hours: '5:30〜翌1:30', short: '南天', lat: 35.72664, lng: 139.69510, addr: '豊島区長崎1-2-2', cat: '立ち食いそば', meibutsu: '肉そば（玉ねぎの甘みの豚肉山盛り）' }
+            { name: '立喰そば かしやま (田端)', featured: true, hours: '6:00〜10:00（朝のみ）', closed: '日曜・祝日', short: 'かしやま', lat: 35.73902, lng: 139.76201, addr: '北区東田端1-17-20', cat: '立ち食いそば', meibutsu: '天玉そば（朝のみ営業）' },
+            { name: '肉そば 南天 (椎名町)', featured: true, hours: '5:30〜翌1:30', short: '南天', lat: 35.72664, lng: 139.69510, addr: '豊島区長崎1-2-2', cat: '立ち食いそば', meibutsu: '肉そば（玉ねぎの甘みの豚肉山盛り）' }
         ];
 
         // 着席型蕎麦屋（老舗・手打ちの名店／大手チェーン除外）
@@ -1970,6 +1970,9 @@
             return '<div class="text-emerald-600 font-semibold text-[11px] mt-1">🕒 ' + escapeHtml(spot.hoursLive) + (spot.holidayLive ? '<br>📅 定休日: ' + escapeHtml(spot.holidayLive) : '') + '</div>' + week;
         }
 
+        // 【立ち食いそばの🔥(featured:true)選定ルール】2026-09-21 Google実測(★4.0以上かつ300件以上)で機械判定 + ご指定の名店(そば千・おくとね・文殊 両国本店)。
+        //   ※「食べログ 立ち食いそば 百名店」という公式選出は存在せず(そば百名店の対象ジャンルに立ち食いを含むが、登録店の選出実績は0件)、条件としては使えなかった。
+        //   ※featured と isMustVisit は同じ意味(必訪フラグ)。どちらを指定しても🔥になる。
         // 🔥必訪は「遠出してでも行きたい別格の名店」だけ。評価値では自動付与せず、isMustVisit:true の個別指定のみ。
         //  対象: ①歴史的な江戸前御三家・超名店(藪/更科/砂場系の老舗など) ②自家製粉・玄そば管理などの全国トップ評価店
         //  地元の実力店は🥢(藍色)のまま。
@@ -1989,7 +1992,7 @@
         // 埼玉: Google Places で自動スクリーニングした店(data/saitama_soba.json)。読込後に追加される
         const tokyoSobaAutoSpots = [];
         const allSobaSpots = () => [...tokyoSobaSpots, ...tokyoSobaSeatedSpots, ...tokyoSobaAutoSpots];
-        allSobaSpots().forEach(sp => { if (sp.isMustVisit) sp.mustVisit = true; });
+        allSobaSpots().forEach(sp => { if (sp.isMustVisit || sp.featured) sp.mustVisit = true; });
         let sobaFilterMode = 'both'; // 'standing' | 'seated' | 'both'
         let sobaMustOnly = false;   // 🔥必訪店のみ
 
@@ -2087,7 +2090,7 @@
                 spot.ratingNum = data.rating ? Number(data.rating).toFixed(1) : '';
                 spot.ratingCount = data.count;
                 if (data.uri) spot.gmapUri = data.uri;
-                spot.mustVisit = !!spot.isMustVisit;
+                spot.mustVisit = !!(spot.isMustVisit || spot.featured);
                 if (data.week && data.week.length === 7) {
                     const DAY_CHARS = ['月', '火', '水', '木', '金', '土', '日'];
                     spot.hoursLive = '本日 ' + data.week[(new Date().getDay() + 6) % 7].replace(/^.*?曜日:\s*/, '');
@@ -2151,7 +2154,7 @@
                     spot.ratingNum = Number(data.rating).toFixed(1);
                     spot.ratingCount = data.count;
                     spot.belowThreshold = !okScore;
-                    spot.mustVisit = !!spot.isMustVisit;
+                    spot.mustVisit = !!(spot.isMustVisit || spot.featured);
                     if (data.uri) spot.gmapUri = data.uri;
                     // 営業時間: weekdayDescriptions は月曜始まり。「本日」と定休日(曜日)を実測値から作る
                     if (data.week && data.week.length === 7) {
