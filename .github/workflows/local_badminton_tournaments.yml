@@ -1,0 +1,52 @@
+name: 地元バドミントン大会通知 (#webhook_local)
+
+on:
+  schedule:
+    - cron: "0 22 * * *"   # JST 7:00 毎朝: 新着大会＋締切間近リマインド
+  workflow_dispatch:
+    inputs:
+      test_send:
+        description: "テスト送信(締切済みも参考表示し、既送信記録は更新しない)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write  # state/local_badminton_seen.json(既送信記録)のコミット用
+
+jobs:
+  local-badminton:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: local-badminton
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      - name: 大会を収集してDiscordへ通知
+        env:
+          DISCORD_WEBHOOK_LOCAL: ${{ secrets.WEBHOOK_LOCAL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.test_send }}" = "true" ]; then
+            python scripts/fetch_local_badminton_tournaments.py --test
+          else
+            python scripts/fetch_local_badminton_tournaments.py
+          fi
+
+      - name: 既送信記録・実行サマリをコミット
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state/local_badminton_seen.json state/local_badminton_last_run.json
+          git diff --cached --quiet || git commit -m "地元バドミントン大会 実行記録を更新"
+          git pull --rebase origin main
+          git push
