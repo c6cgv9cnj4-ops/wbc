@@ -2050,7 +2050,8 @@
                         isMustVisit: s.m === 1, mustVisit: s.m === 1,
                         meibutsu: (s.f && s.f.length) ? s.f.join('・') : '',
                         sobamae: (s.b && s.b.length) ? s.b.join('・') : '',
-                        note: '埼玉スクリーニングで自動選定（' + d.screenedAt + '時点）。営業時間・定休日は掲載準備中'
+                        hours: s.h || '', closed: s.x || '',
+                        note: '埼玉スクリーニングで自動選定（' + d.screenedAt + '時点）' + ((s.h || s.x) ? '' : '。営業時間・定休日は掲載準備中')
                     };
                     tokyoSobaAutoSpots.push(spot);
                     buildMarker(spot);
