@@ -251,11 +251,15 @@ def fetch_keyword_news(keyword, retries=3):
         return []
 
     feed = feedparser.parse(resp.content)
-    candidates = [
-        {"title": e.title, "url": e.link, "published": format_published_jst(e),
-         "published_dt": published_datetime(e)}
-        for e in feed.entries[:RAW_CANDIDATES_PER_KEYWORD]
-    ]
+    candidates = []
+    for e in feed.entries[:RAW_CANDIDATES_PER_KEYWORD]:
+        title = e.title
+        source_name = (e.get("source") or {}).get("title", "")
+        # タイトル末尾の "... - 配信元名" は冗長なので、source側の表記と一致する場合のみ除去する
+        if source_name and title.endswith(f" - {source_name}"):
+            title = title[: -len(f" - {source_name}")]
+        candidates.append({"title": title, "url": e.link, "published": format_published_jst(e),
+                           "published_dt": published_datetime(e), "source": source_name or "媒体不明"})
     relevant = [c for c in candidates if is_title_relevant(keyword, c["title"])]
     excluded_count = len(candidates) - len(relevant)
     if excluded_count:
@@ -345,61 +349,53 @@ def build_reminder_calendar_url(event_title, article_url, end_date):
     )
 
 
-def build_oshi_message(state, now):
-    """新着が1件も無ければNoneを返す。"""
+COLOR_OSHI = 0xF1C40F
+
+
+def build_oshi_embeds(state, now):
+    """新着記事ごとにEmbed1枚(タイトル・掲載日時・媒体名・URL・該当すればカレンダーリンク)を組み立てる。
+    要約や本文取得は行わない(タイトル+RSSメタデータのみのシンプル処理・低トークン)。
+    新着が1件も無ければ ([], stats) を返す。"""
     state.setdefault("seen_urls", {})
     state.setdefault("seen_titles", {})
-    sections = []
-    has_any_new = False
+    embeds = []
     stats = {"fetched": 0, "dup": 0, "old": 0, "new": 0}
 
     for keyword in OSHI_KEYWORDS:
         items = fetch_keyword_news(keyword)
         stats["fetched"] += len(items)
-        new_items = []
         for item in items:
             if is_already_sent(state, item):
                 stats["dup"] += 1
                 continue
             if is_too_old(item.get("published_dt"), now):
                 stats["old"] += 1
-                # 古い記事は履歴にも記録しておく(以後の取得でも確実に弾き、統計を安定させる)
-                mark_sent(state, item, now)
+                mark_sent(state, item, now)  # 古い記事も履歴に記録し、以後の取得でも確実に弾く
                 continue
             mark_sent(state, item, now)  # 同一実行内で別キーワードに同じ記事が出ても二重送信しない
-            new_items.append(item)
-        stats["new"] += len(new_items)
+            stats["new"] += 1
 
-        if new_items:
-            has_any_new = True
-            lines = [f"## 🌟 {keyword}"]
-            for item in new_items:
-                lines.append(f"- [{item['title']}](<{item['url']}>) `[{item['published']}]`")
-                event_dates = extract_event_dates(item["title"], now)
-                if event_dates:
-                    start, end = event_dates
-                    # カレンダーURLのtextパラメータに記事タイトル全文を入れると
-                    # URLが極端に長くなり、カレンダーリンク行が単独で
-                    # Discordの2000文字制限を超えてHTTP 400になる事例が
-                    # 実際に発生した(2026-08-28)。イベント名は短縮する。
-                    event_title = f"{keyword} {item['title']}"[:60]
-                    calendar_url = build_calendar_url(event_title, item["url"], start, end)
-                    reminder_url = build_reminder_calendar_url(event_title, item["url"], end)
-                    # 2つのリンクを1行にまとめず分けることで、どちらか1本が
-                    # 長くなっても1行あたりの文字数を抑える(chunk_messageは
-                    # 行単位でしか分割できないため)。
-                    lines.append(f"  - 📅 [カレンダーに追加](<{calendar_url}>)")
-                    lines.append(f"  - ⏰ [終了{EVENT_REMINDER_DAYS}日前リマインダー追加](<{reminder_url}>)")
-            sections.append("\n".join(lines))
+            value = f"📰 {item['source']} ｜ 🕒 {item['published']}"
+            event_dates = extract_event_dates(item["title"], now)
+            if event_dates:
+                start, end = event_dates
+                # カレンダーURLのtextパラメータに記事タイトル全文を入れるとURLが極端に長くなるため短縮する
+                event_title = f"{keyword} {item['title']}"[:60]
+                calendar_url = build_calendar_url(event_title, item["url"], start, end)
+                reminder_url = build_reminder_calendar_url(event_title, item["url"], end)
+                value += (f"\n📅 [カレンダーに追加](<{calendar_url}>) ｜ "
+                          f"⏰ [終了{EVENT_REMINDER_DAYS}日前リマインダー追加](<{reminder_url}>)")
+            embeds.append({
+                "author": {"name": f"🌟 {keyword}"},
+                "title": item["title"][:256],
+                "url": item["url"],
+                "description": value[:4000],
+                "color": COLOR_OSHI,
+            })
 
     print(f"[INFO] dedup結果: 取得{stats['fetched']}件 / 送信済みで除外{stats['dup']}件 / "
           f"{MAX_ARTICLE_AGE_DAYS}日超で除外{stats['old']}件 / 新規{stats['new']}件")
-    if not has_any_new:
-        return None
-
-    now_jst = now.strftime("%Y-%m-%d %H:%M")
-    header = f"# 🌟 推し新着ニュース ({now_jst} JST時点)"
-    return "\n\n".join([header] + sections)
+    return embeds, stats
 
 
 def chunk_message(text, limit=1900):
@@ -419,20 +415,21 @@ def chunk_message(text, limit=1900):
     return chunks
 
 
-def send_to_discord(webhook_url, message):
+def send_embeds_to_discord(webhook_url, embeds, batch_size=10):
     if not webhook_url:
         print("[ERROR] Webhook URLが設定されていないため送信をスキップします。")
         return False
     ok = True
-    for chunk in chunk_message(message):
+    for i in range(0, len(embeds), batch_size):
         try:
-            resp = requests.post(webhook_url, json={"content": chunk}, timeout=REQUEST_TIMEOUT)
+            resp = requests.post(webhook_url, json={"embeds": embeds[i:i + batch_size]}, timeout=REQUEST_TIMEOUT)
             if resp.status_code >= 300:
                 print(f"[ERROR] Discord送信に失敗しました(HTTP {resp.status_code}): {resp.text[:300]}")
                 ok = False
         except Exception as err:  # noqa: BLE001
             print(f"[ERROR] Discord送信中に例外が発生しました: {err}")
             ok = False
+        time.sleep(0.5)
     return ok
 
 
@@ -446,15 +443,16 @@ def main():
     state = load_seen_state()
     state = prune_old_entries(state, now)
 
-    message = build_oshi_message(state, now)
+    embeds, _stats = build_oshi_embeds(state, now)
     had_error = False
-    if message:
-        print("=== 推しニュースメッセージ(新着あり) ===")
-        print(message)
-        if not send_to_discord(webhook, message):
+    if embeds:
+        print(f"=== 推しニュース(新着 {len(embeds)}件、Embed形式で送信) ===")
+        for e in embeds:
+            print(f"- [{e['author']['name']}] {e['title'][:50]}")
+        if not send_embeds_to_discord(webhook, embeds):
             had_error = True
     else:
-        print("[INFO] 新着の推しニュースはありませんでした。")
+        print("[INFO] 新着の推しニュースはありませんでした。送信処理は行いません。")
 
     if had_error:
         # 送信に失敗した場合はseen_urlsを保存しない。build_oshi_message内で
