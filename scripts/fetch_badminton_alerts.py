@@ -557,7 +557,6 @@ GEMINI_MODEL_NAME = "gemini-3.6-flash"
 ARTICLE_TEXT_LIMIT = 15000
 _ENRICH_CACHE = {}
 _TIE_SUPPLEMENT_CACHE = {}  # 対戦ID -> (rubbers, 出典URL) | None(補完ページ無し)
-_SHOWN_TIES = set()  # 同一実行内で対戦別スコアを既に載せた対戦(同じ対戦の関連記事で同じ表を繰り返さないため)
 _GEMINI_CLIENT = None
 # 2026-09-22追加: 団体戦の補完検索しきい値を緩めた際、1回の実行内で
 # 補完検索(Google検索グラウンディング1〜2回+候補URL最大6件の再取得+
@@ -580,6 +579,8 @@ DETAIL_PROMPT = """あなたはバドミントン記事の事実抽出器です�
 - side_a は日本(記事の主役)側、side_b は相手側。ダブルスは「A/B」表記。
 - games は各ゲームの得点を "21-10" の形式で(日本側の得点を先に)。
 - summary は試合のポイント・次戦の相手・注目点を2〜3行(各60字以内)。本文の内容のみ。rubbers の内容の繰り返し(誰が2-0で勝った等)は書かない。
+  記事が選手コメント・インタビュー中心の場合は、一般論ではなく「選手名「発言の要約」」の形で
+  誰の発言かが分かるように書く(例:「奥原「最後のアジア大会、出だしから集中できた」」)。
 キー: is_match_report(bool), headline(例「男子団体 準々決勝：日本 3 - 0 カザフスタン」。本文から組める場合のみ),
  team_a, team_b, tie_score("3-0"等), rubbers[{label, side_a, side_b, game_count("2-0"), games[]}],
  next_opponent, summary[]
@@ -731,22 +732,58 @@ def _rubber_key(r):
     return r["label"] or _norm_text(f"{r['side_a']}|{r['side_b']}")
 
 
+def _rubber_completeness(r):
+    """対戦データの情報量(ゲームごとの得点が何件わかっているか)。
+    同じ対戦の複数バージョンからより詳しい方を選ぶための比較に使う。"""
+    return len(r.get("games") or [])
+
+
 def _merge_rubbers(base, extra):
-    """既に検証済みのbaseを失わず、baseに無いラベル/対戦カードだけを
-    extraから追加する(2026-09-22追加。修正前は補完ページの対戦数が
-    base以下だと丸ごと不採用にしており、"部分的に他の試合だけ載っている
-    補完ページ"を活かせず団体戦が歯抜けのままになるバグがあった)。"""
-    merged = list(base)
-    existing = {_rubber_key(r) for r in merged}
-    for r in extra:
+    """baseと extra を対戦(label、無ければ選手名の組)単位で統合し、同じ
+    対戦が両方にあれば情報量(_rubber_completeness)がより多い版を採用する
+    (2026-09-22追加。当初は「baseに無いものだけ追加」だったため、同じ対戦の
+    "スコア無し"版が先に来ると、後から来た"ゲーム得点まで揃った"版があっても
+    差し替わらず、団体戦の一部試合だけ得点内訳が欠けたままになるバグが
+    あった。1記事だけでなく、同じ対戦を扱う複数記事(選手コメント記事等)を
+    束ねる用途にも使う)。"""
+    merged = {}
+    order = []
+    for r in list(base) + list(extra):
         k = _rubber_key(r)
-        if k not in existing:
-            merged.append(r)
-            existing.add(k)
-    return merged
+        if k not in merged:
+            merged[k] = r
+            order.append(k)
+        elif _rubber_completeness(r) > _rubber_completeness(merged[k]):
+            merged[k] = r
+    return [merged[k] for k in order]
+
+
+def _rubbers_score(rubbers):
+    """rubbers全体の情報量を(得点判明ゲーム数の合計, 対戦数)で比較する。
+    件数だけでなく「既存の対戦の得点内訳が増えた」ケースも改善とみなすため
+    (2026-09-22追加、旧実装は件数増加でしか改善を検知できなかった)。"""
+    return (sum(_rubber_completeness(r) for r in rubbers), len(rubbers))
 
 
 TEAM_TIE_MAX_RUBBERS = 5  # トマス杯/ユーバー杯/スジルマン杯・アジア大会団体戦の最大対戦数
+
+# 団体戦の正式な試合順(細川さんの指定: 第1単→第1複→第2単→第2複→第3単…)。
+# Geminiの抽出順は記事内での登場順のままバラバラなため、表示直前に必ず
+# この順に並べ替える(2026-09-22追加)。
+RUBBER_LABEL_RE = re.compile(r"第(\d+)(単|複)")
+
+
+def _rubber_sort_key(indexed_rubber):
+    idx, r = indexed_rubber
+    m = RUBBER_LABEL_RE.match(r.get("label") or "")
+    if m:
+        return (0, int(m.group(1)), 0 if m.group(2) == "単" else 1, idx)
+    return (1, 0, 0, idx)  # 「第◯単/複」形式に一致しないラベルは末尾へ(元の順序は保つ)
+
+
+def sort_rubbers(rubbers):
+    """団体戦の対戦順を第1単→第1複→第2単→第2複→第3単…の正式順に並べ替える。"""
+    return [r for _, r in sorted(enumerate(rubbers), key=_rubber_sort_key)]
 
 
 def enrich_article(a):
@@ -808,7 +845,7 @@ def enrich_article(a):
                         if not any(_names_in_text(r["side_a"], orig_n) or _names_in_text(r["side_b"], orig_n) for r in d2["rubbers"]):
                             continue
                         merged = _merge_rubbers(det["rubbers"], d2["rubbers"])
-                        if len(merged) > len(det["rubbers"]):
+                        if _rubbers_score(merged) > _rubbers_score(det["rubbers"]):
                             det["rubbers"], det["score_source"] = merged, u
                             _TIE_SUPPLEMENT_CACHE[tie_id] = (merged, u)
                 res["details"] = det
@@ -818,55 +855,129 @@ def enrich_article(a):
     return res
 
 
+def _format_tie_body(headline, rubbers, summaries, wr_rankings):
+    """headline・rubbers(正式順に並べ替え+WR付与済み)・注目コメントを
+    本文の行リストに整形する(render_article_descriptionと_build_tie_embedが
+    共有、2026-09-22追加)。"""
+    lines = []
+    if headline:
+        lines.append(f"**{headline}**")
+    sorted_rubbers = sort_rubbers(rubbers)
+    for r in sorted_rubbers:
+        gc = f" {r['game_count'].replace('-', ' - ')}" if r["game_count"] else ""
+        games = f"（{', '.join(r['games'])}）" if r["games"] else ""
+        side_a = annotate_side_with_wr(r["side_a"], wr_rankings)
+        side_b = annotate_side_with_wr(r["side_b"], wr_rankings)
+        lines.append(f"・{r['label'] + '：' if r['label'] else ''}{side_a}{gc} {side_b}{games}")
+    if summaries:
+        if sorted_rubbers:
+            lines.append("━" * 24)
+        lines.append("📝 **主要コメント・要点**")
+        lines.extend(f"・{s}" for s in summaries[:6])
+    return lines
+
+
 def render_article_description(a, wr_rankings=None):
-    """通知本文(description)を組み立てる。詳細が取れない記事は本文冒頭の抜粋+リンク。"""
+    """通知本文(description)を組み立てる(個人戦・単独記事向け。団体戦で
+    複数記事にまたがる場合はbuild_article_embeds内の_build_tie_embedが
+    まとめて処理する、2026-09-22変更)。詳細が取れない記事は本文冒頭の抜粋+リンク。"""
     wr = wr_rankings or {}
     e = enrich_article(a)
     url = e.get("real_url") or a["url"]
     det = e.get("details")
     lines = []
     if det and (det["headline"] or det["rubbers"]):
-        if det["headline"]:
-            lines.append(f"**{det['headline']}**")
-        tie_key = _norm_text(det["headline"] or "")
-        repeat = bool(tie_key) and tie_key in _SHOWN_TIES
-        if repeat:
-            lines.append("（この対戦の各試合スコアは、同時に届いた前の通知に掲載済み）")
-        elif tie_key and det["rubbers"]:
-            _SHOWN_TIES.add(tie_key)
-        for r in ([] if repeat else det["rubbers"]):
-            gc = f" {r['game_count'].replace('-', ' - ')}" if r["game_count"] else ""
-            games = f"（{', '.join(r['games'])}）" if r["games"] else ""
-            side_a = annotate_side_with_wr(r["side_a"], wr)
-            side_b = annotate_side_with_wr(r["side_b"], wr)
-            lines.append(f"・{r['label'] + '：' if r['label'] else ''}{side_a}{gc} {side_b}{games}")
-        if det.get("score_source") and not repeat:
-            lines.append(f"　└ 対戦別スコアの出典: {det['score_source']}")
-    if det and det["summary"]:
-        lines += [f"※{x}" for x in det["summary"]]
-    if det and det["next_opponent"] and not any(det["next_opponent"] in x for x in det["summary"]):
-        lines.append(f"※次戦の相手: {det['next_opponent']}")
-    if det and det["is_match_report"] and not det["rubbers"] and not det["headline"]:
-        lines.append("（対戦別のスコア詳細は記事本文に記載がありませんでした）")
+        lines.extend(_format_tie_body(det["headline"], det["rubbers"], det["summary"], wr))
+        if det["next_opponent"] and not any(det["next_opponent"] in x for x in det["summary"]):
+            lines.append(f"※次戦の相手: {det['next_opponent']}")
+        if det["is_match_report"] and not det["rubbers"] and not det["headline"]:
+            lines.append("（対戦別のスコア詳細は記事本文に記載がありませんでした）")
     if not lines and e.get("excerpt"):
         lines.append(f"本文冒頭: {e['excerpt']}…")
     lines.append(f"[記事全文を読む](<{url}>)")
     return "\n".join(lines)[:4000]
 
 
+def _tie_group_key(det):
+    """記事の抽出結果detから、同一対戦カードを束ねるためのキーを作る。
+    見つからなければNone(=単独記事として個別にEmbed化する)。"""
+    if not det:
+        return None
+    if det.get("headline"):
+        return _norm_text(det["headline"])
+    if det.get("tie_score") and det.get("team_a") and det.get("team_b"):
+        return _norm_text(f"{det['team_a']}|{det['team_b']}|{det['tie_score']}")
+    return None
+
+
+def _build_tie_embed(items, wr_rankings, color):
+    """同一対戦カード(tie_key)の記事1件以上から、rubbers・注目コメントを
+    合成して1つのEmbedにまとめる(2026-09-22追加)。同じ対戦の「選手コメント」
+    記事が複数配信されても、通知は対戦カードにつき1通にする。"""
+    merged_rubbers = []
+    headline = None
+    next_opponent = None
+    summaries = []
+    seen_summary = set()
+    primary_url = None
+    fallback_title = items[0][0]["title"]
+    for a, e in items:
+        det = e.get("details") or {}
+        headline = headline or det.get("headline")
+        merged_rubbers = _merge_rubbers(merged_rubbers, det.get("rubbers") or [])
+        next_opponent = next_opponent or det.get("next_opponent")
+        for s in det.get("summary") or []:
+            if s not in seen_summary:
+                seen_summary.add(s)
+                summaries.append(s)
+        if primary_url is None:
+            primary_url = e.get("real_url") or a["url"]
+
+    lines = _format_tie_body(headline, merged_rubbers, summaries, wr_rankings)
+    if not merged_rubbers and not headline:
+        lines.append("（対戦別のスコア詳細は記事本文に記載がありませんでした）")
+    if next_opponent and not any(next_opponent in s for s in summaries):
+        lines.append(f"※次戦の相手: {next_opponent}")
+    lines.append(f"[記事全文を読む](<{primary_url}>)")
+    return {
+        "title": f"🏸 {headline or fallback_title}"[:256],
+        "description": "\n".join(lines)[:4000],
+        "color": color,
+    }
+
+
+def build_article_embeds(articles, wr_rankings, color):
+    """記事群からEmbedを組み立てる(badspi/Google News共通)。同一対戦カード
+    (tie_key)を検知した記事が複数あれば1通に統合し(2026-09-22追加。修正前は
+    「選手コメント-1」「-2」…と同じ対戦の関連記事が来るたびに、ほぼ空の
+    「(この対戦のスコアは前の通知に掲載済み)」Embedを連投していた)、
+    tie判定できない記事(個人戦の速報等)は従来どおり1記事1Embedのまま出す。"""
+    wr = wr_rankings or {}
+    enriched = [(a, enrich_article(a)) for a in articles]
+
+    embeds = []
+    emitted_ties = set()
+    for a, e in enriched:
+        tie_key = _tie_group_key(e.get("details"))
+        if tie_key is None:
+            embeds.append({
+                "title": f"🏸 {a['title']}"[:256],
+                "description": render_article_description(a, wr),
+                "color": color,
+            })
+        elif tie_key not in emitted_ties:
+            emitted_ties.add(tie_key)
+            group_items = [(a2, e2) for a2, e2 in enriched if _tie_group_key(e2.get("details")) == tie_key]
+            embeds.append(_build_tie_embed(group_items, wr, color))
+    return embeds
+
 
 def build_badspi_embeds(articles, wr_rankings=None):
     """記事単位でタイトル+リンクをそのままEmbed化する(選手名マッチングは
     行わず、バド×スピが日本代表・国内大会関連の記事を書いた時点でそのまま
-    通知する新着速報)。"""
-    embeds = []
-    for a in articles:
-        embeds.append({
-            "title": f"🏸 {a['title']}"[:256],
-            "description": render_article_description(a, wr_rankings),
-            "color": COLOR_BADSPI,
-        })
-    return embeds
+    通知する新着速報)。同一対戦カードの複数記事は1通にまとめる
+    (build_article_embeds参照)。"""
+    return build_article_embeds(articles, wr_rankings, COLOR_BADSPI)
 
 
 # ============================================================
@@ -935,15 +1046,9 @@ def fetch_google_news_badminton(limit=GOOGLE_NEWS_BADMINTON_ITEM_LIMIT, retries=
 
 def build_google_news_badminton_embeds(articles, wr_rankings=None):
     """記事単位でタイトル+リンクをそのままEmbed化する(badspi.jpと同じ
-    シンプルな新着通知形式)。"""
-    embeds = []
-    for a in articles:
-        embeds.append({
-            "title": f"🏸 {a['title']}"[:256],
-            "description": render_article_description(a, wr_rankings),
-            "color": COLOR_GNEWS_BADMINTON,
-        })
-    return embeds
+    シンプルな新着通知形式)。同一対戦カードの複数記事は1通にまとめる
+    (build_article_embeds参照)。"""
+    return build_article_embeds(articles, wr_rankings, COLOR_GNEWS_BADMINTON)
 
 
 # ============================================================
@@ -971,7 +1076,7 @@ WR_RANKINGS_CACHE_HOURS = 24  # ランキングは頻繁に変わらないため
 
 def _normalize_player_key(name):
     name = re.sub(r"[（(].*?[）)]", "", name)  # 読み仮名括弧(例:「（シー・ユーチ）」)を除去
-    name = re.sub(r"\s+", "", name)  # 半角/全角スペースを除去
+    name = re.sub(r"[\s.．・]+", "", name)  # 空白・ピリオド・中黒を除去(イニシャル表記ゆれの吸収)
     return name.strip().upper()
 
 
@@ -1045,9 +1150,28 @@ def fetch_wr_rankings():
     return rankings, japan_rankings
 
 
+def _find_wr_rank(name, wr_rankings):
+    """選手名から世界ランキングを検索する。まず完全一致(正規化キー)、
+    見つからなければ部分一致(いずれかの登録名がもう一方に含まれる、
+    3文字以上)を試す(2026-09-22追加)。海外選手はニュース記事側の
+    カタカナ表記(例:「V.S.プサルラ」)とbadminton-navi側の表記(フル
+    ネームや姓のみ等)が完全には一致しないことが多く、完全一致だけでは
+    対戦相手側のWRがほぼ拾えていなかったための緩和措置。3文字未満の
+    部分一致は姓の一部同士が偶然一致するだけの誤爆が出やすいため対象外。"""
+    key = _normalize_player_key(name)
+    if not key:
+        return None
+    if key in wr_rankings:
+        return wr_rankings[key]
+    for k, rank in wr_rankings.items():
+        if len(k) >= 3 and (k in key or key in k):
+            return rank
+    return None
+
+
 def annotate_player_with_wr(name, wr_rankings):
     """選手名に世界ランキング [WR◯] を付与する(見つからなければそのまま)。"""
-    rank = wr_rankings.get(_normalize_player_key(name))
+    rank = _find_wr_rank(name, wr_rankings)
     return f"{name}[WR{rank}]" if rank else name
 
 
@@ -1062,7 +1186,7 @@ def annotate_side_with_wr(side, wr_rankings):
         n = n.strip()
         if not n:
             continue
-        rank = wr_rankings.get(_normalize_player_key(n))
+        rank = _find_wr_rank(n, wr_rankings)
         if rank:
             return f"{side} [WR{rank}]"
     return side
