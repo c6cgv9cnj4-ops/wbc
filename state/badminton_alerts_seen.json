@@ -65,7 +65,9 @@
     "https://www.badspi.jp/202609221812/?utm_source=rss&utm_medium=rss&utm_campaign=202609221812": "2026-09-22T19:33:17.424775+09:00",
     "https://www.badspi.jp/202609221440/?utm_source=rss&utm_medium=rss&utm_campaign=202609221440": "2026-09-22T19:33:17.424775+09:00",
     "https://www.badspi.jp/202609221413/?utm_source=rss&utm_medium=rss&utm_campaign=202609221413": "2026-09-22T19:33:17.424775+09:00",
-    "https://www.badspi.jp/202609221934/?utm_source=rss&utm_medium=rss&utm_campaign=202609221934": "2026-09-22T22:41:32.931382+09:00"
+    "https://www.badspi.jp/202609221934/?utm_source=rss&utm_medium=rss&utm_campaign=202609221934": "2026-09-22T22:41:32.931382+09:00",
+    "https://www.badspi.jp/202609222118/?utm_source=rss&utm_medium=rss&utm_campaign=202609222118": "2026-09-23T02:45:57.739143+09:00",
+    "https://www.badspi.jp/202609222013/?utm_source=rss&utm_medium=rss&utm_campaign=202609222013": "2026-09-23T02:45:57.739143+09:00"
   },
   "seen_national_summaries": {
     "https://www.sposoku.com/wakabacup-badminton/::優勝：岡垣ジュニア(福岡県)準優勝：Selfish(神奈川県)第三位：shinshin(石川県)、F.Flash(埼玉県)": "2026-09-06T00:41:49.469551+09:00",
@@ -174,7 +176,9 @@
     "https://news.google.com/rss/articles/CBMiiAFBVV95cUxQR2l3dk9MTHY0SWxMbnFpeHZUSFYycXIwUFJXXzh2ci1SUXBSOEszOG5EUnk3b3BlMlZjaE9ON2VqNjhUSEo3UHB4NWF1QXZDTGx3eXVUcjVVemNBQlNxbXVXZ3lsWHhGSk84QTd6RzBqQnA3YXFtS0lBemRNUmRQc0RZSmVpTWZL?oc=5": "2026-09-22T17:44:23.466552+09:00",
     "https://news.google.com/rss/articles/CBMiVEFVX3lxTE1qakFJRVVRdzIwTnhYR2VXWElKYWZzV3BVazkydFlPQ2JrbWhhS0JxTk5TT0lFZll1NGdueEVUY2RwNEtsYWU3VC1sdHNlNHEzaGNVcQ?oc=5": "2026-09-22T19:33:17.424775+09:00",
     "https://news.google.com/rss/articles/CBMie0FVX3lxTFBMMGJpUVVrVzVobkFGd0EzTHFxbWZ1NzJidFY0SlBJSnBwcjliNnlOb3RraUlhQVVwM2NuSi05Ni1kYWs3NjlyWWZXRGg1RzV3V3FwNy1XbGk3ZXVOUlB1RFlmaDJGVTRQMmJBaFN4M1FBbXdYZGV3YzNCQQ?oc=5": "2026-09-22T19:40:27.315866+09:00",
-    "https://news.google.com/rss/articles/CBMieEFVX3lxTFBRSmhKZ29jTmEyeGV1a0wyY1d1MHRVTkNMaWxDbkx5cmhidnQxTGlsU0Y3Yzc4RGNpUU1KMXBFTklhUEJSZjJNeEFKem5KU0NQZG4xYUpVdl9ObnFnYVFOMkhJZ2drWkVtQ0pvSzVhQXpxbWtKVE1veQ?oc=5": "2026-09-22T22:41:32.931382+09:00"
+    "https://news.google.com/rss/articles/CBMieEFVX3lxTFBRSmhKZ29jTmEyeGV1a0wyY1d1MHRVTkNMaWxDbkx5cmhidnQxTGlsU0Y3Yzc4RGNpUU1KMXBFTklhUEJSZjJNeEFKem5KU0NQZG4xYUpVdl9ObnFnYVFOMkhJZ2drWkVtQ0pvSzVhQXpxbWtKVE1veQ?oc=5": "2026-09-22T22:41:32.931382+09:00",
+    "https://news.google.com/rss/articles/CBMiXkFVX3lxTE5nRklCR3RNS2VBVkJZZ0N4cWt4azZRRFVZSlEyTjBaUGg3Z2FGbktKcmxCZ0tfcGRhQVcwYkxqZ21kOFVXTURkcWlKSWUySlM0V19uRWt2ck1tWmtNZlE?oc=5": "2026-09-23T02:45:57.739143+09:00",
+    "https://news.google.com/rss/articles/CBMif0FVX3lxTE1BRGNvUWJacE9veWdUTDMwQ25xUjhZdlFZNkEwMi1MMjdtdVBZU28yMDRnY2o2ZWpiM2hIU3BiaTBjQmR2RXVJUkVRaGlUNUs1c1JGVHlGaTNqQVBWa01vSXZqMmRBeWdHLTNBT0pTdmlzb1BSY3FzUUptYkZQTmc?oc=5": "2026-09-23T02:45:57.739143+09:00"
   },
   "seen_nba_result_ids": {
     "982": "2026-09-06T18:30:52.185356+09:00",
@@ -211,8 +215,26 @@
   "digest_pool": {
     "matches": [],
     "summaries": [],
-    "badspi": [],
-    "gnews": [],
+    "badspi": [
+      {
+        "title": "【愛知・名古屋アジア大会】「個人戦で負けたことのない相手だったから、個人戦と同じように試合に入ってしまった。出し切れなかったし、もっとやれたという思いもあり、悔しい」（渡邉航貴）＜団体戦準々決勝・選手コメント7＞",
+        "url": "https://www.badspi.jp/202609222118/?utm_source=rss&utm_medium=rss&utm_campaign=202609222118"
+      },
+      {
+        "title": "【愛知・名古屋アジア大会】「最後に何か変えていれば勝てたかなというゲーム。悔しい」（保木卓朗）「勝ちたい気持ちが強い団体戦ならではの判断ミスが多かった」（小林優吾）＜団体戦準々決勝・選手コメント6＞",
+        "url": "https://www.badspi.jp/202609222013/?utm_source=rss&utm_medium=rss&utm_campaign=202609222013"
+      }
+    ],
+    "gnews": [
+      {
+        "title": "【バドミントン】日本はインドを下し4強入り 山口茜が東京五輪メダリスト撃破 準決勝は韓国と対戦〈アジア競技大会〉",
+        "url": "https://news.google.com/rss/articles/CBMiXkFVX3lxTE5nRklCR3RNS2VBVkJZZ0N4cWt4azZRRFVZSlEyTjBaUGg3Z2FGbktKcmxCZ0tfcGRhQVcwYkxqZ21kOFVXTURkcWlKSWUySlM0V19uRWt2ck1tWmtNZlE?oc=5"
+      },
+      {
+        "title": "【バドミントン】日本が４大会連続メダル確定 奥原希望は韓国戦に「みんなで総力で戦えたら」（東スポWEB）",
+        "url": "https://news.google.com/rss/articles/CBMif0FVX3lxTE1BRGNvUWJacE9veWdUTDMwQ25xUjhZdlFZNkEwMi1MMjdtdVBZU28yMDRnY2o2ZWpiM2hIU3BiaTBjQmR2RXVJUkVRaGlUNUs1c1JGVHlGaTNqQVBWa01vSXZqMmRBeWdHLTNBT0pTdmlzb1BSY3FzUUptYkZQTmc?oc=5"
+      }
+    ],
     "nba": []
   },
   "wr_rankings": {
