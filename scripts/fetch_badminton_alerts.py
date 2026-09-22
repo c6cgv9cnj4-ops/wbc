@@ -559,6 +559,16 @@ _ENRICH_CACHE = {}
 _TIE_SUPPLEMENT_CACHE = {}  # 対戦ID -> (rubbers, 出典URL) | None(補完ページ無し)
 _SHOWN_TIES = set()  # 同一実行内で対戦別スコアを既に載せた対戦(同じ対戦の関連記事で同じ表を繰り返さないため)
 _GEMINI_CLIENT = None
+# 2026-09-22追加: 団体戦の補完検索しきい値を緩めた際、1回の実行内で
+# 補完検索(Google検索グラウンディング1〜2回+候補URL最大6件の再取得+
+# 再Gemini抽出)が対戦の数だけ無制限に走ると1回の実行が非常に長くなる
+# (ワークフローのtimeout-minutes: 25に迫った実行を実機で確認したため
+# 導入)。1回の実行あたりの補完検索"試行"回数(対戦単位、キャッシュ済みの
+# 再利用は含まない)に上限を設け、それを超えたら残りは次回実行に回す
+# (歯抜けが1回の実行で全部埋まらなくても、次回以降の巡回で解消される
+# ため実害は小さい)。
+SUPPLEMENT_SEARCH_BUDGET_PER_RUN = 8
+_supplement_search_used = 0
 
 DETAIL_PROMPT = """あなたはバドミントン記事の事実抽出器です。以下は実際に取得した記事本文です。
 試合結果の情報だけをJSONオブジェクトで返してください。
@@ -760,14 +770,19 @@ def enrich_article(a):
                 # 記事側が2〜3試合しか書いていない団体戦で第2マッチ等が歯抜けの
                 # まま確定してしまい、それ以上の補完検索が一切走らないバグだった)。
                 if det["tie_score"] and det["team_a"] and det["team_b"] and len(det["rubbers"]) < TEAM_TIE_MAX_RUBBERS:
+                    global _supplement_search_used
                     orig_n = _norm_text(text)
                     tie_id = _norm_text(f"{det['team_a']}|{det['team_b']}|{det['tie_score']}")
-                    if tie_id in _TIE_SUPPLEMENT_CACHE:  # 同じ対戦の関連記事では再検索しない
+                    if tie_id in _TIE_SUPPLEMENT_CACHE:  # 同じ対戦の関連記事では再検索しない(キャッシュ再利用は予算を消費しない)
                         cached = _TIE_SUPPLEMENT_CACHE[tie_id]
                         if cached:
                             det["rubbers"], det["score_source"] = cached
                         candidates = []
+                    elif _supplement_search_used >= SUPPLEMENT_SEARCH_BUDGET_PER_RUN:
+                        print(f"[INFO] 補完検索の予算({SUPPLEMENT_SEARCH_BUDGET_PER_RUN}件/回)を使い切ったため今回はスキップします(次回実行で再試行): {det['team_a']} vs {det['team_b']}")
+                        candidates = []
                     else:
+                        _supplement_search_used += 1
                         candidates = _search_score_pages(det["team_a"], det["team_b"], det["headline"] or a["title"], real)
                         _TIE_SUPPLEMENT_CACHE[tie_id] = None
                     for u in candidates:
