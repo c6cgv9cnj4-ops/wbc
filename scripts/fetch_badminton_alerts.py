@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-バドミントン速報配信(#webhook_sports_culture 向け)
+バドミントン速報配信(#推し 向け。2026-09-22、細川さんの指定により
+#webhook_sports_culture から配信先を統合。「推し選手」中心の速報である
+実態に合わせ、fetch_oshi_news.pyと同じ#推しチャンネル(DISCORD_WEBHOOK_OSHI)
+へ送る。既送信記録(state/badminton_alerts_seen.json)はfetch_oshi_news.py側の
+state/oshi_news_seen.jsonとキー空間が完全に分かれた別ファイルのため、
+チャンネル統合後も両者は独立して重複排除できる。)
 
 情報源は2系統(2026-09-06、バド×スピを追加して二本立てに変更):
 
@@ -89,7 +94,7 @@
   ダイジェストを配信する。
 
 環境変数:
-  DISCORD_WEBHOOK_SPORTS_CULTURE (必須)
+  DISCORD_WEBHOOK_OSHI (必須。2026-09-22、#推しチャンネルへ統合)
 """
 import datetime
 import json
@@ -712,6 +717,28 @@ def _search_score_pages(team_a, team_b, headline_or_title, exclude_url):
     return urls[:6]
 
 
+def _rubber_key(r):
+    return r["label"] or _norm_text(f"{r['side_a']}|{r['side_b']}")
+
+
+def _merge_rubbers(base, extra):
+    """既に検証済みのbaseを失わず、baseに無いラベル/対戦カードだけを
+    extraから追加する(2026-09-22追加。修正前は補完ページの対戦数が
+    base以下だと丸ごと不採用にしており、"部分的に他の試合だけ載っている
+    補完ページ"を活かせず団体戦が歯抜けのままになるバグがあった)。"""
+    merged = list(base)
+    existing = {_rubber_key(r) for r in merged}
+    for r in extra:
+        k = _rubber_key(r)
+        if k not in existing:
+            merged.append(r)
+            existing.add(k)
+    return merged
+
+
+TEAM_TIE_MAX_RUBBERS = 5  # トマス杯/ユーバー杯/スジルマン杯・アジア大会団体戦の最大対戦数
+
+
 def enrich_article(a):
     """記事 {title,url} に試合詳細(details)を付与して返す。失敗時は details=None(従来のリンクのみ表示に退避)。"""
     key = a["url"]
@@ -727,8 +754,12 @@ def enrich_article(a):
             raw = _extract_details(a["title"], text)
             if raw:
                 det = verify_details(raw, text)
-                # 団体戦で本文に対戦別スコアが無い → 検索で補完ページを探し、同じ照合を通ったものだけ採用
-                if det["tie_score"] and det["team_a"] and det["team_b"] and len(det["rubbers"]) < 2:
+                # 団体戦で本文の対戦別スコアが揃っていない → 検索で補完ページを探し、
+                # 同じ照合を通った対戦だけをbaseに追加する(2026-09-22、しきい値を
+                # 「2件未満」から「団体戦最大想定件数(5)未満」に緩和。旧しきい値だと
+                # 記事側が2〜3試合しか書いていない団体戦で第2マッチ等が歯抜けの
+                # まま確定してしまい、それ以上の補完検索が一切走らないバグだった)。
+                if det["tie_score"] and det["team_a"] and det["team_b"] and len(det["rubbers"]) < TEAM_TIE_MAX_RUBBERS:
                     orig_n = _norm_text(text)
                     tie_id = _norm_text(f"{det['team_a']}|{det['team_b']}|{det['tie_score']}")
                     if tie_id in _TIE_SUPPLEMENT_CACHE:  # 同じ対戦の関連記事では再検索しない
@@ -740,6 +771,8 @@ def enrich_article(a):
                         candidates = _search_score_pages(det["team_a"], det["team_b"], det["headline"] or a["title"], real)
                         _TIE_SUPPLEMENT_CACHE[tie_id] = None
                     for u in candidates:
+                        if len(det["rubbers"]) >= TEAM_TIE_MAX_RUBBERS:
+                            break  # 既に想定最大件数まで揃ったので以降の候補は見なくてよい
                         r2, t2 = fetch_article_text(u)
                         if not r2:
                             continue
@@ -754,14 +787,15 @@ def enrich_article(a):
                             continue
                         raw2 = _extract_details(a["title"], t2)
                         d2 = verify_details(raw2, t2) if raw2 else None
-                        if not d2 or len(d2["rubbers"]) <= len(det["rubbers"]) or d2["tie_score"] not in (None, det["tie_score"]):
+                        if not d2 or not d2["rubbers"] or d2["tie_score"] not in (None, det["tie_score"]):
                             continue
                         # ④ 補完ページの出場選手が、元記事に登場する選手と一致すること
-                        if not any(_names_in_text(r["side_a"], orig_n) for r in d2["rubbers"]):
+                        if not any(_names_in_text(r["side_a"], orig_n) or _names_in_text(r["side_b"], orig_n) for r in d2["rubbers"]):
                             continue
-                        det["rubbers"], det["score_source"] = d2["rubbers"], r2
-                        _TIE_SUPPLEMENT_CACHE[tie_id] = (d2["rubbers"], r2)
-                        break
+                        merged = _merge_rubbers(det["rubbers"], d2["rubbers"])
+                        if len(merged) > len(det["rubbers"]):
+                            det["rubbers"], det["score_source"] = merged, u
+                            _TIE_SUPPLEMENT_CACHE[tie_id] = (merged, u)
                 res["details"] = det
     except Exception as err:  # noqa: BLE001
         print(f"[WARN] 試合詳細の抽出に失敗(リンクのみで通知します): {a['title'][:30]}: {err}")
@@ -769,8 +803,9 @@ def enrich_article(a):
     return res
 
 
-def render_article_description(a):
+def render_article_description(a, wr_rankings=None):
     """通知本文(description)を組み立てる。詳細が取れない記事は本文冒頭の抜粋+リンク。"""
+    wr = wr_rankings or {}
     e = enrich_article(a)
     url = e.get("real_url") or a["url"]
     det = e.get("details")
@@ -787,7 +822,9 @@ def render_article_description(a):
         for r in ([] if repeat else det["rubbers"]):
             gc = f" {r['game_count'].replace('-', ' - ')}" if r["game_count"] else ""
             games = f"（{', '.join(r['games'])}）" if r["games"] else ""
-            lines.append(f"・{r['label'] + '：' if r['label'] else ''}{r['side_a']}{gc} {r['side_b']}{games}")
+            side_a = annotate_side_with_wr(r["side_a"], wr)
+            side_b = annotate_side_with_wr(r["side_b"], wr)
+            lines.append(f"・{r['label'] + '：' if r['label'] else ''}{side_a}{gc} {side_b}{games}")
         if det.get("score_source") and not repeat:
             lines.append(f"　└ 対戦別スコアの出典: {det['score_source']}")
     if det and det["summary"]:
@@ -803,7 +840,7 @@ def render_article_description(a):
 
 
 
-def build_badspi_embeds(articles):
+def build_badspi_embeds(articles, wr_rankings=None):
     """記事単位でタイトル+リンクをそのままEmbed化する(選手名マッチングは
     行わず、バド×スピが日本代表・国内大会関連の記事を書いた時点でそのまま
     通知する新着速報)。"""
@@ -811,7 +848,7 @@ def build_badspi_embeds(articles):
     for a in articles:
         embeds.append({
             "title": f"🏸 {a['title']}"[:256],
-            "description": render_article_description(a),
+            "description": render_article_description(a, wr_rankings),
             "color": COLOR_BADSPI,
         })
     return embeds
@@ -881,14 +918,14 @@ def fetch_google_news_badminton(limit=GOOGLE_NEWS_BADMINTON_ITEM_LIMIT, retries=
     return items
 
 
-def build_google_news_badminton_embeds(articles):
+def build_google_news_badminton_embeds(articles, wr_rankings=None):
     """記事単位でタイトル+リンクをそのままEmbed化する(badspi.jpと同じ
     シンプルな新着通知形式)。"""
     embeds = []
     for a in articles:
         embeds.append({
             "title": f"🏸 {a['title']}"[:256],
-            "description": render_article_description(a),
+            "description": render_article_description(a, wr_rankings),
             "color": COLOR_GNEWS_BADMINTON,
         })
     return embeds
@@ -997,6 +1034,23 @@ def annotate_player_with_wr(name, wr_rankings):
     """選手名に世界ランキング [WR◯] を付与する(見つからなければそのまま)。"""
     rank = wr_rankings.get(_normalize_player_key(name))
     return f"{name}[WR{rank}]" if rank else name
+
+
+def annotate_side_with_wr(side, wr_rankings):
+    """対戦カードの片側(例:"松山/志田"、単複問わず)に世界ランキングを
+    付与する(2026-09-22追加、Gemini抽出パイプライン向け)。BWFのダブルス
+    ランキングはペア単位(badminton-naviの掲載も同一ペアの各選手が同じ
+    順位で並ぶ実データを確認済み)のため、ペアの片方でも順位が判明すれば
+    側全体に[WR◯]を1つだけ付与する。誰も見つからなければ元の表記のまま
+    (存在しない順位を捏造しない)。"""
+    for n in re.split(r"[／/・,、&＆]", side or ""):
+        n = n.strip()
+        if not n:
+            continue
+        rank = wr_rankings.get(_normalize_player_key(n))
+        if rank:
+            return f"{side} [WR{rank}]"
+    return side
 
 
 # ============================================================
@@ -1623,7 +1677,7 @@ def build_finals_digest_embed(result, wr_rankings):
 
 def send_embeds_to_discord(webhook_url, embeds, batch_size=10):
     if not webhook_url:
-        print("[ERROR] DISCORD_WEBHOOK_SPORTS_CULTURE が設定されていないため送信をスキップします。")
+        print("[ERROR] DISCORD_WEBHOOK_OSHI が設定されていないため送信をスキップします。")
         return False
     ok = True
     for i in range(0, len(embeds), batch_size):
@@ -1662,15 +1716,15 @@ def get_time_band(now):
     return "morning"
 
 
-def build_digest_embeds(pool, now):
+def build_digest_embeds(pool, now, wr_rankings=None):
     """深夜帯(23:00〜05:59)にプールされた新着を、朝にまとめて1回で配信する
     ためのEmbed群を組み立てる。先頭に見出しEmbedを付け、以降は通常の各
     ビルダーを流用する(配信フォーマットの一貫性を保つため)。"""
     body_embeds = (
         build_badminton_embeds(pool.get("matches", []), now)
         + build_national_summary_embeds(pool.get("summaries", []), now)
-        + build_badspi_embeds(pool.get("badspi", []))
-        + build_google_news_badminton_embeds(pool.get("gnews", []))
+        + build_badspi_embeds(pool.get("badspi", []), wr_rankings)
+        + build_google_news_badminton_embeds(pool.get("gnews", []), wr_rankings)
         + build_nba_result_embeds(pool.get("nba", []))
     )
     if not body_embeds:
@@ -1715,9 +1769,9 @@ def _run_test_favorite_report_pseudo(webhook):
 
 
 def main():
-    webhook = os.environ.get("DISCORD_WEBHOOK_SPORTS_CULTURE")
+    webhook = os.environ.get("DISCORD_WEBHOOK_OSHI")
     if not webhook:
-        print("[ERROR] 環境変数 DISCORD_WEBHOOK_SPORTS_CULTURE が設定されていません。")
+        print("[ERROR] 環境変数 DISCORD_WEBHOOK_OSHI が設定されていません。")
         sys.exit(1)
 
     if os.environ.get("TEST_FAVORITE_REPORT_PSEUDO") == "1":
@@ -1914,7 +1968,7 @@ def main():
         # 「昨夜のダイジェスト」として先にまとめて送り、プールを空にする。
         pooled_total = sum(len(v) for v in pool.values())
         if pooled_total:
-            digest_embeds = build_digest_embeds(pool, now)
+            digest_embeds = build_digest_embeds(pool, now, wr_rankings)
             print(f"=== 昨夜のダイジェストを配信します({pooled_total}件) ===")
             if send_embeds_to_discord(webhook, digest_embeds):
                 for key in EMPTY_DIGEST_POOL:
@@ -1926,8 +1980,8 @@ def main():
         embeds = (
             build_badminton_embeds(new_matches, now)
             + build_national_summary_embeds(new_summaries, now)
-            + build_badspi_embeds(new_badspi_articles)
-            + build_google_news_badminton_embeds(new_gnews_articles)
+            + build_badspi_embeds(new_badspi_articles, wr_rankings)
+            + build_google_news_badminton_embeds(new_gnews_articles, wr_rankings)
             + build_nba_result_embeds(new_nba_results)
         )
         if embeds:
