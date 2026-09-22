@@ -1,0 +1,42 @@
+name: 日経CNBC動画ダイジェスト (#webhook_market)
+
+on:
+  schedule:
+    - cron: "20 * * * *"  # 毎時20分(JST随時)。新着があれば都度、無ければ何もしない
+  workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+
+permissions:
+  contents: write  # state/notified_cnbc_videos.json(既読記録)のコミット用
+
+jobs:
+  nikkei-cnbc-digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: nikkei-cnbc-digest
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      - name: 日経CNBCの新着動画を要約してDiscordへ配信
+        env:
+          DISCORD_WEBHOOK_MARKET: ${{ secrets.WEBHOOK_MARKET }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scripts/fetch_nikkei_cnbc_digest.py
+
+      - name: 既読記録をコミット
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state/notified_cnbc_videos.json
+          git diff --cached --quiet || git commit -m "日経CNBC既読記録を更新"
+          git pull --rebase origin main
+          git push
