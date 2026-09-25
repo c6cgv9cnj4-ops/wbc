@@ -53,6 +53,8 @@ import json
 import os
 import re
 import sys
+import unicodedata
+import urllib.parse
 
 import feedparser
 import requests
@@ -125,6 +127,35 @@ EXHIBITION_QUERIES = [
 ]
 EXHIBITION_REMINDER_DAYS = 14
 GOOGLE_CALENDAR_RENDER_URL = "https://calendar.google.com/calendar/render"
+
+# 展覧会の判断材料リンク(2026-09-25追加)。優先順位:
+#   p1 展覧会の公式サイト・公式ページ / p2 開催館・ギャラリーの公式ページ /
+#   p3 主催者の公式ページ / p4 展覧会内容を確認できる信頼性の高いページ
+# 候補URLはGemini(Google検索グラウンディング)に出させるが、AIの出力をそのまま
+# 掲載することはせず、必ず実際にGETして「HTTP 200・HTML・本文に展示名と会場名を
+# 含む」ことを確認できたものだけを採用する(verify_exhibition_page参照)。
+LINK_TIER_LABELS = {
+    "p1": "🔗 公式サイト",
+    "p2": "🏛️ 会場ページ",
+    "p3": "🔗 主催者ページ",
+    "p4": "🔗 詳細ページ",
+}
+# p4(信頼できるページ)として認めるドメイン。これ以外はp4扱いで採用しない。
+TRUSTED_MEDIA_DOMAINS = (
+    "bijutsutecho.com", "tokyoartbeat.com", "artscape.jp", "museum.or.jp",
+    "artagenda.jp", "prtimes.jp", "nikkei.com", "asahi.com", "yomiuri.co.jp",
+    "mainichi.jp", "sankei.com", "nhk.or.jp", "jiji.com", "kyodonews.jp",
+    "timeout.jp", "fashion-press.net", "walkerplus.com", "enjoytokyo.jp",
+    "digicame-info.com", "dc.watch.impress.co.jp", "capa-camera.net",
+)
+# 公式ページ扱いしないドメイン(ニュース転載・SNS・検索リダイレクト等)
+LINK_BLOCKED_DOMAINS = (
+    "news.google.com", "vertexaisearch.cloud.google.com", "google.com",
+    "yahoo.co.jp", "twitter.com", "x.com", "instagram.com", "facebook.com",
+    "youtube.com", "tiktok.com", "wikipedia.org",
+)
+LINK_VERIFY_TIMEOUT = 8
+LINK_MAX_CANDIDATES = 6
 
 COLOR_NOBI = 0xED8936
 COLOR_CULTURE = 0x38A169
@@ -444,16 +475,198 @@ def extract_exhibitions_via_gemini(client, candidates, region_instruction=KANTO_
     return results
 
 
-def build_exhibition_embeds_from_candidates(client, candidates, state, now, region_instruction=KANTO_INSTRUCTION):
+def _normalize_for_match(text):
+    """一致判定用の正規化(全角半角統一・空白/記号除去・小文字化)。"""
+    text = unicodedata.normalize("NFKC", text or "").lower()
+    return re.sub(r"[\s　「」『』【】()（）\[\]<>〈〉《》\"'“”‘’・:：\-‐―—~〜～!！?？、。,.／/|]", "", text)
+
+
+def _match_keys(name, min_len):
+    """名前全体と、区切り記号で分割した各部分(min_len文字以上)を照合キーにする。
+    例: 「〇〇展 ―光と影―」→「〇〇展光と影」「〇〇展」「光と影」"""
+    keys = {_normalize_for_match(name)}
+    for part in re.split(r"[\s　「」『』【】()（）\[\]〈〉《》:：\-‐―—~〜～|／/・]+", name or ""):
+        norm = _normalize_for_match(part)
+        if len(norm) >= min_len:
+            keys.add(norm)
+    # 「2026」等の数字だけのキーは無関係なページにも一致するため除外する
+    return {k for k in keys if len(k) >= min_len and not k.isdigit()}
+
+
+def _domain_of(url):
+    return (urllib.parse.urlparse(url).hostname or "").lower()
+
+
+def _domain_in(domain, domains):
+    return any(domain == d or domain.endswith("." + d) for d in domains)
+
+
+def verify_exhibition_page(url, exhibition_name, venue):
+    """候補URLを実際に開き、掲載可否を判定する。AIが出したURLを鵜呑みにしないための関門。
+    採用条件: HTTP 200 / HTML / ブロック対象ドメインでない / 本文に展示名(の主要部分)を含む /
+    会場名が判明している場合は会場名も含む。リダイレクトは追跡し、最終URLを採用する
+    (グラウンディングのリダイレクトURLをそのまま掲載しないため)。
+    戻り値: {"ok": bool, "final_url": str|None, "page_title": str, "reason": str}
+    """
+    result = {"ok": False, "final_url": None, "page_title": "", "reason": ""}
+    try:
+        resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=LINK_VERIFY_TIMEOUT,
+                            allow_redirects=True)
+    except Exception as err:  # noqa: BLE001
+        result["reason"] = f"取得失敗({type(err).__name__})"
+        return result
+    result["final_url"] = resp.url
+    if resp.status_code != 200:
+        result["reason"] = f"HTTP {resp.status_code}"
+        return result
+    if "html" not in resp.headers.get("Content-Type", "").lower():
+        result["reason"] = "HTMLでない"
+        return result
+    if _domain_in(_domain_of(resp.url), LINK_BLOCKED_DOMAINS):
+        result["reason"] = f"対象外ドメイン({_domain_of(resp.url)})"
+        return result
+
+    resp.encoding = resp.apparent_encoding if resp.encoding in (None, "ISO-8859-1") else resp.encoding
+    soup = BeautifulSoup(resp.text, "html.parser")
+    result["page_title"] = soup.title.get_text(strip=True) if soup.title else ""
+    for tag in soup(["script", "style", "noscript"]):
+        tag.decompose()
+    page_text = _normalize_for_match(result["page_title"] + soup.get_text(" "))
+
+    if not any(k in page_text for k in _match_keys(exhibition_name, 4)):
+        result["reason"] = "展示名が本文に無い"
+        return result
+    if venue and not any(k in page_text for k in _match_keys(venue, 3)):
+        result["reason"] = "会場名が本文に無い"
+        return result
+    result["ok"] = True
+    result["reason"] = "展示名・会場名一致" if venue else "展示名一致(会場不明)"
+    return result
+
+
+def search_exhibition_link_candidates(client, exhibition_name, venue, start_date, end_date):
+    """Gemini(Google検索グラウンディング)で公式ページ等の候補URLを集める。
+    ここで得たURLは「候補」に過ぎず、掲載前に必ずverify_exhibition_pageで検証する。
+    戻り値: [{"url": str, "tier": "p1".."p4", "source": "model"|"grounding"}]
+    """
+    from google.genai import types
+
+    prompt = f"""次の展覧会について、Google検索で実在するページを探してください。
+展覧会名: {exhibition_name}
+会場: {venue or "不明"}
+会期: {start_date.isoformat()} 〜 {end_date.isoformat()}
+
+以下の優先順位で、この展覧会の内容を確認できるページのURLを最大{LINK_MAX_CANDIDATES}件挙げてください。
+p1: 展覧会の公式サイト・公式ページ(開催館サイト内の当該展覧会ページを含む)
+p2: 開催美術館・ギャラリーの公式ページ(当該展覧会の情報が載っているもの)
+p3: 主催者の公式ページ
+p4: 展覧会内容を確認できる信頼性の高いメディアのページ
+
+検索結果で実際に確認できたURLのみを挙げ、URLを推測で組み立てないでください。
+次の形式のJSON配列のみを出力してください(説明文は不要):
+[{{"url": "https://...", "tier": "p1"}}]"""
+
+    resp = client.models.generate_content(
+        model=GEMINI_MODEL_NAME,
+        contents=prompt,
+        config=types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())]),
+    )
+
+    candidates = []
+    text = (resp.text or "").strip()
+    match = re.search(r"\[.*\]", text, flags=re.DOTALL)
+    if match:
+        try:
+            for item in json.loads(match.group(0)):
+                url, tier = item.get("url"), item.get("tier")
+                if isinstance(url, str) and url.startswith("http") and tier in LINK_TIER_LABELS:
+                    candidates.append({"url": url, "tier": tier, "source": "model"})
+        except (json.JSONDecodeError, AttributeError):
+            pass
+
+    # グラウンディングの参照元(実際に検索でヒットしたページ)も候補に加える。
+    # tierはAIの申告が無いためp4扱いとし、信頼ドメインでなければ後段で落とす。
+    known = {c["url"] for c in candidates}
+    try:
+        for chunk in resp.candidates[0].grounding_metadata.grounding_chunks or []:
+            uri = chunk.web.uri if chunk.web else None
+            if uri and uri not in known:
+                candidates.append({"url": uri, "tier": "p4", "source": "grounding"})
+                known.add(uri)
+    except (AttributeError, IndexError, TypeError):
+        pass
+    return candidates[: LINK_MAX_CANDIDATES * 2]
+
+
+def find_verified_exhibition_links(client, exhibition_name, venue, start_date, end_date):
+    """候補検索→実ページ検証→掲載リンク選定。
+    選定ルール: 最優先tierの検証済みページを1本目(公式p1が確認できれば必ず1本目)。
+    2本目は1本目と別ドメインかつ別tierで、判断材料が増える場合のみ付ける。
+    戻り値: (links, checks)
+      links  = [{"label": str, "url": str, "title": str, "tier": str}] (0〜2件)
+      checks = 候補ごとの検証ログ(確認モードの表示用)
+    失敗時は例外を投げず ([], checks) を返す(投稿自体は止めない)。
+    """
+    checks = []
+    try:
+        candidates = search_exhibition_link_candidates(client, exhibition_name, venue, start_date, end_date)
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] 公式ページ候補の検索に失敗しました({exhibition_name}): {err}")
+        return [], checks
+
+    verified = []
+    seen_final = set()
+    for c in candidates:
+        v = verify_exhibition_page(c["url"], exhibition_name, venue)
+        final_url = v["final_url"] or c["url"]
+        tier = c["tier"]
+        if v["ok"]:
+            domain = _domain_of(final_url)
+            if final_url in seen_final:
+                v["ok"], v["reason"] = False, "重複"
+            elif tier == "p4" and not _domain_in(domain, TRUSTED_MEDIA_DOMAINS):
+                v["ok"], v["reason"] = False, f"{v['reason']}だがp4の信頼ドメイン外({domain})"
+            elif tier != "p4" and _domain_in(domain, TRUSTED_MEDIA_DOMAINS):
+                # メディア記事をAIが「公式」と申告した場合はp4に格下げする
+                tier = "p4"
+        checks.append({"candidate": c["url"], "source": c["source"], "tier": tier,
+                       "final_url": final_url, "ok": v["ok"], "reason": v["reason"]})
+        if v["ok"]:
+            seen_final.add(final_url)
+            verified.append({"url": final_url, "tier": tier, "title": v["page_title"]})
+
+    verified.sort(key=lambda x: x["tier"])
+    links = []
+    if verified:
+        links.append(verified[0])
+        for v in verified[1:]:
+            if v["tier"] != links[0]["tier"] and _domain_of(v["url"]) != _domain_of(links[0]["url"]):
+                links.append(v)
+                break
+    return [dict(v, label=LINK_TIER_LABELS[v["tier"]]) for v in links], checks
+
+
+def _link_text(link):
+    title = re.sub(r"\s+", " ", link["title"] or "").strip()
+    title = title.replace("[", "(").replace("]", ")")
+    if not title:
+        return _domain_of(link["url"])
+    return title if len(title) <= 40 else title[:39] + "…"
+
+
+def build_exhibition_embeds_from_candidates(client, candidates, state, now, region_instruction=KANTO_INSTRUCTION,
+                                            report=None):
     """candidatesのうちGeminiが展覧会/イベントと判定したものをEmbed化する。
     戻り値は (embeds, consumed_urls) のタプル。consumed_urlsはGeminiが
     展覧会/イベント候補として選んだ(=結果的にEmbed化されなかったものも含む)
     URL集合で、呼び出し側が「一般ニュースとしての二重掲載」を避けるために使う。
+    reportにlistを渡すと、展覧会ごとのリンク検証ログを追記する(確認モード用)。
     """
     extracted = extract_exhibitions_via_gemini(client, candidates, region_instruction=region_instruction)
 
     embeds = []
     consumed_urls = set()
+    link_cache = {}  # 同一実行内で同じ展覧会を複数記事が報じた場合の再検索を避ける
     for ex in extracted:
         mark_seen(state, ex["url"], now)
         consumed_urls.add(ex["url"])
@@ -467,28 +680,45 @@ def build_exhibition_embeds_from_candidates(client, candidates, state, now, regi
             continue
         start_date = parse_iso_date(ex["start_date"]) or end_date
 
+        cache_key = (ex["exhibition_name"], ex["venue"])
+        if cache_key not in link_cache:
+            link_cache[cache_key] = find_verified_exhibition_links(
+                client, ex["exhibition_name"], ex["venue"], start_date, end_date)
+        links, checks = link_cache[cache_key]
+
+        # カレンダーの詳細欄には、検証済みの公式等ページがあればそれを、無ければ記事URLを入れる
+        details_url = links[0]["url"] if links else ex["url"]
         cal_url = build_google_calendar_url(
             ex["exhibition_name"], start_date, end_date + datetime.timedelta(days=1),
-            location=ex["venue"], details=ex["url"],
+            location=ex["venue"], details=details_url,
         )
 
         reminder_date = end_date - datetime.timedelta(days=EXHIBITION_REMINDER_DAYS)
         reminder_url = build_google_calendar_url(
             f"【終了まであと{EXHIBITION_REMINDER_DAYS}日】{ex['exhibition_name']}",
             reminder_date, reminder_date + datetime.timedelta(days=1),
-            location=ex["venue"], details=ex["url"],
+            location=ex["venue"], details=details_url,
         )
 
         lines = []
         if ex["venue"]:
             lines.append(f"📍 {ex['venue']}")
         lines.append(f"🗓️ 会期: {start_date.isoformat()} 〜 {end_date.isoformat()}")
+        if links:
+            for link in links:
+                lines.append(f"{link['label']}: [{_link_text(link)}]({link['url']})")
+        else:
+            lines.append("🔗 公式ページ：自動確認できず")
         lines.append("")
         lines.append(
             f"[📅 Googleカレンダーに追加]({cal_url}) ｜ "
             f"[⏰ 終了{EXHIBITION_REMINDER_DAYS}日前リマインダー追加]({reminder_url})"
         )
-        lines.append(f"[記事を見る]({ex['url']})")
+        lines.append(f"[📰 記事を見る]({ex['url']})")
+
+        if report is not None:
+            report.append({"exhibition": ex, "start_date": start_date, "end_date": end_date,
+                           "checks": checks, "links": links, "description": "\n".join(lines)})
 
         embeds.append({
             "title": f"🖼️ {ex['exhibition_name']}"[:256],
@@ -558,9 +788,61 @@ def send_embeds_to_discord(webhook_url, embeds, batch_size=10):
     return ok
 
 
+def print_exhibition_report(report):
+    """確認モード用: 展覧会ごとに抽出結果・候補URL・検証結果・最終リンクを表示する。"""
+    print(f"\n===== 展覧会リンク検証レポート({len(report)}件) =====")
+    for i, r in enumerate(report, 1):
+        ex = r["exhibition"]
+        print(f"\n--- [{i}] {ex['exhibition_name']}")
+        print(f"  会場: {ex['venue'] or '(不明)'}")
+        print(f"  会期: {r['start_date'].isoformat()} 〜 {r['end_date'].isoformat()}")
+        print(f"  元記事: {ex['url']}")
+        print(f"  検出URL({len(r['checks'])}件):")
+        for c in r["checks"]:
+            mark = "OK" if c["ok"] else "NG"
+            shown = c["final_url"] if c["final_url"] == c["candidate"] else f"{c['candidate']} -> {c['final_url']}"
+            print(f"    [{mark}] {c['tier']}/{c['source']} {shown}  ({c['reason']})")
+        print("  Discordに出すリンク:")
+        if r["links"]:
+            for link in r["links"]:
+                print(f"    {link['label']}: {link['url']}  「{link['title'][:50]}」")
+        else:
+            print("    🔗 公式ページ：自動確認できず")
+        print("  --- 投稿本文プレビュー ---")
+        for line in r["description"].split("\n"):
+            print(f"  | {line}")
+
+
 def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Discordへ送信せず、展覧会枠のみ処理してリンク検証結果を表示する"
+                             "(既送信記録は無視・保存しない)")
+    args = parser.parse_args()
+    dry_run = args.dry_run or os.environ.get("CULTURE_NEWS_DRY_RUN") == "true"
+
     webhook = os.environ.get("DISCORD_WEBHOOK_NEWS")
     api_key = os.environ.get("GEMINI_API_KEY")
+    if dry_run:
+        if not api_key:
+            print("[ERROR] 環境変数 GEMINI_API_KEY が設定されていません。")
+            sys.exit(1)
+        from google import genai
+        client = genai.Client(api_key=api_key)
+        now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
+        print("[DRY-RUN] 確認モード: Discord送信・既送信記録の保存は行いません。")
+        candidates = fetch_candidates_for_queries(EXHIBITION_QUERIES, {"seen_urls": {}})
+        print(f"[DRY-RUN] 展覧会候補記事: {len(candidates)}件")
+        report = []
+        embeds, _ = build_exhibition_embeds_from_candidates(
+            client, candidates, {"seen_urls": {}}, now, region_instruction=KANTO_INSTRUCTION, report=report)
+        print_exhibition_report(report)
+        with_links = sum(1 for r in report if r["links"])
+        print(f"\n[DRY-RUN] Embed {len(embeds)}件 / 公式等リンク確認済み {with_links}件 / "
+              f"自動確認できず {len(report) - with_links}件")
+        return
+
     if not webhook:
         print("[ERROR] 環境変数 DISCORD_WEBHOOK_NEWS が設定されていません。")
         sys.exit(1)

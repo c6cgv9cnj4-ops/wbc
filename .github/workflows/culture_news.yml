@@ -6,7 +6,12 @@ on:
     - cron: "13 22 * * *"  # 07:13 JST
     - cron: "13 3 * * *"   # 12:13 JST
     - cron: "13 9 * * *"   # 18:13 JST
-  workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+  workflow_dispatch:  # 手動実行用ボタン(Actionsタブから即時テスト可能)
+    inputs:
+      dry_run:
+        description: "確認モード(Discordへ送信せず展覧会リンク検証結果をログ表示)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write  # state/culture_news_seen.json(既送信記録)のコミット用
@@ -29,10 +34,11 @@ jobs:
         env:
           DISCORD_WEBHOOK_NEWS: ${{ secrets.WEBHOOK_NEWS }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CULTURE_NEWS_DRY_RUN: ${{ inputs.dry_run }}
         run: python scripts/fetch_culture_news.py
 
       - name: 既送信記録をコミット
-        if: always()
+        if: always() && inputs.dry_run != true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
