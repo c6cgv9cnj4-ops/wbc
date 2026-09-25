@@ -636,6 +636,10 @@ def find_verified_exhibition_links(client, exhibition_name, venue, start_date, e
         tier = c["tier"]
         if v["ok"]:
             domain = _domain_of(final_url)
+            if tier == "p2" and not (venue and any(
+                    k in _normalize_for_match(v["page_title"]) for k in _match_keys(venue, 3))):
+                # ページタイトルに会場名が無いものは「会場ページ」と断定せず詳細ページ扱いにする
+                tier = "p4"
             if final_url in seen_final:
                 v["ok"], v["reason"] = False, "重複"
             elif tier == "p4" and not _domain_in(domain, TRUSTED_MEDIA_DOMAINS):
