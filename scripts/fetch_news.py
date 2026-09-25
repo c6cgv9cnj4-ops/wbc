@@ -77,6 +77,8 @@ import feedparser
 import requests
 from bs4 import BeautifulSoup
 
+import market_news_curation
+
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
@@ -187,6 +189,29 @@ FINANCE_REQUIRED_KEYWORDS = [
     "市況", "日経平均", "株式", "株価", "円", "債券", "金利", "決算", "業績",
     "相場", "為替", "GDP", "インフレ", "利上げ", "利下げ", "日銀", "FRB", "市場",
 ]
+
+
+# 2026-09-25追加: 鮮度フィルタ。Google News検索は新しい順ではなく関連度順で返すため、
+# 以下のクエリは実データで上位10件の大半が数か月〜数年前の記事だった
+# (Reuters: 2020〜2022年の記事が8/10件、site:reuters.com/markets/japan に when:7d を
+# 付けると0件=直近の記事が1本も索引されていない。ブルームバーグ: 半年前の記事が混入)。
+# 既送信stateは14日で掃除されるうえ、検索結果100件の中で表示される記事が入れ替わるため、
+# 古い記事が「未送信=新着」として何度も配信されていた。この2クエリに限り、公開日時が
+# ECONOMY_NEWS_MAX_AGE_HOURS より古い記事を候補から外す(日時不明の記事は従来どおり残す)。
+# 土日をまたぐ金曜夜→月曜朝(約60時間)でも落とさないよう72時間とした。
+ECONOMY_NEWS_MAX_AGE_HOURS = 72
+ECONOMY_NEWS_FRESHNESS_QUERIES = {
+    "site:reuters.com/markets/japan",
+    "ブルームバーグ 日本 経済",
+}
+
+
+def is_stale_economy_item(item, query, now_utc):
+    """鮮度フィルタ対象クエリの記事で、公開日時が上限より古ければTrue。"""
+    if query not in ECONOMY_NEWS_FRESHNESS_QUERIES or not item.get("published_at"):
+        return False
+    published = datetime.datetime.fromisoformat(item["published_at"])
+    return now_utc - published > datetime.timedelta(hours=ECONOMY_NEWS_MAX_AGE_HOURS)
 
 
 def is_economy_news_blacklisted(title):
@@ -525,6 +550,19 @@ def format_published_jst(entry):
     return dt_jst.strftime("%m/%d %H:%M")
 
 
+def published_at_iso(entry):
+    """feedparserのエントリの公開日時をUTCのISO形式で返す(年を含む。取得不可ならNone)。
+    表示用の format_published_jst() は年を落とすため、鮮度判定にはこちらを使う。
+    """
+    parsed = entry.get("published_parsed") or entry.get("updated_parsed")
+    if not parsed:
+        return None
+    try:
+        return datetime.datetime(*parsed[:6], tzinfo=datetime.timezone.utc).isoformat()
+    except (TypeError, ValueError):
+        return None
+
+
 def fetch_rss_items(url, limit=RSS_ITEM_LIMIT):
     try:
         feed = feedparser.parse(url)
@@ -573,6 +611,7 @@ def fetch_google_news_query(query, limit=RSS_ITEM_LIMIT, retries=2):
             "title": entry.get("title", "(タイトル不明)"),
             "url": entry.get("link", ""),
             "published": format_published_jst(entry),
+            "published_at": published_at_iso(entry),  # 鮮度判定用(2026-09-25追加)
         })
     return items
 
@@ -632,8 +671,13 @@ def fetch_economy_news_candidates():
     # 返ってきても、1回の実行内で1度しか候補に残らないようにする)。
     candidates = []
     seen_in_batch = set()
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
     for query in ECONOMY_NEWS_QUERIES:
+        stale_count = 0
         for item in fetch_google_news_query(query):
+            if is_stale_economy_item(item, query, now_utc):
+                stale_count += 1
+                continue
             key = normalize_url(item["url"])
             if key in seen_in_batch:
                 continue
@@ -643,6 +687,8 @@ def fetch_economy_news_candidates():
                 continue
             seen_in_batch.add(key)
             candidates.append(item)
+        if stale_count:
+            print(f"[INFO] 経済ニュース: {ECONOMY_NEWS_MAX_AGE_HOURS}時間より古い記事を{stale_count}件除外({query})")
 
     for item in fetch_direct_rss_items(TOYOKEIZAI_RSS):
         key = normalize_url(item["url"])
@@ -1042,7 +1088,7 @@ def _market_signature(nikkei, usdjpy, jgb):
     return json.dumps(parts, ensure_ascii=False, sort_keys=True)
 
 
-def build_market_message(state, now):
+def build_market_message(state, now, gemini_client=None):
     """株価は常に送る。経済ニュースは新着があるときだけ追記する。
     2026-08-28、細川さんの指定により、日経の取引時間中か否かで表示する
     指数・先物のセットを切り替える。
@@ -1134,8 +1180,13 @@ def build_market_message(state, now):
     biz_new = dedupe_new_items(biz_all, "url", state, now)
     lines.append("\n## 📰 主要経済ニュース(日経・東洋経済)")
     if biz_new:
-        for item in biz_new:
-            lines.append(f"- [{item['title']}](<{item['url']}>) `[{item['published']}]`")
+        # 2026-09-25追加: 同じ材料の記事をグループ化し、カテゴリ・重要度順に整理する
+        # (market_news_curation.py)。失敗時は None が返り、従来の箇条書きに戻す。
+        curated = market_news_curation.curate(biz_new, gemini_client, GEMINI_MODEL_NAME)
+        if curated:
+            lines.extend(market_news_curation.render_groups(curated))
+        else:
+            lines.extend(market_news_curation.render_flat(biz_new))
     else:
         lines.append("- 新着なし")
 
@@ -1223,16 +1274,23 @@ def send_embed_to_discord(webhook_url, embed_payload):
 
 
 def chunk_message(text, limit=DISCORD_CHUNK_LIMIT):
-    """Discordの1メッセージ2000文字制限に収まるよう、改行単位で分割する。"""
+    """Discordの1メッセージ2000文字制限に収まるよう、改行単位で分割する。
+    2026-09-25追加: 経済ニュースの媒体リンク行(先頭が「　└ 」)は直前の見出し行と
+    別メッセージに泣き別れないよう、見出し行ごと次のメッセージへ送る
+    (この接頭辞を使うのはmarket_news_curationの出力だけで、他チャンネルの分割結果は不変)。
+    """
     lines = text.split("\n")
     chunks = []
     current = ""
     for line in lines:
         candidate = (current + "\n" + line) if current else line
         if len(candidate) > limit:
+            carry = ""
+            if line.startswith(market_news_curation.CONTINUATION_PREFIX) and "\n" in current:
+                current, carry = current.rsplit("\n", 1)
             if current:
                 chunks.append(current)
-            current = line
+            current = (carry + "\n" + line) if carry else line
         else:
             current = candidate
     if current:
@@ -1347,7 +1405,7 @@ def main():
         print("[WARN] DISCORD_WEBHOOK_NEWS が未設定のため、全国ニュース配信をスキップします。")
 
     if market_webhook:
-        market_message, skip_as_duplicate = build_market_message(state, now)
+        market_message, skip_as_duplicate = build_market_message(state, now, gemini_client)
         print("=== マーケットメッセージ ===")
         print(market_message)
         if skip_as_duplicate:
