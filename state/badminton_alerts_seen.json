@@ -228,7 +228,9 @@
     "https://news.google.com/rss/articles/CBMijgFBVV95cUxObDM5U3MwN1pLU0I1blpHczZySmFfV3FWUmFKTXdub1M3Zm45OVFfT19rRTh5ZlRqRUxhY3VEWFhxSEtvd3NzaEN5WktvUmxuUjRWOUJwYUNhX1V6SUotc2V4U1A4VUNBMXNSZ2lpamNURXNaRGppSjMyN3NxOVZkZF96bTRtbDNLdFZWalpn?oc=5": "2026-09-24T22:47:44.014486+09:00",
     "https://news.google.com/rss/articles/CBMibkFVX3lxTE1mLXN4WDZYcTRldWRXMV8xOVBuRVFlUk8tM0VtMXZ5UGZpMWNXbmlrT1B2MmhNMkgwbVBpMUtZUmh1TlEtNWxuTzZxdWhJRjBETzZNOWtsZEh3NnFpM3NHbUt3em5rWGtuV1dHUkdn0gF2QVVfeXFMUEE2alBxVWwtZDVNZGFuMDh1YTcyXzloZmp2enRzZDFXNFlpVk5NMjhOOFRRUUNJNEZyZmdUeGxZT25DcmNMUTFkYkNleUtJVVlRR0lEbE5sRWlYOHVvNEpYbmJ6dnQ3ck44N3lfTHNvU3c1YlhfZw?oc=5": "2026-09-24T22:47:44.014486+09:00",
     "https://news.google.com/rss/articles/CBMicEFVX3lxTE1IR1UwVFdtQ2cyOVUzRkRHSFdJd1NwTmhDZFlscmlVR0Fra1ZucnJIRExWVkROSm1NNnpsVjE5a2JmODFVQTJnemVwSnNOSWZiTEhrdHBQZ1ktaGV4RjkzOGtmc3hXLWlkcW1FRG5EdnM?oc=5": "2026-09-25T06:50:41.726583+09:00",
-    "https://news.google.com/rss/articles/CBMibkFVX3lxTFBBVThYUERtN0dPTHBhZTkxb2R6MXExSlFzRU8td0MwNFJINGhZWGx6NERaR2FzR2QtQ1RmOEhoZ3Byc2ZnZ0Fhang3SEVpZktkTzZwZVpqNWx4SkQ3aDRBeGhYNUJhbzAza18yb2Vn?oc=5": "2026-09-25T12:33:00.337869+09:00"
+    "https://news.google.com/rss/articles/CBMibkFVX3lxTFBBVThYUERtN0dPTHBhZTkxb2R6MXExSlFzRU8td0MwNFJINGhZWGx6NERaR2FzR2QtQ1RmOEhoZ3Byc2ZnZ0Fhang3SEVpZktkTzZwZVpqNWx4SkQ3aDRBeGhYNUJhbzAza18yb2Vn?oc=5": "2026-09-25T12:33:00.337869+09:00",
+    "https://news.google.com/rss/articles/CBMibkFVX3lxTE1uVkJkNlVLSnNsV0IxcjI2cUFjSVN4Y2llNGVpYlFMWUhFN1FHNEgtTnpqN2l5aVRMRHdSXzdqZzU5NWRtelYtNU5ZUjF2SnU0MnRVaXZiOUkxeXFkZVRMMHplRTkzTWRUd3RvS2ln?oc=5": "2026-09-25T23:36:34.423409+09:00",
+    "https://news.google.com/rss/articles/CBMif0FVX3lxTE43VEI5NWE0aGJFYWxTZkJvUy1kUENRODBWRE1oSk1iRlZpeTZadVBKZEc2TUNHdTJpeF9RYVltOWJCZmNTRGNrQXdVVmJIc0FPQTdnUGc4X3otU0EtTGJmekFlV2VSeFUwRXUyX1owZWNGeDdkQTBWNU84dU1jWGs?oc=5": "2026-09-25T23:36:34.423409+09:00"
   },
   "seen_nba_result_ids": {
     "982": "2026-09-06T18:30:52.185356+09:00",
@@ -266,7 +268,16 @@
     "matches": [],
     "summaries": [],
     "badspi": [],
-    "gnews": [],
+    "gnews": [
+      {
+        "title": "【バドミントン】日本女子は中国に３連敗で２大会連続の団体銀メダル ２０歳の宮崎友花は東京五輪シングルス金メダリストに完敗 …アジア大会",
+        "url": "https://news.google.com/rss/articles/CBMibkFVX3lxTE1uVkJkNlVLSnNsV0IxcjI2cUFjSVN4Y2llNGVpYlFMWUhFN1FHNEgtTnpqN2l5aVRMRHdSXzdqZzU5NWRtelYtNU5ZUjF2SnU0MnRVaXZiOUkxeXFkZVRMMHplRTkzTWRUd3RvS2ln?oc=5"
+      },
+      {
+        "title": "【バドミントン】田口真彩＆渡辺勇大ペアが2回戦敗退 第1ゲームで大きくリードつかみ先取するも逆転許す〈アジア競技大会〉",
+        "url": "https://news.google.com/rss/articles/CBMif0FVX3lxTE43VEI5NWE0aGJFYWxTZkJvUy1kUENRODBWRE1oSk1iRlZpeTZadVBKZEc2TUNHdTJpeF9RYVltOWJCZmNTRGNrQXdVVmJIc0FPQTdnUGc4X3otU0EtTGJmekFlV2VSeFUwRXUyX1owZWNGeDdkQTBWNU84dU1jWGs?oc=5"
+      }
+    ],
     "nba": []
   },
   "wr_rankings": {
