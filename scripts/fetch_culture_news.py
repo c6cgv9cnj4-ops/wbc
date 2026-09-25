@@ -703,6 +703,12 @@ def build_exhibition_embeds_from_candidates(client, candidates, state, now, regi
         if not end_date:
             # 終了日(単発イベントなら開催日)が取れない場合は、カレンダー登録・
             # リマインダー計算ができないためスキップする(推測で埋めない)。
+            print(f"[SKIP] 会期不明(従来どおり対象外): {ex['exhibition_name']}")
+            continue
+        if end_date < now.date():
+            # 終了日が明確に今日より前の展覧会は配信しない(今日終了は配信する)。
+            # AI判断ではなく取得済みの会期データによる機械的な判定。
+            print(f"[SKIP] 会期終了済み: {ex['exhibition_name']} (終了日 {end_date.isoformat()})")
             continue
         start_date = parse_iso_date(ex["start_date"]) or end_date
 
