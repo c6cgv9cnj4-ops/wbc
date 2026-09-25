@@ -475,6 +475,13 @@ def extract_exhibitions_via_gemini(client, candidates, region_instruction=KANTO_
     return results
 
 
+LINK_VERIFY_HEADERS = {
+    "User-Agent": USER_AGENT,
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+}
+
+
 def _normalize_for_match(text):
     """一致判定用の正規化(全角半角統一・空白/記号除去・小文字化)。"""
     text = unicodedata.normalize("NFKC", text or "").lower()
@@ -510,7 +517,7 @@ def verify_exhibition_page(url, exhibition_name, venue):
     """
     result = {"ok": False, "final_url": None, "page_title": "", "reason": ""}
     try:
-        resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=LINK_VERIFY_TIMEOUT,
+        resp = requests.get(url, headers=LINK_VERIFY_HEADERS, timeout=LINK_VERIFY_TIMEOUT,
                             allow_redirects=True)
     except Exception as err:  # noqa: BLE001
         result["reason"] = f"取得失敗({type(err).__name__})"
@@ -643,7 +650,14 @@ def find_verified_exhibition_links(client, exhibition_name, venue, start_date, e
             if v["tier"] != links[0]["tier"] and _domain_of(v["url"]) != _domain_of(links[0]["url"]):
                 links.append(v)
                 break
-    return [dict(v, label=LINK_TIER_LABELS[v["tier"]]) for v in links], checks
+    labeled = []
+    for v in links:
+        label = LINK_TIER_LABELS[v["tier"]]
+        if v["tier"] == "p2" and not venue:
+            # 会場名で照合できていないページを「会場ページ」と断定しない
+            label = LINK_TIER_LABELS["p4"]
+        labeled.append(dict(v, label=label))
+    return labeled, checks
 
 
 def _link_text(link):
