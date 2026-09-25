@@ -540,8 +540,15 @@ def verify_exhibition_page(url, exhibition_name, venue):
         tag.decompose()
     page_text = _normalize_for_match(result["page_title"] + soup.get_text(" "))
 
-    if not any(k in page_text for k in _match_keys(exhibition_name, 4)):
+    name_keys = _match_keys(exhibition_name, 4)
+    if not any(k in page_text for k in name_keys):
         result["reason"] = "展示名が本文に無い"
+        return result
+    if urllib.parse.urlparse(resp.url).path in ("", "/") and \
+            not any(k in _normalize_for_match(result["page_title"]) for k in name_keys):
+        # サイトのトップページは新着一覧等に名前が載っているだけのことが多く判断材料にならない。
+        # 展覧会専用サイト(ページタイトルに展示名を含む)の場合のみ採用する。
+        result["reason"] = "トップページでタイトルに展示名が無い"
         return result
     if venue and not any(k in page_text for k in _match_keys(venue, 3)):
         result["reason"] = "会場名が本文に無い"
@@ -633,8 +640,9 @@ def find_verified_exhibition_links(client, exhibition_name, venue, start_date, e
                 v["ok"], v["reason"] = False, "重複"
             elif tier == "p4" and not _domain_in(domain, TRUSTED_MEDIA_DOMAINS):
                 v["ok"], v["reason"] = False, f"{v['reason']}だがp4の信頼ドメイン外({domain})"
-            elif tier != "p4" and _domain_in(domain, TRUSTED_MEDIA_DOMAINS):
+            elif tier != "p4" and _domain_in(domain, TRUSTED_MEDIA_DOMAINS) and "公式" not in v["page_title"]:
                 # メディア記事をAIが「公式」と申告した場合はp4に格下げする
+                # (メディア運営の公式サイトでページタイトルに「公式」と明記されたものは除く)
                 tier = "p4"
         checks.append({"candidate": c["url"], "source": c["source"], "tier": tier,
                        "final_url": final_url, "ok": v["ok"], "reason": v["reason"]})
