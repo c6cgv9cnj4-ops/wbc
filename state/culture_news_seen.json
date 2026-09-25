@@ -1,8 +1,5 @@
 {
   "seen_urls": {
-    "https://www.itmedia.co.jp/news/article/2609/11/2000001390/": "2026-09-11T09:09:49.362685+09:00",
-    "https://gigazine.net/news/20260910-openai-agent-hacking-incident-another-sites/": "2026-09-11T09:09:49.362685+09:00",
-    "https://news.google.com/rss/articles/CBMiVkFVX3lxTFAzb3FqUUFCelpEVGNhTTNjOFlpcjhlcWZHc05xR2dOTTE3VUNzenV1V0FZVXhJWkdfV0VMMUVmN09yMG03eXQ2djlkNmdxTlhQY2dKNkhn?oc=5": "2026-09-11T09:09:49.362685+09:00",
     "https://www.itmedia.co.jp/news/article/2609/11/2000001418/": "2026-09-11T16:59:14.073420+09:00",
     "https://gigazine.net/news/20260911-misuse-of-ai/": "2026-09-11T16:59:14.073420+09:00",
     "https://gigazine.net/news/20260911-iphone-duo-expected-25-foldable-smartphone-market-2026/": "2026-09-11T16:59:14.073420+09:00",
@@ -98,6 +95,11 @@
     "https://news.google.com/rss/articles/CBMia0FVX3lxTFBydEFpbjNsRkd4Q1BIX25NWGZzX191SWxlcGVrYlVteVhiUldLdHotcGFObzdPdFRaNi1fRG1kRk50dmxMTkRRZ05TMzRWR3lkYnVDdzBiOVdxWGQyNmNoMWlQOWQya1hLWHZr?oc=5": "2026-09-24T17:22:37.425831+09:00",
     "https://news.google.com/rss/articles/CBMiakFVX3lxTE1SYk5mUnZRRlVJUG5QODVzV1NkVExpNElCcEYzN2NsN280dnlUMkxxS1M4Vm9OOVZkZlRXWEFqN0VRVERfQ3pNcnlPbUsxcFNOVzhxREFoVTBIS2toVDZYOGhPNmdJTS11NUE?oc=5": "2026-09-24T17:22:37.425831+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE5idlhuSTlLU1Y1OGw5eGNiamVNZXpLc0swWGxQbmFZMTYxNEdLbEJjcXRia3V5WVJxc1RheFhDWXF4azNPUlpWLThrVHJ0empDcmc4VUc4M1hWanF1RS11OUFObHNGTXlj?oc=5": "2026-09-24T17:22:37.425831+09:00",
-    "https://news.google.com/rss/articles/CBMiakFVX3lxTE5hU1lDekpZb3FnalQtVXc2bEdDbUc3R1p2LWIzSWt4RF9tQk5UdmZMTThUY0VhTEpqbHlvaWdYeHRSYkFMblJJWFBSSWlYbktiaEVYZDMtc2NnVkhQVG9oZDFtZkVXUEFsZlE?oc=5": "2026-09-24T23:12:12.980315+09:00"
+    "https://news.google.com/rss/articles/CBMiakFVX3lxTE5hU1lDekpZb3FnalQtVXc2bEdDbUc3R1p2LWIzSWt4RF9tQk5UdmZMTThUY0VhTEpqbHlvaWdYeHRSYkFMblJJWFBSSWlYbktiaEVYZDMtc2NnVkhQVG9oZDFtZkVXUEFsZlE?oc=5": "2026-09-24T23:12:12.980315+09:00",
+    "https://www.itmedia.co.jp/news/article/2609/25/2000001728/": "2026-09-25T09:33:06.593554+09:00",
+    "https://gigazine.net/news/20260925-ifixit-inside-iphone-18-pro-max/": "2026-09-25T09:33:06.593554+09:00",
+    "https://gigazine.net/news/20260924-googlebook/": "2026-09-25T09:33:06.593554+09:00",
+    "https://news.google.com/rss/articles/CBMiVkFVX3lxTFAzb3FqUUFCelpEVGNhTTNjOFlpcjhlcWZHc05xR2dOTTE3VUNzenV1V0FZVXhJWkdfV0VMMUVmN09yMG03eXQ2djlkNmdxTlhQY2dKNkhn?oc=5": "2026-09-25T09:33:06.593554+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1yRGRjWUlDcGZ4bUNXZ3Z4N0NDN3VpcTM0NUhlVzBuX05pMEpEZGFTbldKYlc1YTNhOUVuTXl4dGFGWThrMXlxTk90LWhGZHk2V3NRdEV3LWtfbmcyMkVvS04zQy0xWXlk?oc=5": "2026-09-25T09:33:06.593554+09:00"
   }
 }
