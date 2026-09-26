@@ -829,7 +829,13 @@ def fetch_anzn_new_items(state, now):
     最上部に赤枠強調(Discord Embed)で単独送信するため、他セクションとは分離している。
     """
     anzn_all = fetch_anzn_new_arrivals()
-    return dedupe_new_items(anzn_all, "url", state, now)
+    # 2026-09-26: あんぜんねっとの記事URLはクエリ(?11217F&i=195&gist=北)だけが異なるため、
+    # 共通のnormalize_url()(クエリ除去)を通すと全記事が同じキー"https://anzn.net/sp/"に
+    # なり、2件目以降が永久に新着判定されない不具合があった(2026-09-13〜)。
+    # あんぜんねっとに限り、クエリを含む元URLを識別キーにする(normalize_urlは共通処理のため変更しない)。
+    for item in anzn_all:
+        item["dedupe_key"] = item["url"]
+    return dedupe_new_items(anzn_all, "dedupe_key", state, now)
 
 
 ANZN_DATETIME_RE = re.compile(r"(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})")
