@@ -1,4 +1,11 @@
-name: ジャーナル思考マップHTML生成(手動)
+name: ジャーナル思考マップHTML生成(手動・停止中)
+
+# 【プライバシー(2026-09-26)】リポジトリは公開のため、日記(#ヘルス・日報)・個人メモ(#インプット)の
+# 本文や、それに由来する要約/画像/HTML は Git にコミットせず、Actions 成果物にも保存しない。
+# 保管先は Google スプレッドシート(GAS)のみ。scripts/check_no_personal_data.py が CI で監視する。
+# 2026-09-26: 公開リポジトリの Actions 成果物は GitHub にログインした誰でも取得できるため、
+# 日記由来の HTML/PNG の成果物保存を廃止。ローカルで `python scripts/journal_review.py
+# --html-out ...` を実行して手元で見る運用に切り替える。
 
 # モーニングジャーナル(フォーラム)の直近N日分を読み、4カテゴリの放射状マインドマップを
 # 1枚完結の mindmap.html(D3.js・ノードクリックでDiscordスレッドを開く)と PNG で出力する。
@@ -38,8 +45,3 @@ jobs:
           DISCORD_CHANNEL_ID_HEALTH: ${{ secrets.DISCORD_CHANNEL_ID_HEALTH }}
           DAYS: ${{ github.event.inputs.days }}
         run: python scripts/journal_review.py --days "${DAYS:-30}" --html-out out/mindmap.html --png-out out/mindmap.png
-      - uses: actions/upload-artifact@v4
-        with:
-          name: journal-mindmap
-          path: out/
-          retention-days: 1

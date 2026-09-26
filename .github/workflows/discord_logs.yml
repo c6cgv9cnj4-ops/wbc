@@ -1,4 +1,8 @@
-name: Discordログ収集・Issues自動起票
+name: Discordログ収集・シート同期・Issues自動起票
+
+# 【プライバシー(2026-09-26)】リポジトリは公開のため、日記(#ヘルス・日報)・個人メモ(#インプット)の
+# 本文や、それに由来する要約/画像/HTML は Git にコミットせず、Actions 成果物にも保存しない。
+# 保管先は Google スプレッドシート(GAS)のみ。scripts/check_no_personal_data.py が CI で監視する。
 
 on:
   schedule:
@@ -16,7 +20,7 @@ on:
 
 
 permissions:
-  contents: write   # logs/daily, logs/health への書き込み(コミット)用
+  contents: read    # ログはコミットしない(ランナー内の作業ファイルのみ)
   issues: write      # TODO/BUY投稿のIssue自動起票用
 
 jobs:
@@ -42,10 +46,8 @@ jobs:
           LOG_LOOKBACK_DAYS: ${{ github.event.inputs.lookback_days }}
         run: python scripts/export_discord_logs.py
 
-      - name: ログファイルをコミット
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add logs/daily logs/health
-          git diff --cached --quiet || git commit -m "Discordログを自動保存 ($(date -u +%Y-%m-%d))"
-          git push
+      - name: スプレッドシートへ同期(直近7日を upsert。Git には保存しない)
+        env:
+          JOURNAL_GAS_WEB_APP_URL: ${{ secrets.JOURNAL_GAS_WEB_APP_URL }}
+          JOURNAL_GAS_SHARED_SECRET: ${{ secrets.JOURNAL_GAS_SHARED_SECRET }}
+        run: python scripts/sync_weekly_sheet.py

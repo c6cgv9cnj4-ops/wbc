@@ -1,0 +1,24 @@
+name: 日記データ混入チェック
+
+# 公開リポジトリに日記(#ヘルス・日報)・個人メモ(#インプット)とその派生物
+# (logs/・reports/・mindmap/・out/)が入っていないか、push のたびに検査する。
+# ファイルの中身は読まず、パスだけを見る(ログに本文を出さない)。
+on:
+  push:
+  pull_request:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 日記・個人メモ由来ファイルの検査
+        run: python scripts/check_no_personal_data.py

@@ -1,5 +1,9 @@
 name: 日刊レポート自動生成(停止中)
 
+# 【プライバシー(2026-09-26)】リポジトリは公開のため、日記(#ヘルス・日報)・個人メモ(#インプット)の
+# 本文や、それに由来する要約/画像/HTML は Git にコミットせず、Actions 成果物にも保存しない。
+# 保管先は Google スプレッドシート(GAS)のみ。scripts/check_no_personal_data.py が CI で監視する。
+
 # ============================================================
 # ⚠️ 2026-09-04 停止。スケジュール実行を無効化しました。
 #   停止理由: 毎日の schedule 実行が Discord 送信ステップで必ず失敗し
@@ -18,7 +22,7 @@ on:
   workflow_dispatch: {}  # 手動実行のみ(スケジュール停止中。復旧確認用に残置)
 
 permissions:
-  contents: write  # reports/daily への書き込み(コミット)用
+  contents: read
 
 jobs:
   summarize-day:
@@ -34,17 +38,16 @@ jobs:
       - name: 依存パッケージをインストール
         run: pip install -r requirements.txt
 
+      - name: 入力ログを Discord から取得(ランナー内のみ・Issue起票なし)
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID_INPUT: ${{ secrets.DISCORD_CHANNEL_ID_INPUT }}
+          DISCORD_CHANNEL_ID_HEALTH: ${{ secrets.DISCORD_CHANNEL_ID_HEALTH }}
+          LOG_LOOKBACK_DAYS: "2"
+        run: python scripts/export_discord_logs.py
+
       - name: 日刊サマリー生成(Gemini API)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           DISCORD_WEBHOOK_DAILY: ${{ secrets.DISCORD_WEBHOOK_DAILY }}
         run: python scripts/generate_daily_report.py
-
-      - name: 生成物をコミット
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add reports/daily
-          git diff --cached --quiet || git commit -m "日刊レポートを自動生成 ($(date -u +%Y-%m-%d))"
-          git pull --rebase origin main
-          git push

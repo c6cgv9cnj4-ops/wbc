@@ -70,6 +70,12 @@ def is_month_end(today):
     return (today + datetime.timedelta(days=1)).day == 1
 
 
+def _redact(err) -> str:
+    """URL(クエリに secret を含む)を出さない例外表記。公開リポジトリの Actions ログ対策。"""
+    status = getattr(getattr(err, "response", None), "status_code", None)
+    return f"{type(err).__name__}" + (f"(HTTP {status})" if status else "")
+
+
 def fetch_month_items(gas_url, gas_secret, month_label):
     """スプレッドシートから当月分の全ログを取得する。
     未設定/失敗時は None、設定済みで0件なら空リストを返す(呼び出し側で区別する)。
@@ -91,10 +97,10 @@ def fetch_month_items(gas_url, gas_secret, month_label):
         except Exception as err:  # noqa: BLE001
             last_err = err
             if attempt < GAS_MAX_ATTEMPTS:
-                print(f"[WARN] 取得に失敗(試行{attempt}/{GAS_MAX_ATTEMPTS}): {err} → {GAS_RETRY_WAIT}秒後に再試行")
+                print(f"[WARN] 取得に失敗(試行{attempt}/{GAS_MAX_ATTEMPTS}): {_redact(err)} → {GAS_RETRY_WAIT}秒後に再試行")
                 time.sleep(GAS_RETRY_WAIT)
     if data is None:
-        print(f"[WARN] スプレッドシートからの取得に{GAS_MAX_ATTEMPTS}回失敗しました: {last_err}")
+        print(f"[WARN] スプレッドシートからの取得に{GAS_MAX_ATTEMPTS}回失敗しました: {_redact(last_err)}")
         return None
     if not data.get("ok"):
         print(f"[WARN] GAS側で取得に失敗しました: {data.get('error')}")

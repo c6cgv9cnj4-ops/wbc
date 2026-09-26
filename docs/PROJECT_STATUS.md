@@ -27,6 +27,17 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
 | #webhook_news | `scripts/fetch_news.py` | 全国主要ニュース（Yahoo!トップピックス＋Gemini要約） |
 | #webhook_news | `scripts/fetch_culture_news.py` | 国債・カルチャー・展覧会 |
 
+## 最近完了した変更（日記データを GitHub から排除, 2026-09-26）
+- 方針: 日記（#ヘルス・日報）・個人メモ（#インプット）とその派生物は GitHub に置かない。保管先は Google スプレッドシート（GAS）のみ
+- `discord_logs.yml`: 取得→同じジョブでシートへ同期（`sync_weekly_sheet.py`）。コミットしない。日記フォーラムは Issue 化しない。Issue のタイトルはログに出さない
+- `weekly-sheet-sync.yml`: Discord から直近7日を取り直して同期（repo の logs に依存しない）
+- `monthly-mindmap.yml`: コミットとスケジュールを停止（後継は週次の🌕月次観測）。`daily_summary.yml`（停止中）: コミットを停止
+- `journal_mindmap_html.yml`: 成果物の保存を廃止
+- GAS 送信・取得の例外表示から URL を除去（secret と本文がログに出ないように）
+- `_config.yml`: Pages の配信対象から logs/・reports/・mindmap/・state/・scripts/ などを除外
+- 再発防止: `scripts/check_no_personal_data.py` と `privacy_guard.yml`（push のたびに検査）、`.gitignore`
+- テスト: `tests/test_privacy.py`（11件）。全体は41件
+
 ## 最近完了した変更（週次観測への再編, 2026-09-26。未push＝本番未反映）
 - `weekly_mindmap.py` を「感情4象限の分類＋3大アクション」から「モーニングジャーナルの観測ダッシュボード」へ再編。詳細は `docs/WEEKLY_MINDMAP_SETUP.md`
   - Python（新規 `scripts/journal_observe.py`）: 直近8週を計数し、書いた日数・文字数・語の新規/再登場/増減/不在/継続・表現の出現率・共起・根拠URLを出す
@@ -81,10 +92,10 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
 
 ## 現在確認されている問題（2026-09-26 確認）
 ※ いずれも Actions の実行結果は success のまま。ログの ERROR/WARN にしか出ないため、気付きにくい。
-- **公開リポジトリに日記由来の内容が残っている（2026-09-26 監査）**
-  - 週次システムの旧出力（`mindmap/`・`reports/weekly/*_rows.csv`・`2026-W36_mindmap.md`）は、ローカル commit で削除済み（未push）。push するまで Pages 上では公開されたまま。git 履歴には残る
-  - **別ジョブで継続中の公開**: `discord_logs.yml` が #ヘルス・日報（日付スレッドの日記）の本文を `logs/health/` に毎日コミットしている（31ファイル）。`monthly-mindmap.yml` はその要約を `reports/monthly/` にコミットしている。停止するかどうか、履歴から除去するかどうかはオーナー判断待ち
-  - `journal_mindmap_html.yml`（手動）は、日記由来の HTML/PNG を Actions アーティファクトに1日保存する。公開リポジトリのアーティファクトは、GitHub にログインしていれば誰でも取得できる
+- **日記・個人メモの公開（2026-09-26 止血済み・履歴は未除去）**
+  - 現行ファイル（logs/health・logs/daily・reports/・mindmap/）は Git 管理から外した。今後の生成もコミットしない（下記「最近完了した変更」）
+  - **git 履歴には残っている**: logs/health 26コミット・logs/daily 24コミット・reports/weekly・reports/monthly・mindmap。除去には filter-repo と force push が必要（オーナー判断で未実施）
+  - 過去の Actions ログに、GAS 送信 URL（共有シークレットと日記本文入り）が出ていた可能性がある（sync_weekly_sheet の例外表示）。確認・ログ削除・シークレットの再発行が未対応
 - **Gemini API のクレジット切れ（402 "prepayment credits are depleted"）**: 2026-09-26 00:36Z 以降、news / nikkei_cnbc_digest / culture_news で発生。
   - 全国ニュース（#webhook_news）は要約0件となり、配信がスキップされる
   - 経済ニュースの整理は、従来の箇条書き表示に戻して配信を継続している

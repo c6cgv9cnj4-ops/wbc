@@ -2,11 +2,10 @@
 """
 週次スプレッドシート同期
 
-直近7日分の以下の生ログ(discord_logs.yml が日次で蓄積)を、ISO週タグ
-(例: 2026-W36)付きで Google スプレッドシートへ upsert 同期する。「週完結」の
-区切りとして外部シートに集約コピーを作るのが目的で、ローカルの生ログ
-(logs/daily・logs/health)は削除せず保持する(同期失敗時のデータ喪失を避けるため。
-削除運用に変えたい場合は要相談)。
+直近7日分の以下の生ログを、ISO週タグ(例: 2026-W36)付きで Google スプレッドシートへ
+upsert 同期する。2026-09-26 から、生ログは Git にコミットせず、同じジョブ内で
+export_discord_logs.py がランナー上に作った作業ファイルを読む(日記の保管先は
+スプレッドシートのみ。GitHub には保存しない)。
 
   - logs/daily/YYYY-MM-DD.md   … #インプット(日々のメモ)
   - logs/health/YYYY-MM-DD.md  … #ヘルス・日報(モーニングジャーナル・運動/習慣の記録)
@@ -86,6 +85,14 @@ def collect_week_items(today):
     return items
 
 
+def redact_error(err) -> str:
+    """例外の説明から URL(クエリに secret と日記本文を含む)を除いた安全な文字列を返す。
+    requests の HTTPError / ConnectionError は str() に完全な URL を含むため、そのまま
+    print すると公開リポジトリの Actions ログにシークレットと本文が出てしまう。"""
+    status = getattr(getattr(err, "response", None), "status_code", None)
+    return f"{type(err).__name__}" + (f"(HTTP {status})" if status else "")
+
+
 def request_gas(url):
     """GAS Web Appへ GET し、JSONを返す。GAS側は成功しているのにHTTP応答だけ
     失敗する一過性の揺れを吸収するため、軽くリトライする。"""
@@ -98,7 +105,8 @@ def request_gas(url):
         except Exception as err:  # noqa: BLE001
             last_err = err
             if attempt < GAS_MAX_ATTEMPTS:
-                print(f"[WARN] リクエスト失敗(試行{attempt}/{GAS_MAX_ATTEMPTS}): {err} → {GAS_RETRY_WAIT}秒後に再試行")
+                print(f"[WARN] リクエスト失敗(試行{attempt}/{GAS_MAX_ATTEMPTS}): {redact_error(err)}"
+                      f" → {GAS_RETRY_WAIT}秒後に再試行")
                 time.sleep(GAS_RETRY_WAIT)
     return None, last_err
 
@@ -118,7 +126,8 @@ def send_upsert(gas_url, gas_secret, items):
         full_url = f"{gas_url}?{query}"
         data, err = request_gas(full_url)
         if data is None:
-            print(f"[ERROR] バッチ{i // BATCH_SIZE + 1}の送信に失敗しました({GAS_MAX_ATTEMPTS}回試行): {err}")
+            print(f"[ERROR] バッチ{i // BATCH_SIZE + 1}の送信に失敗しました({GAS_MAX_ATTEMPTS}回試行): "
+                  f"{redact_error(err)}")
             ok_all = False
             continue
         if not data.get("ok"):
@@ -147,7 +156,7 @@ def main():
         keys = ", ".join(it["key"] for it in items)
         print(
             "[WARN] JOURNAL_GAS_WEB_APP_URL / JOURNAL_GAS_SHARED_SECRET が未設定のため、"
-            "スプレッドシートへの同期をスキップします(ローカルログは保持されています)。"
+            "スプレッドシートへの同期をスキップします(Discord 側の原本は残っています)。"
         )
         print(f"[WARN] 未同期のまま残る項目: {keys}")
         return

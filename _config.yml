@@ -1,0 +1,27 @@
+# GitHub Pages(Jekyll)の配信対象から外すもの。
+# 2026-09-26: リポジトリ全体が Pages で配信されていたため、日記・個人メモ由来のデータや
+# 作業用ファイルが公開 URL で読めないよう除外する(公開ページは各 HTML のみ)。
+# ※ 除外は Pages 配信だけの話。Git 管理そのものは scripts/check_no_personal_data.py で監視する。
+exclude:
+  - logs/
+  - reports/
+  - mindmap/
+  - out/
+  - state/
+  - scripts/
+  - tests/
+  - docs/
+  - gas/
+  - price_bot/
+  - .github/
+  - requirements.txt
+  - requirements-weekly.txt
+  - package.json
+  - package-lock.json
+  - node_modules/
+  - main.py
+  - "*.py"
+  - "*.md"
+  - Gemfile
+  - Gemfile.lock
+  - vendor/

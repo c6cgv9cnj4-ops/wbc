@@ -222,11 +222,13 @@ def build_forum_markdown(thread_entries, date_str, channel_label):
 
 
 def save_markdown(log_dir, date_str, content):
+    """ランナー内の作業ファイルとして保存する(Gitにはコミットしない。.gitignore 済み)。
+    同じジョブ内で sync_weekly_sheet.py が読んで Google スプレッドシートへ送る。"""
     os.makedirs(log_dir, exist_ok=True)
     path = os.path.join(log_dir, f"{date_str}.md")
     with open(path, "w", encoding="utf-8") as f:
         f.write(content)
-    print(f"[OK] 保存しました: {path}")
+    print(f"[OK] 作業ファイルを作成: {path}")
     return path
 
 
@@ -299,7 +301,7 @@ def maybe_create_issue_for_message(msg, channel_label, repo, github_token):
 
     try:
         issue = create_github_issue(repo, github_token, title, body)
-        print(f"[OK] Issueを作成しました: #{issue['number']} {title}")
+        print(f"[OK] Issueを作成しました: #{issue['number']}")   # タイトル(本文)は公開ログに出さない
         return issue
     except Exception as err:  # noqa: BLE001
         print(f"[ERROR] Issue作成に失敗しました(message_id={message_id}): {err}")
@@ -326,13 +328,12 @@ def main():
     if not bot_token:
         print("[ERROR] 環境変数 DISCORD_BOT_TOKEN が設定されていません。")
         sys.exit(1)
-    if not github_token or not repo:
+    issue_count = 0
+    override = _lookback_override()
+    if override is None and (not github_token or not repo):
         print("[ERROR] GITHUB_TOKEN / GITHUB_REPOSITORY が設定されていません。"
               "(通常はGitHub Actions実行時に自動設定されます)")
         sys.exit(1)
-
-    issue_count = 0
-    override = _lookback_override()
     forum_days = override or FORUM_LOOKBACK_DAYS
     text_days = override or TEXT_LOOKBACK_DAYS
     file_issues = override is None
@@ -365,10 +366,7 @@ def main():
                 entries = by_date.get(d, [])
                 markdown = build_forum_markdown(entries, d.strftime("%Y-%m-%d"), channel["label"])
                 save_markdown(channel["log_dir"], d.strftime("%Y-%m-%d"), markdown)
-                for _, msgs, _url in (entries if file_issues else []):
-                    for msg in msgs:
-                        if maybe_create_issue_for_message(msg, channel["label"], repo, github_token):
-                            issue_count += 1
+                # 日記(フォーラム)は公開リポジトリの Issue にしない(2026-09-26 プライバシー対応)
             continue
 
         today = datetime.datetime.now(JST).date()
