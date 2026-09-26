@@ -29,7 +29,7 @@
 
 ## 5. 検証（コード変更後にまとめて実行する）
 1. 構文チェック（`.venv/bin/python -m py_compile ...`）
-2. 既存テスト（現状 `tests/` は無い。無い場合は既存の dry-run など、実行できる検証方法を使う）
+2. 既存テスト（`tests/` は週次観測のみ: `.venv/bin/python -m unittest discover -s tests`。無い機能は既存の dry-run など、実行できる検証方法を使う）
 3. 必要な範囲の単体的な確認（境界値・異常系・変更前後の比較）
 4. dry-run（Discordへの送信なし・state更新なし）
 5. 実行結果の確認

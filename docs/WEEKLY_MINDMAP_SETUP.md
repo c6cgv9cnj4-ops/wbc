@@ -1,29 +1,32 @@
-# 週次棚卸しマインドマップ — セットアップ & テスト手順
+# 週次観測（モーニングジャーナル）— セットアップ & テスト手順
 
-毎週日曜 20:00 JST に、直近1週間の Discord モーニングジャーナル / Google カレンダー /
-Google Tasks を集約し、
+> 2026-09-26 再編。旧「週次棚卸しマインドマップ（感情4象限・3大アクション・GitHub Pages公開）」は廃止。
+> 目的は評価・矯正ではなく、書き続けた記録から自分でも気づいていない変化を**観測**すること。
 
-1. 円形放射状マインドマップ画像（PNG）を Discord `# 週間まとめ` チャンネルへ、高視認性
-   URL ブロック + Link Button 付きで投稿
-2. Google スプレッドシートの固定タブ「週次ログ」（1タブに週ごと1行を蓄積）へ追記/上書き。
-   列は A:対象週 / B:マインドマップ画像（`=IMAGE()` 埋め込み） / C-F:4象限要約
-   （意欲・ワクワク／モヤモヤ・負荷／体調・バイオリズム／納得・心地よさ） /
-   G:来週の手帳用3大アクション / H:マップ詳細Webリンク
-3. 月末週（その月最後の日曜）は、直近4週分の「週次ログ」を Gemini で再統合した
-   月間マインドマップも生成し `mindmap/monthly/` 配下へ公開、Discord へ別メッセージで通知
+毎週日曜 20:00 JST に、Discord `# モーニングジャーナル` の直近8週分を取得し、
 
-する。
+| 担当 | やること |
+|---|---|
+| Python（`scripts/journal_observe.py`） | 書いた日数・文字数、語が「書いた日のうち何日に出たか」の変化（🆕新しく出た／↩️再び出た／⬆️増えた／⬇️減った／💤出てこなかった／🔁続いている）、表現（〜たい・やった・面倒・不安 等）の1000字あたり出現率、同じ日に出た組み合わせ、根拠（日付・抜粋・スレッドURL）。同じ入力なら必ず同じ結果 |
+| Gemini | 上の観測と根拠抜粋だけを受け取り、観測ID（O1…）を参照した**仮説**を複数の可能性として返す。指示・評価・断定の文は機械的に除去。失敗しても観測だけで完結 |
+
+出力先（すべて非公開の場所のみ）:
+
+1. Discord `# 週間まとめ` — 1通目: **A.書いた記録 + B.変化**（PNGダッシュボード添付・ピン留め）／2通目: **C.気づき（仮説）+ D.根拠**
+2. スプレッドシート「**週次観測**」タブ — 1週1行（対象週で上書き・冪等）。数値列はそのままグラフ化できる
+3. 月末週（その月最後の日曜）は「直近28日 vs その前28日」の同じ観測を 🌕 月次観測 として別投稿
 
 | ファイル | 役割 |
 |---|---|
-| `scripts/weekly_mindmap.py` | 収集 → Gemini 構造化 → PNG 描画 → Sheets 追記 → Discord 投稿 → (月末週のみ)月間統合 |
-| `scripts/mint_google_oauth_token.py` | OAuth リフレッシュトークン発行（ローカルで1回） |
-| `.github/workflows/weekly_mindmap.yml` | 定期実行（cron `0 11 * * 0` = 日曜 20:00 JST）|
-| `requirements-weekly.txt` | 追加依存（`google-api-python-client` / `google-auth` / `matplotlib`）|
-| `reports/weekly/YYYY_Www_mindmap.png` | 週次マインドマップ画像（Actions アーティファクトのみ。リポジトリには置かない）|
-| `reports/weekly/YYYY_Www_rows.csv` | 週次の行データ詳細プレビュー（リポジトリにコミット & アーティファクト）|
-| `reports/monthly/YYYY-MM_mindmap.png` | 月間マインドマップ画像（Actions アーティファクトのみ）|
-| `mindmap/monthly/index.html` / `mindmap/monthly/archive/YYYY-MM.html` | 月間マインドマップの GitHub Pages 常設ページ（リポジトリにコミット）|
+| `scripts/weekly_mindmap.py` | 収集 → 観測 → 仮説 → PNG → Sheets → Discord（ファイル名・CLIは互換のため据え置き）|
+| `scripts/journal_observe.py` | 観測・仮説・出力整形（通信は Gemini のみ）|
+| `tests/test_journal_observe.py` | 単体テスト（`python -m unittest discover -s tests`）|
+| `.github/workflows/weekly_mindmap.yml` | 定期実行（cron `0 11 * * 0`）。成果物のコミット・アーティファクト保存はしない |
+| `reports/weekly/YYYY_Www_observe.png` | ローカル生成物（コミットしない）|
+
+**公開リポジトリのため**: ジャーナル由来の PNG・語・抜粋はコミットも Actions アーティファクト保存もしない。
+Actions のログ（公開）には件数だけを出し、本文プレビューはローカル実行時のみ表示する。
+旧タブ「週次ログ」「週次レビュー」は履歴として残し、以後は更新しない。
 
 ---
 
@@ -142,9 +145,10 @@ DISCORD_BOT_TOKEN=... python scripts/list_discord_channels.py
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements-weekly.txt
 
-# (A) 通信ゼロ。合成データで PNG と行 CSV を生成（レイアウト確認用）
+# (A) 通信ゼロ。合成8週分で観測 → PNG と Discord 本文プレビュー
 python scripts/weekly_mindmap.py --use-mock
-#   → reports/weekly/<週>_mindmap.png / <週>_rows.csv
+#   → reports/weekly/<週>_observe.png
+python -m unittest discover -s tests   # 観測ロジックの単体テスト
 
 # (B) 実データを収集するが Sheets 書き込み / Discord 投稿はしない（PNG は生成）
 export GEMINI_API_KEY=... DISCORD_BOT_TOKEN=... DISCORD_CHANNEL_ID_MORNING_JOURNAL=...
@@ -167,25 +171,26 @@ macOS でフォント警告が出る場合は Noto Sans CJK か IPAex ゴシッ�
 
 ### GitHub Actions での手動テスト
 
-Actions タブ → 「週次棚卸しマインドマップ」→ Run workflow。
-`dry_run` に `1` を入れると Sheets / Discord をスキップし、生成物は
-アーティファクト `weekly-mindmap` からダウンロードできる。
+Actions タブ → 「週次観測（モーニングジャーナル）」→ Run workflow。
+`dry_run` に `1` を入れると Sheets / Discord をスキップする。ログには件数
+（書いた日数・観測件数・新規/増減の数）だけが出る（本文・語は出さない）。
 
 ---
 
 ## 6. 挙動メモ
 
-- ジャーナル 0 件 / カレンダー空 / タスク空 でも落ちない。空なら「記録なし」ノードの
-  雛形マップ + ヘッダのみのシート + 短い通知になる。
+- ジャーナル 0 件でも落ちない。短い通知と「書いた日数 0」の行を残す。
+- 引数なし実行は「直近の日曜で終わる週」が対象（cron が遅れて月曜に起動しても前週を扱う）。
+- 比較データが無い（初回・長い空白後）ときは、増減・不在を判定せず「新しく出た」だけを出す。
+- 語の抽出は形態素解析を使わず文字種の連なりで行う（再現性優先）。「片付け」→「片付」の
+  ように語尾が欠ける・ひらがな語は拾わない、という限界がある。
 - **OAuth トークン失効を毎回検知**する。実行開始時にトークン更新を1回試し、失敗したら
   `[ERROR]` ログ + Discord 本文に `⚠️ Google 認証エラー…` を必ず出す（データがあるのに
   黙って空マップを投稿し続けるのを防ぐ）。CI ステップ自体は緑のまま終わる。
-- Gemini 失敗時は収集データから決定論的にツリーを組む（通知に「簡易構造化」と明記）。
-- 週次ログシートは対象週（A列）で既存行を検索し上書きする（冪等。同じ週を何度
-  再実行しても行が重複しない）。月間ページも月度（YYYY-MM）ファイル名で同様に冪等。
+- Gemini 失敗（402 クレジット切れ等）時は C 欄に「今回は仮説なし」と出し、A・B・D はそのまま出す。
+- 週次観測シートは対象週（A列）で既存行を検索し上書きする（冪等）。値は RAW で書く。
 - Discord 送信は画像あり=multipart / 画像なし=生 JSON で自動切替。Discord GET は 429/5xx を
   指数バックオフで再試行。Google API は各呼び出しで `num_retries=5`。
-- 画像 PNG はリポジトリにコミットしない（アーティファクトのみ）。行 CSV だけコミットする。
 - `--week` の日付形式が不正でもジョブは落とさず当日基準にフォールバックする。
 - OAuth スコープに `spreadsheets`（read/write）を含むため、リフレッシュトークンが漏れると
   当該 Gmail の全スプレッドシートが読み書き可能になる。Secrets の管理に注意。
@@ -194,9 +199,15 @@ Actions タブ → 「週次棚卸しマインドマップ」→ Run workflow。
 
 ---
 
-## 週次レビュー（2026-09-20 追加）
+## 週次レビュー（2026-09-20 追加 → 2026-09-26 週次実行から外した）
 
-毎週日曜の実行で、既存の「週次ログ」タブに加え、シート **「週次レビュー」** に1週=1行を追加する（新しい週が常に2行目＝先頭。古い週は下に残り、スクロールで見返せる）。同じ週を再実行すると同じ行を上書きする。
+> 分類（思考/ToDo/感情/保留）と Friction & Action・Next Focus は「観測」の方針と合わないため、
+> 週次パイプラインからは呼ばなくなった。`scripts/journal_review.py` は手動ワークフロー
+> 「ジャーナル思考マップHTML生成(手動)」とスレッド取得（`collect_threads`）のために残している。
+
+（以下は 2026-09-26 までの旧仕様。シートの既存行は履歴として残る）
+
+旧仕様では毎週日曜の実行で、「週次ログ」タブに加え、シート **「週次レビュー」** に1週=1行を追加する（新しい週が常に2行目＝先頭。古い週は下に残り、スクロールで見返せる）。同じ週を再実行すると同じ行を上書きする。
 
 | 列 | 内容 |
 |---|---|

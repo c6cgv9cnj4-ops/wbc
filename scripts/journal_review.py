@@ -207,10 +207,11 @@ def collect_threads(token: str, channel_id: str, start: datetime.date, end: date
         try:
             msgs = _thread_messages(tid, token)
         except Exception as err:  # noqa: BLE001
-            print(f"[WARN] スレッド {name} の取得に失敗、本文なしで継続: {err}")
-            msgs = []
-        text = "\n".join((m.get("content") or "").strip() for m in msgs if (m.get("content") or "").strip())
-        threads.append({"tid": tid, "name": name, "date": d, "url": thread_url(guild_id, tid), "text": text})
+            print(f"[WARN] スレッド {tid} の取得に失敗、本文なしで継続: {str(err)[:120]}")
+            msgs = None
+        text = "\n".join((m.get("content") or "").strip() for m in (msgs or []) if (m.get("content") or "").strip())
+        threads.append({"tid": tid, "name": name, "date": d, "url": thread_url(guild_id, tid), "text": text,
+                        "fetch_error": msgs is None})
     print(f"[INFO] ジャーナル: {len(threads)}スレッド / 本文あり {sum(1 for t in threads if t['text'])}")
     return {"guild_id": guild_id, "threads": threads}
 

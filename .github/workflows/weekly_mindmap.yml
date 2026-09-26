@@ -1,23 +1,13 @@
-name: 週次棚卸しマインドマップ
+name: 週次観測（モーニングジャーナル）
 
-# 毎週日曜 20:00 JST に、直近1週間の Discord モーニングジャーナル / Google
-# カレンダー / Google Tasks を集約し、
-#   1) 円形放射状マインドマップ画像(PNG)を #週間まとめ チャンネルへ高視認性URL
-#      ブロック付きで投稿
-#   2) Google スプレッドシートの「週次ログ」タブへ1週1行を追記/上書き
-#      (B列にマインドマップ画像を =IMAGE() で埋め込み)
-#   3) mindmap/index.html(固定URL) + mindmap/archive/{週}.html(永久アーカイブ)を
-#      GitHub Pages 公開用にリポジトリへコミット
-#      (https://c6cgv9cnj4-ops.github.io/wbc/mindmap/ が常に最新を指す)
-#   4) 月末週(その月最後の日曜)は直近4週分を統合した月間マインドマップも生成し、
-#      mindmap/monthly/ 配下に公開、Discord へ別メッセージで通知
-# する。reports/weekly/ の行 CSV も引き続きコミットする(PNGはmindmap/配下のみ
-# 恒久保存し、reports/weekly/*.png・reports/monthly/*.png はバイナリ肥大化を
-# 避けアーティファクトのみ)。
+# 毎週日曜 20:00 JST に、モーニングジャーナル(直近8週分)を Python で計数して
+# 「書いた量・語の新規/増減/不在/継続・表現の出現率」の変化を検出し、Gemini はその観測に
+# 対する仮説だけを返す(scripts/weekly_mindmap.py + scripts/journal_observe.py)。
+# 出力は Discord #週間まとめ(PNG付き) と スプレッドシート「週次観測」タブのみ。
 #
-# 認証は「1本の OAuth リフレッシュトークン」に集約(Calendar/Tasks/Sheets 共通)。
-# 発行手順は docs/WEEKLY_MINDMAP_SETUP.md。同意画面は必ず「本番」公開にすること
-# (テスト公開だとトークンが7日で失効し2回目以降必ず認証エラーになる)。
+# このリポジトリは公開(PUBLIC)のため、ジャーナル由来の成果物(PNG/語/抜粋)は
+# コミットもアーティファクト保存もしない。ログにも件数しか出さない(GITHUB_ACTIONS 判定)。
+# (2026-09-26 まで: 4象限マインドマップを mindmap/ へコミットし GitHub Pages で公開していた)
 
 on:
   schedule:
@@ -25,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       week:
-        description: "対象週の基準日 YYYY-MM-DD（空なら実行日）"
+        description: "対象週の基準日 YYYY-MM-DD（空なら直近の日曜で終わる週）"
         required: false
         default: ""
       dry_run:
@@ -34,7 +24,7 @@ on:
         default: ""
 
 permissions:
-  contents: write               # reports/weekly へのコミット用
+  contents: read
 
 concurrency:
   group: weekly-mindmap
@@ -46,8 +36,6 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0        # コミット後の git pull --rebase を安全にするため
 
       - uses: actions/setup-python@v5
         with:
@@ -60,7 +48,7 @@ jobs:
       - name: 依存パッケージをインストール
         run: pip install -r requirements-weekly.txt
 
-      - name: 週次棚卸しマインドマップ生成
+      - name: 週次観測を生成・投稿
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
@@ -83,23 +71,3 @@ jobs:
           else
             python scripts/weekly_mindmap.py
           fi
-
-      - name: 生成物を Actions アーティファクトに保存（PNG + CSV）
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: weekly-mindmap
-          path: |
-            reports/weekly/
-            reports/monthly/
-          if-no-files-found: ignore
-          retention-days: 90
-
-      - name: 行CSV + mindmapページをリポジトリへコミット
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add reports/weekly/*.csv mindmap/
-          git diff --cached --quiet || git commit -m "週次棚卸しマインドマップ（行データ + 常設ページ）を自動生成 ($(date -u +%Y-%m-%d))"
-          git pull --rebase origin main || echo "[WARN] git pull --rebase に失敗（後続 push で解消を試みる）"
-          git push || echo "[WARN] git push に失敗（ブランチ保護等。アーティファクトには保存済み）"

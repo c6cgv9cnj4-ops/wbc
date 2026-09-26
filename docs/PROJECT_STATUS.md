@@ -27,6 +27,14 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
 | #webhook_news | `scripts/fetch_news.py` | 全国主要ニュース（Yahoo!トップピックス＋Gemini要約） |
 | #webhook_news | `scripts/fetch_culture_news.py` | 国債・カルチャー・展覧会 |
 
+## 最近完了した変更（週次観測への再編, 2026-09-26。未push＝本番未反映）
+- `weekly_mindmap.py` を「感情4象限の分類＋3大アクション」から「モーニングジャーナルの観測ダッシュボード」へ再編。詳細は `docs/WEEKLY_MINDMAP_SETUP.md`
+  - Python（新規 `scripts/journal_observe.py`）: 直近8週を計数し、書いた日数・文字数・語の新規/再登場/増減/不在/継続・表現の出現率・共起・根拠URLを出す
+  - Gemini: 観測IDを参照する仮説だけ。指示・評価・断定の文は除去。失敗（402 含む）でも観測のみで投稿
+  - 出力: Discord #週間まとめ 2通（A+B / C+D）＋シート「週次観測」タブ。月末週は28日 vs 前28日を別投稿
+  - 廃止: 4象限・放射状マップ・3大アクション・週次レビューの週次実行・GitHub Pages 公開・行CSVコミット・アーティファクト保存
+- テスト: `tests/test_journal_observe.py`（20件、`.venv/bin/python -m unittest discover -s tests`）
+
 ## 最近完了した変更（1cae86b・950eba7, 2026-09-26 本番反映。手動実行 run 36220160602 で確認）
 - 失敗の可視化: `scripts/news_alerts.py`（新規）＋ `fetch_news.py` に記録用の1行×9か所、`market_news_curation.py` に `LAST_ERROR` を追加。
   - 次の異常を実行の最後にまとめ、影響を受けたチャンネルへ「⚠️ ニュース自動配信で異常を検知」として1通送る
@@ -73,6 +81,7 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
 
 ## 現在確認されている問題（2026-09-26 確認）
 ※ いずれも Actions の実行結果は success のまま。ログの ERROR/WARN にしか出ないため、気付きにくい。
+- **公開リポジトリにジャーナル由来の内容が残っている**: `reports/weekly/2026_W37_rows.csv`・`2026_W38_rows.csv`（4象限の要約文）、`mindmap/`（W38 マップ画像・週次レビュー画像。GitHub Pages で公開中）。新しいパイプラインは今後これらを書かないが、既存ファイルの削除・履歴からの除去・Pages 停止はオーナー判断待ち。
 - **Gemini API のクレジット切れ（402 "prepayment credits are depleted"）**: 2026-09-26 00:36Z 以降、news / nikkei_cnbc_digest / culture_news で発生。
   - 全国ニュース（#webhook_news）は要約0件となり、配信がスキップされる
   - 経済ニュースの整理は、従来の箇条書き表示に戻して配信を継続している
@@ -108,7 +117,7 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
 - Python等で可能な集計・比較・検証は Claude 自身が実行する
 - 大量のコードやログをユーザーに提示しない
 - 実装・テスト・dry-run まで、可能な限り一括して進める
-- 既存テストを優先して利用する（現状、リポジトリに `tests/` は無い。各スクリプトのドライラン機能を使う）
+- 既存テストを優先して利用する（`tests/` は週次観測のみ。他は各スクリプトのドライラン機能を使う）
 - 本番コードを変更した場合は、テストと dry-run を行う
 - 作業終了時には、必要に応じてこのファイルを更新する
 - 推測ではなく、実際に確認した情報を記録する

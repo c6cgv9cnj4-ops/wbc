@@ -26,3 +26,6 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 
+
+# 週次観測のPNG(ジャーナル由来。公開リポジトリのためコミットしない)
+reports/weekly/*_observe.png
