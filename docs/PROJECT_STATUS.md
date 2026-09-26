@@ -81,7 +81,10 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
 
 ## 現在確認されている問題（2026-09-26 確認）
 ※ いずれも Actions の実行結果は success のまま。ログの ERROR/WARN にしか出ないため、気付きにくい。
-- **公開リポジトリにジャーナル由来の内容が残っている**: `reports/weekly/2026_W37_rows.csv`・`2026_W38_rows.csv`（4象限の要約文）、`mindmap/`（W38 マップ画像・週次レビュー画像。GitHub Pages で公開中）。新しいパイプラインは今後これらを書かないが、既存ファイルの削除・履歴からの除去・Pages 停止はオーナー判断待ち。
+- **公開リポジトリに日記由来の内容が残っている（2026-09-26 監査）**
+  - 週次システムの旧出力（`mindmap/`・`reports/weekly/*_rows.csv`・`2026-W36_mindmap.md`）は、ローカル commit で削除済み（未push）。push するまで Pages 上では公開されたまま。git 履歴には残る
+  - **別ジョブで継続中の公開**: `discord_logs.yml` が #ヘルス・日報（日付スレッドの日記）の本文を `logs/health/` に毎日コミットしている（31ファイル）。`monthly-mindmap.yml` はその要約を `reports/monthly/` にコミットしている。停止するかどうか、履歴から除去するかどうかはオーナー判断待ち
+  - `journal_mindmap_html.yml`（手動）は、日記由来の HTML/PNG を Actions アーティファクトに1日保存する。公開リポジトリのアーティファクトは、GitHub にログインしていれば誰でも取得できる
 - **Gemini API のクレジット切れ（402 "prepayment credits are depleted"）**: 2026-09-26 00:36Z 以降、news / nikkei_cnbc_digest / culture_news で発生。
   - 全国ニュース（#webhook_news）は要約0件となり、配信がスキップされる
   - 経済ニュースの整理は、従来の箇条書き表示に戻して配信を継続している
