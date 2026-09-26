@@ -44,6 +44,9 @@ jobs:
           # あんぜんねっとはActionsのIPで403になるため、自宅Mac(scripts/anzn_local.py)から配信する
           # (docs/ANZN_LOCAL_SETUP.md)。この行を消すと従来どおりActions側で取得する。
           ANZN_SOURCE: "mac"
+          # 自宅Macの起動係(scripts/dispatch_workflows.py)の停止検知。前回実行から60分超空くと異常通知
+          # (docs/ACTIONS_DISPATCHER.md)。起動係を止めるときはこの行も消す。
+          MAC_DISPATCHER: "on"
         run: python scripts/fetch_news.py
 
       - name: 既送信記録をコミット
