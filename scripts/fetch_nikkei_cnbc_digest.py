@@ -50,6 +50,10 @@ JST = datetime.timezone(datetime.timedelta(hours=9))
 STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "state", "notified_cnbc_videos.json")
 STATE_RETENTION_DAYS = 60
 STATE_MAX_ENTRIES = 500
+# 2026-09-26(N6): 要約できずリンクのみ配信した動画は state["pending_summary"] に残し、
+# 次回以降(RSSにまだ載っている間)に再要約して要約を追送する。字幕は投稿数時間後に付くことも多い。
+PENDING_SUMMARY_MAX_HOURS = 72  # これを過ぎたら再要約をあきらめる
+MAX_RETRIES_PER_RUN = 4
 
 NIKKEI_CNBC_CHANNEL_ID = "UClVsQnfs-jKkjKmUKUHnT2g"
 NIKKEI_CNBC_RSS_URL = f"https://www.youtube.com/feeds/videos.xml?channel_id={NIKKEI_CNBC_CHANNEL_ID}"
@@ -98,6 +102,20 @@ def prune_state(state, now):
     if len(kept) > STATE_MAX_ENTRIES:
         kept = dict(sorted(kept.items(), key=lambda kv: kv[1], reverse=True)[:STATE_MAX_ENTRIES])
     state["notified"] = kept
+    pending = {}
+    for vid, iso_ts in state.get("pending_summary", {}).items():
+        try:
+            age = now - datetime.datetime.fromisoformat(iso_ts)
+        except (ValueError, TypeError):
+            continue
+        if age <= datetime.timedelta(hours=PENDING_SUMMARY_MAX_HOURS):
+            pending[vid] = iso_ts
+        else:
+            print(f"[INFO] 再要約の期限({PENDING_SUMMARY_MAX_HOURS}時間)を過ぎたため打ち切り: {vid}")
+    if pending:
+        state["pending_summary"] = pending
+    else:
+        state.pop("pending_summary", None)  # 通常時のstateの形を変えない
     return state
 
 
@@ -260,19 +278,35 @@ def main():
     new_videos = [v for v in videos if v["video_id"] not in notified]
     # 古い順に処理する(Discord上での投稿順を時系列に揃えるため)
     new_videos = list(reversed(new_videos))[:MAX_VIDEOS_PER_RUN]
+    pending = state.get("pending_summary", {})
+    retry_videos = [v for v in reversed(videos) if v["video_id"] in pending][:MAX_RETRIES_PER_RUN]
 
     print(f"[INFO] RSS取得 {len(videos)}件 / 新着 {len(new_videos)}件"
           + (f"（{len(new_videos)}件に制限。残りは次回実行で処理）" if len(new_videos) == MAX_VIDEOS_PER_RUN else ""))
 
-    if not new_videos:
+    if not new_videos and not retry_videos:
         print("[INFO] 新着動画はありませんでした。")
         return 0
 
     embeds = []
+    failed_ids = []
     for v in new_videos:
         lines, source_label = build_digest(v)
         embeds.append(build_embed(v, lines, source_label))
+        if not lines:
+            failed_ids.append(v["video_id"])
         print(f"  - {v['published']} {v['title'][:50]} … " + ("要約OK" if lines else "要約なし(リンクのみ)"))
+
+    recovered_ids = []
+    for v in retry_videos:
+        lines, source_label = build_digest(v)
+        if lines:
+            embeds.append(build_embed(v, lines, f"{source_label}・再要約"))
+            recovered_ids.append(v["video_id"])
+        print(f"  - [再要約] {v['title'][:50]} … " + ("要約OK" if lines else "要約なし(次回再試行)"))
+    if not embeds:
+        print("[INFO] 再要約できた動画がありませんでした(次回再試行)。")
+        return 0
 
     if args.dry_run:
         print("\n[dry-run] 送信予定Embed:")
@@ -290,6 +324,13 @@ def main():
     if ok:
         for v in new_videos:
             notified[v["video_id"]] = now.isoformat()
+        # 要約できなかった動画は「リンク配信済み・要約待ち」、再要約できた動画は要約待ちから外す
+        for vid in failed_ids:
+            state.setdefault("pending_summary", {})[vid] = now.isoformat()
+        for vid in recovered_ids:
+            state.get("pending_summary", {}).pop(vid, None)
+        if not state.get("pending_summary"):
+            state.pop("pending_summary", None)
         save_state(state)
         print(f"[INFO] Discord配信完了: {len(embeds)}件")
         return 0
