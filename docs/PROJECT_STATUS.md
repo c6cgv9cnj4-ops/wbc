@@ -1,6 +1,6 @@
 # PROJECT_STATUS（新しいセッションが最初に読む現在地ファイル）
 
-最終更新: 2026-09-26 ／ 最新の機能commit: `950eba7`（2026-09-26・本番反映済み）
+最終更新: 2026-09-26 深夜 ／ 最新の機能commit: `66cebda`（2026-09-26・本番反映済み。ANZNのMac移行とN3起動係が稼働中）
 ※この後にある `github-actions[bot]` の「〜既送信記録を更新」commitは state 自動更新のみ。
 
 ## 目的
@@ -79,18 +79,20 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
 - N5 fetch_news: 地域・あんぜんねっと・全国・マーケットの送信に失敗したら、その区画で新たに記録した既送信キーを巻き戻す（スポーツ振り分け分と管理キーは残す）
 - 残課題: メッセージの一部だけが届いた場合の重複 / スポーツ振り分けの送信失敗 / カルチャーとスポーツ順位の送信失敗時の消失
 
-## ブランチ feat/anzn-local（未push・mainに未マージ）
-- `scripts/anzn_local.py`（新規）: 自宅Macから15分ごとに、あんぜんねっとの新着Embedを送る
-  - 既存の関数を再利用。Mac専用stateは `~/Library/Application Support/anzn-local/anzn_seen.json`
-  - 送信に成功したときだけ既送信を確定する
-  - `--dry-run` / `--import-state` あり
-- `scripts/fetch_news.py`
-  - `ANZN_SOURCE=mac` のとき、Actions側のあんぜんねっと取得とEmbed送信を止める
-  - 防災まとめ欄は、Mac配信中・取得失敗を正しく表示する（取得失敗なのに「警報・火災等の情報はありません」と出る誤表示を解消）
-  - 未設定なら従来どおりの動作
-- `news_alerts.redact()`: Discord送信の例外ログから、Webhookのパス（トークン）を伏せ字にする
-- `news.yml` に `ANZN_SOURCE: "mac"` を追加。**main へ push した時点で、Actions側のあんぜんねっと取得が止まる**
-- launchd テンプレート: `docs/launchd/com.rickykogyo.anzn-local.plist`（専用clone `~/Services/anzn-local/wbc` を実行する）
+## 自宅Macで稼働中のジョブ（2026-09-26 23:45 JST 開始）
+専用clone: `~/Services/anzn-local/wbc`（main。更新は確認のうえ `git pull --ff-only` を手動で実行）。launchd は両ジョブとも RunAtLoad あり。
+| ジョブ | 間隔 | 内容 | state・ログ |
+|---|---|---|---|
+| `com.rickykogyo.anzn-local` | 15分 | `scripts/anzn_local.py` があんぜんねっとの新着Embedを #webhook_local へ送る。送信に成功したときだけ既送信を確定 | `~/Library/Application Support/anzn-local/anzn_seen.json` / `~/Library/Logs/anzn-local.log` |
+| `com.rickykogyo.actions-dispatcher` | 5分 | `scripts/dispatch_workflows.py` が jma（10分）/ news（30分）/ CNBC（60分）を `gh workflow run` で起動する。実行中・間隔の内側なら見送り | `~/Library/Logs/actions-dispatcher.log` |
+- Actions 側の設定
+  - `news.yml` の `ANZN_SOURCE: "mac"`: あんぜんねっとは取得しない。防災まとめ欄は「自宅Macから配信中」と表示する
+  - `MAC_DISPATCHER: "on"`: news の実行間隔が60分を超えたら異常通知する
+- 切り替え時の記録: Actions側の既送信キー11件を引き継ぎ、初回の新着は0件（配信済み10件の再送なし）
+  - 即時の再実行も0件。Actions の news は `ANZN_SOURCE=mac` でスキップを確認、403は0件
+  - 起動係は、23:50 に jma を自動で起動し success
+- 手順・停止・ロールバック: `docs/ANZN_LOCAL_SETUP.md` / `docs/ACTIONS_DISPATCHER.md`
+- 未対応: あんぜんねっとのジョブ単体の停止検知（news の空きで、起動係の停止は検知できる）
 
 ## 重要ファイル
 - `.github/workflows/*.yml` … 定期実行の定義（下表）
@@ -123,16 +125,9 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
   - 解消にはオーナーによる AI Studio でのクレジット追加が必要
 - **【解決】あんぜんねっとの新着が配信されない不具合**: 5f6031a で修正（元URLを識別キーにする）。本番の定期実行（2026-09-26 20:43 JST・run 36239671584）で、10件を個別キーで記録し、Embedの送信成功を確認。
   - あんぜんねっとに限り、クエリを含む元URLを識別キーにするよう修正（`fetch_anzn_new_items`）
-- **あんぜんねっと（北本市安全安心情報）が 403 Forbidden**: GitHub Actions から取得すると、2026-09-10 以降およそ8割の実行で失敗している。
-  - ローカル（Mac）からの取得は正常（200）。1回の実行内では全部成功か全部失敗のどちらかで、IP単位の拒否と判断（リトライは無効）
-  - 公式の代わりの経路は無い（県央広域消防のRSSは、お知らせのみで出動情報を含まない）
-  - 対策として自宅Macでの定期実行を実装済み（ブランチ `feat/anzn-local`・未push・未切替）
-    - 手順: `docs/ANZN_LOCAL_SETUP.md`
-    - 切り替えの順番: 専用cloneの準備 → `ANZN_SOURCE: "mac"` を main へ push → state引き継ぎ → launchd登録
-- **スケジュール実行の大幅な遅延**: 実際の起動間隔は、設定値に関係なく中央値3〜4.5時間（直近約2週間の実測）。
-  - news（30分設定）: 234分
-  - jma_alerts（10分設定）: 200分
-  - badminton_alerts（15分設定）: 183分
+- **【解決・自宅Mac配信へ移行】あんぜんねっとが Actions から 403**: GitHub Actions のIPが拒否されていた（約9割）。2026-09-26 23:45 から自宅Macで取得・配信している（上の「自宅Macで稼働中のジョブ」）。
+- **【対策稼働中】スケジュール実行の遅延**: cron の実測は3〜4.5時間おき。2026-09-26 から、自宅Macの起動係が jma・news・CNBC を起動している。Mac が止まると cron の頻度に戻る（news が60分空くと通知）。
+- **check.yml（Automated Quality & Link Check）が毎回失敗**: 少なくとも 2026-09-23 から、flake8 の構文チェック（E9,F63,F7,F82）で失敗し続けている。配信処理とは無関係。原因ファイルは未調査。
 - **Discordへの送信失敗時の記事消失**: fetch_news・気象警報・CNBC は a91c6e2 で対応済み。カルチャー（送信失敗でも state を保存）とスポーツ順位（送信前に保存）は未対応。
 
 ## 未着手・検討中の課題（いずれもオーナー判断で保留中）
