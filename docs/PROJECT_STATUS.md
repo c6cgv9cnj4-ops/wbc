@@ -73,6 +73,19 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
   - `chunk_message()` が「　└ 」で始まるリンク行を、直前の見出し行と同じメッセージに収めるよう変更（他チャンネルの分割結果は不変）
 - `scripts/dry_run_market_curation.py`（新規）: 送信・state更新なしのドライラン
 
+## ブランチ feat/anzn-local（未push・mainに未マージ）
+- `scripts/anzn_local.py`（新規）: 自宅Macから15分ごとに、あんぜんねっとの新着Embedを送る
+  - 既存の関数を再利用。Mac専用stateは `~/Library/Application Support/anzn-local/anzn_seen.json`
+  - 送信に成功したときだけ既送信を確定する
+  - `--dry-run` / `--import-state` あり
+- `scripts/fetch_news.py`
+  - `ANZN_SOURCE=mac` のとき、Actions側のあんぜんねっと取得とEmbed送信を止める
+  - 防災まとめ欄は、Mac配信中・取得失敗を正しく表示する（取得失敗なのに「警報・火災等の情報はありません」と出る誤表示を解消）
+  - 未設定なら従来どおりの動作
+- `news_alerts.redact()`: Discord送信の例外ログから、Webhookのパス（トークン）を伏せ字にする
+- `news.yml` に `ANZN_SOURCE: "mac"` を追加。**main へ push した時点で、Actions側のあんぜんねっと取得が止まる**
+- launchd テンプレート: `docs/launchd/com.rickykogyo.anzn-local.plist`（専用clone `~/Services/anzn-local/wbc` を実行する）
+
 ## 重要ファイル
 - `.github/workflows/*.yml` … 定期実行の定義（下表）
 - `scripts/` … 各ワークフローが実行する本体
@@ -102,13 +115,14 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
   - 経済ニュースの整理は、従来の箇条書き表示に戻して配信を継続している
   - Gemini を使うスクリプトは計11本
   - 解消にはオーナーによる AI Studio でのクレジット追加が必要
-- **【修正済み・5f6031aで本番反映。本番での取得成功はまだ確認できていない】あんぜんねっとの新着が配信されない不具合**（2026-09-13〜）: 共通の `normalize_url()` がクエリを削るため、全記事が同じキー `https://anzn.net/sp/` になっていた。
+- **【解決】あんぜんねっとの新着が配信されない不具合**: 5f6031a で修正（元URLを識別キーにする）。本番の定期実行（2026-09-26 20:43 JST・run 36239671584）で、10件を個別キーで記録し、Embedの送信成功を確認。
   - あんぜんねっとに限り、クエリを含む元URLを識別キーにするよう修正（`fetch_anzn_new_items`）
-  - 反映後、最初に取得に成功した回で、ページ上の直近10件（最大約9日前まで）がまとめて1通で届く
 - **あんぜんねっと（北本市安全安心情報）が 403 Forbidden**: GitHub Actions から取得すると、2026-09-10 以降およそ8割の実行で失敗している。
   - ローカル（Mac）からの取得は正常（200）。1回の実行内では全部成功か全部失敗のどちらかで、IP単位の拒否と判断（リトライは無効）
   - 公式の代わりの経路は無い（県央広域消防のRSSは、お知らせのみで出動情報を含まない）
-  - 有力な対策は、自宅Macでの定期実行（実施するかはオーナーが判断）
+  - 対策として自宅Macでの定期実行を実装済み（ブランチ `feat/anzn-local`・未push・未切替）
+    - 手順: `docs/ANZN_LOCAL_SETUP.md`
+    - 切り替えの順番: 専用cloneの準備 → `ANZN_SOURCE: "mac"` を main へ push → state引き継ぎ → launchd登録
 - **スケジュール実行の大幅な遅延**: 実際の起動間隔は、設定値に関係なく中央値3〜4.5時間（直近約2週間の実測）。
   - news（30分設定）: 234分
   - jma_alerts（10分設定）: 200分
@@ -116,6 +130,7 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
 - **Discordへの送信失敗時は、記事が既送信の記録のまま失われる**（全チャンネル共通。state は送信前に記録される）。異常通知は届く。
 
 ## 未着手・検討中の課題（いずれもオーナー判断で保留中）
+- Mac側あんぜんねっと配信の停止検知（heartbeat）… Mac配信へ切り替えた後の後続タスク
 - #webhook_market の朝・昼・夜の固定配信化 … Phase 1 を運用してから判断
 - 経済ニュースの個別企業に「企業名＋証券コード」を付ける … Phase 2（コードはAIで推測せず、辞書で引く方針）
 - `site:reuters.com/markets/japan` クエリは、直近の記事を返さない（72時間フィルタ後は0件）。差し替えるか廃止するかは未定

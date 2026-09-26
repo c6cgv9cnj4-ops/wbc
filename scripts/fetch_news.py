@@ -495,6 +495,17 @@ ANZN_HEADERS = {
 }
 
 
+# 直近のfetch_anzn_new_arrivals()が取得に成功したか(防災まとめで「取得失敗」と
+# 「該当なし」を区別するため。2026-09-26追加)。
+ANZN_LAST_FETCH_OK = None
+
+
+def anzn_via_mac():
+    """ANZN_SOURCE=mac のとき、あんぜんねっとは自宅Mac(scripts/anzn_local.py)から配信し、
+    このスクリプト(GitHub Actions)では取得しない(2026-09-26追加。未設定なら従来どおり)。"""
+    return os.environ.get("ANZN_SOURCE", "").strip().lower() == "mac"
+
+
 def fetch_anzn_new_arrivals(limit=ANZN_ITEM_LIMIT):
     """あんぜんねっとの新着(鴻巣市・桶川市・北本市の消防出動情報等)を取得する。
     2026-09-06: GitHub ActionsのIPから403(ローカル環境からは200)になる事象を
@@ -502,6 +513,8 @@ def fetch_anzn_new_arrivals(limit=ANZN_ITEM_LIMIT):
     追加して再検証した(coffee-station.jp等と同様、クラウドIP自体をブロック
     している場合はヘッダーでは回避できない可能性が高いが、まず試す)。
     """
+    global ANZN_LAST_FETCH_OK
+    ANZN_LAST_FETCH_OK = False
     try:
         resp = requests.get(ANZN_URL, headers=ANZN_HEADERS, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
@@ -514,6 +527,7 @@ def fetch_anzn_new_arrivals(limit=ANZN_ITEM_LIMIT):
                            "一部スキップ(安全安心情報の新着を取得できず/地域ニュースは継続)")
         return []
 
+    ANZN_LAST_FETCH_OK = True
     soup = BeautifulSoup(html, "html.parser")
     items = []
     for block in soup.select('div[data-role="collapsible"]')[:limit]:
@@ -882,13 +896,18 @@ def fetch_bousai_summary_items(now, hours=BOUSAI_SUMMARY_HOURS):
     return recent
 
 
-def build_bousai_section(bousai_items):
+def build_bousai_section(bousai_items, status="ok"):
     """ローカルニュースメッセージの最上部に必ず入れる「防災・緊急情報」
     セクション。該当情報が無くても省略せず、その旨を明記する
     (2026-08-28、細川さんの指定によるフォーマット)。
     """
     lines = ["## 🚨 防災・緊急情報"]
-    if not bousai_items:
+    # 2026-09-26: 取得していない/できなかった場合に「情報はありません」と誤表示しない。
+    if status == "mac":
+        lines.append("- あんぜんねっとの速報は自宅Macから配信中（このまとめ欄では取得していません）")
+    elif status == "failed":
+        lines.append("- あんぜんねっとを取得できませんでした（防災・緊急情報の有無は確認できていません）")
+    elif not bousai_items:
         lines.append("- 現在、北本市・県央エリアに発表されている警報・火災等の情報はありません")
     else:
         for item in bousai_items:
@@ -936,7 +955,11 @@ def build_local_news_message(state, now):
         else:
             saitama_general.append(item)
 
-    bousai_items = fetch_bousai_summary_items(now)
+    if anzn_via_mac():
+        bousai_items, bousai_status = [], "mac"
+    else:
+        bousai_items = fetch_bousai_summary_items(now)
+        bousai_status = "ok" if ANZN_LAST_FETCH_OK else "failed"
 
     # 新着ローカルニュースも、直近の防災アクティブ情報も無ければ送信しない
     # (防災セクションが「異常なし」だけの空更新を毎回送るのは避ける)。
@@ -945,7 +968,7 @@ def build_local_news_message(state, now):
 
     now_jst = now.strftime("%Y-%m-%d %H:%M")
     lines = [f"# 🗾 埼玉・県央ローカルニュース ({now_jst} JST時点)", ""]
-    lines.append(build_bousai_section(bousai_items))
+    lines.append(build_bousai_section(bousai_items, bousai_status))
 
     if saitama_general:
         lines.append("")
@@ -1316,7 +1339,7 @@ def send_embed_to_discord(webhook_url, embed_payload):
             return False
         return True
     except Exception as err:  # noqa: BLE001
-        print(f"[ERROR] Discord Embed送信中に例外が発生しました: {err}")
+        print(f"[ERROR] Discord Embed送信中に例外が発生しました: {news_alerts.redact(err)}")
         return False
 
 
@@ -1358,7 +1381,7 @@ def send_to_discord(webhook_url, message):
                 print(f"[ERROR] Discord送信に失敗しました(HTTP {resp.status_code}): {resp.text[:300]}")
                 ok = False
         except Exception as err:  # noqa: BLE001
-            print(f"[ERROR] Discord送信中に例外が発生しました: {err}")
+            print(f"[ERROR] Discord送信中に例外が発生しました: {news_alerts.redact(err)}")
             ok = False
     return ok
 
@@ -1450,18 +1473,21 @@ def main():
     # ローカル系(#webhook_local): あんぜんねっと(北本市安全安心情報) + 埼玉・県央ローカルニュース。
     # 全国ニュースとは完全に別メッセージ・別Webhookで送信し、混在させない。
     if local_webhook:
-        keys_before_anzn = set(state)
-        anzn_new = fetch_anzn_new_items(state, now)
-        anzn_embed = build_anzn_alert_embed(anzn_new, now)
-        if anzn_embed:
-            print("=== あんぜんねっと新着(赤枠強調・最優先送信) ===")
-            print(anzn_new)
-            if not send_embed_to_discord(local_webhook, anzn_embed):
-                _rollback_new_keys(state, keys_before_anzn)
-                news_alerts.record("discord_send_anzn_embed", "local", "Discord送信(あんぜんねっと新着)", "送信失敗(ログにHTTPステータスあり)", "スキップ(既送信にせず次回再送)")
-                had_error = True
+        if anzn_via_mac():
+            print("[INFO] ANZN_SOURCE=mac のため、あんぜんねっとの取得・新着Embed送信はスキップします(自宅Macから配信)。")
         else:
-            print("[INFO] あんぜんねっとの新着はありませんでした。")
+            keys_before_anzn = set(state)
+            anzn_new = fetch_anzn_new_items(state, now)
+            anzn_embed = build_anzn_alert_embed(anzn_new, now)
+            if anzn_embed:
+                print("=== あんぜんねっと新着(赤枠強調・最優先送信) ===")
+                print(anzn_new)
+                if not send_embed_to_discord(local_webhook, anzn_embed):
+                    _rollback_new_keys(state, keys_before_anzn)
+                    news_alerts.record("discord_send_anzn_embed", "local", "Discord送信(あんぜんねっと新着)", "送信失敗(ログにHTTPステータスあり)", "スキップ(既送信にせず次回再送)")
+                    had_error = True
+            else:
+                print("[INFO] あんぜんねっとの新着はありませんでした。")
 
         keys_before_local = set(state)
         local_message, local_sports_items = build_local_news_message(state, now)

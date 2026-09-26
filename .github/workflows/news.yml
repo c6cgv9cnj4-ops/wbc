@@ -41,6 +41,9 @@ jobs:
           DISCORD_WEBHOOK_MARKET: ${{ secrets.WEBHOOK_MARKET }}
           DISCORD_WEBHOOK_SPORTS_CULTURE: ${{ secrets.WEBHOOK_SPORTS_CULTURE }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # あんぜんねっとはActionsのIPで403になるため、自宅Mac(scripts/anzn_local.py)から配信する
+          # (docs/ANZN_LOCAL_SETUP.md)。この行を消すと従来どおりActions側で取得する。
+          ANZN_SOURCE: "mac"
         run: python scripts/fetch_news.py
 
       - name: 既送信記録をコミット
