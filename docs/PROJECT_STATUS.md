@@ -1,6 +1,6 @@
 # PROJECT_STATUS（新しいセッションが最初に読む現在地ファイル）
 
-最終更新: 2026-09-26（問題を追記）／ 最新の機能commit: `a9d6628`（2026-09-25）
+最終更新: 2026-09-26（失敗の可視化を追加・未push）／ 最新の機能commit: `a9d6628`（2026-09-25）
 ※この後にある `github-actions[bot]` の「〜既送信記録を更新」commitは state 自動更新のみ。
 
 ## 目的
@@ -21,6 +21,18 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
 | #webhook_local | `scripts/fetch_news.py` | あんぜんねっと（北本市）＋埼玉県央ローカルニュース |
 | #webhook_news | `scripts/fetch_news.py` | 全国主要ニュース（Yahoo!トップピックス＋Gemini要約） |
 | #webhook_news | `scripts/fetch_culture_news.py` | 国債・カルチャー・展覧会 |
+
+## 未push（ローカルでcommit済み・本番未反映）
+- 失敗の可視化: `scripts/news_alerts.py`（新規）＋ `fetch_news.py` に記録用の1行×9か所、`market_news_curation.py` に `LAST_ERROR` を追加。
+  - 次の異常を実行の最後にまとめ、影響を受けたチャンネルへ「⚠️ ニュース自動配信で異常を検知」として1通送る
+    - あんぜんねっとの取得失敗
+    - 全国ニュースのGemini失敗・配信スキップ
+    - 経済ニュース整理のGemini失敗
+    - Google News取得失敗
+    - Discordへの送信失敗
+  - そのチャンネルへの送信に失敗した場合は、他のWebhookへ送る
+  - 同じ種類の異常は12時間は再通知しない（`state/news_seen.json` の `_alert:<種類>` キーに最終通知時刻を記録）
+  - 通常投稿の内容は変更前と完全一致することを、検証ハーネスで確認済み
 
 ## 最近完了した変更（a9d6628, 2026-09-25）
 - `scripts/market_news_curation.py`（新規）
@@ -64,6 +76,7 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
   - news（30分設定）: 234分
   - jma_alerts（10分設定）: 200分
   - badminton_alerts（15分設定）: 183分
+- **全国ニュースは、Gemini失敗でスキップされた回の記事がそのまま失われる**: 要約の前に、記事が既送信として記録されるため（`build_national_news_message` 内の `dedupe_new_items`）。
 
 ## 未着手・検討中の課題（いずれもオーナー判断で保留中）
 - #webhook_market の朝・昼・夜の固定配信化 … Phase 1 を運用してから判断
@@ -79,6 +92,7 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
 3. `git pull --rebase origin main` → commit → push（bot が state を頻繁にcommitするため、pull が必須）
 4. `gh workflow run news.yml --ref main` → `gh run watch <id>` で success を確認し、ログで除外件数・フォールバック・送信エラーを確認
 5. すぐ無効化する方法: 環境変数 `MARKET_NEWS_CURATION=off` で、経済ニュースを従来の箇条書き表示に戻せる
+6. fetch_news.py 全体の送信なし検証: Discordへの送信・Gemini・通信を差し替えて main() を実行し、変更前のコードと投稿内容を比較する（今回はスクラッチ上のハーネスで実施。リポジトリには未収録）
 
 ## 今後の作業原則
 - 既存機能を壊さない。変更は最小限にする

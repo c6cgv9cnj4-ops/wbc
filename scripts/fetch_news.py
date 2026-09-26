@@ -78,6 +78,7 @@ import requests
 from bs4 import BeautifulSoup
 
 import market_news_curation
+import news_alerts
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -502,6 +503,9 @@ def fetch_anzn_new_arrivals(limit=ANZN_ITEM_LIMIT):
         html = resp.content.decode("euc-jp", errors="replace")
     except Exception as err:  # noqa: BLE001
         print(f"[ERROR] あんぜんねっとの取得に失敗しました: {err}")
+        news_alerts.record("anzn_fetch", "local", "あんぜんねっと(北本市安全安心情報)",
+                           f"取得失敗 {news_alerts.short_error(err)}",
+                           "一部スキップ(安全安心情報の新着を取得できず/地域ニュースは継続)")
         return []
 
     soup = BeautifulSoup(html, "html.parser")
@@ -602,6 +606,8 @@ def fetch_google_news_query(query, limit=RSS_ITEM_LIMIT, retries=2):
 
     if resp is None:
         print(f"[ERROR] Google News RSS取得に失敗しました({query})")
+        news_alerts.record("google_news_fetch", "market", "経済ニュース(Google News検索)",
+                           f"取得失敗(リトライ後も失敗): {query}", "継続(このクエリ分の記事のみ欠落)")
         return []
 
     feed = feedparser.parse(resp.content)
@@ -997,6 +1003,9 @@ Yahoo!ニュースが無料公開しているリード文(本文の一部)が付
         parsed = json.loads(text)
     except Exception as err:  # noqa: BLE001
         print(f"[WARN] Gemini主要ニュース要約に失敗しました: {err}")
+        news_alerts.record("gemini_national", "news", "全国主要ニュース(Gemini要約)",
+                           f"Gemini APIエラー {news_alerts.short_error(err)}",
+                           "スキップ(この回の全国ニュースは配信されません)")
         return []
 
     results = []
@@ -1055,6 +1064,8 @@ def build_national_news_message(client, state, now):
     summarized = summarize_national_news(client, candidates)
     if not summarized:
         print("[WARN] 主要ニュースの要約が0件だったため、この回の配信をスキップします。")
+        news_alerts.record("gemini_national", "news", "全国主要ニュース(Gemini要約)",
+                           "要約が0件", "スキップ(この回の全国ニュースは配信されません)")
         return None, sports_items
 
     now_jst = now.strftime("%Y-%m-%d %H:%M")
@@ -1183,6 +1194,10 @@ def build_market_message(state, now, gemini_client=None):
         # 2026-09-25追加: 同じ材料の記事をグループ化し、カテゴリ・重要度順に整理する
         # (market_news_curation.py)。失敗時は None が返り、従来の箇条書きに戻す。
         curated = market_news_curation.curate(biz_new, gemini_client, GEMINI_MODEL_NAME)
+        if curated is None and market_news_curation.LAST_ERROR:
+            news_alerts.record("gemini_market", "market", "経済ニュースの材料整理(Gemini)",
+                               f"Gemini APIエラー {news_alerts.short_error(market_news_curation.LAST_ERROR)}",
+                               "継続(従来の箇条書き表示で配信)")
         if curated:
             lines.extend(market_news_curation.render_groups(curated))
         else:
@@ -1370,6 +1385,7 @@ def main():
             print("=== あんぜんねっと新着(赤枠強調・最優先送信) ===")
             print(anzn_new)
             if not send_embed_to_discord(local_webhook, anzn_embed):
+                news_alerts.record("discord_send_anzn_embed", "local", "Discord送信(あんぜんねっと新着)", "送信失敗(ログにHTTPステータスあり)", "スキップ(この投稿は届いていません)")
                 had_error = True
         else:
             print("[INFO] あんぜんねっとの新着はありませんでした。")
@@ -1379,6 +1395,7 @@ def main():
             print("=== ローカルニュースメッセージ(新着あり) ===")
             print(local_message)
             if not send_to_discord(local_webhook, local_message):
+                news_alerts.record("discord_send_local_message", "local", "Discord送信(埼玉・県央ローカルニュース)", "送信失敗(ログにHTTPステータスあり)", "スキップ(この投稿は届いていません)")
                 had_error = True
         else:
             print("[INFO] 新着のローカルニュースはありませんでした。送信をスキップします。")
@@ -1395,6 +1412,7 @@ def main():
             print("=== 全国ニュースメッセージ(新着あり) ===")
             print(national_message)
             if not send_to_discord(news_webhook, national_message):
+                news_alerts.record("discord_send_national_message", "news", "Discord送信(全国主要ニュース)", "送信失敗(ログにHTTPステータスあり)", "スキップ(この投稿は届いていません)")
                 had_error = True
         else:
             print("[INFO] 新着の全国ニュースはありませんでした。送信をスキップします。")
@@ -1411,9 +1429,15 @@ def main():
         if skip_as_duplicate:
             print("[INFO] 土日の重複配信のためDiscordへの送信はスキップしました(ログには残しています)。")
         elif not send_to_discord(market_webhook, market_message):
+            news_alerts.record("discord_send_market_message", "market", "Discord送信(マーケット情報)", "送信失敗(ログにHTTPステータスあり)", "スキップ(この投稿は届いていません)")
             had_error = True
     else:
         print("[WARN] DISCORD_WEBHOOK_MARKET が未設定のため、マーケット配信をスキップします。")
+
+    # 2026-09-26追加: 実行中に記録した重要な異常を、最後にまとめてDiscordへ通知する
+    # (news_alerts.py。通知の成否は終了コードに影響させない)。
+    news_alerts.flush({"local": local_webhook, "news": news_webhook, "market": market_webhook},
+                      send_to_discord, state, now)
 
     save_seen_state(state)
 

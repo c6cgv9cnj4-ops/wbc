@@ -30,6 +30,8 @@ import urllib.parse
 CATEGORIES = ["日本市場", "米国市場", "為替・金利", "中央銀行", "個別企業", "海外経済", "国内経済", "その他"]
 IMPORTANCE_ORDER = {"high": 0, "mid": 1, "low": 2}
 IMPORTANCE_ICON = {"high": "🔴", "mid": "🟡", "low": "⚪"}
+# 直近のcurate()でGemini呼び出し・解析が失敗した場合の例外(失敗の可視化用。成功/対象外ならNone)
+LAST_ERROR = None
 # 媒体リンク行の接頭辞。fetch_news.chunk_message() はこの接頭辞の行を直前の見出し行と
 # 同じメッセージに収める。
 CONTINUATION_PREFIX = "　└ "
@@ -214,6 +216,8 @@ def curate(items, client, model_name):
     戻り値: {"groups": [...], "ungrouped": [item, ...], "warnings": [...], "raw": str}
       groups の各要素: {"items": [item, ...], "headline", "category", "importance", "reason"}
     """
+    global LAST_ERROR
+    LAST_ERROR = None
     if os.environ.get("MARKET_NEWS_CURATION", "").lower() == "off":
         print("[INFO] MARKET_NEWS_CURATION=off のため、経済ニュースの整理をスキップします。")
         return None
@@ -229,6 +233,7 @@ def curate(items, client, model_name):
         groups_idx, ungrouped_idx, warnings = _validate(_parse_json(raw), len(items))
     except Exception as err:  # noqa: BLE001
         print(f"[WARN] 経済ニュースのグループ化に失敗したため、従来の箇条書きに戻します: {err}")
+        LAST_ERROR = err
         return None
     if not groups_idx:
         print("[WARN] 経済ニュースのグループが0件だったため、従来の箇条書きに戻します。")
