@@ -1001,12 +1001,16 @@ Yahoo!ニュースが無料公開しているリード文(本文の一部)が付
         text = resp.text.strip()
         text = re.sub(r"^```(json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
         parsed = json.loads(text)
+        if not isinstance(parsed, list):
+            raise ValueError("Geminiの出力がJSON配列ではありません")
     except Exception as err:  # noqa: BLE001
+        # 2026-09-26: Gemini処理そのものの失敗は None を返し、「正常に処理して0件」([])と区別する
+        # (呼び出し側で既送信記録を取り消し、記事を次回以降に再試行させるため)。
         print(f"[WARN] Gemini主要ニュース要約に失敗しました: {err}")
         news_alerts.record("gemini_national", "news", "全国主要ニュース(Gemini要約)",
                            f"Gemini APIエラー {news_alerts.short_error(err)}",
-                           "スキップ(この回の全国ニュースは配信されません)")
-        return []
+                           "スキップ(記事は既送信扱いにせず次回以降に再試行)")
+        return None
 
     results = []
     for entry in parsed:
@@ -1062,6 +1066,12 @@ def build_national_news_message(client, state, now):
         item["body"] = fetch_yahoo_pickup_body(item["url"])
 
     summarized = summarize_national_news(client, candidates)
+    if summarized is None:
+        # 2026-09-26: Gemini失敗時は、dedupe_new_items()が付けた既送信記録を取り消す
+        # (取り消さないとGemini復旧後も再配信されず記事が失われるため)。
+        # 正常に0件だった場合([])は従来どおり記録を残し、無限に再試行しない。
+        for item in top_general:
+            state.pop(normalize_url(item["url"]), None)
     if not summarized:
         print("[WARN] 主要ニュースの要約が0件だったため、この回の配信をスキップします。")
         news_alerts.record("gemini_national", "news", "全国主要ニュース(Gemini要約)",
