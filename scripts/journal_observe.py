@@ -38,9 +38,11 @@ MIN_DAYS_WEEK = 2        # 週次: 新規/増加と言うには最低2日に出�
 MIN_DAYS_MONTH = 3       # 月次(28日単位): 同 3日
 GONE_MIN_BASE_PERIODS = 2  # 「出てこなかった」は比較期間のうち2期間以上に出ていた語だけ
 STREAK_MIN = 3           # 3期間連続で出ていれば「続いている」
+STABLE_DELTA = 0.15      # 続いている語のうち、出る割合の差が15pt未満なら「安定」
 MARKER_MIN_TOTAL = 4     # 表現の増減は(今期+比較平均)が4回以上あるものだけ判定
 MARKER_RATIO_UP = 1.5    # 1000字あたり出現率が1.5倍以上 → 増
 MARKER_RATIO_DOWN = 0.67 # 0.67倍以下 → 減
+MARKER_MIN_GAP = 3       # かつ、比較期間の出現率から期待される回数との差が3回以上(少量の揺れを除く)
 LIST_LIMIT = 8           # 各リストの表示上限
 SNIPPET_HALF = 22        # 抜粋は該当箇所の前後22字
 
@@ -69,6 +71,14 @@ MARKERS = [
      re.compile(r"[？?]|だろうか|のかな|かなあ|かな[。\n]|かな$")),
 ]
 MARKER_LABEL = {k: lbl for k, lbl, _ in MARKERS}
+
+# 語の区分(固定カテゴリへの分類ではなく「時間軸上のふるまい」の区分。どの語が入るかはデータ次第)
+TERM_KINDS = ("new", "returned", "up", "down", "gone", "transient", "stable", "steady")
+TERM_KIND_NAME = {"new": "新しく出た", "returned": "再び出た", "up": "増えた", "down": "減った",
+                  "gone": "出てこなかった", "transient": "前週だけ出た", "stable": "安定して続いている",
+                  "steady": "続いている（割合は変動）"}
+TERM_KIND_ICON = {"new": "🆕", "returned": "↩️", "up": "⬆️", "down": "⬇️", "gone": "💤",
+                  "transient": "🌫", "stable": "🟰", "steady": "🔁"}
 MARKER_SHORT = {"want": "願望", "done": "実行・完了", "intent": "意図・予定", "undone": "未実行",
                 "burden": "負担", "worry": "不安・気がかり", "positive": "肯定", "body": "身体・睡眠",
                 "question": "問いかけ"}
@@ -93,6 +103,7 @@ STOP_TERMS = {
     "何度", "一回", "自体", "以外", "以前", "前日", "翌日", "当日", "途中", "最初", "最後", "方法",
     "予定", "感覚", "朝起", "気分", "今度", "久々", "明後日", "一人", "人間", "世界", "仕方",
     "ジャーナル", "モーニング", "モーニングジャーナル", "モーニングページ", "ページ",
+    "後回", "先延",   # 「後回し」「先延ばし」の語幹。未実行表現として別に数えるので二重計上しない
 }
 
 
@@ -246,7 +257,7 @@ def observe(days: dict, cur_start: datetime.date, *, unit_days: int = 7,
 
     # --- B. 語の変化 ------------------------------------------------------
     cur_w = max(cur["written"], 1)
-    terms: dict[str, list] = {k: [] for k in ("new", "returned", "up", "down", "gone", "steady")}
+    terms: dict[str, list] = {k: [] for k in TERM_KINDS}
     universe = set(cur["term_days"]) | {t for p in base for t in p["term_days"]}
     for t in universe:
         cd = cur["term_days"][t]
@@ -263,9 +274,14 @@ def observe(days: dict, cur_start: datetime.date, *, unit_days: int = 7,
                 streak += 1
             else:
                 break
+        pd = prev["term_days"][t]
         item = {"term": t, "days": cd, "written": cur["written"], "ratio": round(cr, 2),
                 "base_ratio": round(br, 2), "base_days": b_days, "base_written": base_written,
-                "streak": streak, "occ": cur["term_occ"][t]}
+                "prev_days": pd, "prev_written": prev["written"],
+                "prev_ratio": round(pd / prev["written"], 2) if prev["written"] else None,
+                "streak": streak, "occ": cur["term_occ"][t],
+                # 古い期間→今期の順に「出た日数」(ヒートマップ・時間軸の確認用)
+                "series": [p["term_days"][t] for p in reversed(periods[:n_hist + 1])]}
         if cd >= min_days and not in_hist:
             terms["new"].append(item)
         elif cd >= min_days and not b_present:
@@ -277,18 +293,23 @@ def observe(days: dict, cur_start: datetime.date, *, unit_days: int = 7,
         elif (cd >= 1 and b_present >= gone_min and br - cr >= RATIO_DELTA
               and br * cur_w - cd >= EXPECTED_GAP):
             terms["down"].append(item)
+        elif (unit_days <= 7 and cd == 0 and pd >= min_days and cur["written"] >= 2
+              and not any(p["term_days"][t] for p in periods[2:])):
+            terms["transient"].append(item)      # 前週だけ出て、それ以前にも今週にも無い
         elif cd == 0 and b_present >= gone_min and br * cur["written"] >= GONE_EXPECTED:
             last = max(d for p in base_active for d in p["dates"] if days[d]["terms"][t])
             item["last_seen"] = last.strftime("%m/%d")
             terms["gone"].append(item)
         elif streak_min and streak >= streak_min and cd >= 1:
-            terms["steady"].append(item)
+            terms["stable" if abs(cr - br) < STABLE_DELTA else "steady"].append(item)
     terms["new"].sort(key=lambda x: (-x["days"], -x["occ"], x["term"]))
     terms["returned"].sort(key=lambda x: (-x["days"], -x["occ"], x["term"]))
     terms["up"].sort(key=lambda x: (-(x["ratio"] - x["base_ratio"]), x["term"]))
     terms["down"].sort(key=lambda x: (-(x["base_ratio"] - x["ratio"]), x["term"]))
     terms["gone"].sort(key=lambda x: (-x["base_ratio"], x["term"]))
-    terms["steady"].sort(key=lambda x: (-x["streak"], -x["days"], x["term"]))
+    terms["transient"].sort(key=lambda x: (-x["prev_days"], x["term"]))
+    for k in ("stable", "steady"):
+        terms[k].sort(key=lambda x: (-x["streak"], -x["days"], x["term"]))
     for k in terms:
         terms[k] = terms[k][:LIST_LIMIT]
 
@@ -301,14 +322,17 @@ def observe(days: dict, cur_start: datetime.date, *, unit_days: int = 7,
         b_rate = b_cnt / base_chars * 1000 if base_chars else 0.0
         b_avg = b_cnt / nb if base_active else None
         direction = ""
-        if baseline_ok and c + (b_avg or 0) >= MARKER_MIN_TOTAL:
+        expected = b_rate * cur["chars"] / 1000
+        if baseline_ok and c + (b_avg or 0) >= MARKER_MIN_TOTAL and abs(c - expected) >= MARKER_MIN_GAP:
             if b_rate == 0 and c >= 3:
                 direction = "up"
             elif b_rate and c_rate / b_rate >= MARKER_RATIO_UP:
                 direction = "up"
             elif b_rate and c_rate / b_rate <= MARKER_RATIO_DOWN:
                 direction = "down"
+        p_rate = prev["markers"][key] / prev["chars"] * 1000 if prev["chars"] else None
         markers.append({"key": key, "label": label, "short": MARKER_SHORT[key], "count": c,
+                        "prev_rate": round(p_rate, 1) if p_rate is not None else None,
                         "prev": prev["markers"][key], "base_avg": round(b_avg, 1) if b_avg is not None else None,
                         "rate": round(c_rate, 1), "base_rate": round(b_rate, 1), "direction": direction})
 
@@ -367,20 +391,26 @@ def _items(obs: dict, days: dict, cur: dict, base_active: list) -> list[dict]:
             _evidence(days, dts, x["term"]))
     for x in T["up"]:
         dts = [d for d in cur_dates if days[d]["terms"][x["term"]]]
-        add("up", f"「{x['term']}」が出た日の割合 {_pp(x['base_ratio'])}→{_pp(x['ratio'])}"
+        add("up", f"「{x['term']}」への言及が増加: 出た日の割合 {_timeline(x, obs)}"
                   f"（今期 {x['days']}/{x['written']}日）", _evidence(days, dts, x["term"]))
     for x in T["down"]:
         dts = [d for d in cur_dates if days[d]["terms"][x["term"]]]
-        add("down", f"「{x['term']}」が出た日の割合 {_pp(x['base_ratio'])}→{_pp(x['ratio'])}"
+        add("down", f"「{x['term']}」への言及が減少: 出た日の割合 {_timeline(x, obs)}"
                     f"（今期 {x['days']}/{x['written']}日）", _evidence(days, dts, x["term"]))
     for x in T["gone"]:
         dts = sorted((d for p in base_active for d in p["dates"] if days[d]["terms"][x["term"]]), reverse=True)
         add("gone", f"「{x['term']}」が今期は出なかった（比較期間では書いた日の{_pp(x['base_ratio'])}、"
                     f"最後は{x['last_seen']}）", _evidence(days, dts, x["term"], limit=1))
+    for x in T["transient"]:
+        pdts = [d for p in base_active[:1] for d in p["dates"] if days[d]["terms"][x["term"]]]
+        add("transient", f"「{x['term']}」は前週だけ{x['prev_days']}日出て、今期と{obs['hist_span']}のそれ以前には無い",
+            _evidence(days, pdts, x["term"], limit=1))
     for m in obs["markers"]:
         if m["direction"]:
-            arrow = "増" if m["direction"] == "up" else "減"
-            add("marker", f"{m['label']}の出現 {m['count']}回（1000字あたり {m['base_rate']}→{m['rate']}、{arrow}）")
+            arrow = "増加" if m["direction"] == "up" else "減少"
+            prev = f" → 前週 {m['prev_rate']}" if m.get("prev_rate") is not None and obs["unit_days"] <= 7 else ""
+            add("marker", f"{m['label']}の出現率が{arrow}: 1000字あたり {_base_label(obs)} {m['base_rate']}"
+                          f"{prev} → 今期 {m['rate']}（今期 {m['count']}回）")
     for c in obs["cooccur"]:
         add("cooccur", f"「{c['a']}」と「{c['b']}」が同じ日に{c['days']}日出てきた")
     for tm in obs["term_markers"]:
@@ -394,6 +424,13 @@ def _base_label(obs: dict) -> str:
     return f"直前{obs['base_periods']}週の平均"
 
 
+def _timeline(x: dict, obs: dict) -> str:
+    """比較期間 → 前週 → 今週 の順で割合を並べる(月次は 前の28日 → 直近28日)。"""
+    if obs["unit_days"] > 7 or x.get("prev_ratio") is None:
+        return f"{_base_label(obs)} {_pp(x['base_ratio'])} → 今期 {_pp(x['ratio'])}"
+    return f"{_base_label(obs)} {_pp(x['base_ratio'])} → 前週 {_pp(x['prev_ratio'])} → 今週 {_pp(x['ratio'])}"
+
+
 def _pp(r: float) -> str:
     return f"{round(r * 100)}%"
 
@@ -405,19 +442,26 @@ def _signed_pct(p) -> str:
 # ---------------------------------------------------------------------------
 # Gemini: 観測 → 解釈の仮説(事実として扱わない)
 # ---------------------------------------------------------------------------
-PROMPT_EVIDENCE_CHARS = 3500
-_BANNED = re.compile(r"すべき|しましょう|べきです|必要があります|してください|明らかに|間違いなく|確実に")
+PROMPT_EVIDENCE_CHARS = 1200   # Gemini に渡す抜粋の総量上限(本文全体は渡さない)
+PROMPT_EVIDENCE_KINDS = ("new", "returned", "up", "down", "transient")   # 今期の変化の根拠だけ渡す
+_BANNED = re.compile(r"すべき|しましょう|べきです|必要があります|してください|明らかに|間違いなく|確実に"
+                     r"|\d+(?:\.\d+)?\s*(?:点|/10|／10)|スコア")
+# 仮説の形で書かれているか(断定文は捨てる)
+_HEDGE = re.compile(r"かもしれ|可能性|考えられ|ように見え|とも読め|かも|のでは")
 
 
 def build_prompt(obs: dict, context_note: str = "") -> str:
     lines, used = [], 0
     for it in obs["items"]:
         lines.append(f"[{it['id']}] {it['text']}")
-        for ev in it["evidence"]:
-            if ev["snippet"] and used < PROMPT_EVIDENCE_CHARS:
+        if it["kind"] not in PROMPT_EVIDENCE_KINDS:
+            continue
+        for ev in it["evidence"][:1]:
+            if ev["snippet"] and used + len(ev["snippet"]) <= PROMPT_EVIDENCE_CHARS:
                 lines.append(f"    - {ev['date']}: {ev['snippet']}")
                 used += len(ev["snippet"])
-    steady = "、".join(f"{x['term']}({x['streak']}期連続)" for x in obs["terms"]["steady"]) or "なし"
+    steady = "、".join(f"{x['term']}({x['streak']}期連続)"
+                      for k in ("stable", "steady") for x in obs["terms"][k]) or "なし"
     return f"""あなたは、本人がモーニングジャーナル(朝に頭の中を自由に書き出す日記)から
 自分の変化に気づくのを手伝う観測パートナーです。評価・指導・目標設定はしません。
 
@@ -429,7 +473,8 @@ def build_prompt(obs: dict, context_note: str = "") -> str:
 
 守ること:
 - 観測に書かれていないことを事実として述べない。語の回数は感情の強さを表さない。
-- 解釈は必ず「可能性」として書き、1つに断定しない(別の可能性も必ず1つ以上添える)。
+- 解釈は必ず「〜かもしれない」「〜の可能性がある」の形で書き、1つに断定しない(別の可能性も必ず1つ以上添える)。
+- 気持ち・ストレス・幸福度などを点数や数値にしない。語の増減をそのまま感情の増減と言い換えない。
 - 「〜すべき」「〜しましょう」などの指示・目標・ToDo・良し悪しの評価は書かない。
 - 各仮説は根拠にした観測ID(O1など)を refs に必ず入れる。関連の薄い観測同士を無理につなげない。
 - 変化が乏しい場合は、無理に意味を作らず hypotheses を少なくしてよい。
@@ -463,7 +508,7 @@ def normalize_interpretation(raw: dict, obs: dict) -> dict:
         text = " ".join(str(h.get("text") or "").split())[:160]
         alts = [" ".join(str(a).split())[:120] for a in (h.get("alternatives") or []) if str(a).strip()]
         alts = [a for a in alts if not _BANNED.search(a)][:2]
-        if not refs or not text or _BANNED.search(text):
+        if not refs or not text or _BANNED.search(text) or not _HEDGE.search(text):
             continue
         hyps.append({"refs": refs, "text": text, "alternatives": alts})
     qs = [" ".join(str(q).split())[:120] for q in ((raw or {}).get("questions") or [])]
@@ -501,17 +546,19 @@ def interpret(obs: dict, api_key: str, model: str, context_note: str = "") -> tu
 # 出力: Discord 本文 / シート行 / CIログ用の伏せ字サマリー
 # ---------------------------------------------------------------------------
 HEAD_MARK = "📊 週次観測"
-_KIND_ICON = {"new": "🆕", "returned": "↩️", "up": "⬆️", "down": "⬇️", "gone": "💤"}
-
-
 def _term_line(kind: str, x: dict) -> str:
+    """一覧用の短い表記。増減・継続は 比較期間→前週→今週 の割合を並べる。"""
     if kind in ("new", "returned"):
         return f"{x['term']}({x['days']}日)"
-    if kind in ("up", "down"):
-        return f"{x['term']}({_pp(x['base_ratio'])}→{_pp(x['ratio'])})"
+    if kind in ("up", "down", "stable", "steady"):
+        mid = f"→前週{_pp(x['prev_ratio'])}" if x.get("prev_ratio") is not None and len(x.get("series", [])) > 2 else ""
+        tail = f"・{x['streak']}期連続" if kind in ("stable", "steady") else ""
+        return f"{x['term']}({_pp(x['base_ratio'])}{mid}→{_pp(x['ratio'])}{tail})"
     if kind == "gone":
         return f"{x['term']}(最後 {x['last_seen']})"
-    return f"{x['term']}({x['streak']}期連続)"
+    if kind == "transient":
+        return f"{x['term']}(前週{x['prev_days']}日)"
+    return x["term"]
 
 
 def compose_messages(obs: dict, interp: dict | None, interp_status: str, *, head: str,
@@ -523,6 +570,8 @@ def compose_messages(obs: dict, interp: dict | None, interp_status: str, *, head
     a = [f"{head}  {obs['period']}", ""]
     for x in warnings or []:
         a.append(f"⚠️ {x}")
+    if warnings:
+        a.append("")
     a.append("**A. 書いた記録**（Pythonで計数）")
     base = (f" ／ {_base_label(obs)} {w['base_written_avg']}日・{w['base_chars_avg']:,}字"
             if w["base_written_avg"] is not None else " ／ 比較できる過去データなし")
@@ -530,25 +579,30 @@ def compose_messages(obs: dict, interp: dict | None, interp_status: str, *, head
     if w["chars_vs_prev_pct"] is not None:
         a.append(f"・文字数 前{unit}比 {_signed_pct(w['chars_vs_prev_pct'])}")
     a.append("")
-    a.append("**B. 変化**（書いた日のうち何日に出たか。回数は気持ちの強さではありません）")
+    a.append("**B. 変化**（語が書いた日のうち何日に出たか＝言及の多さ。気持ちの強さではありません）")
     T = obs["terms"]
-    names = {"new": "新しく出た", "returned": "再び出た", "up": "増えた", "down": "減った", "gone": "出てこなかった"}
     any_change = False
-    for k in ("new", "returned", "up", "down", "gone"):
+    for k in ("new", "returned", "up", "down", "transient", "gone"):
         if T[k]:
             any_change = True
-            a.append(f"{_KIND_ICON[k]} {names[k]}: " + "、".join(_term_line(k, x) for x in T[k]))
-    if T["steady"]:
-        a.append("🔁 続いている: " + "、".join(_term_line("steady", x) for x in T["steady"]))
+            a.append(f"{TERM_KIND_ICON[k]} {TERM_KIND_NAME[k]}: " + "、".join(_term_line(k, x) for x in T[k]))
     if not any_change:
         a.append("・目立った語の増減は検出されませんでした" + ("" if obs["baseline_ok"] else "（比較データ不足）"))
     mk = [m for m in obs["markers"] if m["direction"]]
     if mk:
-        a.append("🗣 表現: " + "、".join(f"{m['short']} {m['base_rate']}→{m['rate']}/千字" for m in mk))
+        a.append("🗣 表現の出現率（千字あたり）: " + "、".join(
+            f"{m['short']} {m['base_rate']}"
+            + (f"→前週{m['prev_rate']}" if m.get("prev_rate") is not None and obs["unit_days"] <= 7 else "")
+            + f"→{m['rate']}" for m in mk))
     if obs["cooccur"] or obs["term_markers"]:
         pairs = [f"{c['a']}×{c['b']}({c['days']}日)" for c in obs["cooccur"][:3]]
         pairs += [f"{t['term']}×{t['marker']}表現({t['days']}/{t['term_days']}日)" for t in obs["term_markers"][:3]]
         a.append("🔗 同じ日に出た: " + "、".join(pairs))
+    if T["stable"] or T["steady"]:
+        a += ["", "**変わらなかったこと**" + ("（直前4週→前週→今週）" if obs["unit_days"] <= 7 else "")]
+        for k in ("stable", "steady"):
+            if T[k]:
+                a.append(f"{TERM_KIND_ICON[k]} {TERM_KIND_NAME[k]}: " + "、".join(_term_line(k, x) for x in T[k]))
     a += list(extra_lines or [])
     if sheet_link:
         a += ["", f"📄 推移（シート）: {sheet_link}"]
@@ -570,7 +624,7 @@ def compose_messages(obs: dict, interp: dict | None, interp_status: str, *, head
     c += ["", "**D. 根拠**（観測ID → 日付・元スレッド）"]
     for it in obs["items"]:
         c.append(f"{it['id']} {it['text']}")
-        for ev in it["evidence"][:2]:
+        for ev in it["evidence"][:1]:
             c.append(f"　{ev['date']} {ev['snippet']} {('<' + ev['url'] + '>') if ev['url'] else ''}".rstrip())
     return _chunk("\n".join(a)) + _chunk("\n".join(c))
 
@@ -590,8 +644,8 @@ def _chunk(text: str, limit: int = 1900) -> list[str]:
 
 SHEET_HEADER = (["対象週", "書いた日数", "総文字数", "1日平均文字数", "文字数 前週比%"]
                 + [MARKER_SHORT[k] for k, _, _ in MARKERS]
-                + ["新しく出た語", "再び出た語", "増えた語", "減った語", "出てこなかった語", "続いている語",
-                   "気づき（Gemini仮説）", "根拠スレッド", "解釈の状態"])
+                + [TERM_KIND_NAME[k] + "語" for k in TERM_KINDS]
+                + ["気づき（Gemini仮説）", "根拠スレッド", "解釈の状態"])
 
 
 def sheet_row(week_tag: str, obs: dict, interp: dict | None, interp_status: str) -> list:
@@ -606,7 +660,7 @@ def sheet_row(week_tag: str, obs: dict, interp: dict | None, interp_status: str)
     return ([week_tag, w["written"], w["chars"], w["avg_chars"],
              "" if w["chars_vs_prev_pct"] is None else w["chars_vs_prev_pct"]]
             + [by_key.get(k, 0) for k, _, _ in MARKERS]
-            + ["、".join(_term_line(k, x) for x in T[k]) for k in ("new", "returned", "up", "down", "gone", "steady")]
+            + ["、".join(_term_line(k, x) for x in T[k]) for k in TERM_KINDS]
             + [hyp, "\n".join(urls[:10]), interp_status])
 
 
@@ -636,8 +690,8 @@ def render_png(obs: dict, out_path: str, *, title: str, font_family: str | None 
     plt.rcParams.update({"axes.edgecolor": GRID, "axes.labelcolor": MUTED, "xtick.color": MUTED,
                          "ytick.color": MUTED, "axes.spines.top": False, "axes.spines.right": False})
     w, T = obs["writing"], obs["terms"]
-    fig = plt.figure(figsize=(12, 9.6), dpi=110, facecolor="white")
-    gs = fig.add_gridspec(3, 2, height_ratios=[1, 1, 1.25], hspace=0.62, wspace=0.28)
+    fig = plt.figure(figsize=(12, 12), dpi=110, facecolor="white")
+    gs = fig.add_gridspec(3, 2, height_ratios=[1, 1, 1.9], hspace=0.55, wspace=0.28)
     fig.suptitle(title, fontsize=17, color=INK, x=0.03, ha="left", y=0.985)
     fig.text(0.03, 0.935, "数値はPythonによる計数です。出現回数は気持ちの強さや良し悪しを表しません。",
              fontsize=9.5, color=MUTED)
@@ -671,33 +725,59 @@ def render_png(obs: dict, out_path: str, *, title: str, font_family: str | None 
     ax4 = fig.add_subplot(gs[1, 1])
     ms = obs["markers"]
     ys = list(range(len(ms)))[::-1]
-    ax4.barh([y + 0.2 for y in ys], [m["base_rate"] for m in ms], height=0.36, color=REF, label="比較期間")
-    ax4.barh([y - 0.2 for y in ys], [m["rate"] for m in ms], height=0.36, color=ACCENT, label="今期")
+    weekly = w["span_days"] <= 7
+    series = [("base_rate", "直前4週の平均" if weekly else "前の期間", "#D1D5DB")]
+    if weekly:
+        series.append(("prev_rate", "前週", REF))
+    series.append(("rate", "今週" if weekly else "今期", ACCENT))
+    hgt = 0.8 / len(series)
+    for i, (key, lbl, col) in enumerate(series):
+        off = (len(series) - 1) / 2 * hgt - i * hgt
+        ax4.barh([y + off for y in ys], [m.get(key) or 0 for m in ms], height=hgt * 0.9, color=col, label=lbl)
     ax4.set_yticks(ys)
     ax4.set_yticklabels([m["short"] + (" ▲" if m["direction"] == "up" else " ▼" if m["direction"] == "down" else "")
                          for m in ms], fontsize=9)
-    ax4.set_title("表現の出現（1000字あたり）", fontsize=12, color=INK, loc="left")
+    ax4.set_title("表現の出現率（1000字あたり）", fontsize=12, color=INK, loc="left")
     ax4.legend(fontsize=8.5, frameon=False, loc="lower right")
     ax4.tick_params(axis="x", labelsize=8.5)
     ax4.grid(axis="x", color=GRID, lw=0.8)
     ax4.set_axisbelow(True)
 
+    # 語 × 期間 のヒートマップ(セル=その期間に出た日数、色=書いた日のうちの割合)
     ax5 = fig.add_subplot(gs[2, :])
-    ax5.axis("off")
-    ax5.set_title("語の変化（書いた日のうち何日に出たか）", fontsize=12, color=INK, loc="left")
-    rows = [("新しく出た", "new"), ("再び出た", "returned"), ("増えた", "up"), ("減った", "down"),
-            ("出てこなかった", "gone"), ("続いている", "steady")]
-    y = 0.92
-    for name, k in rows:
-        vals = "、".join(_term_line(k, x) for x in T[k][:6]) or "—"
-        if len(vals) > 70:
-            vals = vals[:69] + "…"
-        ax5.text(0.0, y, name, fontsize=10.5, color=MUTED, transform=ax5.transAxes, va="top")
-        ax5.text(0.16, y, vals, fontsize=10.5, color=INK, transform=ax5.transAxes, va="top")
-        y -= 0.16
+    rows = []
+    for k in ("new", "returned", "up", "down", "transient", "gone", "stable", "steady"):
+        for x in T[k][:3]:
+            rows.append((f"{x['term']}［{TERM_KIND_NAME[k].split('（')[0]}］", x["series"]))
+    written = [t["written"] for t in w["trend"]]
+    if rows and all(len(r[1]) == len(written) for r in rows):
+        import numpy as np
+        grid = np.array([[d / wr if wr else np.nan for d, wr in zip(r[1], written)] for r in rows])
+        ax5.imshow(np.ma.masked_invalid(grid), aspect="auto", cmap="Blues", vmin=0, vmax=1)
+        for yi, r in enumerate(rows):
+            for xi, d in enumerate(r[1]):
+                val = grid[yi, xi]
+                txt = "–" if np.isnan(val) else str(d)
+                ax5.text(xi, yi, txt, ha="center", va="center", fontsize=8.5,
+                         color="white" if (not np.isnan(val) and val > 0.55) else INK)
+        ax5.set_yticks(range(len(rows)))
+        ax5.set_yticklabels([r[0] for r in rows], fontsize=9)
+        ax5.set_xticks(range(len(written)))
+        ax5.set_xticklabels([t["label"].split("〜")[0] + ("\n今週" if i == len(written) - 1 else "")
+                             for i, t in enumerate(w["trend"])], fontsize=8.5)
+        ax5.tick_params(length=0)
+        for sp in ax5.spines.values():
+            sp.set_visible(False)
+        ax5.set_title("語の推移（数字＝その週に出た日数、濃さ＝書いた日のうちの割合、–＝書かなかった週）",
+                      fontsize=12, color=INK, loc="left")
+    else:
+        ax5.axis("off")
+        ax5.set_title("語の推移", fontsize=12, color=INK, loc="left")
+        ax5.text(0.0, 0.8, "今期は比較できる語の変化がありませんでした。", fontsize=10.5, color=MUTED,
+                 transform=ax5.transAxes)
     if not obs["baseline_ok"]:
-        ax5.text(0.0, y, "※ 比較できる過去データが無いため、増減・消失は判定していません。",
-                 fontsize=9.5, color=MUTED, transform=ax5.transAxes, va="top")
+        fig.text(0.03, 0.005, "※ 比較できる過去データが無いため、増減・消失は判定していません。",
+                 fontsize=9.5, color=MUTED)
 
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     fig.savefig(out_path, facecolor="white", bbox_inches="tight", pad_inches=0.3)

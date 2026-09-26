@@ -68,7 +68,7 @@ class ReviewRegressionTest(unittest.TestCase):
         for w in (0, 1, 3, 4):          # 2週前は1日も書いていない
             th += [_thread(MON - datetime.timedelta(days=7 * w - i), "写真を撮る", tid=f"{w}{i}") for i in range(3)]
         obs = jo.observe(jo.build_days(th), MON)
-        steady = {x["term"]: x["streak"] for x in obs["terms"]["steady"]}
+        steady = {x["term"]: x["streak"] for k in ("stable", "steady") for x in obs["terms"][k]}
         self.assertEqual(steady.get("写真"), 4)
 
     def test_extra_lines_are_inside_chunks(self):
@@ -76,6 +76,68 @@ class ReviewRegressionTest(unittest.TestCase):
         msgs = jo.compose_messages(obs, None, "no_key", head=jo.HEAD_MARK, extra_lines=["参考（ジャーナル外）: x" * 20])
         self.assertTrue(all(len(m) <= 1900 for m in msgs))
         self.assertIn("参考（ジャーナル外）", msgs[0])
+
+
+class TimeAxisAuditTest(unittest.TestCase):
+    """最終監査 D/E/A/F: 変わらなかったこと・時間軸・仮説の形・スコア禁止。"""
+
+    def _obs(self, spec):
+        # spec: {週オフセット(0=今週): [本文, ...]}
+        th = []
+        for w, texts in spec.items():
+            for i, t in enumerate(texts):
+                th.append(_thread(MON - datetime.timedelta(days=7 * w) + datetime.timedelta(days=i), t, tid=f"{w}-{i}"))
+        return jo.observe(jo.build_days(th), MON)
+
+    def test_transient_stable_and_varying_are_distinguished(self):
+        base = ["写真と散歩", "写真と散歩", "写真", "写真と散歩"]
+        spec = {w: list(base) for w in range(2, 8)}
+        spec[1] = ["写真と散歩と花火", "写真と花火", "写真", "写真と散歩"]   # 花火=前週だけ
+        spec[0] = ["写真", "写真", "写真と散歩", "写真"]                  # 写真=毎日で安定、散歩=割合が下がる
+        obs = self._obs(spec)
+        kinds = {x["term"]: k for k in jo.TERM_KINDS for x in obs["terms"][k]}
+        self.assertEqual(kinds.get("花火"), "transient")
+        self.assertEqual(kinds.get("写真"), "stable")
+        self.assertIn(kinds.get("散歩"), ("down", "steady"))
+
+    def test_every_change_line_shows_base_prev_and_current(self):
+        obs = jo.observe(jo.build_days(jo.mock_threads(MON, 8)), MON)
+        downs = [i["text"] for i in obs["items"] if i["kind"] == "down"]
+        self.assertTrue(downs)
+        for t in downs:
+            self.assertIn("直前4週の平均", t)
+            self.assertIn("前週", t)
+            self.assertIn("今週", t)
+        w = obs["writing"]
+        self.assertIsNotNone(w["chars_vs_prev_pct"])
+        self.assertIsNotNone(w["chars_vs_base_pct"])
+        self.assertEqual(len(w["trend"]), 8)
+
+    def test_observation_text_never_names_feelings_as_fact(self):
+        obs = jo.observe(jo.build_days(jo.mock_threads(MON, 8)), MON)
+        text = "\n".join(jo.compose_messages(obs, None, "no_key", head=jo.HEAD_MARK))
+        for bad in ("ストレスが", "幸福度", "不安が増", "気分が", "点）", "スコア"):
+            self.assertNotIn(bad, text)
+
+    def test_assertive_or_scored_hypotheses_are_dropped(self):
+        obs = jo.observe(jo.build_days(jo.mock_threads(MON, 8)), MON)
+        raw = {"hypotheses": [
+            {"refs": ["O2"], "text": "仕事へのストレスが増えた"},                 # 断定 → 捨てる
+            {"refs": ["O2"], "text": "ストレス度は7.2点かもしれない"},            # スコア → 捨てる
+            {"refs": ["O2"], "text": "部屋のことに意識が向いている時期かもしれない"},
+        ]}
+        got = jo.normalize_interpretation(raw, obs)
+        self.assertEqual([h["text"] for h in got["hypotheses"]], ["部屋のことに意識が向いている時期かもしれない"])
+
+    def test_gemini_receives_only_changes_and_short_snippets(self):
+        days = jo.build_days(jo.mock_threads(MON, 8))
+        obs = jo.observe(days, MON)
+        prompt = jo.build_prompt(obs)
+        whole = "".join(d["text"] for d in days.values())
+        self.assertLess(len(prompt), len(whole) + 3000)
+        for d in days.values():   # 過去週の本文がまるごと入っていない
+            if len(d["text"]) > 60:
+                self.assertNotIn(d["text"], prompt)
 
 
 class MarkerTest(unittest.TestCase):
@@ -147,7 +209,7 @@ class ObserveTest(unittest.TestCase):
         th += [_thread(MON + datetime.timedelta(days=i), "散歩した", tid=f"c{i}") for i in range(4)]
         obs = jo.observe(jo.build_days(th), MON)
         self.assertEqual(obs["terms"]["gone"], [])
-        self.assertIn("散歩", [x["term"] for x in obs["terms"]["steady"]])
+        self.assertIn("散歩", [x["term"] for x in obs["terms"]["stable"]])   # 毎日出る=安定
 
     def test_monthly_unit(self):
         obs = jo.observe(self.days, MON + datetime.timedelta(days=6) - datetime.timedelta(days=27),
