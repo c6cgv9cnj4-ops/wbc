@@ -142,6 +142,9 @@ def _discord_get(path: str, token: str, params: dict | None = None):
 
 
 def _thread_messages(thread_id: str, token: str) -> list[dict]:
+    """スレッド内のメッセージを古い順に返す。Bot が書いたもの(author.bot)は除外する
+    (毎朝 Bot が立てるテンプレート投稿を日記として数えないため。2026-09-27)。
+    週次観測(collect_threads)とシート同期(export_discord_logs.py)の両方がここを通る。"""
     out: list[dict] = []
     before = None
     while True:
@@ -156,7 +159,7 @@ def _thread_messages(thread_id: str, token: str) -> list[dict]:
         if len(batch) < 100:
             break
     out.reverse()
-    return out
+    return [m for m in out if not (m.get("author") or {}).get("bot")]
 
 
 def _list_forum_threads(channel_id: str, token: str) -> tuple[str, list[dict]]:

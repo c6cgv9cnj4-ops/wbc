@@ -56,12 +56,13 @@ JOURNAL_TEMPLATE = """【モーニングジャーナル】
 ・"""
 
 
-def build_payload() -> dict:
-    assert len(JOURNAL_TEMPLATE) <= TOPIC_MAX
-    return {"topic": JOURNAL_TEMPLATE}
+def build_payload(topic: str = JOURNAL_TEMPLATE) -> dict:
+    assert len(topic) <= TOPIC_MAX
+    return {"topic": topic}
 
 
-def apply(token: str, channel_id: str) -> int:
+def apply(token: str, channel_id: str, topic: str = JOURNAL_TEMPLATE) -> int:
+    """投稿ガイドラインを topic に設定する。topic="" で空に戻す(--clear)。"""
     headers = {"Authorization": f"Bot {token}", "User-Agent": "wbc-journal-guidelines/1.0"}
     url = f"{DISCORD_API_BASE}/channels/{channel_id}"
     cur = requests.get(url, headers=headers, timeout=20)
@@ -73,17 +74,18 @@ def apply(token: str, channel_id: str) -> int:
         print(f"[ERROR] フォーラムチャンネルではありません(type={meta.get('type')})。中止します。")
         return 1
     before = meta.get("topic") or ""
-    if before == JOURNAL_TEMPLATE:
-        print("[INFO] 既に同じテンプレートが設定されています(変更なし)")
+    if before == topic:
+        print("[INFO] 既に同じ内容です(変更なし)")
         return 0
-    print(f"[INFO] 対象: #{meta.get('name')} / 現在のガイドライン {len(before)}字 → {len(JOURNAL_TEMPLATE)}字")
-    resp = requests.patch(url, headers=headers, json=build_payload(), timeout=20)
+    print(f"[INFO] 対象: #{meta.get('name')} / 現在のガイドライン {len(before)}字 → {len(topic)}字")
+    resp = requests.patch(url, headers=headers, json=build_payload(topic), timeout=20)
     if resp.status_code >= 300:
         print(f"[ERROR] 設定に失敗しました(HTTP {resp.status_code})。Bot にチャンネル管理権限があるか確認してください。")
         return 1
     after = (resp.json().get("topic") or "")
-    ok = after == JOURNAL_TEMPLATE
-    print("[OK] 投稿ガイドラインにテンプレートを設定しました" if ok else "[WARN] 設定後の内容が一致しません")
+    ok = after == topic
+    print(("[OK] 投稿ガイドラインを空に戻しました" if not topic else "[OK] 投稿ガイドラインにテンプレートを設定しました")
+          if ok else "[WARN] 設定後の内容が一致しません")
     return 0 if ok else 1
 
 
@@ -91,6 +93,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="#モーニングジャーナルの投稿ガイドラインにテンプレートを設定")
     ap.add_argument("--apply", action="store_true", help="実際に Discord へ設定する(既定は dry-run)")
     ap.add_argument("--channel-id", default="", help="既定は DISCORD_CHANNEL_ID_MORNING_JOURNAL")
+    ap.add_argument("--clear", action="store_true",
+                    help="ガイドラインを空に戻す(2026-09-27 以降は毎朝の投稿本文にテンプレートを入れる方式のため)")
     args = ap.parse_args()
 
     if not args.apply:
@@ -104,7 +108,7 @@ def main() -> int:
     if not token or not channel_id:
         print("[ERROR] DISCORD_BOT_TOKEN と チャンネルID(--channel-id または DISCORD_CHANNEL_ID_MORNING_JOURNAL)が必要です")
         return 1
-    return apply(token, channel_id)
+    return apply(token, channel_id, "" if args.clear else JOURNAL_TEMPLATE)
 
 
 if __name__ == "__main__":

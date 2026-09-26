@@ -27,6 +27,12 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
 | #webhook_news | `scripts/fetch_news.py` | 全国主要ニュース（Yahoo!トップピックス＋Gemini要約） |
 | #webhook_news | `scripts/fetch_culture_news.py` | 国債・カルチャー・展覧会 |
 
+## 最近完了した変更（毎朝のモーニングジャーナル投稿, 2026-09-27）
+- `scripts/create_daily_journal_post.py`（新規）: Discord #モーニングジャーナル に「YYYY/MM/DD｜モーニングジャーナル」を作り、本文に書き始めのテンプレートを入れる。同じ日付の投稿があれば作らない。既定は dry-run
+- 実行: Mac の launchd `~/Library/LaunchAgents/com.rickykogyo.daily-journal-post.plist`（毎日 05:00、認証は既存の 04_Stocks/.env の StockBot、ログは ~/Library/Logs/daily-journal-post.*.log）。Mac が起動していない日は作られない
+- 日記は投稿への「返信」として書く。`journal_review._thread_messages` が Bot のメッセージ（author.bot）を除外するため、週次観測・シート同期には本人の返信だけが入る
+- 投稿ガイドラインは空に戻した（`set_journal_forum_guidelines.py --clear`）
+
 ## 最近完了した変更（日記データを GitHub から排除, 2026-09-26）
 - 方針: 日記（#ヘルス・日報）・個人メモ（#インプット）とその派生物は GitHub に置かない。保管先は Google スプレッドシート（GAS）のみ
 - `discord_logs.yml`: 取得→同じジョブでシートへ同期（`sync_weekly_sheet.py`）。コミットしない。日記フォーラムは Issue 化しない。Issue のタイトルはログに出さない
