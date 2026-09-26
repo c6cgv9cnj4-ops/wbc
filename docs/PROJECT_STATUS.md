@@ -37,6 +37,7 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
 - `_config.yml`: Pages の配信対象から logs/・reports/・mindmap/・state/・scripts/ などを除外
 - 再発防止: `scripts/check_no_personal_data.py` と `privacy_guard.yml`（push のたびに検査）、`.gitignore`
 - テスト: `tests/test_privacy.py`（11件）。全体は41件
+- 追加: #インプットの TODO/BUY → 公開 Issue 起票も停止（discord_logs.yml から issues 権限を削除）。#モーニングジャーナルの投稿ガイドラインに8項目テンプレートを設定し、その固定見出しは週次観測で数えない（`journal_observe.strip_template`）。テスト全51件
 
 ## 最近完了した変更（週次観測への再編, 2026-09-26。未push＝本番未反映）
 - `weekly_mindmap.py` を「感情4象限の分類＋3大アクション」から「モーニングジャーナルの観測ダッシュボード」へ再編。詳細は `docs/WEEKLY_MINDMAP_SETUP.md`

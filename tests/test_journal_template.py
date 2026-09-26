@@ -65,20 +65,43 @@ class TemplateUsageTest(unittest.TestCase):
         days = jo.build_days([{"tid": "1", "name": "2026/09/21", "date": d, "url": "u", "text": text}])
         return days[d]
 
+    def _days(self, text):
+        d = datetime.date(2026, 9, 21)
+        return jo.build_days([{"tid": "1", "name": "2026/09/21", "date": d, "url": "u", "text": text}])
+
     def test_blank_and_long_posts_are_accepted(self):
-        blank = self._obs_text(EXPECTED)                          # 全項目空欄のまま
-        self.assertGreater(blank["chars"], 0)
+        self.assertEqual(self._days(EXPECTED), {})   # 全項目空欄=見出しだけ → 書いていない日と同じ(エラーにならない)
         long_text = EXPECTED.replace("■ ここから連想したこと\n・", "■ ここから連想したこと\n・" + "架空の連想がつづく。" * 800)
         self.assertGreater(self._obs_text(long_text)["chars"], 7000)   # 長文でも問題なく数えられる
 
-    def test_heading_footprint_is_known(self):
-        """見出しだけの投稿が観測に残す痕跡(報告用に固定)。見出しは毎日同じなので、
-        テンプレート導入週には「願望」「問いかけ」の出現率と語「連想」がその分だけ上がる。"""
-        rec = self._obs_text(EXPECTED)
-        self.assertEqual(sorted(rec["terms"]), ["連想"])
-        self.assertEqual(rec["markers"]["want"], 1)       # 「本当はどうしたい？」
-        self.assertEqual(rec["markers"]["question"], 1)   # 同上の「？」
-        self.assertEqual(sum(v for k, v in rec["markers"].items() if k not in ("want", "question")), 0)
+    def test_headings_leave_no_footprint(self):
+        """固定見出しは観測しない: 「本当はどうしたい？」の願望/問いかけ、「連想」の語が数えられない。"""
+        tpl = jo.strip_template(EXPECTED)
+        self.assertEqual(tpl, "")
+        self.assertGreater(sum(jo.count_markers(EXPECTED).values()), 0)   # 除外前は痕跡がある
+        self.assertEqual(jo.extract_terms(tpl), [])
+
+    def test_body_under_headings_is_observed_exactly_as_without_template(self):
+        body = {"今の頭の中": "架空の散歩のことを考えていた。本を読みたい。",
+                "ここから連想したこと": "架空の連想で写真展に行きたい気がする。どうなるかな？",
+                "その他": "架空のカメラ"}
+        with_tpl = EXPECTED
+        for h, text in body.items():
+            with_tpl = with_tpl.replace(f"■ {h}\n・", f"■ {h}\n・{text}")
+        without = "\n".join("・" + t for t in body.values())
+        a, b = self._obs_text(with_tpl), self._obs_text(without)
+        self.assertEqual(a["chars"], b["chars"])
+        self.assertEqual(a["terms"], b["terms"])
+        self.assertEqual(a["markers"], b["markers"])
+        self.assertEqual(a["markers"]["want"], 2)       # 本人の「読みたい」「行きたい」だけ
+        self.assertEqual(a["markers"]["question"], 1)   # 本人の「かな？」だけ
+        self.assertIn("連想", a["terms"])               # 本文中の「連想」は数える
+
+    def test_heading_with_text_on_same_line_keeps_text(self):
+        rec = self._obs_text("■ 今の頭の中 架空の散歩\n■ 本当はどうしたい? 架空の旅に行きたい")
+        self.assertIn("散歩", rec["terms"])
+        self.assertEqual(rec["markers"]["want"], 1)
+        self.assertEqual(rec["markers"]["question"], 0)
 
 
 if __name__ == "__main__":

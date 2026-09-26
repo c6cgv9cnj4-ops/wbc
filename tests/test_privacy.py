@@ -74,15 +74,29 @@ class ExportAndSyncPipelineTest(unittest.TestCase):
         self.assertNotIn(SECRET_BODY, log)
         self.assertTrue(glob.glob("logs/health/*.md"))  # 作業ファイルはランナー内に作られる
 
-    def test_memo_issue_log_has_number_only(self):
-        self.texts[0]["content"] = "TODO " + SECRET_MEMO
-        env = {"DISCORD_BOT_TOKEN": "t", "DISCORD_CHANNEL_ID_HEALTH": "", "DISCORD_CHANNEL_ID_INPUT": "i",
-               "GITHUB_TOKEN": "g", "GITHUB_REPOSITORY": "o/r", "LOG_LOOKBACK_DAYS": ""}
-        with mock.patch.object(ex, "create_github_issue", return_value={"number": 7}), \
-                mock.patch.object(ex, "find_existing_issue_by_message_id", return_value=None):
-            log = self._run_export(env)
-        self.assertIn("#7", log)
-        self.assertNotIn(SECRET_MEMO, log)
+    def test_memo_todo_buy_never_becomes_issue(self):
+        # #インプットの「TODO」「BUY」で始まる架空メモ(大文字小文字も)から Issue を作らない
+        for content in ("TODO " + SECRET_MEMO, "BUY " + SECRET_MEMO, "todo " + SECRET_MEMO, "Buy " + SECRET_MEMO):
+            self.texts[0]["content"] = content
+            env = {"DISCORD_BOT_TOKEN": "t", "DISCORD_CHANNEL_ID_HEALTH": "", "DISCORD_CHANNEL_ID_INPUT": "i",
+                   "GITHUB_TOKEN": "g", "GITHUB_REPOSITORY": "o/r", "LOG_LOOKBACK_DAYS": ""}
+            with mock.patch.object(ex.requests, "post", side_effect=AssertionError("Issue API called")) as post, \
+                    mock.patch.object(ex, "create_github_issue", side_effect=AssertionError("issue")), \
+                    mock.patch.object(ex, "find_existing_issue_by_message_id", side_effect=AssertionError("search")):
+                log = self._run_export(env)
+            post.assert_not_called()
+            self.assertNotIn(SECRET_MEMO, log)
+            self.assertNotIn("Issue", log)
+
+    def test_export_runs_without_github_token(self):
+        env = {"DISCORD_BOT_TOKEN": "t", "DISCORD_CHANNEL_ID_HEALTH": "h", "DISCORD_CHANNEL_ID_INPUT": "i",
+               "GITHUB_TOKEN": "", "GITHUB_REPOSITORY": "", "LOG_LOOKBACK_DAYS": ""}
+        self.assertIn("完了", self._run_export(env))
+
+    def test_workflow_has_no_issue_permission(self):
+        wf = open(os.path.join(ROOT, ".github", "workflows", "discord_logs.yml"), encoding="utf-8").read()
+        self.assertNotIn("issues: write", wf)
+        self.assertNotIn("GITHUB_TOKEN", wf)
 
     def test_backfill_mode_needs_no_github_token(self):
         env = {"DISCORD_BOT_TOKEN": "t", "DISCORD_CHANNEL_ID_HEALTH": "h", "DISCORD_CHANNEL_ID_INPUT": "i",

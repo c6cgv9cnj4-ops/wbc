@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Discordログ収集 & Issues自動起票(Step 2)
+Discordログ収集(Step 2)
+
+【2026-09-26 プライバシー対応】リポジトリが公開のため、日記・個人メモの Git 保存と
+Issue 自動起票(TODO/BUY)は停止した。取得したログはランナー内の作業ファイルとして
+同じジョブの sync_weekly_sheet.py が Google スプレッドシートへ送るだけ。
+Issue 関連の関数は残してあるが、main からは呼ばない。以下は旧仕様の説明を含む。
 
 処理内容:
   1. Discord APIから当日(JST)の「#インプット」「#ヘルス・日報」の
@@ -322,23 +327,15 @@ def _lookback_override():
 
 def main():
     bot_token = os.environ.get("DISCORD_BOT_TOKEN")
-    github_token = os.environ.get("GITHUB_TOKEN")
-    repo = os.environ.get("GITHUB_REPOSITORY")
 
     if not bot_token:
         print("[ERROR] 環境変数 DISCORD_BOT_TOKEN が設定されていません。")
         sys.exit(1)
-    issue_count = 0
     override = _lookback_override()
-    if override is None and (not github_token or not repo):
-        print("[ERROR] GITHUB_TOKEN / GITHUB_REPOSITORY が設定されていません。"
-              "(通常はGitHub Actions実行時に自動設定されます)")
-        sys.exit(1)
     forum_days = override or FORUM_LOOKBACK_DAYS
     text_days = override or TEXT_LOOKBACK_DAYS
-    file_issues = override is None
     if override:
-        print(f"[INFO] バックフィルモード: 直近{override}日を再生成(Issue起票なし)")
+        print(f"[INFO] バックフィルモード: 直近{override}日を再生成")
 
     for channel in CHANNELS:
         channel_id = os.environ.get(channel["env_id"])
@@ -385,11 +382,9 @@ def main():
             day_msgs = [m for m in messages if message_date_jst(m) == d]
             save_markdown(channel["log_dir"], d.strftime("%Y-%m-%d"),
                           build_markdown(day_msgs, d.strftime("%Y-%m-%d"), channel["label"]))
-        for msg in (messages if file_issues else []):
-            if maybe_create_issue_for_message(msg, channel["label"], repo, github_token):
-                issue_count += 1
+        # 個人メモ(#インプット)も公開 Issue にしない(2026-09-26 TODO/BUY 起票を停止)
 
-    print(f"=== 完了: Issue新規作成 {issue_count}件 ===")
+    print("=== 完了 ===")
 
 
 if __name__ == "__main__":

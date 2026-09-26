@@ -153,14 +153,29 @@ def _chars(text: str) -> int:
 # ---------------------------------------------------------------------------
 # 日単位の記録
 # ---------------------------------------------------------------------------
+# #モーニングジャーナルの投稿ガイドライン(scripts/set_journal_forum_guidelines.py)の固定見出し。
+# 毎日同じ文字列なので観測から外す(「本当はどうしたい？」の願望/問いかけ、「連想」の語など、
+# テンプレート導入による機械的な変化を数えないため)。見出しの下・同じ行に書いた本人の文章は残す。
+_TEMPLATE_HEADING = re.compile(
+    r"^[ \t　]*(?:【モーニングジャーナル】|■[ \t　]*(?:今の頭の中|昨日から残っていること|気になっていること|"
+    r"本当はどうしたい[？?]|最近よく考えること|今日思いついたこと|ここから連想したこと|その他))[ \t　]*",
+    re.MULTILINE)
+_EMPTY_BULLET = re.compile(r"^[ \t　]*[・･][ \t　]*$\n?", re.MULTILINE)
+
+
+def strip_template(text: str) -> str:
+    """テンプレートの固定見出しと、何も書いていない「・」だけの行を取り除く。"""
+    return _EMPTY_BULLET.sub("", _TEMPLATE_HEADING.sub("", text or "")).strip()
+
+
 def build_days(threads: list[dict]) -> dict:
     """スレッド一覧 → {date: {"text","chars","terms":Counter,"markers":Counter,"refs":[{name,url}]}}。
     同じ日付のスレッドが複数あれば1日にまとめる。本文が空のスレッドは書いていない日として扱う。"""
     days: dict = {}
     for t in threads:
-        body = (t.get("text") or "").strip()
+        body = strip_template(t.get("text") or "")
         if not body:
-            continue
+            continue          # テンプレートだけ(全項目空欄)の投稿は「書いていない日」と同じ扱い
         d = t["date"]
         rec = days.setdefault(d, {"text": "", "refs": []})
         rec["text"] = (rec["text"] + "\n" + body) if rec["text"] else body

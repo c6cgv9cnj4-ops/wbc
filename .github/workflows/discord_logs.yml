@@ -1,4 +1,4 @@
-name: Discordログ収集・シート同期・Issues自動起票
+name: Discordログ収集・シート同期
 
 # 【プライバシー(2026-09-26)】リポジトリは公開のため、日記(#ヘルス・日報)・個人メモ(#インプット)の
 # 本文や、それに由来する要約/画像/HTML は Git にコミットせず、Actions 成果物にも保存しない。
@@ -21,7 +21,6 @@ on:
 
 permissions:
   contents: read    # ログはコミットしない(ランナー内の作業ファイルのみ)
-  issues: write      # TODO/BUY投稿のIssue自動起票用
 
 jobs:
   export-and-file:
@@ -37,12 +36,11 @@ jobs:
       - name: 依存パッケージをインストール
         run: pip install -r requirements.txt
 
-      - name: Discordログ取得 & Issues自動起票
+      - name: Discordログ取得(ランナー内のみ)
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_CHANNEL_ID_INPUT: ${{ secrets.DISCORD_CHANNEL_ID_INPUT }}
           DISCORD_CHANNEL_ID_HEALTH: ${{ secrets.DISCORD_CHANNEL_ID_HEALTH }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LOG_LOOKBACK_DAYS: ${{ github.event.inputs.lookback_days }}
         run: python scripts/export_discord_logs.py
 
