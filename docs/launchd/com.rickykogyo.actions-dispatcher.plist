@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  GitHub Actions の cron 遅延対策: 5分ごとに scripts/dispatch_workflows.py を実行し、
+  速報系ワークフローを gh workflow run で起動する(手順は docs/ACTIONS_DISPATCHER.md)。
+  秘密情報は使わない(gh のログイン情報=キーチェーンのみ)。専用clone から実行する。
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.rickykogyo.actions-dispatcher</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/hosokawachikara/Services/anzn-local/wbc/.venv/bin/python</string>
+    <string>/Users/hosokawachikara/Services/anzn-local/wbc/scripts/dispatch_workflows.py</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/hosokawachikara/Services/anzn-local/wbc</string>
+  <key>StartInterval</key>
+  <integer>300</integer>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/bin:/bin</string>
+    <key>LANG</key>
+    <string>ja_JP.UTF-8</string>
+    <key>PYTHONUNBUFFERED</key>
+    <string>1</string>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/Users/hosokawachikara/Library/Logs/actions-dispatcher.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/hosokawachikara/Library/Logs/actions-dispatcher.log</string>
+</dict>
+</plist>

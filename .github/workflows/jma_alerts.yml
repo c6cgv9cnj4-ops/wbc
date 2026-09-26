@@ -24,6 +24,10 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 起動時点ではなく実行開始時点の main を取得する(先行runの待ちで古いstateを読み、
+          # 二重配信するのを防ぐ。自宅Macの起動係 scripts/dispatch_workflows.py 対策・2026-09-26)
+          ref: main
 
       - uses: actions/setup-python@v5
         with:

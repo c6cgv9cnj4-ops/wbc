@@ -154,6 +154,12 @@ def is_saitama_local_noise(title):
 
 
 YAHOO_TOP_PICKS_RSS = "https://news.yahoo.co.jp/rss/topics/top-picks.xml"
+# 2026-09-26(N4): トップピックスは8件しかなく、実行間隔の間に丸ごと入れ替わって取りこぼしていた
+# ため、カテゴリ別の「国内」「国際」を候補に追加する(トップピックスを優先し、URL重複は除去)。
+YAHOO_CATEGORY_RSS = [
+    "https://news.yahoo.co.jp/rss/topics/domestic.xml",
+    "https://news.yahoo.co.jp/rss/topics/world.xml",
+]
 YAHOO_FINANCE_NIKKEI225_URL = "https://finance.yahoo.co.jp/quote/998407.O"
 EXCHANGE_RATE_API_URL = "https://open.er-api.com/v6/latest/USD"
 
@@ -1051,6 +1057,13 @@ def build_national_news_message(client, state, now):
     sports_items = []
 
     top_all = fetch_rss_items(YAHOO_TOP_PICKS_RSS)
+    seen_in_batch = {normalize_url(item["url"]) for item in top_all}
+    for feed_url in YAHOO_CATEGORY_RSS:
+        for item in fetch_rss_items(feed_url):
+            key = normalize_url(item["url"])
+            if key not in seen_in_batch:
+                seen_in_batch.add(key)
+                top_all.append(item)
     top_new = dedupe_new_items(top_all, "url", state, now)
     top_general = []
     for item in top_new:
@@ -1068,6 +1081,9 @@ def build_national_news_message(client, state, now):
     # 本文取得はネットワークコストがかかるため、候補数を上限で絞る
     # (新しい記事を優先。RSSは新着順で返ってくる)。
     candidates = top_general[:NATIONAL_NEWS_CANDIDATE_LIMIT]
+    # 2026-09-26(N4): 上限を超えてGeminiに渡さなかった記事は既送信にせず、次回の候補に回す
+    for item in top_general[NATIONAL_NEWS_CANDIDATE_LIMIT:]:
+        state.pop(normalize_url(item["url"]), None)
     for item in candidates:
         item["body"] = fetch_yahoo_pickup_body(item["url"])
 
@@ -1347,6 +1363,29 @@ def send_to_discord(webhook_url, message):
     return ok
 
 
+# 2026-09-26(N3): 自宅Macの起動係(scripts/dispatch_workflows.py)が動いていれば、この処理は
+# 30分程度ごとに実行される。MAC_DISPATCHER=on のときだけ前回実行時刻を記録し、間隔が
+# 大きく空いた場合(Macの停止・スリープ・gh認証切れ)を異常通知する。未設定なら何もしない。
+LAST_RUN_KEY = "_last_run_at"
+DISPATCHER_GAP_ALERT_MINUTES = 60
+
+
+def check_dispatcher_gap(state, now):
+    if os.environ.get("MAC_DISPATCHER", "").strip().lower() != "on":
+        return
+    last = state.get(LAST_RUN_KEY)
+    if last:
+        try:
+            gap = (now - datetime.datetime.fromisoformat(last)).total_seconds() / 60
+        except (TypeError, ValueError):
+            gap = 0
+        if gap > DISPATCHER_GAP_ALERT_MINUTES:
+            news_alerts.record("dispatcher_gap", "news", "定期実行の間隔(自宅Macの起動係)",
+                               f"前回実行から{gap:.0f}分空きました(Macの停止・スリープ・gh認証切れの可能性)",
+                               "継続(cronの頻度に戻っています)")
+    state[LAST_RUN_KEY] = now.isoformat()
+
+
 def _rollback_new_keys(state, keys_before, keep_items=()):
     """2026-09-26(N5): Discord送信に失敗した区画で新たに既送信記録したキーを取り消す
     (次回実行で再送させるため)。"_"で始まる管理キー(異常通知・土日シグネチャ)と、
@@ -1404,6 +1443,7 @@ def main():
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
     state = load_seen_state()
     state = prune_old_entries(state, now)
+    check_dispatcher_gap(state, now)
 
     had_error = False
 
