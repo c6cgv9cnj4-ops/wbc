@@ -1,13 +1,13 @@
 # PROJECT_STATUS（新しいセッションが最初に読む現在地ファイル）
 
-最終更新: 2026-09-26 ／ 最新の機能commit: `a9d6628`（2026-09-25）
+最終更新: 2026-09-26（問題を追記）／ 最新の機能commit: `a9d6628`（2026-09-25）
 ※この後にある `github-actions[bot]` の「〜既送信記録を更新」commitは state 自動更新のみ。
 
 ## 目的
 GitHub Actions の定期実行で、ニュース・市況・地域情報・趣味（バドミントン等）を収集し、Discord の各チャンネルへ自動配信する個人用の情報基盤（リポジトリ: `c6cgv9cnj4-ops/wbc`）。
 
 ## 現在の本番状態（2026-09-26 確認）
-- 直近40回の Actions 実行で失敗なし。`ニュース自動配信`（news.yml）は a9d6628 反映後も連続で success。
+- 直近40回の Actions 実行はすべて success（ただし実行結果が success でも、下記「現在確認されている問題」が発生している）。`ニュース自動配信`（news.yml）は a9d6628 反映後も連続で success。
 - a9d6628 反映後の手動実行（run 36090911374）で確認した内容
   - Reuters/Bloomberg の古い記事の除外が動作
   - 経済ニュースを Gemini で材料ごとに整理（判定失敗 0・フォールバック 0・Discord送信エラー 0）
@@ -51,8 +51,19 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
 
 その他の日次・週次・月次ジョブ（deals / daily_summary / discord_logs / npb_results / sports_standings / weekly_mindmap / monthly-mindmap / price_check など）は、`.github/workflows/` の各ファイルを参照。
 
-## 現在確認されている問題
-現時点で確認された問題なし。
+## 現在確認されている問題（2026-09-26 確認）
+※ いずれも Actions の実行結果は success のまま。ログの ERROR/WARN にしか出ないため、気付きにくい。
+- **Gemini API のクレジット切れ（402 "prepayment credits are depleted"）**: 2026-09-26 00:36Z 以降、news / nikkei_cnbc_digest / culture_news で発生。
+  - 全国ニュース（#webhook_news）は要約0件となり、配信がスキップされる
+  - 経済ニュースの整理は、従来の箇条書き表示に戻して配信を継続している
+  - Gemini を使うスクリプトは計11本
+  - 解消にはオーナーによる AI Studio でのクレジット追加が必要
+- **あんぜんねっと（北本市安全安心情報）が 403 Forbidden**: GitHub Actions から取得すると、2026-09-10 以降およそ8割の実行で失敗している。
+  - ローカル（Mac）からの取得は正常（200）。原因はクラウド側IPからのアクセス拒否と判断
+- **スケジュール実行の大幅な遅延**: 実際の起動間隔は、設定値に関係なく中央値3〜4.5時間（直近約2週間の実測）。
+  - news（30分設定）: 234分
+  - jma_alerts（10分設定）: 200分
+  - badminton_alerts（15分設定）: 183分
 
 ## 未着手・検討中の課題（いずれもオーナー判断で保留中）
 - #webhook_market の朝・昼・夜の固定配信化 … Phase 1 を運用してから判断
