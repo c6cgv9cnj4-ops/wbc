@@ -91,7 +91,9 @@
     "https://www.badspi.jp/202609260655/?utm_source=rss&utm_medium=rss&utm_campaign=202609260655": "2026-09-26T12:38:01.290163+09:00",
     "https://www.badspi.jp/202609261240/?utm_source=rss&utm_medium=rss&utm_campaign=202609261240": "2026-09-26T17:50:06.065560+09:00",
     "https://www.badspi.jp/202609261809/?utm_source=rss&utm_medium=rss&utm_campaign=202609261809": "2026-09-26T22:37:12.506914+09:00",
-    "https://www.badspi.jp/202609261607/?utm_source=rss&utm_medium=rss&utm_campaign=202609261607": "2026-09-26T22:37:12.506914+09:00"
+    "https://www.badspi.jp/202609261607/?utm_source=rss&utm_medium=rss&utm_campaign=202609261607": "2026-09-26T22:37:12.506914+09:00",
+    "https://www.badspi.jp/202609262200/?utm_source=rss&utm_medium=rss&utm_campaign=202609262200": "2026-09-27T02:23:32.840484+09:00",
+    "https://www.badspi.jp/202609262125/?utm_source=rss&utm_medium=rss&utm_campaign=202609262125": "2026-09-27T02:23:32.840484+09:00"
   },
   "seen_national_summaries": {
     "https://www.sposoku.com/wakabacup-badminton/::優勝：岡垣ジュニア(福岡県)準優勝：Selfish(神奈川県)第三位：shinshin(石川県)、F.Flash(埼玉県)": "2026-09-06T00:41:49.469551+09:00",
@@ -276,7 +278,16 @@
   "digest_pool": {
     "matches": [],
     "summaries": [],
-    "badspi": [],
+    "badspi": [
+      {
+        "title": "【愛知・名古屋アジア大会】「ファイナルゲームの最後、急に自信が出てきて、何を打っても大丈夫と思えた」（奈良岡功大）＜個人戦2日目・選手コメント4＞",
+        "url": "https://www.badspi.jp/202609262200/?utm_source=rss&utm_medium=rss&utm_campaign=202609262200"
+      },
+      {
+        "title": "【愛知・名古屋アジア大会】「目の前の一戦一戦集中して、その先に王祉怡選手、アン・セヨン選手にもう一回挑戦していけたら」（山口茜）＜個人戦2日目・選手コメント3＞",
+        "url": "https://www.badspi.jp/202609262125/?utm_source=rss&utm_medium=rss&utm_campaign=202609262125"
+      }
+    ],
     "gnews": [],
     "nba": []
   },
