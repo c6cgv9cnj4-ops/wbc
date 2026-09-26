@@ -73,6 +73,12 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
   - `chunk_message()` が「　└ 」で始まるリンク行を、直前の見出し行と同じメッセージに収めるよう変更（他チャンネルの分割結果は不変）
 - `scripts/dry_run_market_curation.py`（新規）: 送信・state更新なしのドライラン
 
+## 最近完了した変更（a91c6e2, 2026-09-26 本番反映。news / jma_alerts / nikkei_cnbc_digest の手動実行で success を確認）
+- N6 CNBC: 要約できずリンクだけ配信した動画を `pending_summary` に残し、RSSに載っている間（最大72時間・1回4本まで）再要約して追送する
+- N5 気象警報: Discordへの送信に失敗した回は state を保存しない（次回に再送）
+- N5 fetch_news: 地域・あんぜんねっと・全国・マーケットの送信に失敗したら、その区画で新たに記録した既送信キーを巻き戻す（スポーツ振り分け分と管理キーは残す）
+- 残課題: メッセージの一部だけが届いた場合の重複 / スポーツ振り分けの送信失敗 / カルチャーとスポーツ順位の送信失敗時の消失
+
 ## ブランチ feat/anzn-local（未push・mainに未マージ）
 - `scripts/anzn_local.py`（新規）: 自宅Macから15分ごとに、あんぜんねっとの新着Embedを送る
   - 既存の関数を再利用。Mac専用stateは `~/Library/Application Support/anzn-local/anzn_seen.json`
@@ -127,7 +133,7 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
   - news（30分設定）: 234分
   - jma_alerts（10分設定）: 200分
   - badminton_alerts（15分設定）: 183分
-- **Discordへの送信失敗時は、記事が既送信の記録のまま失われる**（全チャンネル共通。state は送信前に記録される）。異常通知は届く。
+- **Discordへの送信失敗時の記事消失**: fetch_news・気象警報・CNBC は a91c6e2 で対応済み。カルチャー（送信失敗でも state を保存）とスポーツ順位（送信前に保存）は未対応。
 
 ## 未着手・検討中の課題（いずれもオーナー判断で保留中）
 - Mac側あんぜんねっと配信の停止検知（heartbeat）… Mac配信へ切り替えた後の後続タスク
