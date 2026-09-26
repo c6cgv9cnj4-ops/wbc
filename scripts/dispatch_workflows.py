@@ -27,6 +27,8 @@ import shutil
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 REPO = "c6cgv9cnj4-ops/wbc"
 REF = "main"
 # (ワークフロー, 最小間隔[分])。cron の設定値に合わせる。
@@ -36,6 +38,15 @@ WORKFLOWS = [
     ("nikkei_cnbc_digest.yml", 60),
 ]
 BUSY_STATUSES = {"queued", "in_progress", "waiting", "requested", "pending"}
+
+# 2026-09-27(N7): あんぜんねっと自宅Mac配信(com.rickykogyo.anzn-local)だけが止まった場合の検知。
+# anzn_local.py は15分ごとの実行のたびに state を保存するため、その更新時刻で生存を判定する。
+# Mac全体の停止は Actions 側(news.yml の MAC_DISPATCHER=on)で検知済みなので、ここでは扱わない。
+SUPPORT_DIR = os.path.expanduser("~/Library/Application Support/anzn-local")
+ANZN_STATE_PATH = os.path.join(SUPPORT_DIR, "anzn_seen.json")
+DISPATCHER_STATE_PATH = os.path.join(SUPPORT_DIR, "dispatcher_state.json")
+ANZN_STALE_MINUTES = 60       # 15分周期の3回分以上が止まったら異常とみなす
+DISPATCHER_AWAKE_MINUTES = 15  # 起動係自身が直前まで動いていた(スリープ復帰直後ではない)とみなす間隔
 
 
 def gh(*args):
@@ -67,6 +78,51 @@ def decide(run, min_interval, now):
     return True, f"前回から{elapsed:.0f}分({run.get('event')})"
 
 
+def check_anzn_liveness(now, dry_run=False):
+    """ANZNの state が ANZN_STALE_MINUTES より古ければ、既存の異常通知(12時間抑止)で #webhook_local へ知らせる。
+    起動係自身がスリープ等で止まっていた直後の回は、ANZNも同様に止まっていただけなので判定しない。"""
+    try:
+        with open(DISPATCHER_STATE_PATH, encoding="utf-8") as f:
+            dstate = json.load(f)
+    except (OSError, ValueError):
+        dstate = {}
+    prev = dstate.get("last_run")
+    awake = False
+    if prev:
+        try:
+            awake = (now - datetime.datetime.fromisoformat(prev)).total_seconds() / 60 <= DISPATCHER_AWAKE_MINUTES
+        except (TypeError, ValueError):
+            awake = False
+    dstate["last_run"] = now.isoformat()
+
+    stale_minutes = None
+    if os.path.exists(ANZN_STATE_PATH):
+        mtime = datetime.datetime.fromtimestamp(os.path.getmtime(ANZN_STATE_PATH), datetime.timezone.utc)
+        stale_minutes = (now - mtime).total_seconds() / 60
+    is_stale = awake and stale_minutes is not None and stale_minutes > ANZN_STALE_MINUTES
+    label = "未作成" if stale_minutes is None else f"{stale_minutes:.0f}分前"
+    print(f"  anzn-local 生存確認: 最終実行 {label}" + (" → 異常" if is_stale else "") + ("" if awake else "(起動係の復帰直後のため判定せず)"))
+
+    if is_stale and not dry_run:
+        # 通知のときだけ読み込む(通常時の起動係の動作・依存に影響させない)
+        import anzn_local  # noqa: E402
+        import fetch_news  # noqa: E402
+        import news_alerts  # noqa: E402
+        webhook = anzn_local.load_webhook(anzn_local.DEFAULT_ENV_PATH)
+        if webhook:
+            news_alerts.record("anzn_local_stale", "local", "あんぜんねっと自宅Mac配信(launchd)",
+                               f"最終実行から{stale_minutes:.0f}分経過(anzn-local ジョブの停止・異常終了の可能性)",
+                               "停止中(復旧までは安全安心情報の新着が届きません)")
+            news_alerts.flush({"local": webhook}, fetch_news.send_to_discord, dstate, now)
+        else:
+            print("  [ERROR] 通知用の DISCORD_WEBHOOK_LOCAL が見つかりません。")
+    if not dry_run:
+        os.makedirs(SUPPORT_DIR, exist_ok=True)
+        with open(DISPATCHER_STATE_PATH, "w", encoding="utf-8") as f:
+            json.dump(dstate, f, ensure_ascii=False, indent=1)
+    return is_stale
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true", help="判定だけ表示し、起動しない")
@@ -88,6 +144,11 @@ def main(argv=None):
             # gh の認証切れ・ネットワーク断など。他のワークフローの判定は続ける
             print(f"[{stamp}] [ERROR] {workflow}: {err}")
             exit_code = 1
+    try:
+        check_anzn_liveness(now, dry_run=args.dry_run)
+    except Exception as err:  # noqa: BLE001
+        print(f"[{stamp}] [ERROR] anzn-local 生存確認に失敗: {err}")
+        exit_code = 1
     return exit_code
 
 
