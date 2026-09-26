@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  あんぜんねっと(北本市安全安心情報)を自宅Macから15分ごとに配信する launchd 設定。
+  手順は docs/ANZN_LOCAL_SETUP.md。~/Library/LaunchAgents/ にコピーして使う。
+  秘密情報(Webhook URL)はここに書かない。専用clone直下の .env から scripts/anzn_local.py が読む。
+  実行対象は Claude 等が編集する作業ツリーではなく、専用clone(/Users/hosokawachikara/Services/anzn-local/wbc)。
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.rickykogyo.anzn-local</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/hosokawachikara/Services/anzn-local/wbc/.venv/bin/python</string>
+    <string>/Users/hosokawachikara/Services/anzn-local/wbc/scripts/anzn_local.py</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/hosokawachikara/Services/anzn-local/wbc</string>
+  <key>StartInterval</key>
+  <integer>900</integer>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>LANG</key>
+    <string>ja_JP.UTF-8</string>
+    <key>TZ</key>
+    <string>Asia/Tokyo</string>
+    <key>PYTHONUNBUFFERED</key>
+    <string>1</string>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/Users/hosokawachikara/Library/Logs/anzn-local.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/hosokawachikara/Library/Logs/anzn-local.log</string>
+</dict>
+</plist>
