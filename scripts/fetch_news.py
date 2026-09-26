@@ -1347,6 +1347,21 @@ def send_to_discord(webhook_url, message):
     return ok
 
 
+def _rollback_new_keys(state, keys_before, keep_items=()):
+    """2026-09-26(N5): Discord送信に失敗した区画で新たに既送信記録したキーを取り消す
+    (次回実行で再送させるため)。"_"で始まる管理キー(異常通知・土日シグネチャ)と、
+    別チャンネルへ送信済みのkeep_items(スポーツ振り分け分)は残す。戻り値は取り消した件数。
+    """
+    keep = {normalize_url(it["url"]) for it in keep_items if it.get("url")}
+    removed = 0
+    for key in set(state) - keys_before:
+        if key.startswith("_") or key in keep:
+            continue
+        state.pop(key, None)
+        removed += 1
+    return removed
+
+
 def _handle_sports_leak(sports_items, sports_webhook, now, source_label):
     """ローカル/全国いずれかのフィードに混入していたスポーツ記事を
     #webhook_sports_culture へ振り分ける共通処理。戻り値はhad_errorか否か。
@@ -1395,23 +1410,27 @@ def main():
     # ローカル系(#webhook_local): あんぜんねっと(北本市安全安心情報) + 埼玉・県央ローカルニュース。
     # 全国ニュースとは完全に別メッセージ・別Webhookで送信し、混在させない。
     if local_webhook:
+        keys_before_anzn = set(state)
         anzn_new = fetch_anzn_new_items(state, now)
         anzn_embed = build_anzn_alert_embed(anzn_new, now)
         if anzn_embed:
             print("=== あんぜんねっと新着(赤枠強調・最優先送信) ===")
             print(anzn_new)
             if not send_embed_to_discord(local_webhook, anzn_embed):
-                news_alerts.record("discord_send_anzn_embed", "local", "Discord送信(あんぜんねっと新着)", "送信失敗(ログにHTTPステータスあり)", "スキップ(この投稿は届いていません)")
+                _rollback_new_keys(state, keys_before_anzn)
+                news_alerts.record("discord_send_anzn_embed", "local", "Discord送信(あんぜんねっと新着)", "送信失敗(ログにHTTPステータスあり)", "スキップ(既送信にせず次回再送)")
                 had_error = True
         else:
             print("[INFO] あんぜんねっとの新着はありませんでした。")
 
+        keys_before_local = set(state)
         local_message, local_sports_items = build_local_news_message(state, now)
         if local_message:
             print("=== ローカルニュースメッセージ(新着あり) ===")
             print(local_message)
             if not send_to_discord(local_webhook, local_message):
-                news_alerts.record("discord_send_local_message", "local", "Discord送信(埼玉・県央ローカルニュース)", "送信失敗(ログにHTTPステータスあり)", "スキップ(この投稿は届いていません)")
+                _rollback_new_keys(state, keys_before_local, keep_items=local_sports_items)
+                news_alerts.record("discord_send_local_message", "local", "Discord送信(埼玉・県央ローカルニュース)", "送信失敗(ログにHTTPステータスあり)", "スキップ(既送信にせず次回再送)")
                 had_error = True
         else:
             print("[INFO] 新着のローカルニュースはありませんでした。送信をスキップします。")
@@ -1423,12 +1442,14 @@ def main():
 
     # 全国系(#webhook_news): 主要ニュース(Yahoo!トップピックス)のみ。
     if news_webhook:
+        keys_before_national = set(state)
         national_message, national_sports_items = build_national_news_message(gemini_client, state, now)
         if national_message:
             print("=== 全国ニュースメッセージ(新着あり) ===")
             print(national_message)
             if not send_to_discord(news_webhook, national_message):
-                news_alerts.record("discord_send_national_message", "news", "Discord送信(全国主要ニュース)", "送信失敗(ログにHTTPステータスあり)", "スキップ(この投稿は届いていません)")
+                _rollback_new_keys(state, keys_before_national, keep_items=national_sports_items)
+                news_alerts.record("discord_send_national_message", "news", "Discord送信(全国主要ニュース)", "送信失敗(ログにHTTPステータスあり)", "スキップ(既送信にせず次回再送)")
                 had_error = True
         else:
             print("[INFO] 新着の全国ニュースはありませんでした。送信をスキップします。")
@@ -1439,13 +1460,15 @@ def main():
         print("[WARN] DISCORD_WEBHOOK_NEWS が未設定のため、全国ニュース配信をスキップします。")
 
     if market_webhook:
+        keys_before_market = set(state)
         market_message, skip_as_duplicate = build_market_message(state, now, gemini_client)
         print("=== マーケットメッセージ ===")
         print(market_message)
         if skip_as_duplicate:
             print("[INFO] 土日の重複配信のためDiscordへの送信はスキップしました(ログには残しています)。")
         elif not send_to_discord(market_webhook, market_message):
-            news_alerts.record("discord_send_market_message", "market", "Discord送信(マーケット情報)", "送信失敗(ログにHTTPステータスあり)", "スキップ(この投稿は届いていません)")
+            _rollback_new_keys(state, keys_before_market)
+            news_alerts.record("discord_send_market_message", "market", "Discord送信(マーケット情報)", "送信失敗(ログにHTTPステータスあり)", "スキップ(既送信にせず次回再送)")
             had_error = True
     else:
         print("[WARN] DISCORD_WEBHOOK_MARKET が未設定のため、マーケット配信をスキップします。")

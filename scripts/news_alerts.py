@@ -33,10 +33,15 @@ def reset():
     _issues.clear()
 
 
+def redact(text):
+    """Discord Webhook(トークンを含む)をURL全体・パスのみのどちらの形でも伏せ字にする。
+    requestsの例外文は「url: /api/webhooks/ID/TOKEN」のようにホスト無しのパスで出るため。"""
+    return re.sub(r"(?:https?://(?:[\w-]+\.)?discord(?:app)?\.com)?/api/webhooks/[^\s'\")]+", "<webhook>", str(text))
+
+
 def short_error(err, limit=120):
     """例外やエラー文を通知用に短くする(HTTPステータスがあれば先頭に出す)。"""
-    text = str(err)
-    text = re.sub(r"https://(?:\w+\.)?discord(?:app)?\.com/api/webhooks/\S+", "<webhook>", text)
+    text = redact(err)
     m = re.search(r"\b(4\d\d|5\d\d)\b", text)
     text = re.sub(r"\s+", " ", text).strip()
     if len(text) > limit:

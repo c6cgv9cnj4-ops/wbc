@@ -33,6 +33,8 @@ import sys
 
 import requests
 
+import news_alerts  # Webhookの伏せ字(redact)用
+
 STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "state", "jma_alerts_seen.json")
 STATE_RETENTION_DAYS = 14
 REQUEST_TIMEOUT = 15
@@ -338,7 +340,7 @@ def send_embeds_to_discord(webhook_url, embeds, batch_size=10):
             else:
                 print(f"[OK] Discord送信成功(HTTP {resp.status_code}, {len(batch)}件)")
         except Exception as err:  # noqa: BLE001
-            print(f"[ERROR] Discord送信中に例外が発生しました: {err}")
+            print(f"[ERROR] Discord送信中に例外が発生しました: {news_alerts.redact(err)}")
             ok = False
     return ok
 
@@ -402,7 +404,12 @@ def main():
     else:
         print("[INFO] 配信対象の新着はありませんでした。")
 
-    save_seen_state(state)
+    if had_error:
+        # 2026-09-26(N5): 送信に失敗した回は state を保存しない(警報の状態変化・地震を
+        # 既読として確定させず、次回実行で再送する)。state ファイルは前回のまま残る。
+        print("[WARN] Discord送信に失敗したため、既読記録を保存しません(次回再送)。")
+    else:
+        save_seen_state(state)
 
     if had_error:
         sys.exit(1)
