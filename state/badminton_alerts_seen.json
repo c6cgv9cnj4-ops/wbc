@@ -97,7 +97,11 @@
     "https://www.badspi.jp/202609261942/?utm_source=rss&utm_medium=rss&utm_campaign=202609261942": "2026-09-27T08:28:12.427798+09:00",
     "https://www.badspi.jp/202609262019/?utm_source=rss&utm_medium=rss&utm_campaign=202609262019": "2026-09-27T08:28:12.427798+09:00",
     "https://www.badspi.jp/202609271034/?utm_source=rss&utm_medium=rss&utm_campaign=202609271034": "2026-09-27T12:47:14.948270+09:00",
-    "https://www.badspi.jp/202609271410/?utm_source=rss&utm_medium=rss&utm_campaign=202609271410": "2026-09-27T18:50:03.467465+09:00"
+    "https://www.badspi.jp/202609271410/?utm_source=rss&utm_medium=rss&utm_campaign=202609271410": "2026-09-27T18:50:03.467465+09:00",
+    "https://www.badspi.jp/202609271741/?utm_source=rss&utm_medium=rss&utm_campaign=202609271741": "2026-09-27T23:59:29.905398+09:00",
+    "https://www.badspi.jp/202609271649/?utm_source=rss&utm_medium=rss&utm_campaign=202609271649": "2026-09-27T23:59:29.905398+09:00",
+    "https://www.badspi.jp/202609271636/?utm_source=rss&utm_medium=rss&utm_campaign=202609271636": "2026-09-27T23:59:29.905398+09:00",
+    "https://www.badspi.jp/202609271553/?utm_source=rss&utm_medium=rss&utm_campaign=202609271553": "2026-09-27T23:59:29.905398+09:00"
   },
   "seen_national_summaries": {
     "https://www.sposoku.com/wakabacup-badminton/::優勝：岡垣ジュニア(福岡県)準優勝：Selfish(神奈川県)第三位：shinshin(石川県)、F.Flash(埼玉県)": "2026-09-06T00:41:49.469551+09:00",
@@ -284,7 +288,24 @@
   "digest_pool": {
     "matches": [],
     "summaries": [],
-    "badspi": [],
+    "badspi": [
+      {
+        "title": "【愛知・名古屋アジア大会】「自分のプレーの出来は悪くなかったけど、相手が強かったです」（奈良岡功大）＜個人戦準々決勝・選手コメント4＞",
+        "url": "https://www.badspi.jp/202609271741/?utm_source=rss&utm_medium=rss&utm_campaign=202609271741"
+      },
+      {
+        "title": "【愛知・名古屋アジア大会】「明日、明後日というところが、今自分が挑戦していく部分だと思う」（山口茜）＜個人戦準々決勝・選手コメント3＞",
+        "url": "https://www.badspi.jp/202609271649/?utm_source=rss&utm_medium=rss&utm_campaign=202609271649"
+      },
+      {
+        "title": "【愛知・名古屋アジア大会】「日本の女子ダブルスとして、絶対に1個メダルを持ち帰りたいと思っていたから、取れてよかった」（岩永鈴）「明日も感謝の気持ちをもって、思い切り頑張る」（中西貴映）＜個人戦準々決勝・選手コメント2＞",
+        "url": "https://www.badspi.jp/202609271636/?utm_source=rss&utm_medium=rss&utm_campaign=202609271636"
+      },
+      {
+        "title": "【愛知・名古屋アジア大会】「とにかく1ゲームを取りたいと思って、最初から全力でいった」（西）「スピードをもってプレーできたのは、相手にプレッシャーをかけられたと思う」（熊谷）＜個人戦準々決勝・選手コメント1＞",
+        "url": "https://www.badspi.jp/202609271553/?utm_source=rss&utm_medium=rss&utm_campaign=202609271553"
+      }
+    ],
     "gnews": [],
     "nba": []
   },
