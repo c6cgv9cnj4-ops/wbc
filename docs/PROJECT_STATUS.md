@@ -1,6 +1,6 @@
 # PROJECT_STATUS（新しいセッションが最初に読む現在地ファイル）
 
-最終更新: 2026-09-26 深夜 ／ 最新の機能commit: `66cebda`（2026-09-26・本番反映済み。ANZNのMac移行とN3起動係が稼働中）
+最終更新: 2026-09-27（実運用観察フェーズへ移行）／ 最新の機能commit: `7c3b149`（2026-09-27・本番反映済み。ANZNのMac配信・N3起動係・N7が稼働中）
 ※この後にある `github-actions[bot]` の「〜既送信記録を更新」commitは state 自動更新のみ。
 
 ## 目的
@@ -117,6 +117,28 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
 | badminton_alerts.yml | 15分〜毎時 | — | fetch_badminton_alerts.py |
 
 その他の日次・週次・月次ジョブ（deals / daily_summary / discord_logs / npb_results / sports_standings / weekly_mindmap / monthly-mindmap / price_check など）は、`.github/workflows/` の各ファイルを参照。
+
+## 実運用観察フェーズ（2026-09-27〜）
+大規模改修は行わず、数日間の実運用を観察する（Geminiによる第三者監査の指摘を反映）。
+
+**既知のリスク（許容して運用中）**
+- **Mac依存**: ANZN配信と起動係（N3）は自宅Macで動く。再起動・ログアウトで停止する（異常通知で検知でき、ログインで自動再開。cron による配信は続く）
+- **stateの分散**: 状態がワークフローごとの `state/*.json` と、Mac側の `~/Library/Application Support/anzn-local/` に分かれている
+- **LLM処理のtransaction方式が完全には統一されていない**: 送信成功後に確定する方式は news・気象警報・CNBC・ANZN のみ。カルチャー・スポーツ順位などは未対応
+- **Gemini 402（クレジット切れ）**: 全国ニュースと市況の整理が停止中。クレジットの追加はオーナー判断
+- **地元情報の品質**: 数日運用してから評価する
+- **全国ニュース・文化の情報量**: 実運用で評価する（N4 で候補を追加済み。Gemini復旧後に確認）
+
+**今すぐ修正しない項目（凍結。実際の問題が確認されてから再検討）**
+- VPS移行
+- stateの統合
+- 完全なtransaction化
+- check.yml の flake8 失敗
+
+**評価方針**
+- 数日間、実際のDiscord投稿を観察する
+- オーナーがチャンネル・情報ごとに「読む価値がある / 多すぎる / 不要 / 不足している」を判断してから、情報の品質を改善する
+- 判断が出るまでは、コードの変更は原則として行わない
 
 ## 現在確認されている問題（2026-09-26 確認）
 ※ いずれも Actions の実行結果は success のまま。ログの ERROR/WARN にしか出ないため、気付きにくい。
