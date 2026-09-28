@@ -122,6 +122,26 @@ def create_post(token: str, forum_id: str, day: datetime.date) -> dict:
     return resp.json()
 
 
+def post_template_message(token: str, thread_id: str) -> dict:
+    """既存スレッドへテンプレート本文を投稿する(スレッド作成時にメッセージ送信だけ
+    失敗し、本文が空のまま残ったケースの復旧用。2026-09-27)。"""
+    resp = requests.post(
+        f"{DISCORD_API_BASE}/channels/{thread_id}/messages",
+        headers={"Authorization": f"Bot {token}", "User-Agent": "wbc-daily-journal-post/1.0"},
+        json={"content": JOURNAL_POST_TEMPLATE, "allowed_mentions": {"parse": []}},
+        timeout=20,
+    )
+    if resp.status_code >= 300:
+        raise RuntimeError(f"既存スレッドへの本文投稿に失敗しました(HTTP {resp.status_code})")
+    return resp.json()
+
+
+def thread_is_empty(thread: dict) -> bool:
+    """スレッド作成は成功したが本文メッセージの送信だけ失敗した状態(message_count=0)
+    を検出する。"""
+    return int(thread.get("message_count") or 0) == 0 and int(thread.get("total_message_sent") or 0) == 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="当日のモーニングジャーナル投稿を作成")
     ap.add_argument("--apply", action="store_true", help="実際に投稿する(既定は dry-run)")
@@ -157,8 +177,18 @@ def main() -> int:
         return 1
     _, threads = _list_forum_threads(forum_id, token)
     found = existing_post_for(day, threads)
-    if found:
+    if found and not thread_is_empty(found):
         print(f"[SKIP] {day} の投稿は既にあります: {found.get('name')}(二重作成しません)")
+        return 0
+    if found and thread_is_empty(found):
+        # スレッド作成時に本文メッセージの送信だけ失敗した状態(message_count=0)。
+        # 新規スレッドは作らず、同じスレッドへテンプレート本文を投稿して復旧する。
+        if not args.apply:
+            print(f"[DRY-RUN] {day} の投稿「{found.get('name')}」は本文が空です"
+                  " → --apply で本文を投稿して復旧します")
+            return 0
+        post_template_message(token, found["id"])
+        print(f"[OK] 本文が空だった既存スレッドへテンプレートを投稿しました: {found.get('name')}")
         return 0
     if not args.apply:
         print(f"[DRY-RUN] #{meta.get('name')} に「{title}」はまだありません → --apply で作成されます")
