@@ -62,6 +62,7 @@ import sys
 
 import requests
 
+import journal_confirm as jc
 import journal_observe as jo
 
 # ===========================================================================
@@ -676,8 +677,10 @@ def main() -> int:
                     + "".join(f"⚠️ {x}\n" for x in warnings)
                     + "今週は取得できたジャーナルがありませんでした。書かなかった週も、そのまま記録として残ります。"]
     else:
-        messages = jo.compose_messages(obs, interp, istatus, head=jo.HEAD_MARK, warnings=warnings,
-                                       sheet_link=sheet_link, extra_lines=[context_line] if context_line else None)
+        messages = jo.compose_messages(
+            obs, interp, istatus, head=jo.HEAD_MARK, warnings=warnings, sheet_link=sheet_link,
+            extra_lines=[context_line] if context_line else None,
+            answer_guide=jc.answer_guide(len((interp or {}).get("hypotheses") or [])))
 
     if dry_run or args.use_mock:
         if quiet_log:
@@ -696,20 +699,62 @@ def main() -> int:
     m_start = ctx["sunday"] - datetime.timedelta(days=27)
     mobs = (jo.observe(days, m_start, unit_days=28, n_base=1, n_hist=1)
             if is_month_closing_week(ctx) else None)
+    generated_at = datetime.datetime.now(JST).isoformat(timespec="seconds")
+    confirm_rows = [] if empty else jc.build_rows(ctx["week_tag_dash"], "週次", interp, generated_at)
     if mobs and mobs["writing"]["written"]:   # 最終週に書かなくても、28日内に記録があれば出す
         print(f"[INFO] 月次観測: {jo.redacted_summary(mobs)}")
         minterp, mstatus = jo.interpret(mobs, api_key, model,
                                         context_note="(28日間とその前の28日間の比較)")
         mhead = f"🌕 月次観測（{ctx['sunday'].month}月）"
-        mmsgs = jo.compose_messages(mobs, minterp, mstatus, head=mhead)
+        mmsgs = jo.compose_messages(
+            mobs, minterp, mstatus, head=mhead, hyp_prefix="M",
+            answer_guide=jc.answer_guide(len((minterp or {}).get("hypotheses") or []), "M", with_view=False))
+        confirm_rows += jc.build_rows(ctx["sunday"].strftime("%Y-%m"), "月次", minterp, generated_at,
+                                      prefix="M", with_view=False)
         if dry_run or args.use_mock:
             if not quiet_log:
                 print("[INFO] 月次プレビュー:\n" + "\n\n---\n\n".join(mmsgs))
         else:
             post_messages(mmsgs, None, username="月次観測")
 
+    # --- 6. 本人確認(○△×): 前回レビューへの返信を反映し、今回の仮説を「未回答」で保存 -------
+    if args.use_mock or dry_run:
+        print(f"[INFO] モック/dry-run のため仮説確認の保存をスキップ（今回の行 {len(confirm_rows)}件）")
+    elif sheets_creds is None:
+        print("[INFO] Sheets 認証情報が無いため仮説確認の保存をスキップ")
+    else:
+        try:
+            sync_confirmations(sheets_creds, ctx, confirm_rows, generated_at)
+        except Exception as err:  # noqa: BLE001
+            print(f"[WARN] 仮説確認の保存に失敗（週次の投稿には影響なし）: {type(err).__name__}")
+
     print("=== 完了 ===" + ("（警告あり）" if warnings else ""))
     return 0
+
+
+def sync_confirmations(creds, ctx: dict, new_rows: list[list], generated_at: str) -> None:
+    """「仮説確認」タブ: 直前のレビュー以降の本人の返信(#週刊まとめ)を前回分の回答(D)に反映し、
+    今回の仮説(C)を未回答として追加する。未回答の催促・再送はしない。ログは件数のみ。"""
+    import journal_review as jr
+
+    ssid = os.environ.get("WEEKLY_SPREADSHEET_ID", "").strip()
+    if not ssid:
+        return
+    svc = build_service("sheets", "v4", creds)
+    jc.ensure_sheet(svc, ssid)
+    rows = jc.read_rows(svc, ssid)
+    since = jc.latest_batch(rows, exclude_period=ctx["week_tag_dash"])
+    token = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
+    channel_id = os.environ.get("DISCORD_CHANNEL_ID_WEEKLY_SUMMARY", "").strip()
+    if since and token and channel_id:
+        texts = jc.fetch_owner_texts(lambda path, params: jr._discord_get(path, token, params), channel_id, since)
+        n = jc.apply_answers(rows, jc.parse_replies(texts), generated_at, since)
+        print(f"[INFO] 仮説確認: 前回分に回答を反映 {n}件（本人の投稿 {len(texts)}件を確認）")
+    elif since:
+        print("[INFO] DISCORD_CHANNEL_ID_WEEKLY_SUMMARY が無いため回答の読み取りをスキップ")
+    rows = jc.merge_rows(rows, new_rows)
+    jc.write_rows(svc, ssid, rows)
+    print(f"[OK] 仮説確認タブ更新: {jc.summarize(rows)}")
 
 
 if __name__ == "__main__":

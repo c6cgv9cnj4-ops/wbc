@@ -44,6 +44,7 @@ MARKER_RATIO_UP = 1.5    # 1000字あたり出現率が1.5倍以上 → 増
 MARKER_RATIO_DOWN = 0.67 # 0.67倍以下 → 減
 MARKER_MIN_GAP = 3       # かつ、比較期間の出現率から期待される回数との差が3回以上(少量の揺れを除く)
 LIST_LIMIT = 8           # 各リストの表示上限
+LOW_VOLUME_DAYS = 3      # 週に書いた日がこれ未満なら「記録量が足りず差分は確認できない」と明示する
 SNIPPET_HALF = 22        # 抜粋は該当箇所の前後22字
 
 # ---------------------------------------------------------------------------
@@ -578,8 +579,10 @@ def _term_line(kind: str, x: dict) -> str:
 
 def compose_messages(obs: dict, interp: dict | None, interp_status: str, *, head: str,
                      warnings: list[str] | None = None, sheet_link: str | None = None,
-                     extra_lines: list[str] | None = None) -> list[str]:
-    """Discord 用。[1通目: A 数値 + B 変化] [2通目: C 仮説 + D 根拠] に分け、各1900字以内。"""
+                     extra_lines: list[str] | None = None, hyp_prefix: str = "",
+                     answer_guide: list[str] | None = None) -> list[str]:
+    """Discord 用。[1通目: A 数値 + B 変化] [2通目: C 仮説 + D 根拠] に分け、各1900字以内。
+    仮説には番号(週次 1,2,… / 月次 M1,M2,…)を付け、answer_guide(回答方法)を C の後に置く。"""
     w = obs["writing"]
     unit = "週" if obs["unit_days"] <= 7 else "期間"
     a = [f"{head}  {obs['period']}", ""]
@@ -596,13 +599,16 @@ def compose_messages(obs: dict, interp: dict | None, interp_status: str, *, head
     a.append("")
     a.append("**B. 変化**（語が書いた日のうち何日に出たか＝言及の多さ。気持ちの強さではありません）")
     T = obs["terms"]
+    if w["written"] < LOW_VOLUME_DAYS and obs["unit_days"] <= 7:
+        a.append(f"・十分な記録量がないため、明確な差分は確認できません（書いた日 {w['written']}日）")
     any_change = False
     for k in ("new", "returned", "up", "down", "transient", "gone"):
         if T[k]:
             any_change = True
             a.append(f"{TERM_KIND_ICON[k]} {TERM_KIND_NAME[k]}: " + "、".join(_term_line(k, x) for x in T[k]))
     if not any_change:
-        a.append("・目立った語の増減は検出されませんでした" + ("" if obs["baseline_ok"] else "（比較データ不足）"))
+        a.append(("・今週は大きな変化なし" if obs["unit_days"] <= 7 else "・この期間は大きな変化なし")
+                 + ("" if obs["baseline_ok"] else "（比較データ不足）"))
     mk = [m for m in obs["markers"] if m["direction"]]
     if mk:
         a.append("🗣 表現の出現率（千字あたり）: " + "、".join(
@@ -624,8 +630,8 @@ def compose_messages(obs: dict, interp: dict | None, interp_status: str, *, head
 
     c = ["**C. 気づき（Geminiによる仮説。事実ではありません）**"]
     if interp and (interp["hypotheses"] or interp["continuity"]):
-        for h in interp["hypotheses"]:
-            c.append(f"・[{','.join(h['refs'])}] {h['text']}")
+        for i, h in enumerate(interp["hypotheses"], 1):
+            c.append(f"**{hyp_prefix}{i}.** {h['text']}（根拠 {','.join(h['refs'])}）")
             for alt in h["alternatives"]:
                 c.append(f"　└ 別の可能性: {alt}")
         if interp["continuity"]:
@@ -636,6 +642,7 @@ def compose_messages(obs: dict, interp: dict | None, interp_status: str, *, head
         reason = {"failed": "Gemini の呼び出しに失敗", "few": "解釈するほどの変化が観測されなかった",
                   "no_key": "Gemini 未設定"}.get(interp_status, interp_status)
         c.append(f"・今回は仮説なし（{reason}）。A・B の観測だけで完結しています。")
+    c += list(answer_guide or [])
     c += ["", "**D. 根拠**（観測ID → 日付・元スレッド）"]
     for it in obs["items"]:
         c.append(f"{it['id']} {it['text']}")

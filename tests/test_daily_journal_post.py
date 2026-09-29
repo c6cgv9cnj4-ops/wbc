@@ -62,10 +62,15 @@ class DuplicateTest(unittest.TestCase):
     def _env(self):
         return mock.patch.dict(os.environ, {"DISCORD_BOT_TOKEN": "tok", "DISCORD_CHANNEL_ID_MORNING_JOURNAL": "555"})
 
-    def _patches(self, names, create):
+    def _patches(self, names, create, empty=False, recover=None):
+        # 既存スレッドは message_count=0(フォーラムでは最初の投稿を数えないので通常の状態)
         return dict(_discord_get=mock.Mock(return_value={"type": 15, "name": "モーニングジャーナル"}),
-                    _list_forum_threads=mock.Mock(return_value=("g", [{"id": str(i), "name": n} for i, n in enumerate(names)])),
-                    create_post=create)
+                    _list_forum_threads=mock.Mock(return_value=("g", [
+                        {"id": str(i), "name": n, "message_count": 0, "total_message_sent": 0}
+                        for i, n in enumerate(names)])),
+                    create_post=create,
+                    thread_is_empty=mock.Mock(return_value=empty),
+                    post_template_message=recover or mock.Mock(side_effect=AssertionError("recover")))
 
     def test_skips_when_same_date_exists(self):
         for existing in (["2026/09/27｜モーニングジャーナル"], ["2026/09/27"], ["2026/09/26", "2026/09/27 追記"]):
@@ -75,6 +80,30 @@ class DuplicateTest(unittest.TestCase):
             self.assertEqual(rc, 0)
             create.assert_not_called()
             self.assertIn("[SKIP]", out)
+
+    def test_normal_or_manual_post_is_never_refilled(self):
+        # 2026-09-29 に実際にあった形: Bot の投稿と本人の手動投稿が同じ日にある → 何も投稿しない
+        create = mock.Mock(side_effect=AssertionError("post"))
+        with self._env():
+            rc, out = _run(["--apply", "--date", "2026-09-29"],
+                           **self._patches(["2026/09/29", "2026/09/29｜モーニングジャーナル"], create))
+        self.assertEqual(rc, 0)
+        self.assertIn("[SKIP]", out)
+
+    def test_recovers_only_when_starter_is_missing(self):
+        recover = mock.Mock(return_value={})
+        create = mock.Mock(side_effect=AssertionError("post"))
+        with self._env():
+            rc, out = _run(["--apply", "--date", "2026-09-27"],
+                           **self._patches(["2026/09/27｜モーニングジャーナル"], create, empty=True, recover=recover))
+        self.assertEqual(rc, 0)
+        recover.assert_called_once()
+
+    def test_thread_is_empty_checks_starter_message(self):
+        for code, expected in ((200, False), (404, True)):
+            with mock.patch.object(cp.requests, "get", return_value=mock.Mock(status_code=code)) as get:
+                self.assertEqual(cp.thread_is_empty({"id": "123", "message_count": 0}, "tok"), expected)
+            self.assertTrue(get.call_args.args[0].endswith("/channels/123/messages/123"))
 
     def test_creates_once_when_missing(self):
         create = mock.Mock(return_value={"name": "2026/09/27｜モーニングジャーナル"})

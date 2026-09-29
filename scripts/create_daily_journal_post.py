@@ -136,10 +136,15 @@ def post_template_message(token: str, thread_id: str) -> dict:
     return resp.json()
 
 
-def thread_is_empty(thread: dict) -> bool:
-    """スレッド作成は成功したが本文メッセージの送信だけ失敗した状態(message_count=0)
-    を検出する。"""
-    return int(thread.get("message_count") or 0) == 0 and int(thread.get("total_message_sent") or 0) == 0
+def thread_is_empty(thread: dict, token: str) -> bool:
+    """スレッドはあるが最初の投稿(本文)が存在しない状態かを判定する。
+    フォーラムでは最初の投稿の ID はスレッド ID と同じ。message_count / total_message_sent は
+    最初の投稿を数えないため、それで判定すると正常な投稿や本人の手動投稿まで「空」と誤判定し、
+    テンプレートを重複投稿してしまう(2026-09-29 修正)。"""
+    resp = requests.get(f"{DISCORD_API_BASE}/channels/{thread['id']}/messages/{thread['id']}",
+                        headers={"Authorization": f"Bot {token}", "User-Agent": "wbc-daily-journal-post/1.0"},
+                        timeout=20)
+    return resp.status_code == 404
 
 
 def main() -> int:
@@ -177,10 +182,10 @@ def main() -> int:
         return 1
     _, threads = _list_forum_threads(forum_id, token)
     found = existing_post_for(day, threads)
-    if found and not thread_is_empty(found):
+    if found and not thread_is_empty(found, token):
         print(f"[SKIP] {day} の投稿は既にあります: {found.get('name')}(二重作成しません)")
         return 0
-    if found and thread_is_empty(found):
+    if found and thread_is_empty(found, token):
         # スレッド作成時に本文メッセージの送信だけ失敗した状態(message_count=0)。
         # 新規スレッドは作らず、同じスレッドへテンプレート本文を投稿して復旧する。
         if not args.apply:
