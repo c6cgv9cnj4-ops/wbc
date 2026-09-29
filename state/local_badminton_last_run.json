@@ -1,7 +1,7 @@
 {
- "run_at": "2026-09-28T09:20:26+09:00",
+ "run_at": "2026-09-29T10:31:29+09:00",
  "log": [
-  "[seed] 鴻巣市バドミントン連盟: ページ1件 + PDF5件を確認",
+  "[seed] 鴻巣市バドミントン連盟: ページ1件 + PDF6件を確認",
   "[seed] 鴻巣市バドミントン連盟(スケジュール): ページ1件 + PDF0件を確認",
   "[seed] 北本市スポーツ協会(市公式): ページ1件 + PDF0件を確認",
   "[seed] 北本市スポーツ(市公式): ページ1件 + PDF0件を確認",
@@ -21,7 +21,7 @@
   "[search] 失敗 北本市 広報きたもと バドミントン 大会 参加者…: ClientError: 402 RESOURCE_EXHAUSTED. {'error': {'code': 402, 'message': 'Your prepayment credits are depleted. Please go to AI Studio",
   "[search] 失敗 北本市スポーツ協会 バドミントン大会 2026 …: ClientError: 402 RESOURCE_EXHAUSTED. {'error': {'code': 402, 'message': 'Your prepayment credits are depleted. Please go to AI Studio",
   "[search] 実在確認できたページ 0件",
-  "[docs] 抽出対象ページ合計 14件",
+  "[docs] 抽出対象ページ合計 15件",
   "[koho] 【最新号】広報きたもと2026年（令和8年）10月号（No.1064）: 大会関連の記載 0件",
   "[koho] 広報きたもと2026年（令和8年）9月号（No.1063）: 大会関連の記載 0件",
   "[koho] 広報きたもと2026年（令和8年）8月号（No.1062）: 大会関連の記載 1件"
