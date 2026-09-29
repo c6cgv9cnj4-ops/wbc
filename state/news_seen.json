@@ -3,8 +3,8 @@
   "_alert:gemini_market": "2026-09-29T11:43:05.427248+09:00",
   "_alert:gemini_national": "2026-09-29T15:46:37.957326+09:00",
   "_alert:google_news_fetch": "2026-09-27T21:20:45.617592+09:00",
-  "_last_run_at": "2026-09-29T18:59:43.373798+09:00",
-  "_weekend_market_signature": "{\"jgb\": \"124.35\", \"nikkei\": \"65,481.27\", \"usdjpy\": 157.32}",
+  "_last_run_at": "2026-09-29T19:30:08.965475+09:00",
+  "_weekend_market_signature": "{\"jgb\": \"124.31\", \"nikkei\": \"65,481.27\", \"usdjpy\": 157.32}",
   "https://ageo-okegawa.goguynet.jp/2026/02/20/ageo-gyoumusu-pa-5/": "2026-09-20T02:50:53.191241+09:00",
   "https://ageo-okegawa.goguynet.jp/2026/02/21/inamachi-cafethegarden-3/": "2026-09-20T02:50:53.191241+09:00",
   "https://ageo-okegawa.goguynet.jp/2026/02/22/okegawa-manekineko/": "2026-09-20T02:50:53.191241+09:00",
@@ -697,6 +697,7 @@
   "https://news.google.com/rss/articles/CBMihwFBVV95cUxNYUU4Y2wzYlBLeHV0X2lzVUxqUl8yTWN0OUpXVDNVVFhyVEdfQl96UkVBdzV4Y0stdm5IdHgybVJBOTNOdXdoLUV5NkNOMTBxallWdTEyZ2dWRWNiSlUzTHRVcmpzMXV0dFdtWDlJcEE3Qy1jZjhIZi1ScnpjVXlpMXhWblN5a1E": "2026-09-25T18:44:54.525007+09:00",
   "https://news.google.com/rss/articles/CBMihwFBVV95cUxNYUdIM0RsYUhJenJXMVRqVVZYSU5YZldWWFpTQ241N2RMMmdFWHZjRG1adWxvREpIalZfSGx3VGQyYnk0a3FuUFZYMkRGSm1pRVFOQ2ozSktVU2lER0kzRlFLbnM5MjRpeGRiWlU4WlhzN2tLc1ZJUDVxdXNCVEhxSkU1NHpwYms": "2026-09-22T20:58:35.302888+09:00",
   "https://news.google.com/rss/articles/CBMihwFBVV95cUxNYXVXcFhZZDlLbTBhY1ZMQ2p6cEZibldCbmtISXRibVUxU3ZEY25idXlrTTRqeU9EZWwxUEN0bEpPbjcybEdwMElodEZyVW5oRmw0cWYzSzBQSkd0STBtdmc1ZVZVOWV5dVg2ZTBNanNveG52SHRkRXdZUDdLZjVlT043cHdhc28": "2026-09-29T05:02:16.123327+09:00",
+  "https://news.google.com/rss/articles/CBMihwFBVV95cUxNYnFCeEF2T3RJMlkwR0QwN3NBUGRqS3IzNk9SSzk1YzlsSEhrWlg0eVpKU0poS1lNclcycXZOOUMtN0VLV1hlR002Uk9Jc0N4LVh2UU5hdVlVd2diLUVWTFJnc0tncDBWTnM3X0J2NUNMblJfSEZlRElNVzg3a1U5ZjlwNy1VODQ": "2026-09-29T19:30:08.965475+09:00",
   "https://news.google.com/rss/articles/CBMihwFBVV95cUxNZ2N1WXVoWVd3X1dzTnQyU05nNDB6ajN6VmVKOElNaVJSMU9IWXhLcTY3RFRNeWxBcGVoOUREYjltZmtWR3lsRjRXVHNMbVJtUHVaelRPUmhaTWdNbnVNNTNjZkc4WHh2NWJRMHE1bkFHOVJrdlIwSzVTZzBzNFhWamlGYk55dmM": "2026-09-22T20:58:35.302888+09:00",
   "https://news.google.com/rss/articles/CBMihwFBVV95cUxNZG01TFJ5d3NxbkktQkJsY083OW5aT2YyUjdBQlNReEMtbFdXTld6c21WQUpXa1dsdXFQa2hEMDlIOGxJeUZDTHo0T3lTUk1JTjhKVlhUQ1lyR3ZocklocWlNc01saUVfZFFrbUhVRmU1MEFiM1N6TlN2b2xCdnpXblpJbS1PVlU": "2026-09-22T07:09:38.674308+09:00",
   "https://news.google.com/rss/articles/CBMihwFBVV95cUxNZkhhZWxvejFXLU1URnplRU9DY05Sa0dZRVNLUE9FbnVSVW9Tb3BJS2R3Tm5PVEdHVjJRbjJablRPay1xZTNmNGNTVTBvZ0FkR09wQkNfNW4tdmdfekt1Z3htbzdZa1VHdEhKaVNqZGM2aVZ4RGVzX2FxOWUyWm9NRmpZNW55b00": "2026-09-28T07:52:58.016700+09:00",
@@ -1548,5 +1549,6 @@
   "https://toyokeizai.net/articles/-/959183": "2026-09-27T08:12:52.539454+09:00",
   "https://toyokeizai.net/articles/-/959193": "2026-09-28T05:15:47.358390+09:00",
   "https://toyokeizai.net/articles/-/959292": "2026-09-28T07:52:58.016700+09:00",
-  "https://toyokeizai.net/articles/-/959393": "2026-09-28T18:01:36.122053+09:00"
+  "https://toyokeizai.net/articles/-/959393": "2026-09-28T18:01:36.122053+09:00",
+  "https://toyokeizai.net/articles/-/959554": "2026-09-29T19:30:08.965475+09:00"
 }
