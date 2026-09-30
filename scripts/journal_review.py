@@ -353,29 +353,16 @@ def fallback_review(threads: list[dict]) -> dict:
 
 
 def analyze(threads: list[dict], period_label: str, api_key: str, model: str) -> tuple[dict, str]:
-    """(review, source)。source は 'gemini' / 'fallback' / 'empty'。"""
-    body, tag_map = _threads_text(threads)
+    """(review, source)。source は 'fallback' / 'empty'。
+
+    2026-09-30: 日記本文を Gemini に送らない方針(送信境界)により、スレッド本文を Gemini に渡す
+    構造化は廃止した。api_key・model は互換のため受け取るが使わない。常に手元の簡易ルールで構造化する。"""
+    body, _ = _threads_text(threads)
     if not body:
         r = _empty_review()
         r["next_focus"] = "まずはモーニングジャーナルを1行でも書く"
         return r, "empty"
-    if api_key:
-        try:
-            from google import genai
-
-            client = genai.Client(api_key=api_key)
-            resp = client.models.generate_content(
-                model=model, contents=_prompt(period_label, body),
-                config={"response_mime_type": "application/json"})
-            review = normalize_review(_loads_loose(resp.text or ""), tag_map)
-            if any(review["mindmap"][c["key"]] for c in CATEGORIES):
-                print(f"[INFO] 週次レビュー構造化: Gemini({model}) 成功")
-                return review, "gemini"
-            print("[WARN] Gemini 応答が空。フォールバックへ")
-        except Exception as err:  # noqa: BLE001
-            print(f"[WARN] Gemini 構造化に失敗、フォールバックへ: {err}")
-    else:
-        print("[INFO] GEMINI_API_KEY 未設定。簡易ルールで構造化")
+    print("[INFO] 日記本文は Gemini に送らない方針のため、手元の簡易ルールで構造化します")
     return fallback_review([t for t in threads if t["text"]]), "fallback"
 
 

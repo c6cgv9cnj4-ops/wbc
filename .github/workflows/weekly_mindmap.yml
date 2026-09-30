@@ -1,9 +1,12 @@
 name: 週次観測（モーニングジャーナル）
 
-# 毎週日曜 20:00 JST に、モーニングジャーナル(直近8週分)を Python で計数して
-# 「書いた量・語の新規/増減/不在/継続・表現の出現率」の変化を検出し、Gemini はその観測に
-# 対する仮説だけを返す(scripts/weekly_mindmap.py + scripts/journal_observe.py)。
-# 出力は Discord #週間まとめ(PNG付き) と スプレッドシート「週次観測」タブのみ。
+# 毎週日曜 20:00 JST に、モーニングジャーナル(直近8週分)を Python で計数して語の増減を検出し、
+# Gemini は「語の増減(語と日数だけ。日記本文・抜粋は送らない)」から変化の筋の仮説を最大3件返す
+# (scripts/weekly_mindmap.py + scripts/journal_observe.py。docs/JOURNAL_OBSERVATION_SPEC.md 10〜13章)。
+# 出力は Discord #週間まとめ(仮説・Python が付けた抜粋・確認記号のみ。PNG なし)と、
+# スプレッドシート「週次観測」「観測詳細」「仮説確認」タブのみ。
+# 手動実行で run_mode=acceptance を選ぶと、AT_ 付きのタブにだけ書き、見出しに【Acceptance Test】を付ける
+# (本番タブ・本番の行は変更しない)。
 #
 # このリポジトリは公開(PUBLIC)のため、ジャーナル由来の成果物(PNG/語/抜粋)は
 # コミットもアーティファクト保存もしない。ログにも件数しか出さない(GITHUB_ACTIONS 判定)。
@@ -22,6 +25,14 @@ on:
         description: "1 で Sheets 書き込み / Discord 投稿をせずログのみ"
         required: false
         default: ""
+      run_mode:
+        description: "production=本番 / acceptance=検証(AT_ 付きタブにだけ書き、見出しに【Acceptance Test】)"
+        required: false
+        type: choice
+        options:
+          - production
+          - acceptance
+        default: production
 
 permissions:
   contents: read
@@ -65,6 +76,8 @@ jobs:
           GOOGLE_CALENDAR_IDS: ${{ vars.GOOGLE_CALENDAR_IDS }}
           DRY_RUN: ${{ github.event.inputs.dry_run }}
           WEEK: ${{ github.event.inputs.week }}
+          # 定期実行(schedule)では入力が空 → 本番。acceptance のときだけ検証用の書き込み先・見出しになる
+          JOURNAL_RUN_MODE: ${{ github.event.inputs.run_mode }}
         run: |
           if [ -n "$WEEK" ]; then
             python scripts/weekly_mindmap.py --week "$WEEK"

@@ -808,6 +808,222 @@ def render_png(obs: dict, out_path: str, *, title: str, font_family: str | None 
     return out_path
 
 
+# ===========================================================================
+# レビュー表示・集約層(2026-09-30 再設計。Acceptance Test 不合格を受けて)
+#
+#   Python : 前期→今期の語の増減を整理し、元の記録から抜粋を取り出す(意味付けはしない)
+#   Gemini : 語の増減(語と日数だけ)から「変化の筋」の仮説を最大3件つくる
+#   本人   : ○ △ × どれも違う 別のこと で確認する
+#
+# 送信境界: Gemini へ送るのは語と機械的な日数だけ。日記本文・抜粋・URL・Discord 本文は送らない。
+# Discord の主な本文には、仮説(最大3件)・Python が付けた抜粋・確認記号だけを載せる。
+# O-項目・表現率・共起などの計測値は「観測詳細」タブ(非公開シート)にだけ残す。
+# ===========================================================================
+AI_DECREASED_KINDS = ("down", "gone")              # 減少・消失
+AI_INCREASED_KINDS = ("new", "returned", "up")     # 新規・再登場・増加
+AI_WORDS_PER_SIDE = 12        # Gemini に渡す語の数の上限(片側)
+MAX_THREADS = 3               # 主な本文に出す「変化の筋」の上限
+FALLBACK_WORDS_PER_SIDE = 8   # Gemini が使えないときの対照表示の語数(片側)
+NO_RECORD = "該当する記録なし"
+_KIND_JA = {"down": "減少", "gone": "消失", "new": "新規", "returned": "再登場", "up": "増加"}
+# 仮説文の中に元の文章らしい引用(かぎ括弧の長い中身)があれば捨てる(Gemini に引用を作らせない)
+_QUOTE_LIKE = re.compile(r"「[^」]{16,}」|『[^』]{16,}』")
+
+
+def diff_for_ai(obs: dict) -> dict:
+    """Gemini に渡してよい機械データだけを作る。語・区分・日数のみで、本文・抜粋・URL は含めない。"""
+    T = obs["terms"]
+    w = obs["writing"]
+
+    def pick(kinds):
+        out = []
+        for k in kinds:
+            for x in T.get(k, []):
+                out.append({"語": x["term"], "区分": _KIND_JA[k],
+                            "比較期間の出現日数": x["base_days"], "今期の出現日数": x["days"]})
+        return out[:AI_WORDS_PER_SIDE]
+
+    return {
+        "対象期間": obs["period"],
+        "単位": "週" if obs["unit_days"] <= 7 else f"{obs['unit_days']}日",
+        "今期に書いた日数": w["written"],
+        "比較期間に書いた日数の平均": w["base_written_avg"],
+        "減少・消失した語": pick(AI_DECREASED_KINDS),
+        "新規・再登場・増加した語": pick(AI_INCREASED_KINDS),
+    }
+
+
+def diff_is_empty(diff: dict) -> bool:
+    return not diff["減少・消失した語"] and not diff["新規・再登場・増加した語"]
+
+
+def build_diff_prompt(diff: dict) -> str:
+    """語の増減だけを渡すプロンプト。日記本文は含まれない(diff_for_ai の出力だけを埋め込む)。"""
+    data = json.dumps(diff, ensure_ascii=False, indent=1)
+    return f"""あなたは、本人が日記(自由記述)の記録を振り返るのを手伝います。評価・指導・診断はしません。
+
+以下は、Python が日記の語を数えて出した「前期から今期への語の増減」です。日記の本文は渡されていません。
+{data}
+
+この増減の語を見て、「こういう変化のまとまりとして読める可能性がある」という仮説を最大{MAX_THREADS}件つくってください。
+
+守ること:
+- 各仮説の根拠にした語を words に入れる。words には上の一覧にある語だけを使う(一覧に無い語は使わない)
+- 仮説は「〜かもしれない」「〜の可能性がある」「〜のように見える」の形で、1〜2文。断定しない
+- 心理状態・本人の意図を断定しない。人生や行動を評価しない。重要度や順位を付けない
+- 日記の文章を想像して引用したり、本文を創作したりしない
+- 確認の答え(○△×)を代わりに決めない。✓ や ★ を付けない
+- 関係の薄い語どうしを無理につなげない。まとまりが見えなければ hypotheses を少なく(0件でもよい)する
+
+JSON のみで返す:
+{{"hypotheses": [{{"text": "〜という変化として読める可能性があります", "words": ["語A", "語B"]}}]}}"""
+
+
+def normalize_diff_hypotheses(raw: dict, diff: dict) -> list[dict]:
+    """一覧に無い語の引用・断定・指示・点数・引用らしい文を捨て、最大3件に絞る。"""
+    allowed = [x["語"] for x in diff["減少・消失した語"] + diff["新規・再登場・増加した語"]]
+    out = []
+    for h in (raw or {}).get("hypotheses") or []:
+        if not isinstance(h, dict):
+            continue
+        text = " ".join(str(h.get("text") or "").split())[:200]
+        words = []
+        for wd in h.get("words") or []:
+            if isinstance(wd, str) and wd in allowed and wd not in words:
+                words.append(wd)
+        if (not text or not words or _BANNED.search(text) or not _HEDGE.search(text)
+                or _QUOTE_LIKE.search(text)):
+            continue
+        out.append({"text": text, "words": words})
+        if len(out) >= MAX_THREADS:
+            break
+    return out
+
+
+def interpret_diff(diff: dict, api_key: str, model: str) -> tuple[list[dict] | None, str, str]:
+    """(仮説, 状態, Gemini に送ったプロンプト)。状態: gemini / few / no_key / failed / invalid。
+    Gemini に送るのは build_diff_prompt(diff) だけ(語と日数のみ)。"""
+    if diff_is_empty(diff):
+        return None, "few", ""
+    prompt = build_diff_prompt(diff)
+    if not api_key:
+        print("[INFO] GEMINI_API_KEY 未設定。仮説はつくらず、語の増減の機械集計を表示")
+        return None, "no_key", prompt
+    try:
+        from google import genai
+
+        client = genai.Client(api_key=api_key)
+        resp = client.models.generate_content(model=model, contents=prompt,
+                                              config={"response_mime_type": "application/json"})
+        raw = _loads_loose(resp.text or "")
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] Gemini の呼び出しに失敗（機械集計の表示に切り替え）: {type(err).__name__}")
+        return None, "failed", prompt
+    hyps = normalize_diff_hypotheses(raw, diff)
+    if not hyps:
+        print("[INFO] Gemini の応答に使える仮説が無かった（機械集計の表示に切り替え）")
+        return None, "invalid", prompt
+    print(f"[INFO] Gemini({model}) 仮説 {len(hyps)}件")
+    return hyps, "gemini", prompt
+
+
+def _pick_excerpt(days: dict, words: list[str], start: datetime.date, end: datetime.date) -> str:
+    """start〜end の元の記録から、words のどれかを含む日の抜粋を1つ返す(決定論的)。
+    語は渡された順に試し、該当する日のうち最も新しい日を使う。"""
+    for wd in words:
+        for d in sorted((d for d in days if start <= d <= end), reverse=True):
+            if wd in days[d]["terms"]:
+                sn = snippet(days[d]["text"], wd)
+                if sn:
+                    return f"{d.strftime('%m/%d')} {sn}"
+    return NO_RECORD
+
+
+def excerpts_for(words: list[str], days: dict, obs: dict, cur_start: datetime.date,
+                 n_base: int) -> tuple[str, str]:
+    """仮説の根拠語から、以前(比較期間)と今期の抜粋を1つずつ取り出す。Gemini には作らせない。
+    以前は「減少・消失」の語を優先、今期は「新規・再登場・増加」の語を優先する。"""
+    unit = datetime.timedelta(days=obs["unit_days"])
+    cur_end = cur_start + unit - datetime.timedelta(days=1)
+    base_start, base_end = cur_start - unit * n_base, cur_start - datetime.timedelta(days=1)
+    T = obs["terms"]
+    dec = {x["term"] for k in AI_DECREASED_KINDS for x in T.get(k, [])}
+    inc = {x["term"] for k in AI_INCREASED_KINDS for x in T.get(k, [])}
+    before_words = [w for w in words if w in dec] + [w for w in words if w not in dec]
+    now_words = [w for w in words if w in inc] + [w for w in words if w not in inc]
+    return (_pick_excerpt(days, before_words, base_start, base_end),
+            _pick_excerpt(days, now_words, cur_start, cur_end))
+
+
+def compose_review(obs: dict, diff: dict, hyps: list[dict] | None, status: str,
+                   excerpts: list[tuple[str, str]], *, head: str, prefix: str = "",
+                   warnings: list[str] | None = None, answer_guide: list[str] | None = None,
+                   detail_note: str = "") -> list[str]:
+    """Discord の主な本文。仮説(最大3件)・抜粋・確認記号だけ。
+    Gemini が使えないときは、語の増減の対照表示(機械集計)だけ。計測値・O-項目・PNG は載せない。"""
+    w = obs["writing"]
+    lines = [f"{head}  {obs['period']}", ""]
+    for x in warnings or []:
+        lines.append(f"⚠️ {x}")
+    if warnings:
+        lines.append("")
+    if obs["unit_days"] <= 7 and w["written"] < LOW_VOLUME_DAYS:
+        lines += [f"※ 今期は記録量が少ないため（書いた日 {w['written']}日）、変化候補は参考情報として確認してください。", ""]
+
+    if hyps:
+        for i, h in enumerate(hyps[:MAX_THREADS], 1):
+            before, now = excerpts[i - 1] if i - 1 < len(excerpts) else (NO_RECORD, NO_RECORD)
+            lines += [f"**【変化の筋 {prefix}{i}】**", h["text"], "",
+                      f"以前：{before}", f"今期：{now}", "",
+                      f"確認：`{prefix}{i} ○` / `{prefix}{i} △` / `{prefix}{i} ×`", ""]
+        lines.append("※ 仮説は AI（Gemini）が語の増減だけから作ったもので、事実ではありません。抜粋は元の記録そのままです。")
+    elif diff_is_empty(diff):
+        lines.append("今期は、前期からの目立った語の増減はありませんでした（変化候補なし）。")
+    else:
+        dec = "、".join(x["語"] for x in diff["減少・消失した語"][:FALLBACK_WORDS_PER_SIDE]) or "なし"
+        inc = "、".join(x["語"] for x in diff["新規・再登場・増加した語"][:FALLBACK_WORDS_PER_SIDE]) or "なし"
+        lines += ["**【前期からの主な変化（機械集計）】**", "", "減少・消失：", dec, "", "新規・増加：", inc, ""]
+        reason = {"no_key": "未設定", "failed": "呼び出しに失敗", "invalid": "使える応答が無かった"}.get(status, status)
+        lines.append(f"※ AIによる仮説生成は利用できませんでした（{reason}）。上は語の機械的な並びであり、意味付けではありません。")
+    lines += list(answer_guide or [])
+    if detail_note:
+        lines += ["", detail_note]
+    return _chunk("\n".join(lines))
+
+
+DETAIL_HEADER = ["実行ID", "対象期間", "種別", "区分", "ID", "内容", "根拠日付", "抜粋", "URL", "生成日時"]
+
+
+def detail_rows(run_id: str, period: str, kind: str, obs: dict, diff: dict, hyps: list[dict] | None,
+                status: str, excerpts: list[tuple[str, str]], generated_at: str) -> list[list]:
+    """「観測詳細」タブ(非公開)用の行。計測値は削除せずここに全件残す。"""
+    rows = []
+
+    def add(section, rid, content, date="", excerpt="", url=""):
+        rows.append([run_id, period, kind, section, rid, content, date, excerpt, url, generated_at])
+
+    for it in obs["items"]:
+        evs = it["evidence"] or [{}]
+        for ev in evs:
+            add("観測項目", it["id"], it["text"], ev.get("date", ""), ev.get("snippet", ""), ev.get("url", ""))
+    for m in obs["markers"]:
+        add("表現率", m["key"], f"{m['label']}: 今期 {m['count']}回・{m['rate']}/千字"
+            f"（比較期間 {m['base_rate']}/千字・前期 {m.get('prev_rate')}）・判定 {m['direction'] or '変化なし'}")
+    for c in obs["cooccur"]:
+        add("共起", "", f"{c['a']}×{c['b']} 同じ日 {c['days']}日")
+    for t in obs["term_markers"]:
+        add("共起", "", f"{t['term']}×{t['marker']}表現 {t['days']}/{t['term_days']}日")
+    for k in TERM_KINDS:
+        for x in obs["terms"].get(k, []):
+            add("語の区分", k, f"{x['term']}: {TERM_KIND_NAME[k]}（比較期間 {x['base_days']}日 → 今期 {x['days']}日）")
+    add("AIに渡した機械データ", "", json.dumps(diff, ensure_ascii=False))
+    add("AIの状態", "", status)
+    for i, h in enumerate(hyps or [], 1):
+        before, now = excerpts[i - 1] if i - 1 < len(excerpts) else (NO_RECORD, NO_RECORD)
+        add("AI仮説", str(i), f"{h['text']}（根拠語: {'、'.join(h['words'])}）", "", f"以前: {before} ／ 今期: {now}")
+    return rows
+
+
 # ---------------------------------------------------------------------------
 # モック(複数週の合成ジャーナル。テスト・--use-mock 用)
 # ---------------------------------------------------------------------------

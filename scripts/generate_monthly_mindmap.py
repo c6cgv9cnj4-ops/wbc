@@ -214,13 +214,10 @@ def skeleton_report(message, raw_logs=None):
 
 
 def main():
-    api_key = os.environ.get("GEMINI_API_KEY")
+    # 2026-09-30: 日記・メモ本文を Gemini に送らない方針(送信境界)により、AI 要約は生成しない。
+    # GEMINI_API_KEY は使わない(未設定でも止めない)。call_gemini() は参照用に残すが呼ばない。
     gas_url = os.environ.get("JOURNAL_GAS_WEB_APP_URL")
     gas_secret = os.environ.get("JOURNAL_GAS_SHARED_SECRET")
-
-    if not api_key:
-        print("[ERROR] 環境変数 GEMINI_API_KEY が設定されていません。")
-        sys.exit(1)
 
     today = datetime.datetime.now(JST).date()
     event_name = os.environ.get("GITHUB_EVENT_NAME", "")
@@ -242,13 +239,8 @@ def main():
         print(f"[INFO] {month_label}分の記録はスプレッドシートに0件でした。")
         body = skeleton_report(f"記録なし — {month_label}分のログがスプレッドシートにありません")
     else:
-        print(f"[INFO] {month_label}分のログを{len(items)}件取得しました。")
-        try:
-            body = call_gemini(api_key, build_prompt(month_label, items))
-        except Exception as err:  # noqa: BLE001
-            print(f"[WARN] Gemini API 呼び出しに失敗。雛形マップにフォールバックします: {err}")
-            raw = "\n\n".join(f"### {it.get('date')} [{it.get('type')}]\n{it.get('text')}" for it in items)
-            body = skeleton_report("Gemini 生成に失敗。以下の生ログを参照", raw_logs=raw)
+        print(f"[INFO] {month_label}分のログを{len(items)}件取得しました（本文は Gemini に送りません）。")
+        body = skeleton_report("AI 要約なし — 日記・メモ本文を Gemini に送らない方針のため")
 
     os.makedirs(REPORT_MONTHLY_DIR, exist_ok=True)
     report_path = os.path.join(REPORT_MONTHLY_DIR, f"{month_label}_mindmap.md")

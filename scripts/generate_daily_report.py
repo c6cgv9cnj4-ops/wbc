@@ -114,6 +114,12 @@ def send_to_discord(webhook_url, message):
 
 
 def main():
+    # 2026-09-30: この日報は日記・メモ本文を Gemini で要約するものだが、本文を Gemini に送らない方針
+    # (送信境界)により停止した(スケジュールも停止中)。本文を読み込む前に終了する。
+    # 以下の処理は参照用に残しているが実行されない。
+    print("[INFO] 日記・メモ本文を Gemini に送らない方針のため、日刊レポートの生成は停止しています。")
+    return
+
     api_key = os.environ.get("GEMINI_API_KEY")
     webhook_url = os.environ.get("DISCORD_WEBHOOK_DAILY")
 

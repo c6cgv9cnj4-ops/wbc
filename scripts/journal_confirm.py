@@ -21,7 +21,7 @@ import datetime
 import re
 
 CONFIRM_SHEET_NAME = "仮説確認"
-CONFIRM_HEADER = ["ID", "対象期間", "種別", "区分", "AI仮説(C)", "根拠(観測ID)",
+CONFIRM_HEADER = ["ID", "対象期間", "種別", "区分", "AI仮説(C)", "根拠(語)",
                   "本人回答(D)", "本人コメント(D)", "回答日時(D)", "生成日時"]
 UNANSWERED = "未回答"
 ANSWER_VALUES = ("○", "△", "×", "どれも違う", "別のこと", "見えた", "見えない", UNANSWERED)
@@ -41,7 +41,7 @@ def answer_guide(n_hyp: int, prefix: str = "", with_view: bool = True) -> list[s
     lines = ["", "**▼ 返信で答える**（任意。答えなくてOK＝保留。催促はしません）"]
     if n_hyp:
         ex = " / ".join(f"`{prefix}{i} {s}`" for i, s in zip(range(1, n_hyp + 1), ("○", "△", "×", "○")))
-        lines.append(f"・仮説: {ex}（○合っている △一部 ×違う。記号の後ろにコメント任意）")
+        lines.append(f"・変化の筋: {ex}（○そう △一部そう ×違う。記号の後ろにコメント任意）")
         lines.append("・全体: `どれも違う` / `別のこと：〇〇`")
     if with_view:
         lines.append("・読んで自分の変化が見えたか: `見えた` / `見えない`")
@@ -145,29 +145,29 @@ def fetch_owner_texts(get_json, channel_id: str, since_iso: str) -> list[str]:
     return [m.get("content") or "" for m in own]
 
 
-def read_rows(svc, ssid: str) -> list[list]:
+def read_rows(svc, ssid: str, sheet: str = CONFIRM_SHEET_NAME) -> list[list]:
     vals = svc.spreadsheets().values().get(
-        spreadsheetId=ssid, range=f"'{CONFIRM_SHEET_NAME}'!A2:J").execute(num_retries=5).get("values", [])
+        spreadsheetId=ssid, range=f"'{sheet}'!A2:J").execute(num_retries=5).get("values", [])
     return [r + [""] * (10 - len(r)) for r in vals]
 
 
-def ensure_sheet(svc, ssid: str) -> None:
+def ensure_sheet(svc, ssid: str, sheet: str = CONFIRM_SHEET_NAME) -> None:
     meta = svc.spreadsheets().get(spreadsheetId=ssid, fields="sheets(properties(title))").execute(num_retries=5)
-    if any(s["properties"]["title"] == CONFIRM_SHEET_NAME for s in meta.get("sheets", [])):
+    if any(s["properties"]["title"] == sheet for s in meta.get("sheets", [])):
         return
     svc.spreadsheets().batchUpdate(spreadsheetId=ssid, body={"requests": [{"addSheet": {"properties": {
-        "title": CONFIRM_SHEET_NAME, "gridProperties": {"frozenRowCount": 1}}}}]}).execute(num_retries=5)
+        "title": sheet, "gridProperties": {"frozenRowCount": 1}}}}]}).execute(num_retries=5)
     svc.spreadsheets().values().update(
-        spreadsheetId=ssid, range=f"'{CONFIRM_SHEET_NAME}'!A1", valueInputOption="RAW",
+        spreadsheetId=ssid, range=f"'{sheet}'!A1", valueInputOption="RAW",
         body={"values": [CONFIRM_HEADER]}).execute(num_retries=5)
 
 
-def write_rows(svc, ssid: str, rows: list[list]) -> None:
+def write_rows(svc, ssid: str, rows: list[list], sheet: str = CONFIRM_SHEET_NAME) -> None:
     svc.spreadsheets().values().clear(
-        spreadsheetId=ssid, range=f"'{CONFIRM_SHEET_NAME}'!A2:J").execute(num_retries=5)
+        spreadsheetId=ssid, range=f"'{sheet}'!A2:J").execute(num_retries=5)
     if rows:
         svc.spreadsheets().values().update(
-            spreadsheetId=ssid, range=f"'{CONFIRM_SHEET_NAME}'!A2", valueInputOption="RAW",
+            spreadsheetId=ssid, range=f"'{sheet}'!A2", valueInputOption="RAW",
             body={"values": rows}).execute(num_retries=5)
 
 

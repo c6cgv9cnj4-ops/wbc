@@ -79,6 +79,7 @@ DEFAULT_GEMINI_MODEL = "gemini-3.6-flash"
 
 REPORT_WEEKLY_DIR = "reports/weekly"
 OBSERVE_SHEET_NAME = "週次観測"
+DETAIL_SHEET_NAME = "観測詳細"   # 計測値・観測項目・根拠・AI への入力と仮説(監査証跡。非公開シート)
 PIN_MARKERS = (jo.HEAD_MARK, "🧠 心の棚卸しマップ")   # 旧形式のピンも解除対象にする
 
 DISCORD_USER_AGENT = "wbc-weekly-mindmap/2.0 (+https://github.com/c6cgv9cnj4-ops/wbc)"
@@ -470,7 +471,7 @@ def _discord_bot_request(method: str, path: str, bot_token: str, json_body: dict
 
 
 
-def write_observe_row(creds, ctx: dict, row: list) -> str | None:
+def write_observe_row(creds, ctx: dict, row: list, sheet_name: str = OBSERVE_SHEET_NAME) -> str | None:
     """「週次観測」タブに1週1行を書く。A列(対象週)が同じ行があれば上書き(冪等)。
     数値列は数値のまま書くので、シート上で推移グラフを作れる。"""
     ssid = os.environ.get("WEEKLY_SPREADSHEET_ID", "").strip()
@@ -478,15 +479,15 @@ def write_observe_row(creds, ctx: dict, row: list) -> str | None:
         print("[ERROR] WEEKLY_SPREADSHEET_ID が未設定です。Sheets 追記をスキップします。")
         return None
     svc = build_service("sheets", "v4", creds)
-    gid, exists = _find_sheet_id_by_title(svc, ssid, OBSERVE_SHEET_NAME)
+    gid, exists = _find_sheet_id_by_title(svc, ssid, sheet_name)
     if not exists:
         resp = svc.spreadsheets().batchUpdate(spreadsheetId=ssid, body={"requests": [{"addSheet": {
-            "properties": {"title": OBSERVE_SHEET_NAME,
+            "properties": {"title": sheet_name,
                            "gridProperties": {"columnCount": len(jo.SHEET_HEADER), "frozenRowCount": 1}}}}]},
         ).execute(num_retries=5)
         gid = resp["replies"][0]["addSheet"]["properties"]["sheetId"]
         svc.spreadsheets().values().update(
-            spreadsheetId=ssid, range=f"'{OBSERVE_SHEET_NAME}'!A1",
+            spreadsheetId=ssid, range=f"'{sheet_name}'!A1",
             valueInputOption="RAW", body={"values": [jo.SHEET_HEADER]},
         ).execute(num_retries=5)
         svc.spreadsheets().batchUpdate(spreadsheetId=ssid, body={"requests": [{"repeatCell": {
@@ -497,12 +498,12 @@ def write_observe_row(creds, ctx: dict, row: list) -> str | None:
         ).execute(num_retries=5)
 
     col_a = svc.spreadsheets().values().get(
-        spreadsheetId=ssid, range=f"'{OBSERVE_SHEET_NAME}'!A2:A",
+        spreadsheetId=ssid, range=f"'{sheet_name}'!A2:A",
     ).execute(num_retries=5).get("values", [])
     idx = next((i for i, r in enumerate(col_a) if r and r[0] == ctx["week_tag_dash"]), len(col_a))
     # RAW: 仮説や語に「=」「+」で始まる文字列が来ても数式として解釈させない
     svc.spreadsheets().values().update(
-        spreadsheetId=ssid, range=f"'{OBSERVE_SHEET_NAME}'!A{idx + 2}",
+        spreadsheetId=ssid, range=f"'{sheet_name}'!A{idx + 2}",
         valueInputOption="RAW", body={"values": [row]},
     ).execute(num_retries=5)
     link = f"https://docs.google.com/spreadsheets/d/{ssid}/edit#gid={gid}"
@@ -647,40 +648,54 @@ def main() -> int:
     print(f"[INFO] 観測: {jo.redacted_summary(obs)}")
     empty = obs["writing"]["written"] == 0
 
-    # --- 3. 解釈(Gemini・仮説) ---------------------------------------------
-    interp, istatus = (None, "few") if empty else jo.interpret(obs, api_key, model)
+    # --- 3. 仮説(Gemini): 語の増減だけを渡す。日記本文・抜粋・URL は送らない ------
+    acceptance = _is_acceptance_run()
+    generated_at = datetime.datetime.now(JST).isoformat(timespec="seconds")
+    run_id = f"{'AT' if acceptance else 'prod'}-{generated_at}"
+    tabs = _tab_names(acceptance)
+    head = (f"{AT_MARK} " if acceptance else "") + jo.HEAD_MARK
+    if acceptance:
+        print(f"[INFO] Acceptance Test モード: 書き込み先 {tabs['observe']} / {tabs['detail']} / {tabs['confirm']}"
+              "（本番タブは更新しない）")
+
+    diff = jo.diff_for_ai(obs)
+    hyps, hstatus, _ = (None, "few", "") if empty else jo.interpret_diff(diff, api_key, model)
+    excerpts = [jo.excerpts_for(h["words"], days, obs, ctx["monday"], 4) for h in hyps or []]
 
     # --- 4. 出力 -----------------------------------------------------------
+    # PNG(表現率のグラフ・語のヒートマップ)は計測値そのものなので、Discord の主な投稿には添付しない。
+    # 手元・ランナー内の確認用として生成だけは続ける(reports/ は .gitignore 済み)。
     png_path = os.path.join(REPORT_WEEKLY_DIR, f"{ctx['week_tag']}_observe.png")
     try:
         jo.render_png(obs, png_path, title=f"週次観測ダッシュボード  {obs['period']}",
                       font_family=_resolve_jp_font())
     except Exception as err:  # noqa: BLE001
-        print(f"[WARN] PNG 描画に失敗（本文のみ投稿）: {err}")
-        png_path = None
+        print(f"[WARN] PNG 描画に失敗（投稿には使わないので影響なし）: {type(err).__name__}")
 
-    sheet_link = None
-    row = jo.sheet_row(ctx["week_tag_dash"], obs, interp, istatus)
+    detail_rows = [] if empty else jo.detail_rows(run_id, ctx["week_tag_dash"], "週次", obs, diff, hyps,
+                                                   hstatus, excerpts, generated_at)
+    write_sheets = not (args.use_mock or dry_run) and sheets_creds is not None
     if args.use_mock or dry_run:
         print("[INFO] モック/dry-run のためスプレッドシート書き込みをスキップ")
     elif sheets_creds is None:
         print("[INFO] Sheets 認証情報が無い/無効のため書き込みをスキップ")
     else:
         try:
-            sheet_link = write_observe_row(sheets_creds, ctx, row)
+            write_observe_row(sheets_creds, ctx, jo.sheet_row(ctx["week_tag_dash"], obs, _as_interp(hyps), hstatus),
+                              sheet_name=tabs["observe"])
         except Exception as err:  # noqa: BLE001
-            print(f"[WARN] スプレッドシート書き込みに失敗: {err}")
+            print(f"[WARN] スプレッドシート書き込みに失敗: {type(err).__name__}")
             warnings.append("スプレッドシートの更新に失敗しました。")
 
     if empty:
-        messages = [f"{jo.HEAD_MARK}  {obs['period']}\n\n"
+        messages = [f"{head}  {obs['period']}\n\n"
                     + "".join(f"⚠️ {x}\n" for x in warnings)
                     + "今週は取得できたジャーナルがありませんでした。書かなかった週も、そのまま記録として残ります。"]
     else:
-        messages = jo.compose_messages(
-            obs, interp, istatus, head=jo.HEAD_MARK, warnings=warnings, sheet_link=sheet_link,
-            extra_lines=[context_line] if context_line else None,
-            answer_guide=jc.answer_guide(len((interp or {}).get("hypotheses") or [])))
+        messages = jo.compose_review(
+            obs, diff, hyps, hstatus, excerpts, head=head, warnings=warnings,
+            answer_guide=jc.answer_guide(len(hyps or [])),
+            detail_note=f"計測値・観測項目・根拠の詳細は非公開シートの「{tabs['detail']}」タブにあります。")
 
     if dry_run or args.use_mock:
         if quiet_log:
@@ -689,42 +704,50 @@ def main() -> int:
         else:
             print("[INFO] dry-run/モック: 投稿スキップ。本文プレビュー:\n" + "\n\n---\n\n".join(messages))
     else:
-        mid = post_messages(messages, png_path, username="週次観測")
+        mid = post_messages(messages, None, username="週次観測")
         bot_token = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
         channel_id = os.environ.get("DISCORD_CHANNEL_ID_WEEKLY_SUMMARY", "").strip()
-        if mid and bot_token and channel_id:
+        if mid and bot_token and channel_id and not acceptance:
             pin_latest_and_unpin_old(bot_token, channel_id, mid)
 
     # --- 5. 月末週: 直近28日 vs その前28日 -------------------------------
     m_start = ctx["sunday"] - datetime.timedelta(days=27)
     mobs = (jo.observe(days, m_start, unit_days=28, n_base=1, n_hist=1)
             if is_month_closing_week(ctx) else None)
-    generated_at = datetime.datetime.now(JST).isoformat(timespec="seconds")
-    confirm_rows = [] if empty else jc.build_rows(ctx["week_tag_dash"], "週次", interp, generated_at)
+    confirm_rows = [] if empty else jc.build_rows(ctx["week_tag_dash"], "週次", _as_interp(hyps), generated_at)
     if mobs and mobs["writing"]["written"]:   # 最終週に書かなくても、28日内に記録があれば出す
         print(f"[INFO] 月次観測: {jo.redacted_summary(mobs)}")
-        minterp, mstatus = jo.interpret(mobs, api_key, model,
-                                        context_note="(28日間とその前の28日間の比較)")
-        mhead = f"🌕 月次観測（{ctx['sunday'].month}月）"
-        mmsgs = jo.compose_messages(
-            mobs, minterp, mstatus, head=mhead, hyp_prefix="M",
-            answer_guide=jc.answer_guide(len((minterp or {}).get("hypotheses") or []), "M", with_view=False))
-        confirm_rows += jc.build_rows(ctx["sunday"].strftime("%Y-%m"), "月次", minterp, generated_at,
-                                      prefix="M", with_view=False)
+        mdiff = jo.diff_for_ai(mobs)
+        mhyps, mstatus, _ = jo.interpret_diff(mdiff, api_key, model)
+        mexcerpts = [jo.excerpts_for(h["words"], days, mobs, m_start, 1) for h in mhyps or []]
+        mhead = (f"{AT_MARK} " if acceptance else "") + f"🌕 月次観測（{ctx['sunday'].month}月）"
+        mmsgs = jo.compose_review(
+            mobs, mdiff, mhyps, mstatus, mexcerpts, head=mhead, prefix="M",
+            answer_guide=jc.answer_guide(len(mhyps or []), "M", with_view=False),
+            detail_note=f"計測値・観測項目・根拠の詳細は非公開シートの「{tabs['detail']}」タブにあります。")
+        month_tag = ctx["sunday"].strftime("%Y-%m")
+        confirm_rows += jc.build_rows(month_tag, "月次", _as_interp(mhyps), generated_at, prefix="M", with_view=False)
+        detail_rows += jo.detail_rows(run_id, month_tag, "月次", mobs, mdiff, mhyps, mstatus, mexcerpts, generated_at)
         if dry_run or args.use_mock:
             if not quiet_log:
                 print("[INFO] 月次プレビュー:\n" + "\n\n---\n\n".join(mmsgs))
         else:
             post_messages(mmsgs, None, username="月次観測")
 
-    # --- 6. 本人確認(○△×): 前回レビューへの返信を反映し、今回の仮説を「未回答」で保存 -------
-    if args.use_mock or dry_run:
-        print(f"[INFO] モック/dry-run のため仮説確認の保存をスキップ（今回の行 {len(confirm_rows)}件）")
-    elif sheets_creds is None:
-        print("[INFO] Sheets 認証情報が無いため仮説確認の保存をスキップ")
+    # --- 6. 詳細(監査証跡): 計測値は削除せず「観測詳細」タブへ -----------------
+    if write_sheets and detail_rows:
+        try:
+            write_detail_rows(sheets_creds, tabs["detail"], detail_rows, replace=not acceptance)
+        except Exception as err:  # noqa: BLE001
+            print(f"[WARN] 観測詳細の保存に失敗（投稿には影響なし）: {type(err).__name__}")
+
+    # --- 7. 本人確認(○△×): 前回レビューへの返信を反映し、今回の仮説を「未回答」で保存 -------
+    if not write_sheets:
+        print(f"[INFO] 仮説確認の保存をスキップ（今回の行 {len(confirm_rows)}件）")
     else:
         try:
-            sync_confirmations(sheets_creds, ctx, confirm_rows, generated_at)
+            sync_confirmations(sheets_creds, ctx, confirm_rows, generated_at,
+                               sheet=tabs["confirm"], read_replies=not acceptance)
         except Exception as err:  # noqa: BLE001
             print(f"[WARN] 仮説確認の保存に失敗（週次の投稿には影響なし）: {type(err).__name__}")
 
@@ -732,7 +755,57 @@ def main() -> int:
     return 0
 
 
-def sync_confirmations(creds, ctx: dict, new_rows: list[list], generated_at: str) -> None:
+AT_MARK = "【Acceptance Test】"
+
+
+def _is_acceptance_run() -> bool:
+    """JOURNAL_RUN_MODE=acceptance のとき、本番タブ・本番 W39 行を触らない検証実行にする。"""
+    return os.environ.get("JOURNAL_RUN_MODE", "").strip().lower() == "acceptance"
+
+
+def _tab_names(acceptance: bool) -> dict:
+    p = "AT_" if acceptance else ""
+    return {"observe": p + OBSERVE_SHEET_NAME, "detail": p + DETAIL_SHEET_NAME, "confirm": p + jc.CONFIRM_SHEET_NAME}
+
+
+def _as_interp(hyps: list[dict] | None) -> dict | None:
+    """新しい仮説(text, words)を、既存の行関数(sheet_row / build_rows)が読む形に合わせる。"""
+    if not hyps:
+        return None
+    return {"hypotheses": [{"text": h["text"], "refs": h["words"], "alternatives": []} for h in hyps],
+            "continuity": "", "questions": []}
+
+
+def write_detail_rows(creds, sheet_name: str, rows: list[list], *, replace: bool) -> None:
+    """「観測詳細」タブへ書く。本番(replace=True)は同じ対象期間・種別の本番行だけを置き換え、
+    Acceptance Test(replace=False)は常に追記する(実行IDで区別し、過去の結果を消さない)。"""
+    ssid = os.environ.get("WEEKLY_SPREADSHEET_ID", "").strip()
+    if not ssid:
+        return
+    svc = build_service("sheets", "v4", creds)
+    _, exists = _find_sheet_id_by_title(svc, ssid, sheet_name)
+    if not exists:
+        svc.spreadsheets().batchUpdate(spreadsheetId=ssid, body={"requests": [{"addSheet": {
+            "properties": {"title": sheet_name, "gridProperties": {"frozenRowCount": 1}}}}]}).execute(num_retries=5)
+        svc.spreadsheets().values().update(
+            spreadsheetId=ssid, range=f"'{sheet_name}'!A1", valueInputOption="RAW",
+            body={"values": [jo.DETAIL_HEADER]}).execute(num_retries=5)
+    width = len(jo.DETAIL_HEADER)
+    existing = svc.spreadsheets().values().get(
+        spreadsheetId=ssid, range=f"'{sheet_name}'!A2:J").execute(num_retries=5).get("values", [])
+    existing = [r + [""] * (width - len(r)) for r in existing]
+    if replace:
+        keys = {(r[1], r[2]) for r in rows}
+        existing = [r for r in existing if not (r[0].startswith("prod-") and (r[1], r[2]) in keys)]
+    merged = existing + rows
+    svc.spreadsheets().values().clear(spreadsheetId=ssid, range=f"'{sheet_name}'!A2:J").execute(num_retries=5)
+    svc.spreadsheets().values().update(spreadsheetId=ssid, range=f"'{sheet_name}'!A2", valueInputOption="RAW",
+                                       body={"values": merged}).execute(num_retries=5)
+    print(f"[OK] {sheet_name} タブ更新: 今回 {len(rows)}行")
+
+
+def sync_confirmations(creds, ctx: dict, new_rows: list[list], generated_at: str, *,
+                       sheet: str = jc.CONFIRM_SHEET_NAME, read_replies: bool = True) -> None:
     """「仮説確認」タブ: 直前のレビュー以降の本人の返信(#週刊まとめ)を前回分の回答(D)に反映し、
     今回の仮説(C)を未回答として追加する。未回答の催促・再送はしない。ログは件数のみ。"""
     import journal_review as jr
@@ -741,20 +814,20 @@ def sync_confirmations(creds, ctx: dict, new_rows: list[list], generated_at: str
     if not ssid:
         return
     svc = build_service("sheets", "v4", creds)
-    jc.ensure_sheet(svc, ssid)
-    rows = jc.read_rows(svc, ssid)
+    jc.ensure_sheet(svc, ssid, sheet)
+    rows = jc.read_rows(svc, ssid, sheet)
     since = jc.latest_batch(rows, exclude_period=ctx["week_tag_dash"])
     token = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
     channel_id = os.environ.get("DISCORD_CHANNEL_ID_WEEKLY_SUMMARY", "").strip()
-    if since and token and channel_id:
+    if since and token and channel_id and read_replies:
         texts = jc.fetch_owner_texts(lambda path, params: jr._discord_get(path, token, params), channel_id, since)
         n = jc.apply_answers(rows, jc.parse_replies(texts), generated_at, since)
         print(f"[INFO] 仮説確認: 前回分に回答を反映 {n}件（本人の投稿 {len(texts)}件を確認）")
     elif since:
         print("[INFO] DISCORD_CHANNEL_ID_WEEKLY_SUMMARY が無いため回答の読み取りをスキップ")
     rows = jc.merge_rows(rows, new_rows)
-    jc.write_rows(svc, ssid, rows)
-    print(f"[OK] 仮説確認タブ更新: {jc.summarize(rows)}")
+    jc.write_rows(svc, ssid, rows, sheet)
+    print(f"[OK] {sheet} タブ更新: {jc.summarize(rows)}")
 
 
 if __name__ == "__main__":
