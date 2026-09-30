@@ -1,8 +1,4 @@
 {
-  "2026-09-09": {
-    "finals": 6,
-    "hash": "5953d687ee1b1892952ec620e027852a1aa12358b2cb6ae348bf1c42c63014c0"
-  },
   "2026-09-14": {
     "finals": 3,
     "hash": "c367b311997dbfee2f7b78c7041537da41874ec0bdacca85e7b394818ed58eb7"
@@ -54,5 +50,9 @@
   "2026-09-29": {
     "finals": 3,
     "hash": "18f77083774dacae548a9a55de1a9aa6c6bf7d2c5405c642146458086a502c11"
+  },
+  "2026-09-30": {
+    "finals": 2,
+    "hash": "cdb0b4945963466455bb29dad1bb66e68bbe80f1f6a857cbdb52a006284a1e7c"
   }
 }
