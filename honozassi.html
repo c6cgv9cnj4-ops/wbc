@@ -438,7 +438,7 @@
 
     <div class="filter-bar" id="filterBar"></div>
     <div class="sub-filter-bar" id="readFilterBar"></div>
-    <div class="result-count"><b id="resultCount">0</b> 件表示中</div>
+    <div class="result-count"><b id="resultCount">-</b> 件表示中</div>
 
     <div class="grid" id="book-grid"></div>
 </div>
@@ -471,6 +471,8 @@
       score: 本屋大賞の公式得点(number)。非公開・対象外はnull
       age: 受賞・選出当時の年齢。生年月日まで裏取りできたもののみ数値、それ以外はnull
       wikipediaExists: falseの場合は著者名をリンクにしない
+      date: 任意。"YYYY-MM-DD"等で指定すると並び順の基準になる（省略時はawardLabelから発表年月を導出）
+      並び順: 配列の順序は気にしなくてよい。下の sortBooksByDateDesc で日付の新しい順に自動整列する
       出典: 本屋大賞公式サイト／各出版社プレスリリース／日本文学振興会／Wikipediaで個別に裏取り済み
             （ユーザー提示リストのうち『火花』は芥川賞、『赤めだか』は講談社エッセイ賞、
              『孤狼の血』は日本推理作家協会賞、『機龍警察』『震える牛』『ヤクザと原発』は
@@ -910,6 +912,81 @@
           title:"見えるか保己一", author:"蝉谷めぐ実", age:null, wikipediaExists:true,
           synopsis:"7歳で失明しながら日本最大級の叢書を編纂した学者・塙保己一の生涯を描いた一代記。「見える者」と「見えない者」の断絶と葛藤を見つめる。" }
     ];
+
+    // ===== 日付降順ソート（新しい → 古い） =====
+    // booksData自体をここで並べ替えるので、表示・コピー・共有すべてが同じ順序になる。
+    // 作品は配列に追加するだけでよい（並び位置は気にしなくてよい）。
+    // 日付の決め方（上から優先）:
+    //   1) 明示の date フィールド（"2026-04-09" / "2026/9/30" / "2026年9月30日"）… 実在日付として検証
+    //   2) awardLabel から導出（賞ごとの「第1回の年」と「例年の発表月」で換算。日は1日扱い）
+    //   3) どちらも取れない作品は削除せず最後尾にまとめる
+    // 同じ日付の作品は元の配列順を維持する（元インデックスで明示的に担保）。
+    const AWARD_SCHEDULE = {
+        // 賞名: [第1回の年, 例年の発表月]
+        "山本周五郎賞":               [1988, 5],
+        "大藪春彦賞":                 [1999, 1],
+        "日本推理作家協会賞":         [1948, 4],
+        "講談社ノンフィクション賞":   [1979, 7],
+        "講談社本田靖春ノンフィクション賞": [1979, 7],
+        "大宅壮一ノンフィクション賞": [1970, 5],
+        "中央公論文芸賞":             [2006, 9],
+        "山田風太郎賞":               [2010, 10],
+        "柴田錬三郎賞":               [1988, 10],
+        "吉川英治文学新人賞":         [1980, 3]
+    };
+
+    function makeDate(y, m, d) {
+        const t = Date.UTC(y, m - 1, d);
+        const dt = new Date(t);
+        // 2026/2/30 のような実在しない日付は不採用
+        return (dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d) ? t : null;
+    }
+
+    function parseExplicitDate(s) {
+        const m = String(s).trim().match(/^(\d{4})\s*[-\/.年]\s*(\d{1,2})\s*[-\/.月]\s*(\d{1,2})\s*日?$/);
+        return m ? makeDate(+m[1], +m[2], +m[3]) : null;
+    }
+
+    function dateFromAwardLabel(label) {
+        if (!label) return null;
+        let m;
+        // このミステリーがすごい！YYYY年版 → 前年12月刊行
+        if ((m = label.match(/(\d{4})年版/))) return makeDate(+m[1] - 1, 12, 1);
+        // 第N回 ○○賞（…） → 先頭の賞で換算（括弧内のW受賞表記は無視）
+        if ((m = label.match(/^第(\d+)回\s*([^（(]+)/))) {
+            const n = +m[1], name = m[2].trim();
+            // 直木賞は年2回：奇数回=その年の7月、偶数回=翌年1月（第160回=2019年1月、第175回=2026年7月）
+            if (name === "直木賞") return n % 2 ? makeDate((n + 3877) / 2, 7, 1) : makeDate((n + 3878) / 2, 1, 1);
+            const sch = AWARD_SCHEDULE[name];
+            return sch ? makeDate(sch[0] + n - 1, sch[1], 1) : null;
+        }
+        // YYYY年 ○○ → 本屋大賞は4月、年間ランキング系は12月、その他は1月扱い
+        if ((m = label.match(/^(\d{4})年\s*(.*)/))) {
+            const month = /本屋大賞/.test(m[2]) ? 4 : /年間|BOOK OF THE YEAR/.test(m[2]) ? 12 : 1;
+            return makeDate(+m[1], month, 1);
+        }
+        return null;
+    }
+
+    function getBookDate(book) {
+        if (book.date) {
+            const t = parseExplicitDate(book.date);
+            if (t !== null) return t;
+        }
+        return dateFromAwardLabel(book.awardLabel);
+    }
+
+    function sortBooksByDateDesc(books) {
+        const keyed = books.map((book, index) => ({ book, index, time: getBookDate(book) }));
+        keyed.sort((a, b) => {
+            if (a.time === null && b.time === null) return a.index - b.index;
+            if (a.time === null) return 1;   // 日付不明は最後尾
+            if (b.time === null) return -1;
+            return (b.time - a.time) || (a.index - b.index);
+        });
+        books.splice(0, books.length, ...keyed.map(k => k.book));
+    }
+    sortBooksByDateDesc(booksData);
 
     const GENRE_ORDER = ["honya-taisho", "naoki", "yamamoto", "mystery", "nonfiction", "bestseller", "otherlit"];
     const GENRE_LABELS = {
