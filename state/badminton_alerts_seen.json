@@ -276,7 +276,8 @@
     "https://news.google.com/rss/articles/CBMiVkFVX3lxTE10NHNrR2JIdkdEaU5Kb2trQkZJSXBEd2VVaVRSbHBhNUMxT3dmSTNuWnUydVRUSGY5alhoRmtUMUJaeENESV8tMWNpdnNIUWdXbHZHSVpB?oc=5": "2026-09-30T09:16:11.703314+09:00",
     "https://news.google.com/rss/articles/CBMijgFBVV95cUxOeC1CMjE3OHZVdFRWSWJ0alZpMXVHM0swMG5ubjRSYU1RZEpYRGd2WFVockxETHJjT2VPM09rTl8xOTNTQjBSeml0UEk0OTJFb1dja2JZV0ljX2VDNWR3azZGNGpuaXd4TlJtd3VqcFhRMVB3NmNhaWhMNVBDVl9jOU5zMXBnRVp0R0x0c2hR?oc=5": "2026-09-30T13:04:48.053636+09:00",
     "https://news.google.com/rss/articles/CBMiiAFBVV95cUxPelE1cHhnS1hLSUV0TFFUVnlUcEowVGo3SEFnWEhVbVZDWkdsakU4cjVZZDFwMUtzMXhZT2pPSVEzR1F1eDdTMVBiOEZGMFczcG54eExNZDZRUkdSS0xHSFFRc3R5Q1phc1puYWpBT0szbDVjMFBOSTdseDRDNmp2Tkg1SkY2X29l?oc=5": "2026-09-30T13:04:48.053636+09:00",
-    "https://news.google.com/rss/articles/CBMif0FVX3lxTE53djFyb3RIYl9qczV2UnF0dGt0bGRiY0F1Y1JaTURidFdxUzVja3NLT2hBdF9QN25iVDJ6bjd3WU4wREpnOW9zQkU3R1JzX25yQjRkZDdzdDZveGdDbHJYSHpiZWM4Qkh5cXlOWW9VOVdLUWJYcmdyVGN0eUpSZDQ?oc=5": "2026-09-30T13:04:48.053636+09:00"
+    "https://news.google.com/rss/articles/CBMif0FVX3lxTE53djFyb3RIYl9qczV2UnF0dGt0bGRiY0F1Y1JaTURidFdxUzVja3NLT2hBdF9QN25iVDJ6bjd3WU4wREpnOW9zQkU3R1JzX25yQjRkZDdzdDZveGdDbHJYSHpiZWM4Qkh5cXlOWW9VOVdLUWJYcmdyVGN0eUpSZDQ?oc=5": "2026-09-30T13:04:48.053636+09:00",
+    "https://news.google.com/rss/articles/CBMijAJBVV95cUxPSlQtOGpUVDdWeG1YMVVsb1NkY2RkZ1NuVkZtN0tUQ1VsMVYwaVFSUnozbWdJNWNqY3UwLTV6bElIcXFoeDNQT3NLX1ZEbkNrcl9uNFNpV01mejJMQ0J3eG1uLTl5aXl0RjJGZVRlS1JydGhQZHRFQXZTYXlrYURhVkdCNnRzam9ocTVlMFUzVTl0Mzl6ZC1rSm9CVmxrX1RYcW95R2xSYmVGLTRiN2MzSWZlTWpoSlFMQU5GWEFoSmxETnZjVEJGY05EUkFGR1hZRTVsQ0lmb2JkTzF5WktyUkNPaHlNREowX3lsVm0zVzlyb0xwMFRKZE1NS0VuS0tfVmVmY3NnbU5HVlZq?oc=5": "2026-10-01T01:29:27.846572+09:00"
   },
   "seen_nba_result_ids": {
     "982": "2026-09-06T18:30:52.185356+09:00",
@@ -314,7 +315,12 @@
     "matches": [],
     "summaries": [],
     "badspi": [],
-    "gnews": [],
+    "gnews": [
+      {
+        "title": "【9月24日】日本代表vs中国代表の地上波テレビ放送・ネット配信予定｜アジア大会バドミントン女子団体決勝",
+        "url": "https://news.google.com/rss/articles/CBMijAJBVV95cUxPSlQtOGpUVDdWeG1YMVVsb1NkY2RkZ1NuVkZtN0tUQ1VsMVYwaVFSUnozbWdJNWNqY3UwLTV6bElIcXFoeDNQT3NLX1ZEbkNrcl9uNFNpV01mejJMQ0J3eG1uLTl5aXl0RjJGZVRlS1JydGhQZHRFQXZTYXlrYURhVkdCNnRzam9ocTVlMFUzVTl0Mzl6ZC1rSm9CVmxrX1RYcW95R2xSYmVGLTRiN2MzSWZlTWpoSlFMQU5GWEFoSmxETnZjVEJGY05EUkFGR1hZRTVsQ0lmb2JkTzF5WktyUkNPaHlNREowX3lsVm0zVzlyb0xwMFRKZE1NS0VuS0tfVmVmY3NnbU5HVlZq?oc=5"
+      }
+    ],
     "nba": []
   },
   "wr_rankings": {
