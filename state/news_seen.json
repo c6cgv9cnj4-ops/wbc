@@ -3,8 +3,8 @@
   "_alert:gemini_market": "2026-09-30T12:30:41.803491+09:00",
   "_alert:gemini_national": "2026-09-30T16:18:56.445668+09:00",
   "_alert:google_news_fetch": "2026-09-30T07:46:42.585268+09:00",
-  "_last_run_at": "2026-09-30T22:04:51.266308+09:00",
-  "_weekend_market_signature": "{\"jgb\": \"124.53\", \"nikkei\": \"66,753.72\", \"usdjpy\": 157.39}",
+  "_last_run_at": "2026-09-30T22:35:05.872512+09:00",
+  "_weekend_market_signature": "{\"jgb\": \"124.47\", \"nikkei\": \"66,753.72\", \"usdjpy\": 157.39}",
   "https://ageo-okegawa.goguynet.jp/2026/02/20/ageo-gyoumusu-pa-5/": "2026-09-20T02:50:53.191241+09:00",
   "https://ageo-okegawa.goguynet.jp/2026/02/21/inamachi-cafethegarden-3/": "2026-09-20T02:50:53.191241+09:00",
   "https://ageo-okegawa.goguynet.jp/2026/02/22/okegawa-manekineko/": "2026-09-20T02:50:53.191241+09:00",
@@ -1486,6 +1486,7 @@
   "https://news.yahoo.co.jp/pickup/6597104": "2026-09-30T21:34:02.182929+09:00",
   "https://news.yahoo.co.jp/pickup/6597105": "2026-09-30T21:34:02.182929+09:00",
   "https://news.yahoo.co.jp/pickup/6597107": "2026-09-30T21:34:02.182929+09:00",
+  "https://news.yahoo.co.jp/pickup/6597108": "2026-09-30T22:35:05.872512+09:00",
   "https://news.yahoo.co.jp/pickup/6597109": "2026-09-30T21:34:02.182929+09:00",
   "https://news.yahoo.co.jp/pickup/6597110": "2026-09-30T22:04:51.266308+09:00",
   "https://news.yahoo.co.jp/pickup/6597112": "2026-09-30T22:04:51.266308+09:00",
@@ -1555,5 +1556,6 @@
   "https://toyokeizai.net/articles/-/959393": "2026-09-28T18:01:36.122053+09:00",
   "https://toyokeizai.net/articles/-/959491": "2026-09-30T06:15:24.800434+09:00",
   "https://toyokeizai.net/articles/-/959543": "2026-09-30T06:45:48.964162+09:00",
-  "https://toyokeizai.net/articles/-/959554": "2026-09-29T19:30:08.965475+09:00"
+  "https://toyokeizai.net/articles/-/959554": "2026-09-29T19:30:08.965475+09:00",
+  "https://toyokeizai.net/articles/-/959691": "2026-09-30T22:35:05.872512+09:00"
 }
