@@ -1,5 +1,5 @@
 {
- "run_at": "2026-09-30T10:08:10+09:00",
+ "run_at": "2026-10-01T10:06:40+09:00",
  "log": [
   "[seed] 鴻巣市バドミントン連盟: ページ1件 + PDF6件を確認",
   "[seed] 鴻巣市バドミントン連盟(スケジュール): ページ1件 + PDF0件を確認",
@@ -8,24 +8,49 @@
   "[seed] 北本市体育センター 大会・イベント: ページ1件 + PDF0件を確認",
   "[minton] 埼玉県の今後の大会0件を巡回＋市町名検索(追加0件) → 対象自治体の会場で今後開催 0件",
   "[saibad] RSS由来 4件",
-  "[search] 失敗 北本市・鴻巣市 バドミントン 大会 団体戦 ダブ…: ClientError: 402 RESOURCE_EXHAUSTED. {'error': {'code': 402, 'message': 'Your prepayment credits are depleted. Please go to AI Studio",
-  "[search] 失敗 北本市・鴻巣市 バドミントン ダブルス シニア …: ClientError: 402 RESOURCE_EXHAUSTED. {'error': {'code': 402, 'message': 'Your prepayment credits are depleted. Please go to AI Studio",
-  "[search] 失敗 桶川市・上尾市・伊奈町・蓮田市・白岡市 バドミン…: ClientError: 402 RESOURCE_EXHAUSTED. {'error': {'code': 402, 'message': 'Your prepayment credits are depleted. Please go to AI Studio",
-  "[search] 失敗 桶川市・上尾市・伊奈町・蓮田市・白岡市 バドミン…: ClientError: 402 RESOURCE_EXHAUSTED. {'error': {'code': 402, 'message': 'Your prepayment credits are depleted. Please go to AI Studio",
-  "[search] 失敗 さいたま市（大宮区・西区・北区・見沼区・岩槻区）…: ClientError: 402 RESOURCE_EXHAUSTED. {'error': {'code': 402, 'message': 'Your prepayment credits are depleted. Please go to AI Studio",
-  "[search] 失敗 さいたま市（大宮区・西区・北区・見沼区・岩槻区）…: ClientError: 402 RESOURCE_EXHAUSTED. {'error': {'code': 402, 'message': 'Your prepayment credits are depleted. Please go to AI Studio",
-  "[search] 失敗 行田市・熊谷市・加須市・羽生市・久喜市・深谷市 …: ClientError: 402 RESOURCE_EXHAUSTED. {'error': {'code': 402, 'message': 'Your prepayment credits are depleted. Please go to AI Studio",
-  "[search] 失敗 行田市・熊谷市・加須市・羽生市・久喜市・深谷市 …: ClientError: 402 RESOURCE_EXHAUSTED. {'error': {'code': 402, 'message': 'Your prepayment credits are depleted. Please go to AI Studio",
-  "[search] 失敗 吉見町・東松山市・川島町・坂戸市・鶴ヶ島市・川越…: ClientError: 402 RESOURCE_EXHAUSTED. {'error': {'code': 402, 'message': 'Your prepayment credits are depleted. Please go to AI Studio",
-  "[search] 失敗 吉見町・東松山市・川島町・坂戸市・鶴ヶ島市・川越…: ClientError: 402 RESOURCE_EXHAUSTED. {'error': {'code': 402, 'message': 'Your prepayment credits are depleted. Please go to AI Studio",
-  "[search] 失敗 北本市 広報きたもと バドミントン 大会 参加者…: ClientError: 402 RESOURCE_EXHAUSTED. {'error': {'code': 402, 'message': 'Your prepayment credits are depleted. Please go to AI Studio",
-  "[search] 失敗 北本市スポーツ協会 バドミントン大会 2026 …: ClientError: 402 RESOURCE_EXHAUSTED. {'error': {'code': 402, 'message': 'Your prepayment credits are depleted. Please go to AI Studio",
+  "[search] 失敗 北本市・鴻巣市 バドミントン 大会 団体戦 ダブ…: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
+  "[search] 失敗 北本市・鴻巣市 バドミントン ダブルス シニア …: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
+  "[search] 失敗 桶川市・上尾市・伊奈町・蓮田市・白岡市 バドミン…: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
+  "[search] 失敗 桶川市・上尾市・伊奈町・蓮田市・白岡市 バドミン…: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
+  "[search] 失敗 さいたま市（大宮区・西区・北区・見沼区・岩槻区）…: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
+  "[search] 失敗 さいたま市（大宮区・西区・北区・見沼区・岩槻区）…: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
+  "[search] 失敗 行田市・熊谷市・加須市・羽生市・久喜市・深谷市 …: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
+  "[search] 失敗 行田市・熊谷市・加須市・羽生市・久喜市・深谷市 …: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
+  "[search] 失敗 吉見町・東松山市・川島町・坂戸市・鶴ヶ島市・川越…: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
+  "[search] 失敗 吉見町・東松山市・川島町・坂戸市・鶴ヶ島市・川越…: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
+  "[search] 失敗 北本市 広報きたもと バドミントン 大会 参加者…: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
+  "[search] 失敗 北本市スポーツ協会 バドミントン大会 2026 …: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
   "[search] 実在確認できたページ 0件",
   "[docs] 抽出対象ページ合計 15件",
   "[koho] 【最新号】広報きたもと2026年（令和8年）10月号（No.1064）: 大会関連の記載 0件",
   "[koho] 広報きたもと2026年（令和8年）9月号（No.1063）: 大会関連の記載 0件",
   "[koho] 広報きたもと2026年（令和8年）8月号（No.1062）: 大会関連の記載 1件"
  ],
- "matched": [],
+ "matched": [
+  {
+   "name": "第11回 鴻巣市年齢別ミックスバドミントン大会",
+   "date": "2026-11-29",
+   "muni": "鴻巣市",
+   "status": "受付中",
+   "entry": [
+    "2026-09-29",
+    "2026-11-01"
+   ],
+   "events": [
+    "混合ダブルス"
+   ],
+   "classes": [
+    "一般混合 1部（上級）",
+    "一般混合 2部（中級）",
+    "一般混合 3部（初級）",
+    "40歳以上の部",
+    "50歳以上の部",
+    "60歳以上の部",
+    "65歳以上の部"
+   ],
+   "url": "https://www.r-kounosubad.com/_files/ugd/81f490_066354227e1e4a9581307bd7b8b6bfe0.pdf",
+   "source": "鴻巣市バドミントン連盟(PDF)"
+  }
+ ],
  "dropped": []
 }
