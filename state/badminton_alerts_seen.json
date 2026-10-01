@@ -107,7 +107,8 @@
     "https://www.badspi.jp/202609281431/?utm_source=rss&utm_medium=rss&utm_campaign=202609281431": "2026-09-28T19:35:42.979173+09:00",
     "https://www.badspi.jp/202609291005/?utm_source=rss&utm_medium=rss&utm_campaign=202609291005": "2026-09-29T11:18:14.095850+09:00",
     "https://www.badspi.jp/202609291934/?utm_source=rss&utm_medium=rss&utm_campaign=202609291934": "2026-09-30T08:13:18.063359+09:00",
-    "https://www.badspi.jp/202609301013/?utm_source=rss&utm_medium=rss&utm_campaign=202609301013": "2026-09-30T13:04:48.053636+09:00"
+    "https://www.badspi.jp/202609301013/?utm_source=rss&utm_medium=rss&utm_campaign=202609301013": "2026-09-30T13:04:48.053636+09:00",
+    "https://www.badspi.jp/202610012012/?utm_source=rss&utm_medium=rss&utm_campaign=202610012012": "2026-10-02T02:22:25.326838+09:00"
   },
   "seen_national_summaries": {
     "https://www.sposoku.com/wakabacup-badminton/::優勝：岡垣ジュニア(福岡県)準優勝：Selfish(神奈川県)第三位：shinshin(石川県)、F.Flash(埼玉県)": "2026-09-06T00:41:49.469551+09:00",
@@ -315,7 +316,12 @@
   "digest_pool": {
     "matches": [],
     "summaries": [],
-    "badspi": [],
+    "badspi": [
+      {
+        "title": "【イベント情報】屋外で楽しむエアバドミントン　10月の体験会スケジュール",
+        "url": "https://www.badspi.jp/202610012012/?utm_source=rss&utm_medium=rss&utm_campaign=202610012012"
+      }
+    ],
     "gnews": [],
     "nba": []
   },
