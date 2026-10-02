@@ -280,7 +280,9 @@
     "https://news.google.com/rss/articles/CBMif0FVX3lxTE53djFyb3RIYl9qczV2UnF0dGt0bGRiY0F1Y1JaTURidFdxUzVja3NLT2hBdF9QN25iVDJ6bjd3WU4wREpnOW9zQkU3R1JzX25yQjRkZDdzdDZveGdDbHJYSHpiZWM4Qkh5cXlOWW9VOVdLUWJYcmdyVGN0eUpSZDQ?oc=5": "2026-09-30T13:04:48.053636+09:00",
     "https://news.google.com/rss/articles/CBMijAJBVV95cUxPSlQtOGpUVDdWeG1YMVVsb1NkY2RkZ1NuVkZtN0tUQ1VsMVYwaVFSUnozbWdJNWNqY3UwLTV6bElIcXFoeDNQT3NLX1ZEbkNrcl9uNFNpV01mejJMQ0J3eG1uLTl5aXl0RjJGZVRlS1JydGhQZHRFQXZTYXlrYURhVkdCNnRzam9ocTVlMFUzVTl0Mzl6ZC1rSm9CVmxrX1RYcW95R2xSYmVGLTRiN2MzSWZlTWpoSlFMQU5GWEFoSmxETnZjVEJGY05EUkFGR1hZRTVsQ0lmb2JkTzF5WktyUkNPaHlNREowX3lsVm0zVzlyb0xwMFRKZE1NS0VuS0tfVmVmY3NnbU5HVlZq?oc=5": "2026-10-01T01:29:27.846572+09:00",
     "https://news.google.com/rss/articles/CBMif0FVX3lxTE43VE1XMXNfbDh6WDY1cFdwa0RNbXI1ZG95ek9iOW9ESVN6cHNrWWMxMVVwSUM2LS1YMHdkLXJ0bWI4MVZNLTdQOER2MVVUcF9OUXVUU3hUUWRhbjBPUDBGSGVOZlZVZmZzRzF1dDMwQTdxbDhjcHRSSEVwNVNUQ2s?oc=5": "2026-10-01T13:16:48.049962+09:00",
-    "https://news.google.com/rss/articles/CBMif0FVX3lxTE15WEx6VGstVDZ5LXVqanJjOGFrSUIta1dPLVd1d2FmdmtPUVhYYUZOT0hBYXMyeExSaGJfZTdhZGFHSWxFbmZfZ3FTRGZfSVlpbkRRc3owbnBfR1ZQaTFDTXM4aWdtNlU4dGxJWW1FNHk0QVIxWWxiQXRaUmU1dWs?oc=5": "2026-10-02T13:09:54.849324+09:00"
+    "https://news.google.com/rss/articles/CBMif0FVX3lxTE15WEx6VGstVDZ5LXVqanJjOGFrSUIta1dPLVd1d2FmdmtPUVhYYUZOT0hBYXMyeExSaGJfZTdhZGFHSWxFbmZfZ3FTRGZfSVlpbkRRc3owbnBfR1ZQaTFDTXM4aWdtNlU4dGxJWW1FNHk0QVIxWWxiQXRaUmU1dWs?oc=5": "2026-10-02T13:09:54.849324+09:00",
+    "https://news.google.com/rss/articles/CBMif0FVX3lxTE83NVNDdjRpNUp2MlVDTVpncXZUQUdsQ3RST1NTMk5xa3ZQY2NXVnBheUlHc3FJdGFOSXVaQlJjc2p4azAtRE9ObVJsYnBPcHlab1dDeUo3M3FWSG5UNkVfMkYzT2RZdW9Ed28tM0NISHRsRm1TSFpjNWVaZ3Y1cTA?oc=5": "2026-10-03T01:21:07.419440+09:00",
+    "https://news.google.com/rss/articles/CBMijgFBVV95cUxQV3VhdWx1LTZrVVFJZ2NENVRwXzR0SDN4OU1tMFZldVNUTVpFNmxDVGQxeHQtLU1CN05VNTIwUTRIcGpkLURMb2d3TUFaM3NqV2FldTdrbXRQNEhSYW1xZ1hKbngtU0J4Uk1WNkhFbDAyQlZzWFVvelR0VnZtOGptUmJUUjNtXzl4TjhUTU1R?oc=5": "2026-10-03T01:21:07.419440+09:00"
   },
   "seen_nba_result_ids": {
     "982": "2026-09-06T18:30:52.185356+09:00",
@@ -318,7 +320,16 @@
     "matches": [],
     "summaries": [],
     "badspi": [],
-    "gnews": [],
+    "gnews": [
+      {
+        "title": "早田ひなが卓球の枠を超え宮崎友花や田口真彩らバドミントン日本代表に囲まれ感激「私の密かな夢です」（日テレNEWS NNN）",
+        "url": "https://news.google.com/rss/articles/CBMif0FVX3lxTE83NVNDdjRpNUp2MlVDTVpncXZUQUdsQ3RST1NTMk5xa3ZQY2NXVnBheUlHc3FJdGFOSXVaQlJjc2p4azAtRE9ObVJsYnBPcHlab1dDeUo3M3FWSG5UNkVfMkYzT2RZdW9Ed28tM0NISHRsRm1TSFpjNWVaZ3Y1cTA?oc=5"
+      },
+      {
+        "title": "早田ひなが卓球の枠を超え宮崎友花や田口真彩らバドミントン日本代表に囲まれ感激「私の密かな夢です」 (日テレNEWS NNN)",
+        "url": "https://news.google.com/rss/articles/CBMijgFBVV95cUxQV3VhdWx1LTZrVVFJZ2NENVRwXzR0SDN4OU1tMFZldVNUTVpFNmxDVGQxeHQtLU1CN05VNTIwUTRIcGpkLURMb2d3TUFaM3NqV2FldTdrbXRQNEhSYW1xZ1hKbngtU0J4Uk1WNkhFbDAyQlZzWFVvelR0VnZtOGptUmJUUjNtXzl4TjhUTU1R?oc=5"
+      }
+    ],
     "nba": []
   },
   "wr_rankings": {
