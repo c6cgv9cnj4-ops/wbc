@@ -897,22 +897,52 @@ def fetch_bousai_summary_items(now, hours=BOUSAI_SUMMARY_HOURS):
     return recent
 
 
+BOUSAI_SUMMARY_MAX_ITEMS = 10  # まとめ欄に並べる上限(超えた分は「ほかN件」。同じ記事は取得時に1件へまとめ済み)
+
+
+def fetch_bousai_summary_items_mastodon(now, hours=BOUSAI_SUMMARY_HOURS):
+    """ANZN_SOURCE=mac のとき(あんぜんねっと本体はActionsから403で読めない)の定期まとめ用。
+    公式Mastodon経由で、直近hours時間の県央3市の災害発生情報を読み取り専用で集める
+    (カーソル・既送信キーには触れない。即時通知側とは独立)。戻り値は (items, status)。
+    status は "mastodon"(取得成功。該当なしも含む) / "mastodon_failed"(取得失敗)。2026-10-02。"""
+    try:
+        return mastodon_anzn.fetch_recent_items(now, hours), "mastodon"
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] 定期まとめ用の公式Mastodon取得に失敗しました: {news_alerts.short_error(err)}")
+        return [], "mastodon_failed"
+
+
+def _bousai_line(item):
+    when = f"{item['datetime']} " if item.get("datetime") else ""
+    return f"- {when}［{item['city']}］{item['summary']}"
+
+
 def build_bousai_section(bousai_items, status="ok"):
     """ローカルニュースメッセージの最上部に必ず入れる「防災・緊急情報」
     セクション。該当情報が無くても省略せず、その旨を明記する
     (2026-08-28、細川さんの指定によるフォーマット)。
+    status: "ok"/"failed" = あんぜんねっと本体を直接取得した場合 /
+            "mastodon"/"mastodon_failed" = 公式Mastodon経由(ANZN_SOURCE=mac。2026-10-02)。
     """
     lines = ["## 🚨 防災・緊急情報"]
     # 2026-09-26: 取得していない/できなかった場合に「情報はありません」と誤表示しない。
-    if status == "mac":
-        lines.append("- あんぜんねっとの速報は自宅Macから配信中（このまとめ欄では取得していません）")
-    elif status == "failed":
+    if status == "failed":
         lines.append("- あんぜんねっとを取得できませんでした（防災・緊急情報の有無は確認できていません）")
+    elif status == "mastodon_failed":
+        lines.append("- 公式Mastodon(あんぜんねっと)を取得できませんでした（災害発生情報の有無は確認できていません）")
     elif not bousai_items:
-        lines.append("- 現在、北本市・県央エリアに発表されている警報・火災等の情報はありません")
+        if status == "mastodon":
+            lines.append("- 直近24時間に確認された北本市・鴻巣市・桶川市の災害発生情報はありません（公式Mastodon経由）")
+        else:
+            lines.append("- 現在、北本市・県央エリアに発表されている警報・火災等の情報はありません")
     else:
-        for item in bousai_items:
-            lines.append(f"- {item['datetime']}［{item['city']}］{item['summary']}")
+        for item in bousai_items[:BOUSAI_SUMMARY_MAX_ITEMS]:
+            lines.append(_bousai_line(item))
+        extra = len(bousai_items) - BOUSAI_SUMMARY_MAX_ITEMS
+        if extra > 0:
+            lines.append(f"- ほか{extra}件（速報は同チャンネルの赤枠通知を参照）")
+        if status == "mastodon":
+            lines.append("（直近24時間・公式Mastodon経由）")
     return "\n".join(lines)
 
 
@@ -957,15 +987,20 @@ def build_local_news_message(state, now):
             saitama_general.append(item)
 
     if anzn_via_mac():
-        bousai_items, bousai_status = [], "mac"
+        # 2026-10-02: あんぜんねっと本体はActionsから読めないため、公式Mastodon経由の災害発生情報を
+        # 防災欄に載せる(旧・取得していない旨の固定文言は廃止)。防災情報だけでは定期まとめを出さない
+        # (cronは30分おきで、同じ記事を毎回繰り返さないため。速報は即時の赤枠通知で届いている)。
+        # 新着ローカルニュースがあってまとめを出す回に、直近24時間分を併記する。
+        if not saitama_general:
+            return None, sports_items
+        bousai_items, bousai_status = fetch_bousai_summary_items_mastodon(now)
     else:
         bousai_items = fetch_bousai_summary_items(now)
         bousai_status = "ok" if ANZN_LAST_FETCH_OK else "failed"
-
-    # 新着ローカルニュースも、直近の防災アクティブ情報も無ければ送信しない
-    # (防災セクションが「異常なし」だけの空更新を毎回送るのは避ける)。
-    if not saitama_general and not bousai_items:
-        return None, sports_items
+        # 新着ローカルニュースも、直近の防災アクティブ情報も無ければ送信しない
+        # (防災セクションが「異常なし」だけの空更新を毎回送るのは避ける)。
+        if not saitama_general and not bousai_items:
+            return None, sports_items
 
     now_jst = now.strftime("%Y-%m-%d %H:%M")
     lines = [f"# 🗾 埼玉・県央ローカルニュース ({now_jst} JST時点)", ""]

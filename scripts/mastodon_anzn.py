@@ -103,6 +103,51 @@ def fetch_since(cursor_id, get=requests.get, max_pages=MAX_PAGES, timeout=20):
     return posts, True
 
 
+RECENT_MAX_PAGES = 5  # 定期まとめ用の読み取り。40件×5 ≒ 200件(実測で3日分ほど)。24時間分には十分
+
+
+def fetch_recent_items(now, hours=24, get=requests.get, max_pages=RECENT_MAX_PAGES, timeout=20):
+    """定期まとめ(防災・緊急情報)用: 直近hours時間に投稿された県央3市の災害発生情報を、新しい順で返す。
+    カーソルにも既送信キーにも触れない読み取り専用(即時通知の重複防止・取りこぼし防止とは独立)。
+    parse_post を通すので、県央3市以外・防犯情報などは含まれない。同じ記事キーは1件にまとめる。
+    取得失敗は例外を投げる(呼び出し側で「確認できていません」と表示する)。"""
+    cutoff = now - datetime.timedelta(hours=hours)
+    items, seen_keys, max_id = [], set(), None
+    for _ in range(max_pages):
+        params = {"limit": PAGE_LIMIT}
+        if max_id:
+            params["max_id"] = max_id
+        resp = get(STATUSES_URL, params=params, headers={"User-Agent": "wbc-anzn-safety/1.0"}, timeout=timeout)
+        resp.raise_for_status()
+        page = resp.json()
+        if not isinstance(page, list):
+            raise ValueError("Mastodon API の応答がリストではありません")
+        if not page:
+            break
+        reached_old = False
+        for p in page:
+            try:
+                created = datetime.datetime.fromisoformat(p["created_at"].replace("Z", "+00:00"))
+            except (KeyError, TypeError, ValueError):
+                created = now  # select_to_send と同じ扱い(日時不明は新しい投稿とみなす)
+            if created < cutoff:
+                reached_old = True
+                continue
+            item = parse_post(p)
+            if not item:
+                continue
+            key = item["key"] or f"mastodon:{p['id']}"
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            item["key"] = key
+            items.append(item)
+        if reached_old:
+            break  # ページ内は新しい順なので、これより先は全部古い
+        max_id = page[-1]["id"]
+    return items
+
+
 def get_cursor(state):
     v = state.get(CURSOR_KEY)
     return v.split("|", 1)[1] if v and "|" in v else None
