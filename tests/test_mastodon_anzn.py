@@ -109,6 +109,37 @@ class SelectTest(unittest.TestCase):
         self.assertEqual((cursor_to, waiting), ("5", 1))  # 猶予中の6より先へは進めない(7も次回)
 
 
+class SendLimitTest(unittest.TestCase):
+    def test_30_items_split_25_then_5(self):
+        # 30件の未処理の災害情報(間に対象外の投稿も混ぜる)
+        posts = []
+        for i in range(1, 31):
+            posts.append(post(i * 2, art=str(100 + i)))
+            posts.append(post(i * 2 + 1, city="三郷市", art=str(900 + i)))
+        state = {}
+        ma.set_cursor(state, "1", NOW)
+        sent = []
+        with mock.patch.object(ma, "fetch_since",
+                               lambda c: (sorted([p for p in posts if int(p["id"]) > int(c)], key=lambda p: -int(p["id"])), False)), \
+                mock.patch.object(fn, "MAC_SENT_PATH", "/nonexistent.json"), \
+                mock.patch.object(fn, "send_embed_to_discord", lambda w, e: (sent.append(e), True)[1]):
+            news_alerts.reset()
+            fn.run_mastodon_anzn(state, NOW, "https://discord.com/api/webhooks/1/T")
+            self.assertEqual(len(sent[0]["embeds"][0]["fields"]), 25)  # 1回目は25件
+            keys = {k for k in state if k.startswith("anzn:")}
+            self.assertEqual(keys, {f"anzn:11217F:{100 + i}" for i in range(1, 26)})
+            self.assertFalse(any(f"anzn:11217F:{100 + i}" in state for i in range(26, 31)))  # 26〜30件目は未送信のまま
+            self.assertEqual(ma.get_cursor(state), "51")  # 25件目(投稿ID50)の後の対象外投稿51まで。26件目(52)の手前
+            sent.clear()
+            fn.run_mastodon_anzn(state, NOW, "https://discord.com/api/webhooks/1/T")
+            self.assertEqual(len(sent[0]["embeds"][0]["fields"]), 5)  # 2回目は残り5件
+        self.assertEqual({k for k in state if k.startswith("anzn:")}, {f"anzn:11217F:{100 + i}" for i in range(1, 31)})
+        self.assertEqual(ma.get_cursor(state), "61")
+
+    def test_limit_matches_embed_field_cap(self):
+        self.assertEqual(ma.MAX_SEND_PER_RUN, fn.ANZN_EMBED_FIELD_LIMIT)
+
+
 class RunTest(unittest.TestCase):
     def run_once(self, state, posts, send_ok=True, status=200, mac_sent=()):
         sent = []

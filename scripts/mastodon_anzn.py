@@ -28,6 +28,9 @@ STATUSES_URL = f"https://mastodon.social/api/v1/accounts/{ACCOUNT_ID}/statuses"
 PAGE_LIMIT = 40
 MAX_PAGES = 25                 # 40件×25 ≒ 1000件(実測で約2週間分)。これを超える停止は Mac 側の履歴で補完する
 MASTODON_GRACE_MINUTES = 30    # Mac(15分おき)が先に送れるよう、この時間より新しい投稿は次回に回す
+# 1回の送信で送る上限。fetch_news.build_anzn_alert_embed は Embed の fields 上限(25件)までしか載せないため、
+# これを超える分は今回は送らず、カーソルも手前で止めて次回に回す(載らない記事を既送信にしない・2026-10-02 F1)。
+MAX_SEND_PER_RUN = 25
 TARGET_CITIES = ("北本市", "鴻巣市", "桶川市")
 CURSOR_KEY = "_mastodon_anzn_cursor"  # 値は "ISO日時|投稿ID"(既存の14日掃除で消えないよう日時を先頭に置く)
 JST = datetime.timezone(datetime.timedelta(hours=9))
@@ -109,9 +112,10 @@ def set_cursor(state, status_id, now):
     state[CURSOR_KEY] = f"{now.isoformat()}|{status_id}"
 
 
-def select_to_send(posts, state, mac_sent_keys, now, grace_minutes=MASTODON_GRACE_MINUTES):
-    """(送る候補[古い順], 新しいカーソルにしてよい投稿ID, 猶予中の件数)。
-    猶予中(投稿から grace_minutes 未満)の投稿より新しいところへはカーソルを進めない。"""
+def select_to_send(posts, state, mac_sent_keys, now, grace_minutes=MASTODON_GRACE_MINUTES,
+                   max_items=MAX_SEND_PER_RUN):
+    """(送る候補[古い順・最大 max_items 件], 新しいカーソルにしてよい投稿ID, 猶予中の件数)。
+    猶予中(投稿から grace_minutes 未満)の投稿や、上限を超えた送信候補より新しいところへはカーソルを進めない。"""
     cutoff = now - datetime.timedelta(minutes=grace_minutes)
     send, seen_keys, cursor_to, waiting = [], set(), None, 0
     for p in sorted(posts, key=lambda s: _id_int(s["id"])):  # 古い順
@@ -122,14 +126,14 @@ def select_to_send(posts, state, mac_sent_keys, now, grace_minutes=MASTODON_GRAC
         if created > cutoff:
             waiting += 1
             break  # これ以降(より新しい投稿)は次回に回す
-        cursor_to = p["id"]
         item = parse_post(p)
-        if not item:
-            continue
-        key = item["key"] or f"mastodon:{p['id']}"  # 記事IDが取れない場合は投稿IDで重複防止
-        item["key"] = key
-        if key in state or key in mac_sent_keys or key in seen_keys:
-            continue
-        seen_keys.add(key)
-        send.append(item)
+        if item:
+            key = item["key"] or f"mastodon:{p['id']}"  # 記事IDが取れない場合は投稿IDで重複防止
+            item["key"] = key
+            if key not in state and key not in mac_sent_keys and key not in seen_keys:
+                if len(send) >= max_items:
+                    break  # 上限を超えた送信候補は次回(カーソルはこの投稿の手前で止める)
+                seen_keys.add(key)
+                send.append(item)
+        cursor_to = p["id"]
     return send, cursor_to, waiting
