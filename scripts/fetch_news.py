@@ -78,6 +78,7 @@ import requests
 from bs4 import BeautifulSoup
 
 import market_news_curation
+import mastodon_anzn
 import news_alerts
 
 USER_AGENT = (
@@ -1298,6 +1299,58 @@ ANZN_EMBED_COLOR = 0xE53E3E  # 赤枠(Discord Embedの左側カラーバー)
 ANZN_EMBED_FIELD_LIMIT = 25  # Discord Embedのfields上限
 
 
+MAC_SENT_PATH = "state/anzn_mac_sent.json"  # 自宅Mac(anzn_local.py)が送った記事キー。Macが GitHub API で更新する
+
+
+def load_mac_sent_keys(path=None):
+    path = path or MAC_SENT_PATH
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        return set(data) if isinstance(data, dict) else set()
+    except (OSError, ValueError):
+        return set()
+
+
+def run_mastodon_anzn(state, now, webhook):
+    """2026-10-02: Macが止まっていても県央の災害発生情報を届けるクラウド側の主経路(mastodon_anzn.py)。
+    取得失敗は異常通知だけで、他の配信は止めない。送信に失敗した回は記事キー・カーソルとも確定しない。
+    戻り値は had_error(Discord送信失敗のみ True)。"""
+    cursor = mastodon_anzn.get_cursor(state)
+    try:
+        posts, truncated = mastodon_anzn.fetch_since(cursor)
+    except Exception as err:  # noqa: BLE001
+        print(f"[ERROR] あんぜんねっとMastodonの取得に失敗しました: {news_alerts.short_error(err)}")
+        news_alerts.record("mastodon_anzn_fetch", "local", "あんぜんねっと(公式Mastodon経由)",
+                           f"取得失敗 {news_alerts.short_error(err)}", "継続(自宅Mac経路のみで配信)")
+        return False
+    if cursor is None:
+        # 初回: 過去分を大量に送らないよう、カーソルを最新に合わせるだけにする
+        if posts:
+            mastodon_anzn.set_cursor(state, posts[0]["id"], now)
+        print(f"[INFO] あんぜんねっとMastodon: 初回のためカーソルを最新に設定しました({len(posts)}件は送信しません)。")
+        return False
+    if truncated:
+        news_alerts.record("mastodon_anzn_truncated", "local", "あんぜんねっと(公式Mastodon経由)",
+                           f"ページ送りの上限({mastodon_anzn.MAX_PAGES}ページ)に達しました",
+                           "継続(それより古い分は自宅Mac経路の履歴で補完)")
+    send, cursor_to, waiting = mastodon_anzn.select_to_send(posts, state, load_mac_sent_keys(), now)
+    print(f"[INFO] あんぜんねっとMastodon: 新着投稿{len(posts)}件 / 県央の災害発生情報で未配信{len(send)}件 / 猶予中{waiting}件")
+    if send:
+        embed = build_anzn_alert_embed(send, now)
+        embed["embeds"][0]["footer"]["text"] = embed["embeds"][0]["footer"]["text"].replace(
+            "あんぜんねっと(埼玉県央)", "あんぜんねっと(埼玉県央)・公式Mastodon経由")
+        if not send_embed_to_discord(webhook, embed):
+            news_alerts.record("discord_send_mastodon_anzn", "local", "Discord送信(あんぜんねっと・Mastodon経由)",
+                               "送信失敗(ログにHTTPステータスあり)", "スキップ(既送信にせず次回再送)")
+            return True
+        for item in send:
+            state[item["key"]] = now.isoformat()
+    if cursor_to:
+        mastodon_anzn.set_cursor(state, cursor_to, now)
+    return False
+
+
 def build_anzn_alert_embed(anzn_new, now):
     """あんぜんねっとの新着を、最上部に表示される赤色のDiscord Embedとして組み立てる。
     火災・消防出動情報という速報性・緊急性の高い情報のため、他の一般ニュースとは
@@ -1474,7 +1527,9 @@ def main():
     # 全国ニュースとは完全に別メッセージ・別Webhookで送信し、混在させない。
     if local_webhook:
         if anzn_via_mac():
-            print("[INFO] ANZN_SOURCE=mac のため、あんぜんねっとの取得・新着Embed送信はスキップします(自宅Macから配信)。")
+            print("[INFO] ANZN_SOURCE=mac のため、あんぜんねっと本体は自宅Macから配信します(ここでは公式Mastodon経由の分だけ扱う)。")
+            if run_mastodon_anzn(state, now, local_webhook):
+                had_error = True
         else:
             keys_before_anzn = set(state)
             anzn_new = fetch_anzn_new_items(state, now)

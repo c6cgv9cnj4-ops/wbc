@@ -29,7 +29,65 @@ REPO_DIR = os.path.dirname(SCRIPT_DIR)
 sys.path.insert(0, SCRIPT_DIR)
 
 import fetch_news  # noqa: E402
+import mastodon_anzn  # noqa: E402
 import news_alerts  # noqa: E402
+
+import base64  # noqa: E402
+import shutil  # noqa: E402
+import subprocess  # noqa: E402
+
+# 2026-10-02: GitHub Actions(公式Mastodon経由)との重複防止。記事キーは mastodon_anzn.anzn_key_from_url と共通。
+REPO = "c6cgv9cnj4-ops/wbc"
+REMOTE_ACTIONS_STATE = "state/news_seen.json"   # Actionsが送った記事キー(読むだけ)
+REMOTE_MAC_SENT = "state/anzn_mac_sent.json"    # Macが送った記事キー(Macだけが GitHub API で更新する)
+MAC_SENT_RETENTION_DAYS = 14
+
+
+def _gh(*args, input_text=None):
+    exe = shutil.which("gh") or "/opt/homebrew/bin/gh"
+    p = subprocess.run([exe, *args], capture_output=True, text=True, input=input_text, timeout=60)
+    return p.returncode, p.stdout, p.stderr
+
+
+def fetch_actions_sent_keys(gh=_gh):
+    """Actions側が送った記事キー。取得できなければ None(重複の可能性はあるが、送信は止めない)。"""
+    code, out, err = gh("api", f"repos/{REPO}/contents/{REMOTE_ACTIONS_STATE}", "-H", "Accept: application/vnd.github.raw")
+    if code != 0:
+        print(f"[WARN] Actions側の既送信記録を取得できませんでした(重複の可能性あり): {err.strip()[:120]}")
+        return None
+    try:
+        return {k for k in json.loads(out) if k.startswith("anzn:")}
+    except ValueError:
+        return None
+
+
+def publish_mac_sent(keys, now, gh=_gh):
+    """Macが送った記事キーを state/anzn_mac_sent.json へ追記する(GitHub API・作業ツリーには触れない)。
+    失敗してもMacの配信は成功扱いのまま(Actions側で重複する可能性があるだけ)。"""
+    if not keys:
+        return True
+    for _ in range(2):  # 同時更新(sha不一致)なら1回だけやり直す
+        code, out, _err = gh("api", f"repos/{REPO}/contents/{REMOTE_MAC_SENT}")
+        data, sha = {}, None
+        if code == 0:
+            meta = json.loads(out)
+            sha = meta.get("sha")
+            data = json.loads(base64.b64decode(meta.get("content", "")).decode("utf-8") or "{}")
+        cutoff = (now - datetime.timedelta(days=MAC_SENT_RETENTION_DAYS)).isoformat()
+        data = {k: v for k, v in data.items() if v >= cutoff}
+        for k in keys:
+            data[k] = now.isoformat()
+        body = {"message": "あんぜんねっと(自宅Mac)の既送信記録を更新",
+                "content": base64.b64encode(json.dumps(data, ensure_ascii=False, indent=1, sort_keys=True).encode()).decode(),
+                "branch": "main"}
+        if sha:
+            body["sha"] = sha
+        code, _out, err = gh("api", "-X", "PUT", f"repos/{REPO}/contents/{REMOTE_MAC_SENT}", "--input", "-",
+                             input_text=json.dumps(body))
+        if code == 0:
+            return True
+    print(f"[WARN] Macの既送信記録をGitHubへ書けませんでした(Actions側で重複の可能性あり): {err.strip()[:120]}")
+    return False
 
 DEFAULT_STATE_PATH = os.path.expanduser("~/Library/Application Support/anzn-local/anzn_seen.json")
 DEFAULT_ENV_PATH = os.path.join(REPO_DIR, ".env")
@@ -84,6 +142,14 @@ def run(args):
     print(f"[INFO] {now:%Y-%m-%d %H:%M} 取得{'成功' if fetch_news.ANZN_LAST_FETCH_OK else '失敗'} / 新着{len(new_items)}件")
     for item in new_items:
         print(f"  - {item.get('datetime')} [{item.get('city')}] {item.get('summary', '')[:40]}")
+    # Actions(公式Mastodon経由)が既に送った記事は送らない(Macのstateには既送信として残す)
+    if new_items and not args.dry_run:
+        remote = fetch_actions_sent_keys()
+        if remote:
+            dup = [i for i in new_items if mastodon_anzn.anzn_key_from_url(i.get("url")) in remote]
+            if dup:
+                print(f"[INFO] Actions(公式Mastodon経由)で配信済みのため{len(dup)}件は送りません。")
+                new_items = [i for i in new_items if i not in dup]
 
     if args.dry_run:
         issues = news_alerts.issues()
@@ -103,6 +169,7 @@ def run(args):
         exit_code = 1
     elif embed:
         print(f"[INFO] あんぜんねっと新着{len(new_items)}件を送信しました。")
+        publish_mac_sent({k for k in (mastodon_anzn.anzn_key_from_url(i.get("url")) for i in new_items) if k}, now)
 
     news_alerts.flush({"local": webhook}, fetch_news.send_to_discord, state, now)
     fetch_news.save_seen_state(state)
