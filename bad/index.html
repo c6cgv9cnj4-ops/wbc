@@ -220,6 +220,55 @@
       width: 100%; padding: 16px; background-color: var(--success-color); color: #fff;
       font-size: 1rem; margin-top: 4px;
     }
+
+    /* ===== 会費・運営シミュレーション（追加分。既存セレクタは変更しない） ===== */
+    .sim-note { font-size: 0.75rem; color: var(--text-sub); margin: 0 0 12px 0; line-height: 1.6; }
+    .sim-hero {
+      background: linear-gradient(135deg, #faf5ff 0%, #f3f0ff 100%); border: 1px solid #e9d5ff;
+      border-radius: var(--radius-sm); padding: 14px; margin-bottom: 14px;
+    }
+    .sim-hero__head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-bottom: 6px; }
+    .sim-badge { font-weight: 700; font-size: 0.9rem; color: #6b21a8; }
+    .sim-chip { background: var(--purple-color); color: #fff; border-radius: 999px; padding: 2px 10px; font-size: 0.7rem; font-weight: 700; }
+    .sim-hero__params { font-size: 0.74rem; color: var(--text-sub); margin-bottom: 10px; line-height: 1.7; overflow-wrap: anywhere; }
+    .sim-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .sim-kpi-wide { grid-column: 1 / -1; }
+    .sim-kpi-grid .profit-card { background: #ffffff; border-color: #e9d5ff; min-width: 0; }
+    .sim-kpi-grid .profit-card-label { color: #6b21a8; }
+    .sim-kpi-grid .profit-card-value { font-size: 1.02rem; line-height: 1.35; overflow-wrap: anywhere; }
+    .sim-kpi-sub { font-size: 0.68rem; color: var(--text-sub); margin-top: 3px; line-height: 1.5; overflow-wrap: anywhere; }
+    .sim-trial-note { font-size: 0.78rem; margin-top: 10px; line-height: 1.7; }
+    .sim-block { margin-top: 18px; }
+    .sim-block__title {
+      font-weight: 600; font-size: 0.85rem; margin-bottom: 8px;
+      display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .sim-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--border-color); border-radius: var(--radius-sm); }
+    .sim-table { width: 100%; border-collapse: collapse; font-size: 0.74rem; min-width: 440px; }
+    .sim-table th, .sim-table td { padding: 8px 8px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--border-color); }
+    .sim-table th:first-child, .sim-table td:first-child { text-align: left; }
+    .sim-table thead th { background: #fafafa; color: var(--text-sub); font-weight: 600; }
+    .sim-table tbody tr:last-child td { border-bottom: none; }
+    .sim-table tr.sim-row-fav td { background: #faf5ff; font-weight: 700; }
+    .sim-neg { color: var(--danger-color); }
+    .sim-small { font-size: 0.7rem; color: var(--text-sub); line-height: 1.7; margin-top: 8px; overflow-wrap: anywhere; }
+    .sim-fav-caption { font-size: 0.78rem; font-weight: 700; color: #6b21a8; margin: 14px 0 6px 0; line-height: 1.5; overflow-wrap: anywhere; }
+    .sim-dist { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .sim-dist-chip { background: #f0f7ff; border: 1px solid #bae0ff; color: #0050b3; border-radius: 999px; padding: 2px 10px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+    .sim-dist-chip.sim-dist-cancel { background: #fff7e6; border-color: #ffd591; color: #ad6800; }
+    .sim-dist-chip.sim-dist-big { background: #f6ffed; border-color: #b7eb8f; color: #237804; }
+    .sim-select-sm { width: auto; padding: 4px 24px 4px 10px; font-size: 0.75rem; }
+    details.sim-settings {
+      margin: 16px 0 0 0; background: #fafafa; border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm); box-shadow: none;
+    }
+    details.sim-settings > summary { padding: 12px 14px; font-size: 0.85rem; }
+    .sim-settings__body { padding: 4px 14px 14px 14px; }
+    .sim-set-group { font-size: 0.75rem; font-weight: 700; color: var(--primary-color); margin: 14px 0 6px 0; }
+    .sim-set-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .sim-set-grid .form-row { margin-bottom: 0; min-width: 0; }
+    .sim-set-grid .form-row label { line-height: 1.4; }
+    button.sim-reset-btn { margin-top: 14px; padding: 8px 14px; font-size: 0.8rem; background: #e5e5ea; color: var(--text-main); }
   </style>
 </head>
 <body>
@@ -369,6 +418,76 @@
     <div class="container" style="text-align:center;">
       <button type="button" id="goToReportBtn" class="btn-report-toggle">📈 損益分岐グラフ & 参加率レポートを見る ➔</button>
     </div>
+
+    <!-- 3.5 会費・運営シミュレーション（判断材料の表示専用。DB書き込みなし） -->
+    <details class="container" id="simSection" style="border-left: 4px solid var(--purple-color);">
+      <summary>📊 会費・運営シミュレーション</summary>
+      <div class="accordion-content">
+        <p class="sim-note">判断材料としての試算です。開催履歴は読み取りのみで、データの保存・会費の自動変更は一切行いません。設定値はこの端末にだけ記憶されます。</p>
+
+        <div class="sim-hero">
+          <div class="sim-hero__head">
+            <span class="sim-badge">⭐ 現在のおすすめ試行案</span>
+            <span class="sim-chip" id="simHeroChip">500円会費・半年試行</span>
+          </div>
+          <div class="sim-hero__params" id="simHeroParams"></div>
+          <div class="sim-kpi-grid">
+            <div class="profit-card">
+              <div class="profit-card-label" id="simKpiReachLabel">5万円到達予測</div>
+              <div class="profit-card-value" id="simKpiReach">-</div>
+              <div class="sim-kpi-sub" id="simKpiReachSub"></div>
+            </div>
+            <div class="profit-card">
+              <div class="profit-card-label">3年後残高</div>
+              <div class="profit-card-value" id="simKpiThree">-</div>
+              <div class="sim-kpi-sub" id="simKpiThreeSub"></div>
+            </div>
+            <div class="profit-card sim-kpi-wide">
+              <div class="profit-card-label">半年後の予想残高</div>
+              <div class="profit-card-value" id="simKpiHalf">-</div>
+              <div class="sim-kpi-sub" id="simKpiHalfSub"></div>
+            </div>
+          </div>
+          <div class="sim-trial-note">📝 半年後に実績とシミュレーションを比較してください。残高のズレが大きければ、下の設定値（参加人数・シャトル消費量など）を実績に合わせて更新します。</div>
+        </div>
+
+        <div class="sim-block">
+          <div class="sim-block__title"><span>📈 実績の取り込み（開催履歴・読み取りのみ）</span></div>
+          <div id="simAttendanceInfo"></div>
+        </div>
+
+        <div class="sim-block">
+          <div class="sim-block__title">
+            <span>🗓 年次シミュレーション（おすすめ試行案）</span>
+            <select id="simTableYears" class="sim-select-sm" aria-label="表示年数">
+              <option value="3">3年間</option>
+              <option value="5">5年間</option>
+              <option value="10">10年間</option>
+            </select>
+          </div>
+          <div class="sim-table-wrap"><table class="sim-table" id="simYearTable"></table></div>
+          <div class="sim-small" id="simPriceLine"></div>
+          <div class="sim-small" id="simYearNote"></div>
+        </div>
+
+        <div class="sim-block">
+          <div class="sim-block__title"><span>⚖️ 会費設定の比較</span></div>
+          <div class="sim-table-wrap"><table class="sim-table" id="simCompareTable"></table></div>
+          <div class="sim-fav-caption" id="simFavCaption"></div>
+          <div class="sim-table-wrap"><table class="sim-table" id="simFavTable"></table></div>
+        </div>
+
+        <details class="sim-settings" id="simSettings">
+          <summary>⚙️ 前提条件・設定値を変更する</summary>
+          <div class="sim-settings__body">
+            <div id="simSettingsBody"></div>
+            <button type="button" id="simResetBtn" class="sim-reset-btn">↩︎ 初期値に戻す</button>
+          </div>
+        </details>
+
+        <div class="sim-small" id="simAssumptions"></div>
+      </div>
+    </details>
 
     <!-- 4. 履歴ログ -->
     <div class="container">
@@ -562,6 +681,8 @@
     let rawMembersData = parseJSONSafe(safeGetLS("bad_members", "[]"), []);
     let rawEventsData = parseJSONSafe(safeGetLS("bad_events", "[]"), []);
     let rawReservesData = parseJSONSafe(safeGetLS("bad_reserves", "[]"), []);
+    // 会費・運営シミュレーション（別scriptブロック）が開催履歴を「読み取り専用」で参照するための窓口
+    window.badApp = { getEvents: () => rawEventsData };
     let reservedCourtsMap = {};
     let reservedDocIdsMap = {};
     let reservedCompletedMap = {};
@@ -1347,6 +1468,8 @@
     let breakEvenChart = null;
 
     function renderEventsUI(events) {
+      // シミュレーションが履歴の更新に追従するための通知（リスナーの例外はここへ波及しない）
+      document.dispatchEvent(new CustomEvent("bad:events-rendered"));
       const historyList = document.getElementById("historyList");
       historyList.innerHTML = "";
 
@@ -1761,6 +1884,492 @@
         if (e.key === "Escape" && overlay.classList.contains("show")) closeModal();
       });
     })();
+  </script>
+
+  <!-- 📊 会費・運営シミュレーション（判断材料の表示専用）
+       ・既存DB(Firebase / localStorage の bad_*)には一切書き込まない
+       ・開催履歴は window.badApp.getEvents() 経由の読み取りのみ
+       ・保存するのは設定値のみ（この端末の localStorage: bad_sim_settings_v1）
+       ・シャトル在庫管理・使用数入力はしない。消費量は仮定値 shuttlesPerSession として分離 -->
+  <script type="module">
+    const SIM_STORAGE_KEY = "bad_sim_settings_v1";
+    const SIM_SEARCH_YEARS = 20; // 目標残高への到達を探索する最大年数
+
+    // 既定値＝おすすめ試行案。
+    // shuttlesPerSession(6個/開催)は仮定値。半年後に実際の購入数・残在庫から消費量を算出できたら、
+    // この値（または画面の設定欄）を更新すれば、以降の試算すべてに反映される。
+    const SIM_DEFAULTS = Object.freeze({
+      startBalance: 155130,
+      targetBalance: 50000,
+      baseFee: 500,
+      womenFee: 400,
+      womenCount: 1,
+      elderlyFee: 400,
+      elderlyCount: 1,
+      elderlyStartYears: 2,
+      shuttlePricePerDozen: 3250,
+      shuttleGrowthPct: 8,
+      shuttlesPerSession: 6,
+      shuttlesPerDozen: 12,
+      sessionsPerYear: 52,
+      courtFeeNormal: 900,
+      courtFeeTwoCourts: 2100,
+      twoCourtsThreshold: 8,
+      attendanceMode: "history",
+      fixedHeadcount: 6,
+      tableYears: 3
+    });
+
+    // [min, max, 整数か]
+    const SIM_LIMITS = {
+      startBalance: [-100000000, 1000000000],
+      targetBalance: [-100000000, 1000000000],
+      baseFee: [0, 100000],
+      womenFee: [0, 100000],
+      womenCount: [0, 100, true],
+      elderlyFee: [0, 100000],
+      elderlyCount: [0, 100, true],
+      elderlyStartYears: [0, 50],
+      shuttlePricePerDozen: [0, 1000000],
+      shuttleGrowthPct: [-50, 300],
+      shuttlesPerSession: [0, 1000],
+      shuttlesPerDozen: [1, 1000, true],
+      sessionsPerYear: [1, 366, true],
+      courtFeeNormal: [0, 1000000],
+      courtFeeTwoCourts: [0, 1000000],
+      twoCourtsThreshold: [1, 100, true],
+      fixedHeadcount: [0, 100, true]
+    };
+
+    const SIM_FIELD_GROUPS = [
+      { title: "資金・目標", fields: [
+        { key: "startBalance", label: "現在の資金 (円)", step: 1000 },
+        { key: "targetBalance", label: "目標残高＝下限 (円)", step: 1000 }
+      ] },
+      { title: "会費", fields: [
+        { key: "baseFee", label: "基本会費 (円)", step: 50 },
+        { key: "womenFee", label: "女性料金 (円)", step: 50 },
+        { key: "womenCount", label: "女性人数 (人/開催)", step: 1 },
+        { key: "elderlyFee", label: "高齢者料金 (円)", step: 50 },
+        { key: "elderlyCount", label: "高齢者人数 (適用開始後・人/開催)", step: 1 },
+        { key: "elderlyStartYears", label: "高齢者料金の適用開始 (現在から何年後)", step: 0.5 }
+      ] },
+      { title: "シャトル（将来の費用仮定。在庫・使用数の入力はしません）", fields: [
+        { key: "shuttlePricePerDozen", label: "シャトル価格 (円/ダース)", step: 50 },
+        { key: "shuttleGrowthPct", label: "価格上昇率 (%/年)", step: 0.5 },
+        { key: "shuttlesPerSession", label: "消費量 (個/開催)", step: 1 },
+        { key: "shuttlesPerDozen", label: "1ダースの個数 (個)", step: 1 }
+      ] },
+      { title: "コート・開催", fields: [
+        { key: "sessionsPerYear", label: "年間開催回数 (回)", step: 1 },
+        { key: "courtFeeNormal", label: "通常のコート代 (円/回・3時間1面)", step: 100 },
+        { key: "courtFeeTwoCourts", label: "2面開放時のコート代 (円/回)", step: 100 },
+        { key: "twoCourtsThreshold", label: "2面にする参加人数 (人以上)", step: 1 }
+      ], note: "※2面開放時はご指定の2,100円を採用しています（300円/時間で単純計算すると19〜20時1面＋20〜22時2面＝1,500円）。実際の料金に合わせて変更できます。" }
+    ];
+
+    /* ---------- 設定値の読み書き・正規化 ---------- */
+    function simParse(v) {
+      if (v === "" || v === null || v === undefined) return NaN;
+      return Number(v);
+    }
+
+    function simSanitize(raw) {
+      const out = {};
+      Object.keys(SIM_DEFAULTS).forEach((key) => {
+        const def = SIM_DEFAULTS[key];
+        const rv = raw ? raw[key] : undefined;
+        if (key === "attendanceMode") { out[key] = rv === "fixed" ? "fixed" : "history"; return; }
+        if (key === "tableYears") { const n = simParse(rv); out[key] = [3, 5, 10].includes(n) ? n : def; return; }
+        const lim = SIM_LIMITS[key];
+        let v = simParse(rv);
+        if (!Number.isFinite(v)) v = def;
+        v = Math.min(lim[1], Math.max(lim[0], v));
+        if (lim[2]) v = Math.round(v);
+        out[key] = v;
+      });
+      return out;
+    }
+
+    function simLoadSaved() {
+      try { const t = localStorage.getItem(SIM_STORAGE_KEY); return t ? JSON.parse(t) : null; } catch (e) { return null; }
+    }
+    function simSaveSettings(s) {
+      try { localStorage.setItem(SIM_STORAGE_KEY, JSON.stringify(s)); } catch (e) { /* 保存できなくても計算は続ける */ }
+    }
+
+    /* ---------- 開催履歴 → 参加人数の分布（読み取りのみ） ---------- */
+    function simGetEvents() {
+      try {
+        if (window.badApp && typeof window.badApp.getEvents === "function") return window.badApp.getEvents() || [];
+      } catch (e) { /* フォールバックへ */ }
+      try { return JSON.parse(localStorage.getItem("bad_events") || "[]"); } catch (e) { return []; }
+    }
+
+    // アプリは同一開催日を1件として扱う（新規保存時は上書き確認、予約の消化判定も日付単位）ため、
+    // 同日の重複は最初の1件だけを採用する（アプリ内の find() と同じ解釈）。
+    // 中止/コート代のみ(0名)は参加人数0の開催として数える。
+    function simBuildAttendance(events) {
+      const seen = new Set();
+      const counts = new Map();
+      let sessions = 0, cancelled = 0, duplicates = 0;
+      (events || []).forEach((e) => {
+        if (!e || e.type !== "practice" || !e.date) return;
+        if (seen.has(e.date)) { duplicates++; return; }
+        seen.add(e.date);
+        let n = typeof e.memberCount === "number" ? e.memberCount : (Array.isArray(e.members) ? e.members.length : 0);
+        if (!Number.isFinite(n) || n < 0) n = 0;
+        if (e.isCancelled) n = 0;
+        counts.set(n, (counts.get(n) || 0) + 1);
+        sessions++;
+        if (n === 0) cancelled++;
+      });
+      const dist = Array.from(counts.entries()).sort((a, b) => a[0] - b[0])
+        .map(([n, count]) => ({ n, count, p: count / sessions }));
+      const played = sessions - cancelled;
+      let sum = 0;
+      dist.forEach((d) => { if (d.n > 0) sum += d.n * d.count; });
+      return { sessions, cancelled, duplicates, dist, meanPlayers: played > 0 ? sum / played : 0 };
+    }
+
+    function simResolveDistribution(s, att) {
+      if (s.attendanceMode === "history" && att.sessions > 0) {
+        return { dist: att.dist.map((d) => ({ n: d.n, p: d.p })), source: "history" };
+      }
+      return { dist: [{ n: s.fixedHeadcount, p: 1 }], source: s.attendanceMode === "fixed" ? "fixed" : "no-history" };
+    }
+
+    /* ---------- 計算エンジン（DOM非依存・期待値ベース） ---------- */
+    // N年目のシャトル単価 = 現在価格 × (1+上昇率)^(N-1)。内部は複利のまま丸めない。
+    function simShuttlePriceAtYear(s, yearIdx) {
+      return s.shuttlePricePerDozen * Math.pow(1 + s.shuttleGrowthPct / 100, yearIdx);
+    }
+
+    // i回目（0始まり）の開催1回あたりの期待値
+    function simSessionExpectation(s, dist, i) {
+      const spy = s.sessionsPerYear;
+      const yearIdx = Math.floor(i / spy);
+      const elderlyOn = i >= Math.round(s.elderlyStartYears * spy);
+      const elderlyN = elderlyOn ? s.elderlyCount : 0;
+      const shuttleWhenPlayed = (s.shuttlesPerSession / s.shuttlesPerDozen) * simShuttlePriceAtYear(s, yearIdx);
+      let income = 0, court = 0, playProb = 0;
+      dist.forEach(({ n, p }) => {
+        if (n <= 0) { court += p * s.courtFeeNormal; return; } // 中止でもコート代は発生（「中止/コート代のみ」記録と同じ扱い）
+        playProb += p;
+        const women = Math.min(s.womenCount, n);
+        const elderly = Math.min(elderlyN, n - women);
+        const general = n - women - elderly;
+        income += p * (general * s.baseFee + women * s.womenFee + elderly * s.elderlyFee);
+        court += p * (n >= s.twoCourtsThreshold ? s.courtFeeTwoCourts : s.courtFeeNormal);
+      });
+      return { income, court, shuttle: playProb * shuttleWhenPlayed };
+    }
+
+    function simulate(s, dist) {
+      const spy = s.sessionsPerYear;
+      const total = SIM_SEARCH_YEARS * spy;
+      let bal = s.startBalance;
+      const balAfter = [bal];
+      const years = [];
+      let yi = 0, yc = 0, ys = 0;
+      let reachedAt = bal <= s.targetBalance ? 0 : null;
+      let minBalance = bal;
+      for (let i = 0; i < total; i++) {
+        const e = simSessionExpectation(s, dist, i);
+        bal += e.income - e.court - e.shuttle;
+        balAfter.push(bal);
+        if (bal < minBalance) minBalance = bal;
+        yi += e.income; yc += e.court; ys += e.shuttle;
+        if (reachedAt === null && bal <= s.targetBalance) reachedAt = i + 1;
+        if ((i + 1) % spy === 0) {
+          years.push({ year: (i + 1) / spy, income: yi, court: yc, shuttle: ys, net: yi - yc - ys, end: bal });
+          yi = 0; yc = 0; ys = 0;
+        }
+      }
+      return { years, balAfter, reachedAt, minBalance };
+    }
+
+    /* ---------- 表示ヘルパー ---------- */
+    function simEl(tag, className, text) {
+      const e = document.createElement(tag);
+      if (className) e.className = className;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+    const simYen = (n) => Math.round(n).toLocaleString("ja-JP");
+    const simNum = (n) => Number.isInteger(n) ? n.toLocaleString("ja-JP") : String(Math.round(n * 100) / 100);
+    function simTargetLabel(t) {
+      return t !== 0 && t % 10000 === 0 ? `${(t / 10000).toLocaleString("ja-JP")}万円` : `${simYen(t)}円`;
+    }
+    function simApproxDate(sessions, spy) {
+      const d = new Date(Date.now() + sessions * (365.25 / spy) * 86400000);
+      return `${d.getFullYear()}年${d.getMonth() + 1}月頃`;
+    }
+    function simReach(res, s) {
+      const label = simTargetLabel(s.targetBalance);
+      if (res.reachedAt === 0) {
+        return { value: "すでに目標以下", short: "すでに目標以下", sub: `現在の資金が${label}以下です` };
+      }
+      if (res.reachedAt === null) {
+        return {
+          value: `${SIM_SEARCH_YEARS}年間では${label}に到達しません`,
+          short: `${SIM_SEARCH_YEARS}年間到達せず`,
+          sub: `${SIM_SEARCH_YEARS}年間の最低残高 ${simYen(res.minBalance)}円`
+        };
+      }
+      const months = Math.max(1, Math.round(res.reachedAt / s.sessionsPerYear * 12));
+      const y = Math.floor(months / 12), m = months % 12;
+      const text = y > 0 ? (m > 0 ? `約${y}年${m}か月後` : `約${y}年後`) : `約${m}か月後`;
+      return { value: text, short: text, sub: `${res.reachedAt}回目の開催／${simApproxDate(res.reachedAt, s.sessionsPerYear)}` };
+    }
+    const simBalAt = (res, sessions) => res.balAfter[Math.min(sessions, res.balAfter.length - 1)];
+
+    function simFillTable(table, headers, rows, favRow) {
+      table.textContent = "";
+      const thead = document.createElement("thead");
+      const hr = document.createElement("tr");
+      headers.forEach((h) => hr.appendChild(simEl("th", "", h)));
+      thead.appendChild(hr);
+      const tbody = document.createElement("tbody");
+      rows.forEach((cells) => {
+        const tr = document.createElement("tr");
+        if (favRow) tr.className = "sim-row-fav";
+        cells.forEach((c) => {
+          const text = typeof c === "object" ? c.t : c;
+          const td = simEl("td", typeof c === "object" && c.neg ? "sim-neg" : "", text);
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(thead);
+      table.appendChild(tbody);
+    }
+    const simMoneyCell = (n) => ({ t: simYen(n), neg: Math.round(n) < 0 });
+    const simSignedCell = (n) => ({ t: `${Math.round(n) > 0 ? "+" : ""}${simYen(n)}`, neg: Math.round(n) < 0 });
+
+    /* ---------- 設定UI ---------- */
+    function simField(f, value) {
+      const wrap = simEl("div", "form-row");
+      const id = `simIn_${f.key}`;
+      const label = simEl("label", "", f.label);
+      label.htmlFor = id;
+      const input = document.createElement("input");
+      input.type = "number";
+      input.id = id;
+      input.step = String(f.step);
+      input.inputMode = "decimal";
+      input.value = String(value);
+      input.dataset.simKey = f.key;
+      wrap.appendChild(label);
+      wrap.appendChild(input);
+      return wrap;
+    }
+
+    function simBuildSettingsUI(values) {
+      const body = document.getElementById("simSettingsBody");
+      body.textContent = "";
+      SIM_FIELD_GROUPS.forEach((g) => {
+        body.appendChild(simEl("div", "sim-set-group", g.title));
+        const grid = simEl("div", "sim-set-grid");
+        g.fields.forEach((f) => grid.appendChild(simField(f, values[f.key])));
+        body.appendChild(grid);
+        if (g.note) body.appendChild(simEl("div", "sim-small", g.note));
+      });
+
+      body.appendChild(simEl("div", "sim-set-group", "参加人数の前提"));
+      const grid = simEl("div", "sim-set-grid");
+      const modeWrap = simEl("div", "form-row");
+      const modeLabel = simEl("label", "", "参加人数の出し方");
+      modeLabel.htmlFor = "simIn_attendanceMode";
+      const mode = document.createElement("select");
+      mode.id = "simIn_attendanceMode";
+      mode.dataset.simKey = "attendanceMode";
+      [["history", "開催実績の分布を使う"], ["fixed", "固定人数で計算"]].forEach(([v, t]) => {
+        const o = document.createElement("option");
+        o.value = v; o.textContent = t;
+        mode.appendChild(o);
+      });
+      mode.value = values.attendanceMode;
+      modeWrap.appendChild(modeLabel);
+      modeWrap.appendChild(mode);
+      grid.appendChild(modeWrap);
+      grid.appendChild(simField({ key: "fixedHeadcount", label: "固定人数 (人/開催)", step: 1 }, values.fixedHeadcount));
+      body.appendChild(grid);
+    }
+
+    function simReadInputs() {
+      const raw = {};
+      document.querySelectorAll("#simSettingsBody [data-sim-key]").forEach((el) => { raw[el.dataset.simKey] = el.value; });
+      const ty = document.getElementById("simTableYears");
+      if (ty) raw.tableYears = ty.value;
+      return simSanitize(raw);
+    }
+
+    /* ---------- 描画 ---------- */
+    function simRenderHero(s, fav) {
+      const spy = s.sessionsPerYear;
+      const label = simTargetLabel(s.targetBalance);
+      document.getElementById("simHeroChip").textContent = `${simNum(s.baseFee)}円会費・半年試行`;
+
+      const params = document.getElementById("simHeroParams");
+      params.textContent = "";
+      params.appendChild(simEl("div", "", `基本${simNum(s.baseFee)}円 ＋ 女性${simNum(s.womenFee)}円（${s.womenCount}人/開催） ＋ 高齢者${simNum(s.elderlyFee)}円（現在から${simNum(s.elderlyStartYears)}年後〜・${s.elderlyCount}人/開催）`));
+      params.appendChild(simEl("div", "", `シャトル${simNum(s.shuttlesPerSession)}個/開催（${simYen(s.shuttlePricePerDozen)}円/ダース・年${simNum(s.shuttleGrowthPct)}%上昇） ／ 目標残高${simYen(s.targetBalance)}円 ／ 現在の資金${simYen(s.startBalance)}円`));
+
+      const reach = simReach(fav, s);
+      document.getElementById("simKpiReachLabel").textContent = `${label}到達予測`;
+      document.getElementById("simKpiReach").textContent = reach.value;
+      document.getElementById("simKpiReachSub").textContent = reach.sub;
+
+      const three = simBalAt(fav, 3 * spy);
+      const diff3 = three - s.startBalance;
+      const threeEl = document.getElementById("simKpiThree");
+      threeEl.textContent = `${simYen(three)}円`;
+      threeEl.style.color = Math.round(three) < 0 ? "var(--danger-color)" : "";
+      document.getElementById("simKpiThreeSub").textContent = `現在比 ${diff3 >= 0 ? "+" : ""}${simYen(diff3)}円`;
+
+      const halfSessions = Math.round(spy / 2);
+      const half = simBalAt(fav, halfSessions);
+      const diffH = half - s.startBalance;
+      const halfEl = document.getElementById("simKpiHalf");
+      halfEl.textContent = `${simYen(half)}円`;
+      halfEl.style.color = Math.round(half) < 0 ? "var(--danger-color)" : "";
+      document.getElementById("simKpiHalfSub").textContent = `${halfSessions}回開催後の期待値（現在比 ${diffH >= 0 ? "+" : ""}${simYen(diffH)}円）`;
+    }
+
+    function simRenderAttendance(s, att, resolved) {
+      const box = document.getElementById("simAttendanceInfo");
+      box.textContent = "";
+      const th = s.twoCourtsThreshold;
+      const bigCount = att.dist.filter((d) => d.n >= th).reduce((a, d) => a + d.count, 0);
+
+      let status;
+      if (resolved.source === "history") {
+        const rate = Math.round(att.cancelled / att.sessions * 1000) / 10;
+        status = `開催実績 ${att.sessions}回を使用（中止 ${att.cancelled}回＝${rate}%／開催した回の平均 ${att.meanPlayers.toFixed(1)}人）`;
+        if (att.duplicates > 0) status += `／同日の重複記録${att.duplicates}件は1件として集計`;
+      } else if (resolved.source === "fixed") {
+        status = `設定により固定${s.fixedHeadcount}人/開催で計算しています（開催実績は${att.sessions}回・使用していません）`;
+      } else {
+        status = `開催実績がまだ無いため、固定${s.fixedHeadcount}人/開催（中止なし）で計算しています`;
+      }
+      box.appendChild(simEl("div", "sim-small", status));
+
+      if (att.sessions > 0) {
+        const chips = simEl("div", "sim-dist");
+        att.dist.forEach((d) => {
+          const pct = Math.round(d.p * 1000) / 10;
+          let cls = "sim-dist-chip";
+          let text = `${d.n}人 ${d.count}回（${pct}%）`;
+          if (d.n === 0) { cls += " sim-dist-cancel"; text = `中止 ${d.count}回（${pct}%）`; }
+          else if (d.n >= th) cls += " sim-dist-big";
+          chips.appendChild(simEl("span", cls, text));
+        });
+        box.appendChild(chips);
+      }
+
+      const courtLine = (resolved.source === "history" && bigCount > 0)
+        ? `${th}人以上の開催が${bigCount}回 → その回は2面開放のコート代${simYen(s.courtFeeTwoCourts)}円で計算（それ以外は${simYen(s.courtFeeNormal)}円）`
+        : (resolved.source !== "history" && s.fixedHeadcount >= th)
+          ? `固定${s.fixedHeadcount}人は${th}人以上のため、毎回2面開放のコート代${simYen(s.courtFeeTwoCourts)}円で計算します`
+          : `${th}人以上の開催は実績にありません（出た場合は2面開放のコート代${simYen(s.courtFeeTwoCourts)}円で計算します。通常は${simYen(s.courtFeeNormal)}円）`;
+      box.appendChild(simEl("div", "sim-small", courtLine));
+      if (resolved.source === "history" && att.sessions < 8) {
+        box.appendChild(simEl("div", "sim-small", "※実績が少ないため参考値です。開催が増えるほど精度が上がります。"));
+      }
+
+      const fixedRow = document.getElementById("simIn_fixedHeadcount");
+      if (fixedRow) fixedRow.closest(".form-row").style.display = s.attendanceMode === "fixed" ? "" : "none";
+    }
+
+    function simRenderYearTable(s, fav) {
+      const rows = fav.years.slice(0, s.tableYears).map((y) => [
+        `${y.year}年目`, simMoneyCell(y.income), simMoneyCell(y.court), simMoneyCell(y.shuttle), simSignedCell(y.net), simMoneyCell(y.end)
+      ]);
+      simFillTable(document.getElementById("simYearTable"),
+        ["年度", "参加費収入", "コート代", "シャトル費", "年間収支", "期末残高"], rows, false);
+
+      const labels = ["現在(1年目)", "1年後(2年目)", "2年後(3年目)", "3年後(4年目)"];
+      const prices = labels.map((l, k) => `${l} ${simYen(simShuttlePriceAtYear(s, k))}円`).join(" → ");
+      document.getElementById("simPriceLine").textContent =
+        `シャトル単価（円/ダース・年${simNum(s.shuttleGrowthPct)}%複利で上昇）: ${prices}`;
+
+      const start = s.elderlyStartYears;
+      document.getElementById("simYearNote").textContent = (s.elderlyCount > 0)
+        ? `高齢者料金（${simNum(s.elderlyFee)}円×${s.elderlyCount}人/開催）は現在から${simNum(start)}年後${Number.isInteger(start) ? `（${start + 1}年目）` : ""}から適用。表の金額は期待値（円未満四捨五入）です。`
+        : "表の金額は期待値（円未満四捨五入）です。";
+    }
+
+    function simRenderCompare(s, dist, fav) {
+      const spy = s.sessionsPerYear;
+      const label = simTargetLabel(s.targetBalance);
+      const marks = ["①", "②", "③", "④"];
+      const rows = [700, 600, 500, 400].map((fee, idx) => {
+        const r = simulate({ ...s, baseFee: fee, womenFee: fee, elderlyFee: fee }, dist);
+        return [`${marks[idx]} 全員${fee}円`, simMoneyCell(simBalAt(r, spy)), simMoneyCell(simBalAt(r, 2 * spy)), simMoneyCell(simBalAt(r, 3 * spy)), simReach(r, s).short];
+      });
+      simFillTable(document.getElementById("simCompareTable"),
+        ["会費設定", "1年後残高", "2年後残高", "3年後残高", `${label}到達予測`], rows, false);
+
+      document.getElementById("simFavCaption").textContent =
+        `★ 本命ケース：基本${simNum(s.baseFee)}円＋女性${simNum(s.womenFee)}円＋${simNum(s.elderlyStartYears)}年後から高齢者${simNum(s.elderlyFee)}円`;
+      simFillTable(document.getElementById("simFavTable"),
+        ["会費設定", "半年後", "1年後", "2年後", "3年後", `${label}到達予測`],
+        [["本命", simMoneyCell(simBalAt(fav, Math.round(spy / 2))), simMoneyCell(simBalAt(fav, spy)), simMoneyCell(simBalAt(fav, 2 * spy)), simMoneyCell(simBalAt(fav, 3 * spy)), simReach(fav, s).short]],
+        true);
+    }
+
+    function simRenderAssumptions(s) {
+      const box = document.getElementById("simAssumptions");
+      box.textContent = "";
+      [
+        "【前提メモ】",
+        "・開催実績の分布（人数ごとの回数・中止率）から期待値で試算しています。",
+        `・中止の回は参加費0円・シャトル0個、コート代は通常額（${simYen(s.courtFeeNormal)}円）を支払う前提です（「中止/コート代のみ」の記録と同じ扱い）。`,
+        "・会費を変えても参加人数は変わらない前提です。",
+        `・コート代は通常=3時間×1面。${s.twoCourtsThreshold}人以上の回は2面開放（${simYen(s.courtFeeTwoCourts)}円）。`,
+        `・シャトル消費量は仮定値（${simNum(s.shuttlesPerSession)}個/開催）。中止の回は消費0、それ以外は毎回同じ個数としています。`,
+        "・このシミュレーションは何も保存せず、会費を自動で変更することもありません。"
+      ].forEach((t) => box.appendChild(simEl("div", "", t)));
+    }
+
+    function simRender() {
+      const s = simReadInputs();
+      const att = simBuildAttendance(simGetEvents());
+      const resolved = simResolveDistribution(s, att);
+      const fav = simulate(s, resolved.dist);
+      simRenderHero(s, fav);
+      simRenderAttendance(s, att, resolved);
+      simRenderYearTable(s, fav);
+      simRenderCompare(s, resolved.dist, fav);
+      simRenderAssumptions(s);
+      return { settings: s, attendance: att, favorite: fav };
+    }
+
+    function simOnSettingsChanged() {
+      const out = simRender();
+      simSaveSettings(out.settings);
+    }
+
+    /* ---------- 初期化 ---------- */
+    const simInitial = simSanitize(simLoadSaved() || SIM_DEFAULTS);
+    simBuildSettingsUI(simInitial);
+    document.getElementById("simTableYears").value = String(simInitial.tableYears);
+
+    document.getElementById("simSettingsBody").addEventListener("input", simOnSettingsChanged);
+    document.getElementById("simSettingsBody").addEventListener("change", simOnSettingsChanged);
+    document.getElementById("simTableYears").addEventListener("change", simOnSettingsChanged);
+    document.getElementById("simResetBtn").addEventListener("click", () => {
+      simBuildSettingsUI(SIM_DEFAULTS);
+      document.getElementById("simTableYears").value = String(SIM_DEFAULTS.tableYears);
+      simOnSettingsChanged();
+    });
+    document.addEventListener("bad:events-rendered", simRender);
+
+    simRender();
+
+    // 検証・将来の消費量補正用（実測値で shuttlesPerSession を更新して再計算するときの入口）
+    window.badSim = { SIM_DEFAULTS, simulate, buildAttendance: simBuildAttendance, resolveDistribution: simResolveDistribution, getSettings: simReadInputs, render: simRender };
   </script>
 </body>
 </html>
