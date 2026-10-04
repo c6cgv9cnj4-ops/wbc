@@ -169,14 +169,39 @@ select.input{padding-right:12px}
 .as-b{display:block;width:100%;appearance:none;border:0;background:transparent;font-size:20px;color:var(--blue);min-height:56px;cursor:pointer;border-top:.5px solid var(--sep)}
 .as-t+.as-b{border-top:.5px solid var(--sep)}
 .as-b:active{background:var(--fill)} .as-b.bold{font-weight:700}
+.prep{padding-bottom:6px}
+.hero{padding:22px 22px 20px;border:.5px solid var(--sep)}
+.hero-date{font-size:15px;font-weight:600;color:var(--label2)}
+.hero-row{display:flex;align-items:baseline;gap:8px;margin-top:2px}
+.hero-n{font-size:60px;font-weight:800;letter-spacing:-.03em;line-height:1.05}
+.hero-u{font-size:20px;font-weight:700;color:var(--label2)}
+.hero-hint{margin-top:10px;font-size:15px;font-weight:600;border-radius:14px;padding:10px 14px}
+.hero-hint.ok{background:var(--green-t);color:var(--green)} .hero-hint.warn{background:var(--orange-t);color:var(--orange)}
+.sec{border:.5px solid var(--sep);padding:20px}
+.sec-t{display:flex;align-items:baseline;justify-content:space-between;font-size:13px;font-weight:700;color:var(--label2);letter-spacing:.02em}
+.sec-n{font-size:13px;font-weight:600;color:var(--label3)}
+.sec-empty{font-size:15px;color:var(--label2);background:var(--card2);border-radius:16px;padding:16px;text-align:center}
 .pickchips{display:flex;flex-wrap:wrap;gap:10px}
-.pchip{appearance:none;border:0;display:inline-flex;align-items:center;gap:6px;min-height:46px;padding:0 18px;border-radius:999px;background:var(--fill);color:var(--label);font-weight:700;font-size:17px;cursor:pointer}
-.pchip:active{transform:scale(.95);opacity:.8}
+.pchip{appearance:none;border:0;display:inline-flex;align-items:center;gap:6px;min-height:48px;padding:0 18px;border-radius:999px;background:var(--fill);color:var(--label);font-weight:600;font-size:17px;cursor:pointer;transition:transform .12s,opacity .12s}
+.pchip:active{transform:scale(.95);opacity:.75}
 .pchip.on{background:var(--blue-t);color:var(--blue);padding:0 6px 0 18px;cursor:default}
+.pchip.on:active{transform:none;opacity:1}
 .pchip.on.off{background:var(--orange-t);color:var(--orange)}
 .pchip .ptag{font-size:12px;font-weight:700;opacity:.85}
-.pchip .px{appearance:none;border:0;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.08);color:inherit;font-size:20px;font-weight:700;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0 0 2px}
+.pchip .px{appearance:none;border:0;width:38px;height:38px;border-radius:50%;background:rgba(60,60,67,.14);color:inherit;font-size:21px;font-weight:600;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0 0 2px;margin-left:2px}
 .pchip .px:active{opacity:.6}
+.opsd{background:var(--card);border-radius:24px;border:.5px solid var(--sep);overflow:hidden}
+.opsd>summary{list-style:none;cursor:pointer;padding:16px 20px;font-size:16px;font-weight:600;color:var(--blue);display:flex;align-items:center;justify-content:space-between;min-height:54px}
+.opsd>summary::-webkit-details-marker{display:none}
+.opsd>summary::after{content:"›";font-size:22px;color:var(--label3);transition:transform .2s}
+.opsd[open]>summary::after{transform:rotate(90deg)}
+.opsd>.grp{border-radius:0}
+.opsd>.card{box-shadow:none;border:0;border-radius:0}
+.opsd>.fold-body{padding:0 16px 16px}
+.opsd>.fold-body>*+*{margin-top:12px}
+.adm-row{display:grid;grid-template-columns:1fr 1.6fr;gap:10px}
+#pCta{position:sticky;bottom:0;z-index:5}
+.cta{margin:0 -16px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--nav);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--sep)}
 .hidden{display:none!important}
 </style>
 </head>
@@ -277,7 +302,7 @@ async function initDB() {
 
 /* ---------- 状態 ---------- */
 const S = { date: todayStr(), members: [], memberMap: {}, session: null, atts: [], attMap: {}, config: undefined,
-  ready: { m: false, s: false, a: false, c: false }, err: null, me: null, isAdmin: false, adminTab: 'game', sel: null, pairSel: null,
+  ready: { m: false, s: false, a: false, c: false }, err: null, me: null, isAdmin: false, sel: null, pairSel: null, open: {}, loginShown: false,
   offline: typeof navigator !== 'undefined' && navigator.onLine === false, stale: false, everServer: false, flash: null };
 const maxCourts = () => { const v = S.config && S.config.maxCourts; return Number.isInteger(v) && v >= 1 ? Math.min(v, 2) : 2; }; // 金曜=最大2面（3面は非対応）
 const noteConn = fc => { if (fc === false) { S.everServer = true; S.stale = false; } else if (fc === true && S.everServer) S.stale = true; };
@@ -390,7 +415,7 @@ function newRound(includeCurrent, eligOverride) {
   return r ? { ...r, sig: makeSig(elig, s.courtsOverride, s.locks), manual: false } : null;
 }
 
-/* ---------- 主催者アクション ---------- */
+/* ---------- Adminアクション ---------- */
 let busy = false;
 async function advance() {
   const s = S.session; if (!s || busy) return;
@@ -424,7 +449,7 @@ function pickPlayer(key, id) {
   patchSession({ [key]: r });
 }
 let autoBusy = false;
-function adminAuto() { // 参加状況の変化に合わせて「次の組」を自動で組み直す（主催者画面のみ）
+function adminAuto() { // 参加状況の変化に合わせて「次の組」を自動で組み直す（Admin画面のみ）
   if (!S.isAdmin || autoBusy || !S.ready.s || !S.ready.a) return;
   const s = S.session;
   if (!s) { autoBusy = true; patchSession({ date: S.date, courtsOverride: null, current: null, next: null, history: [], gameNo: 0, locks: [] }).finally(() => { autoBusy = false; }); return; }
@@ -453,7 +478,7 @@ function subCard(round, key, i, gameNo, editable, meId) {
   const c = round.courts[i], mine = meId && [...c.a, ...c.b].includes(meId);
   const line = ids => ids.map((id, k) => [k ? h('span', { class: 'dot', style: 'margin:0 2px' }, '・') : null, nameEl(id, key, editable, meId)]);
   return h('div', { class: 'card court sub' + (mine ? ' mine' : '') },
-    h('div', { class: 'court-h' }, h('span', { class: 'n' }, `ネクスト｜コート${i + 1}（第${gameNo}試合）`), mine ? h('span', { class: 'pill green' }, 'あなた') : null),
+    h('div', { class: 'court-h' }, h('span', { class: 'n' }, `コート${i + 1}（第${gameNo}試合）`), mine ? h('span', { class: 'pill green' }, 'あなた') : null),
     h('div', { class: 'line' }, line(c.a), h('span', { class: 'vsm' }, 'VS'), line(c.b)));
 }
 function benchEl(round, key, editable, meId, label) {
@@ -470,17 +495,20 @@ function gameBoard(editable, meId) {
   const inRound = (r, i) => !!meId && [...r.courts[i].a, ...r.courts[i].b].includes(meId);
   const order = r => { const idx = r.courts.map((_, i) => i); const mine = idx.filter(i => inRound(r, i)); return [...mine, ...idx.filter(i => !mine.includes(i))]; }; // 自分のコートを先頭へ
   if (s.current) {
+    wrap.append(h('div', { class: 'title', style: 'margin:0 4px -6px' }, '現在の試合'));
     let othersLabeled = false;
     order(s.current).forEach(i => {
       if (meId && !inRound(s.current, i) && !othersLabeled && s.current.courts.some((_, j) => inRound(s.current, j))) { othersLabeled = true; wrap.append(h('div', { class: 'title', style: 'margin:6px 4px -6px' }, '他のコート')); }
       wrap.append(courtCard(s.current, 'current', i, gn, editable, meId));
     });
-    const b = benchEl(s.current, 'current', editable, meId, '休憩（ベンチ）'); b && wrap.append(b);
+    const b = benchEl(s.current, 'current', editable, meId, '休憩'); b && wrap.append(b);
   }
   if (s.next) {
-    wrap.append(h('div', { class: 'title', style: 'margin:22px 4px -4px' }, 'ネクスト（控）' + (s.next.manual ? '　手動調整済み' : '')));
+    wrap.append(h('div', { class: 'title', style: 'margin:22px 4px -4px' }, '次の試合' + (editable && s.next.manual ? '　手動調整済み' : '')));
     order(s.next).forEach(i => wrap.append(subCard(s.next, 'next', i, gn + 1, editable, meId)));
-    const b = benchEl(s.next, 'next', editable, meId, '次の休憩'); b && wrap.append(b);
+    const b = benchEl(s.next, 'next', editable, meId, '休憩'); b && wrap.append(b);
+  } else if (s.current) {
+    wrap.append(h('div', { class: 'title', style: 'margin:22px 4px -4px' }, '次の試合'), h('div', { class: 'card empty', style: 'padding:18px' }, '次の試合はまだありません'));
   }
   return wrap;
 }
@@ -492,13 +520,13 @@ function pairInfo(round, id) { // そのROUNDでの自分のコート・相方�
 const joinNames = ids => ids.map(nameOf).join('・');
 function myStatus(meId) { // 状況カードの中身（表示だけ。DBには書かない）
   const s = S.session, a = S.attMap[meId], cur = s && s.current, nxt = s && s.next, k = 'あなたの状況';
-  if (!a || a.present === false) return { cls: 'idle', k, v: '参加登録をお待ちください', lines: ['主催者が参加登録すると、ここに出番が表示されます'] };
+  if (!a || a.present === false) return { cls: 'idle', k, v: '参加登録をお待ちください', lines: ['Adminが参加登録すると、ここに出番が表示されます'] };
   const ci = pairInfo(cur, meId), ni = pairInfo(nxt, meId);
-  const after = () => a.status === 'left' ? ['次：なし（早退）'] : a.forcedRest ? ['次：休憩（主催者の指定）'] : a.restLeft > 0 ? [`次：休み予約中（あと${a.restLeft}試合）`] :
+  const after = () => a.status === 'left' ? ['次：なし（早退）'] : a.forcedRest ? ['次：休憩（Adminの指定）'] : a.restLeft > 0 ? [`次：休み予約中（あと${a.restLeft}試合）`] :
     !nxt ? ['次：未定'] : ni ? [`次：コート${ni.court}`, `　相方：${joinNames(ni.partner)}`, `　相手：${joinNames(ni.opp)}`] : ['次：休憩'];
   if (ci) return { cls: 'play', k: '現在', v: `コート${ci.court} でプレー中`, lines: [`相方：${joinNames(ci.partner)}`, `相手：${joinNames(ci.opp)}`, ...after()] };
   if (a.status === 'left') return { cls: 'idle', k, v: '早退済み', lines: [] };
-  if (a.forcedRest) return { cls: 'rest', k, v: '休憩中', lines: ['主催者の指定による休憩です。復帰は主催者にお伝えください'] };
+  if (a.forcedRest) return { cls: 'rest', k, v: '休憩中', lines: ['Adminの指定による休憩です。復帰はAdminにお伝えください'] };
   if (a.restLeft > 0) return { cls: 'rest', k, v: `休み予約中（あと${a.restLeft}試合）`, lines: [] };
   if (!cur) return { cls: 'idle', k, v: '試合開始をお待ちください', lines: [] };
   if (cur.bench.includes(meId)) return { cls: ni ? 'next' : 'rest', k: '現在', v: '休憩中', lines: after() };
@@ -511,16 +539,16 @@ function statusCard(st, flash) {
 /* ---------- 参加者ビュー（完全閲覧専用。名前の選択は端末の記憶用で、DBには書かない） ---------- */
 let pPickKey = null;
 function renderParticipant(root) {
-  if (!root.querySelector('#pStatus')) { root.replaceChildren(h('div', { class: 'stack' }, h('div', { id: 'pPick' }), h('div', { id: 'pStatus' }), h('div', { id: 'pBoard' }), h('div', { id: 'pWho' }), h('div', { id: 'pMe' }))); pPickKey = null; }
-  const pick = $('#pPick'), st = $('#pStatus'), bd = $('#pBoard'), who = $('#pWho'), meBox = $('#pMe');
-  if (!(S.ready.m && S.ready.a && S.ready.s)) { pick.replaceChildren(h('div', { class: 'card empty' }, '読み込み中…')); pPickKey = null; st.replaceChildren(); bd.replaceChildren(); who.replaceChildren(); meBox.replaceChildren(); return; }
+  if (!root.querySelector('#pStatus')) { root.replaceChildren(h('div', { class: 'stack' }, h('div', { id: 'pPick' }), h('div', { id: 'pStatus' }), h('div', { id: 'pBoard' }), h('div', { id: 'pWho' }), h('div', { id: 'pMe' }), h('div', { id: 'pAdmin' }), h('div', { id: 'pCta' }))); pPickKey = null; }
+  const pick = $('#pPick'), st = $('#pStatus'), bd = $('#pBoard'), who = $('#pWho'), meBox = $('#pMe'), adm = $('#pAdmin'), cta = $('#pCta');
+  if (!(S.ready.m && S.ready.a && S.ready.s)) { pick.replaceChildren(h('div', { class: 'card empty' }, '読み込み中…')); pPickKey = null; st.replaceChildren(); bd.replaceChildren(); who.replaceChildren(); meBox.replaceChildren(); adm.replaceChildren(); cta.replaceChildren(); return; }
   if (S.me && !S.memberMap[S.me.id]) setMe(null); // 旧形式のID（m_…）や名簿から消えた人は無効 → 名前選択へ
   const me = S.me;
   if (!me) {
     const key = S.members.map(m => m.id + ':' + m.name).join('|');
     if (pPickKey !== key) {
       pPickKey = key;
-      pick.replaceChildren(h('div', { class: 'card stack' }, h('div', null, h('div', { class: 'h2' }, 'あなたの名前を選んでください'), h('div', { class: 'small muted', style: 'margin-top:2px' }, '選ぶとこの端末に記憶され、あなたの出番が強調表示されます。参加の登録は主催者が行います。')),
+      pick.replaceChildren(h('div', { class: 'card stack' }, h('div', null, h('div', { class: 'h2' }, 'あなたの名前を選んでください'), h('div', { class: 'small muted', style: 'margin-top:2px' }, '選ぶとこの端末に記憶され、あなたの出番が強調表示されます。参加の登録はAdminが行います。')),
         S.members.length ? h('div', { class: 'suggest list', style: 'max-height:55vh' }, S.members.map(m => h('div', { class: 'li tap', onclick: () => { setMe({ id: m.id }); renderAll(); } }, h('div', { class: 'grow t' }, m.name)))) : h('div', { class: 'small muted' }, '名簿がまだありません')));
     }
     st.replaceChildren(); meBox.replaceChildren();
@@ -532,45 +560,45 @@ function renderParticipant(root) {
     st.replaceChildren(statusCard(sc, Date.now() < S.flash.until));
     meBox.replaceChildren(h('div', { class: 'card row between', style: 'padding:12px 16px' }, h('div', { class: 'small muted' }, `${nameOf(me.id)} さんとして表示中`), h('button', { class: 'btn plain', onclick: () => { setMe(null); renderAll(); } }, '別の人に変更')));
   }
-  bd.replaceChildren(gameBoard(false, me ? me.id : null));
+  bd.replaceChildren(...(S.isAdmin && S.sel ? [h('div', { class: 'banner info', style: 'margin-bottom:12px' }, `「${nameOf(S.sel.id)}」を選択中 — 入れ替える相手の名前をタップ（もう一度タップで解除）`)] : []), gameBoard(S.isAdmin, me ? me.id : null));
   const pres = presentAtts();
   who.replaceChildren(pres.length ? h('div', { class: 'card' }, h('div', { class: 'title', style: 'margin-left:0' }, `本日の参加者 ${pres.length}人`),
     h('div', { class: 'bench' }, pres.map(x => h('span', { class: 'chip' + (x.id === (me && me.id) ? ' me' : '') + ((x.status === 'left' || x.restLeft > 0 || x.forcedRest) ? ' off' : '') }, nameOf(x.id))))) : '');
+  renderAdminArea(adm, cta);
 }
 
-/* ---------- 主催者ビュー ---------- */
+/* ---------- Adminビュー ---------- */
 const hashPin = async pin => {
   const data = new TextEncoder().encode('bm-v1:' + pin);
   if (crypto && crypto.subtle) return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', data))).map(b => b.toString(16).padStart(2, '0')).join('');
   let x = 5381; for (const b of data) x = ((x << 5) + x + b) >>> 0; return 'w' + x.toString(16);
 };
 let pinFails = 0, pinLockUntil = 0;
-function renderGate(root) {
+async function openAdminLogin() { // 既存のPIN認証ロジックを維持し、全画面ゲートの代わりにシートで入力する
   const cfg = S.config;
-  if (cfg === undefined) { root.replaceChildren(h('div', { class: 'card empty' }, '読み込み中…')); return; }
+  if (cfg === undefined) return toast('読み込み中です。少し待ってからもう一度お試しください');
   const first = cfg === null || !cfg.pinHash;
-  const p1 = h('input', { class: 'input', type: 'password', inputmode: 'numeric', maxlength: 8, placeholder: first ? 'PINを決める（4〜8桁の数字）' : 'PIN', autocomplete: 'off' });
-  const p2 = first ? h('input', { class: 'input', type: 'password', inputmode: 'numeric', maxlength: 8, placeholder: 'もう一度入力', autocomplete: 'off' }) : null;
-  const go = async () => {
-    const pin = p1.value.trim();
-    if (!/^\d{4,8}$/.test(pin)) return toast('4〜8桁の数字で入力してください');
-    if (first) { if (pin !== p2.value.trim()) return toast('PINが一致しません'); const ph = await hashPin(pin); await guard(() => DB.commit([{ op: 'set', path: ['bm_config', 'admin'], data: { pinHash: ph, updatedAt: Date.now() } }])); ssSet('bm_admin_ok', ph); S.isAdmin = true; return renderAll(); }
+  const ask = (title, msg, ph) => sheet({ title, msg, input: { type: 'password', inputmode: 'numeric', maxlength: 8, placeholder: ph }, actions: [{ label: '決定', cls: 'primary', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
+  const done = ph => { ssSet('bm_admin_ok', ph); S.isAdmin = true; if (isAdminRoute()) history.replaceState(null, '', location.pathname + location.search); renderAll(); };
+  if (first) {
+    const r1 = await ask('AdminのPIN設定', '初回のみ。設定したPINはAdminに入るときに使います。', 'PINを決める（4〜8桁の数字）'); if (!r1 || r1.value !== 'ok') return;
+    const pin = r1.text.trim(); if (!/^\d{4,8}$/.test(pin)) return toast('4〜8桁の数字で入力してください');
+    const r2 = await ask('もう一度入力', '確認のため同じPINを入力してください。', 'もう一度入力'); if (!r2 || r2.value !== 'ok') return;
+    if (pin !== r2.text.trim()) return toast('PINが一致しません');
+    const ph = await hashPin(pin); await guard(() => DB.commit([{ op: 'set', path: ['bm_config', 'admin'], data: { pinHash: ph, updatedAt: Date.now() } }])); return done(ph);
+  }
+  for (;;) {
+    const r = await ask('Admin', 'PINを入力してください', 'PIN'); if (!r || r.value !== 'ok') return;
+    const pin = r.text.trim();
+    if (!/^\d{4,8}$/.test(pin)) { toast('4〜8桁の数字で入力してください'); continue; }
     if (Date.now() < pinLockUntil) return toast(`しばらくしてから再試行してください（あと${Math.ceil((pinLockUntil - Date.now()) / 1000)}秒）`);
     const ph = await hashPin(pin);
-    if (ph === cfg.pinHash) { pinFails = 0; ssSet('bm_admin_ok', ph); S.isAdmin = true; renderAll(); }
-    else { if (++pinFails >= 5) { pinLockUntil = Date.now() + 30000; pinFails = 0; } toast('PINが違います'); p1.value = ''; }
-  };
-  p1.addEventListener('keydown', e => { if (e.key === 'Enter' && !p2) go(); });
-  root.replaceChildren(h('div', { class: 'card stack', style: 'margin-top:8vh' }, h('div', null, h('div', { class: 'h2' }, first ? '主催者PINの設定' : '主催者ログイン'), h('div', { class: 'small muted', style: 'margin-top:2px' }, first ? '初回のみ。設定したPINは主催者画面に入るときに使います。' : 'PINを入力してください')), p1, p2, h('button', { class: 'btn primary big', onclick: go }, first ? '設定して開始' : '開く')));
-  setTimeout(() => p1.focus(), 50);
+    if (ph === cfg.pinHash) { pinFails = 0; return done(ph); }
+    if (++pinFails >= 5) { pinLockUntil = Date.now() + 30000; pinFails = 0; }
+    toast('PINが違います');
+  }
 }
-function renderAdmin(root) {
-  if (!root.querySelector('#admTabs')) root.replaceChildren(h('div', { class: 'stack' }, h('div', { id: 'admTabs' }), h('div', { id: 'admBody' })));
-  $('#admTabs').replaceChildren(seg('admTab', [{ v: 'game', t: '試合' }, { v: 'att', t: '出席' }, { v: 'mgr', t: '管理' }], S.adminTab, v => { S.adminTab = v; S.sel = null; S.pairSel = null; renderAll(); }, 'lg'));
-  const body = $('#admBody');
-  if (S.adminTab === 'game') adminGame(body); else if (S.adminTab === 'att') adminAtt(body); else adminMgr(body);
-}
-function restAlerts(s, elig) { // 主催者だけに出す注意（保存データなし。bench と人数から都度計算）
+function restAlerts(s, elig) { // Adminだけに出す注意（保存データなし。bench と人数から都度計算）
   const out = [];
   if (!s) return out;
   const hist = s.history || [], c3 = (round, rounds, label) => {
@@ -583,53 +611,83 @@ function restAlerts(s, elig) { // 主催者だけに出す注意（保存デー�
   if (c > 0 && elig.length - 4 * c > 4 * c) out.push(`休みの人数（${elig.length - 4 * c}人）が出場枠（${4 * c}人）を超えるため、2連続休みが避けられない人がいます`);
   return out;
 }
-function adminGame(body) {
-  const s = S.session, elig = eligibleIds(), mc = maxCourts(), maxC = Math.min(mc, Math.floor(elig.length / 4));
-  const stack = h('div', { class: 'stack' });
-  stack.append(h('div', { class: 'card stack' },
-    h('div', { class: 'row between' }, h('div', { class: 'title', style: 'margin:0' }, 'コート面数'), h('span', { class: 'tiny muted' }, `プレー可能 ${elig.length}人 → 最大${maxC}面`)),
-    seg('courts', [{ v: 0, t: '自動' }, ...Array.from({ length: mc }, (_, i) => ({ v: i + 1, t: `${i + 1}面` }))], Math.min((s && s.courtsOverride) || 0, mc), v => patchSession({ courtsOverride: v || null }), 'lg'),
-    h('div', { style: 'display:grid;grid-template-columns:1fr;gap:10px' },
-      h('button', { class: 'btn primary big', disabled: !s || elig.length < 4, onclick: advance }, s && s.current ? '次のゲーム開始' : '試合開始'),
-      s && s.current ? h('button', { class: 'btn tint block', onclick: regenNext }, '次の組を組み直す（シャッフル）') : null)));
-  if (elig.length < 4 && S.ready.a) stack.append(h('div', { class: 'banner warn' }, 'プレー可能な人が4人未満です。「出席」タブで参加にしてください。'));
-  if (s && s.next && s.next.manual && s.next.sig !== makeSig(elig, s.courtsOverride, s.locks)) stack.append(h('div', { class: 'banner warn' }, '参加状況が変わりました。手動調整した次の組が古い可能性があります。', h('button', { class: 'link', onclick: regenNext }, '組み直す')));
-  restAlerts(s, elig).forEach(t => stack.append(h('div', { class: 'banner warn tiny', style: 'font-size:12px;padding:8px 12px' }, '⚠ ' + t)));
-  if (S.sel) stack.append(h('div', { class: 'banner info' }, `「${nameOf(S.sel.id)}」を選択中 — 入れ替える相手の名前をタップ（もう一度タップで解除）`));
-  stack.append(gameBoard(true, null)); body.replaceChildren(stack);
-}
 function attState(a) { return !a || a.present === false ? 'none' : a.status === 'left' ? 'left' : (a.forcedRest || a.restLeft > 0) ? 'rest' : 'active'; }
-function adminAtt(body) { // 今日の参加メンバー選択: 選択済みチップ（×で外す）／未選択チップ（タップで追加）／状態操作（休憩・早退・復帰・取消）
+const dateLabel = () => { const [y, m, d] = S.date.split('-').map(Number); return `${m}月${d}日（${'日月火水木金土'[new Date(y, m - 1, d).getDay()]}）`; };
+function attNodes(prep) { // 参加メンバー選択の部品: { card: チップ領域, ops: 状態操作（休憩・早退・復帰・取消）, nSel }
   const stats = S.session ? computeStats(S.session, true) : { games: {} };
-  const stack = h('div', { class: 'stack' });
   const btn = (label, cls, fn) => h('button', { class: 'btn sm ' + cls, type: 'button', onclick: e => { e.stopPropagation(); fn(); } }, label);
   const presentAtts_ = S.atts.filter(a => a.present !== false).sort((x, y) => (x.joinedAt || 0) - (y.joinedAt || 0));
   const sel = presentAtts_.map(a => ({ id: a.id, name: (S.memberMap[a.id] && S.memberMap[a.id].name) || a.name || '？', gone: !S.memberMap[a.id] })); // 名簿から消えたが当日に残っている人も含める
   const selIds = new Set(sel.map(r => r.id));
   const unsel = S.members.filter(m => !selIds.has(m.id)).map(m => ({ id: m.id, name: m.name }));
   const chipTag = a => a.status === 'left' ? '早退' : (a.forcedRest || a.restLeft > 0) ? '休憩' : '';
-  stack.append(h('div', { class: 'card stack' },
-    h('div', { class: 'row between' }, h('div', { class: 'h2' }, '👥 参加メンバー選択'), h('span', { class: 'pill green', style: 'white-space:nowrap' }, `${sel.length}人選択`)),
-    h('div', { class: 'small muted' }, '名簿は「バドミントン管理」で登録します。未選択の名前をタップで追加、×で今日の参加から外せます（名簿は変わりません）。'),
-    h('div', { class: 'title', style: 'margin:6px 0 0' }, `選択済み（${sel.length}人）`),
+  const card = h('div', { class: 'card stack sec' },
+    prep ? null : h('div', { class: 'row between' }, h('div', { class: 'h2' }, '参加メンバー'), h('span', { class: 'pill green', style: 'white-space:nowrap' }, `${sel.length}人`)),
+    h('div', { class: 'sec-t' }, h('span', null, '参加する人'), h('span', { class: 'sec-n' }, `${sel.length}人`)),
     sel.length ? h('div', { class: 'pickchips' }, sel.map(r => { const a = S.attMap[r.id], tag = chipTag(a);
       return h('span', { class: 'pchip on' + (tag ? ' off' : '') }, h('span', { class: 'pn' }, r.name), tag ? h('span', { class: 'ptag' }, tag) : null,
         h('button', { class: 'px', type: 'button', 'aria-label': r.name + 'さんを今日の参加から外す', onclick: () => removeAttendee(r) }, '×')); }))
-      : h('div', { class: 'small muted' }, 'まだ誰も選ばれていません'),
-    h('div', { class: 'title', style: 'margin:10px 0 0' }, `未選択（タップで追加・${unsel.length}人）`),
+      : h('div', { class: 'sec-empty' }, '下の名前をタップして、今日の参加者を追加します'),
+    h('div', { class: 'sec-t', style: 'margin-top:8px' }, h('span', null, '参加者を追加'), h('span', { class: 'sec-n' }, `${unsel.length}人`)),
     unsel.length ? h('div', { class: 'pickchips' }, unsel.map(r => h('button', { class: 'pchip', type: 'button', onclick: () => joinMember(r) }, r.name)))
-      : h('div', { class: 'small muted' }, S.members.length ? '全員が選択済みです' : '名簿がまだありません（「バドミントン管理」で登録してください）')));
-  if (sel.length) {
-    stack.append(h('div', { class: 'gt', style: 'margin:6px 20px 7px' }, '参加中の状態操作'));
-    stack.append(h('div', { class: 'grp' }, sel.map(r => {
-      const a = S.attMap[r.id], st = attState(a), g = stats.games[r.id] || 0;
-      const sub = st === 'left' ? `早退・${g}試合` : st === 'rest' ? (a.forcedRest ? `休憩中・${g}試合` : `休み予約${a.restLeft}・${g}試合`) : `参加中・${g}試合`;
-      const acts = st === 'active' ? [btn('休憩', 'orange', () => restMember(r, true)), btn('早退', 'danger', () => leaveMember(r))]
-        : st === 'rest' ? [btn('復帰', 'green', () => restMember(r, false))] : [btn('取消', 'tint', () => undoLeave(r))];
-      return h('div', { class: 'cell' + (st === 'left' || st === 'rest' ? ' dim' : '') }, h('div', { class: 'grow' }, h('div', { class: 'nm2' }, r.name), h('div', { class: 'sb' }, sub + (r.gone ? '・名簿に無い' : ''))), h('div', { class: 'row', style: 'gap:6px;flex:none' }, acts));
-    })));
+      : h('div', { class: 'sec-empty' }, S.members.length ? '全員が参加者に入っています' : '名簿がまだありません（「バドミントン管理」で登録してください）'));
+  const ops = sel.length ? h('div', { class: 'grp' }, sel.map(r => {
+    const a = S.attMap[r.id], st = attState(a), g = stats.games[r.id] || 0;
+    const sub = st === 'left' ? `早退・${g}試合` : st === 'rest' ? (a.forcedRest ? `休憩中・${g}試合` : `休み予約${a.restLeft}・${g}試合`) : `参加中・${g}試合`;
+    const acts = st === 'active' ? [btn('休憩', 'orange', () => restMember(r, true)), btn('早退', 'danger', () => leaveMember(r))]
+      : st === 'rest' ? [btn('復帰', 'green', () => restMember(r, false))] : [btn('取消', 'tint', () => undoLeave(r))];
+    return h('div', { class: 'cell' + (st === 'left' || st === 'rest' ? ' dim' : '') }, h('div', { class: 'grow' }, h('div', { class: 'nm2' }, r.name), h('div', { class: 'sb' }, sub + (r.gone ? '・名簿に無い' : ''))), h('div', { class: 'row', style: 'gap:6px;flex:none' }, acts));
+  })) : null;
+  return { card, ops, nSel: sel.length };
+}
+function fold(key, title, node) { // 折りたたみ（開閉状態は再描画しても保持）
+  const d = h('details', { class: 'opsd', open: S.open[key] ? '' : null }, h('summary', null, title), node);
+  d.addEventListener('toggle', () => { S.open[key] = d.open; });
+  return d;
+}
+async function undoAdvance() { // 直前の「次へ」を1回だけ戻す: 履歴末尾の組を現在へ、いまの現在の組を次の試合へ（履歴は削除せず入れ替えるだけ・1回の書き込み）
+  const s = S.session; if (!s || !s.current || busy) return;
+  const hist = s.history || [], gn = s.gameNo || 0;
+  if (!hist.length) return toast('これより前の試合はありません');
+  if (S.atts.some(a => a.restLeft > 0)) return toast('休み予約中の人がいるため戻せません');
+  const r = await sheet({ title: '1試合戻しますか？', msg: `第${gn}試合 → 第${gn - 1}試合に戻します。いま表示中の「現在の試合」は「次の試合」に戻ります。`, actions: [{ label: '1試合戻す', cls: 'danger', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
+  if (!r || r.value !== 'ok') return;
+  const s2 = S.session; // 確認中に別の端末で進行していないか再確認
+  if (!s2 || !s2.current || (s2.gameNo || 0) !== gn || (s2.history || []).length !== hist.length) return toast('状態が変わりました。もう一度確認してください');
+  busy = true;
+  await guard(() => DB.commit([{ op: 'set', path: ['bm_sessions', S.date], data: { current: { ...hist[hist.length - 1], manual: false }, next: { ...s2.current, manual: false }, history: hist.slice(0, -1), gameNo: gn - 1 } }]));
+  busy = false;
+}
+function renderAdminArea(box, ctaBox) { // Adminだけに、参加者画面の下部へ「運営」を表示（独立したAdmin画面はない）
+  if (!S.isAdmin) { box.replaceChildren(); ctaBox.replaceChildren(); return; }
+  const s = S.session, elig = eligibleIds(), mc = maxCourts(), maxC = Math.min(mc, Math.floor(elig.length / 4)), started = !!(s && s.current);
+  const { card, ops, nSel } = attNodes(true), stack = h('div', { class: 'stack adm' });
+  const courtSeg = () => seg('courts', [{ v: 0, t: '自動' }, ...Array.from({ length: mc }, (_, i) => ({ v: i + 1, t: `${i + 1}面` }))], Math.min((s && s.courtsOverride) || 0, mc), v => patchSession({ courtsOverride: v || null }), 'lg');
+  stack.append(h('div', { class: 'title', style: 'margin:22px 4px -4px' }, '運営'));
+  if (!started) { // 試合開始前: 参加人数 → 参加者チップ → 追加 → コート設定 → 試合開始
+    const n = elig.length, ready = n >= 4;
+    stack.append(h('div', { class: 'card hero' },
+      h('div', { class: 'hero-date' }, '今日の試合　' + dateLabel()),
+      h('div', { class: 'hero-row' }, h('span', { class: 'hero-n' }, String(nSel)), h('span', { class: 'hero-u' }, '人が参加')),
+      h('div', { class: 'hero-hint ' + (ready ? 'ok' : 'warn') }, ready ? `${n}人でプレーできます。準備ができたら「試合開始」を押してください` : `あと${4 - n}人で試合を開始できます`)));
+    stack.append(card);
+    if (ops) stack.append(fold('ops', '休憩・早退の操作', ops));
+    stack.append(h('div', { class: 'card stack sec' }, h('div', { class: 'sec-t' }, h('span', null, 'コート'), h('span', { class: 'sec-n' }, ready ? `最大${maxC}面` : '')), courtSeg()));
+    stack.append(fold('more', 'ペア固定・その他', pairsNode()));
+    ctaBox.replaceChildren(h('div', { class: 'cta' }, h('button', { class: 'btn primary big', disabled: !s || !ready, onclick: advance }, '試合開始')));
+  } else {
+    restAlerts(s, elig).forEach(t => stack.append(h('div', { class: 'banner warn', style: 'font-size:12px;padding:8px 12px' }, '⚠ ' + t)));
+    if (s.next && s.next.manual && s.next.sig !== makeSig(elig, s.courtsOverride, s.locks)) stack.append(h('div', { class: 'banner warn' }, '参加状況が変わりました。手動調整した次の試合が古い可能性があります。', h('button', { class: 'link', onclick: regenNext }, '組み直す')));
+    if (elig.length < 4 && S.ready.a) stack.append(h('div', { class: 'banner warn' }, 'プレー可能な人が4人未満です。「参加者を管理」で参加にしてください。'));
+    ctaBox.replaceChildren(h('div', { class: 'cta' }, h('div', { class: 'adm-row' },
+      h('button', { class: 'btn tint big', disabled: !(s.history || []).length, onclick: undoAdvance }, '← 1試合戻る'),
+      h('button', { class: 'btn primary big', disabled: elig.length < 4, onclick: advance }, '次へ →'))));
+    stack.append(fold('att', '参加者を管理', card));
+    if (ops) stack.append(fold('ops', '休憩・早退', ops));
+    stack.append(fold('court', 'コート設定', h('div', { class: 'fold-body stack' }, courtSeg(), h('button', { class: 'btn tint block', onclick: regenNext }, '次の試合を組み直す（シャッフル）'))));
+    stack.append(fold('more', 'ペア固定・その他', pairsNode()));
   }
-  body.replaceChildren(stack);
+  box.replaceChildren(stack);
 }
 const joinMember = r => enterAttendee(r).then(() => toast(`${r.name}さんを参加にしました`));
 const restMember = (r, on) => patchAtt(r.id, { forcedRest: on, restLeft: 0 });
@@ -657,8 +715,8 @@ async function memberMenu(a, paired) {
   if (v === 'pair') { S.pairSel = a.id; renderAll(); }
   else if (v === 'unpair') unpair(a.id);
 }
-function adminMgr(body) {
-  const s = S.session, stats = s ? computeStats(s, true) : { games: {} }, pres = presentAtts().sort((a, b) => a.joinedAt - b.joinedAt), stack = h('div');
+function pairsNode() { // ペア固定・URL・リセット・PIN・ログアウト
+  const s = S.session, stats = s ? computeStats(s, true) : { games: {} }, pres = presentAtts().sort((a, b) => a.joinedAt - b.joinedAt), stack = h('div', { class: 'fold-body' });
   const locks = ((s && s.locks) || []).filter(l => S.attMap[l.a] && S.attMap[l.b] && S.attMap[l.a].present !== false && S.attMap[l.b].present !== false);
   const pairedIds = new Set(locks.flatMap(l => [l.a, l.b])), free = pres.filter(a => !pairedIds.has(a.id));
   const dim = a => a.status === 'left' || a.forcedRest || a.restLeft > 0;
@@ -692,8 +750,8 @@ function adminMgr(body) {
   stack.append(h('div', { class: 'gt' }, 'その他'), h('div', { class: 'grp' },
     h('div', { class: 'cell link', onclick: resetSession }, '本日の試合をリセット'),
     h('div', { class: 'cell link', onclick: changePin }, 'PINを変更'),
-    h('div', { class: 'cell link', onclick: () => { ssDel('bm_admin_ok'); S.isAdmin = false; renderAll(); } }, '主催者画面をロック')));
-  body.replaceChildren(stack);
+    h('div', { class: 'cell link', onclick: () => { ssDel('bm_admin_ok'); S.isAdmin = false; renderAll(); } }, 'Adminからログアウト')));
+  return stack;
 }
 function pickPair(id) {
   if (!S.pairSel) { S.pairSel = id; return renderAll(); }
@@ -721,12 +779,10 @@ async function changePin() {
 
 /* ---------- シェル・ルーティング ---------- */
 function renderAll() {
-  S.isAdmin = isAdminRoute() && !!S.config && !!S.config.pinHash && ssGet('bm_admin_ok') === S.config.pinHash;
+  S.isAdmin = !!S.config && !!S.config.pinHash && ssGet('bm_admin_ok') === S.config.pinHash; // 内部のadmin判定（PIN認証）は従来どおり
   const app = $('#app');
-  if (!app.querySelector('main')) app.replaceChildren(h('header', { class: 'nav' }, h('div', { class: 'nav-in' }, h('div', null, h('h1', null, '🏸 バド対戦表'), h('div', { class: 'sub', id: 'navSub' })), h('a', { id: 'navLink', class: 'link', href: '#' }, ''))), h('div', { id: 'banners', style: 'max-width:560px;margin:12px auto 0;padding:0 16px' }), h('main', { id: 'view' }));
-  const admin = isAdminRoute();
-  $('#navSub').textContent = `${S.date.replace(/-/g, '/')}${MOCK ? '　デモモード' : ''}${admin ? '　主催者' : ''}`;
-  const lk = $('#navLink'); lk.textContent = admin ? '参加者画面へ' : '主催者'; lk.setAttribute('href', admin ? '#' : '#admin');
+  if (!app.querySelector('main')) app.replaceChildren(h('header', { class: 'nav' }, h('div', { class: 'nav-in' }, h('div', null, h('h1', null, '🏸 バド対戦表'), h('div', { class: 'sub', id: 'navSub' })))), h('div', { id: 'banners', style: 'max-width:560px;margin:12px auto 0;padding:0 16px' }), h('main', { id: 'view' }));
+  $('#navSub').textContent = `${S.date.replace(/-/g, '/')}${MOCK ? '　デモモード' : ''}${S.isAdmin ? '　Admin' : ''}`;
   const bn = [];
   if (S.err) bn.push(h('div', { class: 'banner err' }, 'データベースに接続できません: ' + S.err + '（Firestoreルール未設定の可能性）'));
   if (MOCK) bn.push(h('div', { class: 'banner info', style: 'margin-top:8px' }, 'デモモード：このブラウザ内にのみ保存されます（本番DBには書き込みません）'));
@@ -734,8 +790,8 @@ function renderAll() {
   const off = S.offline ? '📵 オフラインです。表示が古い可能性があります' : S.stale ? '⚠ サーバーと通信できていません。表示が古い可能性があります' : '';
   let bar = $('#offbar'); if (off && !bar) { bar = h('div', { id: 'offbar', class: 'offbar' }); document.body.append(bar); } if (bar) { if (off) bar.textContent = off; else bar.remove(); }
   const view = $('#view');
-  if (admin) { if (S.isAdmin) { if (view.dataset.v !== 'adm') { view.replaceChildren(); view.dataset.v = 'adm'; } renderAdmin(view); } else { view.dataset.v = 'gate'; if (!view.querySelector('.input') || S.config === undefined) renderGate(view); } }
-  else { if (view.dataset.v !== 'p') { view.replaceChildren(); view.dataset.v = 'p'; } renderParticipant(view); }
+  renderParticipant(view); // 全員共通のメイン画面（Adminにだけ下部に運営エリアが加わる）
+  if (isAdminRoute() && !S.isAdmin && S.ready.c && !S.loginShown) { S.loginShown = true; openAdminLogin(); } // URL末尾 #admin でAdminログインのシートを開く
   adminAuto();
 }
 let unsubs = [];
@@ -750,7 +806,7 @@ function startSubs() {
   unsubs.push(DB.sub(['bm_config', 'admin'], (d, fc) => { noteConn(fc); S.config = d; S.ready.c = true; renderAll(); }, false, err));
 }
 addEventListener('online', () => { S.offline = false; renderAll(); }); addEventListener('offline', () => { S.offline = true; renderAll(); });
-addEventListener('hashchange', () => { S.sel = null; S.pairSel = null; renderAll(); });
+addEventListener('hashchange', () => { S.sel = null; S.pairSel = null; S.loginShown = false; renderAll(); });
 document.addEventListener('click', e => { if (S.pairSel && !e.target.closest('.pick') && !e.target.closest('.as-ov') && !e.target.closest('.sheet')) { S.pairSel = null; renderAll(); } });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && todayStr() !== S.date) { S.date = todayStr(); startSubs(); } });
 await initDB();
