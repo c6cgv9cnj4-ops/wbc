@@ -169,6 +169,14 @@ select.input{padding-right:12px}
 .as-b{display:block;width:100%;appearance:none;border:0;background:transparent;font-size:20px;color:var(--blue);min-height:56px;cursor:pointer;border-top:.5px solid var(--sep)}
 .as-t+.as-b{border-top:.5px solid var(--sep)}
 .as-b:active{background:var(--fill)} .as-b.bold{font-weight:700}
+.pickchips{display:flex;flex-wrap:wrap;gap:10px}
+.pchip{appearance:none;border:0;display:inline-flex;align-items:center;gap:6px;min-height:46px;padding:0 18px;border-radius:999px;background:var(--fill);color:var(--label);font-weight:700;font-size:17px;cursor:pointer}
+.pchip:active{transform:scale(.95);opacity:.8}
+.pchip.on{background:var(--blue-t);color:var(--blue);padding:0 6px 0 18px;cursor:default}
+.pchip.on.off{background:var(--orange-t);color:var(--orange)}
+.pchip .ptag{font-size:12px;font-weight:700;opacity:.85}
+.pchip .px{appearance:none;border:0;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.08);color:inherit;font-size:20px;font-weight:700;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0 0 2px}
+.pchip .px:active{opacity:.6}
 .hidden{display:none!important}
 </style>
 </head>
@@ -591,24 +599,36 @@ function adminGame(body) {
   stack.append(gameBoard(true, null)); body.replaceChildren(stack);
 }
 function attState(a) { return !a || a.present === false ? 'none' : a.status === 'left' ? 'left' : (a.forcedRest || a.restLeft > 0) ? 'rest' : 'active'; }
-function adminAtt(body) { // members（名簿）を order 順に並べ、今日の参加状態だけをワンタップで操作する
+function adminAtt(body) { // 今日の参加メンバー選択: 選択済みチップ（×で外す）／未選択チップ（タップで追加）／状態操作（休憩・早退・復帰・取消）
   const stats = S.session ? computeStats(S.session, true) : { games: {} };
   const stack = h('div', { class: 'stack' });
-  const presentN = S.atts.filter(a => a.present !== false).length;
-  const extra = S.atts.filter(a => a.present !== false && !S.memberMap[a.id]).map(a => ({ id: a.id, name: a.name || '？', gone: true })); // 名簿から消えたが当日に残っている人
-  const rows = [...S.members.map(m => ({ id: m.id, name: m.name })), ...extra];
   const btn = (label, cls, fn) => h('button', { class: 'btn sm ' + cls, type: 'button', onclick: e => { e.stopPropagation(); fn(); } }, label);
-  stack.append(h('div', { class: 'card stack' }, h('div', { class: 'row between' }, h('div', { class: 'h2' }, '本日の参加者'), h('span', { class: 'pill green' }, `${presentN}人 / 名簿${S.members.length}人`)),
-    h('div', { class: 'small muted' }, '名簿は「バドミントン管理」で登録します。ここでは今日の参加状態だけを操作します。')));
-  stack.append(h('div', { class: 'grp' }, rows.length ? rows.map(r => {
-    const a = S.attMap[r.id], st = attState(a), g = stats.games[r.id] || 0;
-    const sub = st === 'none' ? '未参加' : st === 'left' ? `早退・${g}試合` : st === 'rest' ? (a.forcedRest ? `休憩中・${g}試合` : `休み予約${a.restLeft}・${g}試合`) : `参加中・${g}試合`;
-    const acts = st === 'none' ? [btn('参加', 'primary', () => joinMember(r))]
-      : st === 'active' ? [btn('休憩', 'orange', () => restMember(r, true)), btn('早退', 'danger', () => leaveMember(r))]
-      : st === 'rest' ? [btn('復帰', 'green', () => restMember(r, false))] : [btn('取消', 'tint', () => undoLeave(r))];
-    if (st !== 'none') acts.push(h('button', { class: 'more', type: 'button', 'aria-label': '出席から外す', onclick: e => { e.stopPropagation(); removeAttendee(r); } }, '⋯'));
-    return h('div', { class: 'cell' + (st === 'left' || st === 'rest' ? ' dim' : '') }, h('div', { class: 'grow' }, h('div', { class: 'nm2' }, r.name), h('div', { class: 'sb' }, sub + (r.gone ? '・名簿に無い' : ''))), h('div', { class: 'row', style: 'gap:6px;flex:none' }, acts));
-  }) : h('div', { class: 'cell', style: 'justify-content:center;color:var(--label2)' }, '名簿がまだありません（「バドミントン管理」で登録してください）')));
+  const presentAtts_ = S.atts.filter(a => a.present !== false).sort((x, y) => (x.joinedAt || 0) - (y.joinedAt || 0));
+  const sel = presentAtts_.map(a => ({ id: a.id, name: (S.memberMap[a.id] && S.memberMap[a.id].name) || a.name || '？', gone: !S.memberMap[a.id] })); // 名簿から消えたが当日に残っている人も含める
+  const selIds = new Set(sel.map(r => r.id));
+  const unsel = S.members.filter(m => !selIds.has(m.id)).map(m => ({ id: m.id, name: m.name }));
+  const chipTag = a => a.status === 'left' ? '早退' : (a.forcedRest || a.restLeft > 0) ? '休憩' : '';
+  stack.append(h('div', { class: 'card stack' },
+    h('div', { class: 'row between' }, h('div', { class: 'h2' }, '👥 参加メンバー選択'), h('span', { class: 'pill green', style: 'white-space:nowrap' }, `${sel.length}人選択`)),
+    h('div', { class: 'small muted' }, '名簿は「バドミントン管理」で登録します。未選択の名前をタップで追加、×で今日の参加から外せます（名簿は変わりません）。'),
+    h('div', { class: 'title', style: 'margin:6px 0 0' }, `選択済み（${sel.length}人）`),
+    sel.length ? h('div', { class: 'pickchips' }, sel.map(r => { const a = S.attMap[r.id], tag = chipTag(a);
+      return h('span', { class: 'pchip on' + (tag ? ' off' : '') }, h('span', { class: 'pn' }, r.name), tag ? h('span', { class: 'ptag' }, tag) : null,
+        h('button', { class: 'px', type: 'button', 'aria-label': r.name + 'さんを今日の参加から外す', onclick: () => removeAttendee(r) }, '×')); }))
+      : h('div', { class: 'small muted' }, 'まだ誰も選ばれていません'),
+    h('div', { class: 'title', style: 'margin:10px 0 0' }, `未選択（タップで追加・${unsel.length}人）`),
+    unsel.length ? h('div', { class: 'pickchips' }, unsel.map(r => h('button', { class: 'pchip', type: 'button', onclick: () => joinMember(r) }, r.name)))
+      : h('div', { class: 'small muted' }, S.members.length ? '全員が選択済みです' : '名簿がまだありません（「バドミントン管理」で登録してください）')));
+  if (sel.length) {
+    stack.append(h('div', { class: 'gt', style: 'margin:6px 20px 7px' }, '参加中の状態操作'));
+    stack.append(h('div', { class: 'grp' }, sel.map(r => {
+      const a = S.attMap[r.id], st = attState(a), g = stats.games[r.id] || 0;
+      const sub = st === 'left' ? `早退・${g}試合` : st === 'rest' ? (a.forcedRest ? `休憩中・${g}試合` : `休み予約${a.restLeft}・${g}試合`) : `参加中・${g}試合`;
+      const acts = st === 'active' ? [btn('休憩', 'orange', () => restMember(r, true)), btn('早退', 'danger', () => leaveMember(r))]
+        : st === 'rest' ? [btn('復帰', 'green', () => restMember(r, false))] : [btn('取消', 'tint', () => undoLeave(r))];
+      return h('div', { class: 'cell' + (st === 'left' || st === 'rest' ? ' dim' : '') }, h('div', { class: 'grow' }, h('div', { class: 'nm2' }, r.name), h('div', { class: 'sb' }, sub + (r.gone ? '・名簿に無い' : ''))), h('div', { class: 'row', style: 'gap:6px;flex:none' }, acts));
+    })));
+  }
   body.replaceChildren(stack);
 }
 const joinMember = r => enterAttendee(r).then(() => toast(`${r.name}さんを参加にしました`));
@@ -618,10 +638,13 @@ async function leaveMember(r) {
   const v = await sheet({ title: `${r.name}さんを早退にしますか？`, msg: '現在の組は変わりません。次の組から外れます。取り消す場合は「取消」を押してください。', actions: [{ label: '早退にする', cls: 'danger', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
   if (v && v.value === 'ok') patchAtt(r.id, { status: 'left' });
 }
-async function removeAttendee(r) { // 名簿は残し、当日の対戦対象から外す（present=false）
+async function removeAttendee(r) { // 名簿は残し、当日の対戦対象から外す（present=false）。出場済みの人だけ確認する
   const played = S.session && computeStats(S.session, true).games[r.id];
-  const v = await sheet({ title: `${r.name}さんを出席から外しますか？`, msg: (played ? `本日${played}試合プレー済みです。` : '') + '名簿には残り、本日の対戦対象から外れます。', actions: [{ label: '出席から外す', cls: 'danger', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
-  if (v && v.value === 'ok') patchAtt(r.id, { present: false });
+  if (played) {
+    const v = await sheet({ title: `${r.name}さんを今日の参加から外しますか？`, msg: `本日${played}試合プレー済みです。名簿には残り、次の組から外れます。`, actions: [{ label: '参加から外す', cls: 'danger', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
+    if (!v || v.value !== 'ok') return;
+  }
+  patchAtt(r.id, { present: false });
 }
 function memberSub(a, stats) {
   const bits = [`${stats.games[a.id] || 0}試合`];
