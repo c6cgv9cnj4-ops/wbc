@@ -96,6 +96,11 @@
     button.btn-save { width: 100%; padding: 14px; background-color: var(--success-color); color: white; font-size: 1rem; margin-top: 8px; }
     button.btn-cancel-save { width: 100%; padding: 12px; background-color: var(--danger-color); color: white; font-size: 0.9rem; margin-top: 8px; }
     button.btn-adjust { width: 100%; padding: 14px; background-color: var(--warning-color); color: white; font-size: 0.95rem; margin-top: 8px; }
+    .adjust-balance-ref { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; background: #fff7e6; border: 1px solid #ffe7ba; border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 12px; font-size: 0.8rem; color: var(--text-sub); }
+    .adjust-balance-ref strong { font-size: 1.05rem; color: var(--text-main); }
+    .adjust-preview { font-size: 0.8rem; line-height: 1.7; margin-top: 6px; color: var(--text-sub); }
+    .adjust-preview strong { font-size: 0.95rem; }
+    .adjust-detail { margin-top: 4px; font-size: 0.78rem; color: var(--text-sub); line-height: 1.6; }
     button.btn-csv { background-color: #efeff4; color: var(--text-main); padding: 6px 12px; font-size: 0.75rem; border: 1px solid var(--border-color); }
     button.btn-report-toggle { width: 100%; padding: 12px; background-color: var(--purple-color); color: white; font-size: 0.9rem; margin-top: 12px; }
     button.btn-back { background-color: #e5e5ea; color: var(--text-main); padding: 6px 14px; font-size: 0.85rem; }
@@ -505,6 +510,10 @@
         <span>🔧 残高の直接調整</span>
       </div>
       <form id="adjustForm" action="#" style="margin-top: 10px;">
+        <div class="adjust-balance-ref">
+          <span>現在のシステム残高</span>
+          <strong id="adjustCurrentBalance">¥0</strong>
+        </div>
         <div class="form-row">
           <label>調整日付</label>
           <input type="date" id="adjustDate">
@@ -512,10 +521,11 @@
         <div class="form-row">
           <label>調整後のピッタリ残高 (円)</label>
           <input type="number" id="adjustTargetBalance" placeholder="例: 155130">
+          <div id="adjustPreview" class="adjust-preview">調整後の残高を入力すると、差額を表示します</div>
         </div>
         <div class="form-row">
-          <label>調整理由・メモ</label>
-          <input type="text" id="adjustReason" value="初期繰越金">
+          <label>調整理由・メモ（必須）</label>
+          <input type="text" id="adjustReason" value="" placeholder="例: 先週分参加費の記入漏れ">
         </div>
         <button type="button" id="saveAdjustBtn" class="btn-adjust">💾 残高をこの金額に調整する</button>
       </form>
@@ -1367,12 +1377,62 @@
       await setReservesCompletedForDate(dateStr, false);
     }
 
+    // ---- 直接調整エリアの表示補助（表示専用。残高計算・保存内容は変更しない） ----
+    function adjFmtYen(n) { return `${n < 0 ? "-" : ""}¥${Math.abs(Math.round(n)).toLocaleString("ja-JP")}`; }
+    function adjFmtSigned(n) { return n > 0 ? `+${adjFmtYen(n)}` : n < 0 ? adjFmtYen(n) : "±¥0"; }
+    function adjDiffColor(n) { return n > 0 ? "var(--primary-color)" : n < 0 ? "var(--danger-color)" : "var(--text-sub)"; }
+
+    // 現在のシステム残高と、入力中の「差額・調整後残高」プレビュー（保存時の差額計算と同じ式）
+    function updateAdjustBalanceUI() {
+      const balEl = document.getElementById("adjustCurrentBalance");
+      const prevEl = document.getElementById("adjustPreview");
+      const input = document.getElementById("adjustTargetBalance");
+      if (!balEl || !prevEl || !input) return;
+      balEl.textContent = adjFmtYen(currentCalculatedNetBalance);
+      const target = parseInt(input.value, 10);
+      if (input.value === "" || !Number.isFinite(target)) {
+        prevEl.textContent = "調整後の残高を入力すると、差額を表示します";
+        return;
+      }
+      const diff = target - currentCalculatedNetBalance;
+      prevEl.innerHTML = `差額：<strong style="color:${adjDiffColor(diff)};">${adjFmtSigned(diff)}</strong><br>調整後残高：<strong>${adjFmtYen(target)}</strong>`;
+    }
+
+    // 登録日時（Firestore Timestamp / {seconds} / 文字列 のいずれにも対応。無ければ空）
+    function adjCreatedAtText(v) {
+      let d = null;
+      if (v && typeof v.toDate === "function") d = v.toDate();
+      else if (v && typeof v.seconds === "number") d = new Date(v.seconds * 1000);
+      else if (typeof v === "string" || typeof v === "number") d = new Date(v);
+      if (!d || isNaN(d.getTime())) return "";
+      return d.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo", hour12: false, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    }
+
+    // 履歴カード用: 保存済みの targetBalance / diffAmount / createdAt から導出して表示（旧レコードも同様）
+    function adjustDetailHtml(d) {
+      const lines = [];
+      if (typeof d.diffAmount === "number") {
+        let text = `差額 <strong style="color:${adjDiffColor(d.diffAmount)};">${adjFmtSigned(d.diffAmount)}</strong>`;
+        if (typeof d.targetBalance === "number") {
+          text += `　調整前 ${adjFmtYen(d.targetBalance - d.diffAmount)} → 調整後 ${adjFmtYen(d.targetBalance)}`;
+        }
+        lines.push(text);
+      }
+      const at = adjCreatedAtText(d.createdAt);
+      if (at) lines.push(`登録日時: ${at}`);
+      return lines.length ? `<div class="adjust-detail">${lines.join("<br>")}</div>` : "";
+    }
+
+    document.getElementById("adjustTargetBalance").addEventListener("input", updateAdjustBalanceUI);
+    updateAdjustBalanceUI();
+
     document.getElementById("saveAdjustBtn").onclick = async function() {
       const targetBalStr = document.getElementById("adjustTargetBalance").value;
       if (targetBalStr === "") return alert("調整後のピッタリ残高を入力してください");
 
       const targetBal = parseInt(targetBalStr, 10);
-      const reason = document.getElementById("adjustReason").value.trim() || "残高直接調整";
+      const reason = document.getElementById("adjustReason").value.trim();
+      if (!reason) return alert("調整理由を入力してください（例: 先週分参加費の記入漏れ）");
       const diffAmount = targetBal - currentCalculatedNetBalance;
 
       const payload = {
@@ -1394,7 +1454,11 @@
           renderEventsUI(rawEventsData);
         }
       }, `残高を ${targetBal.toLocaleString()} 円へ調整しました`);
-      if (ok) document.getElementById("adjustTargetBalance").value = "";
+      if (ok) {
+        document.getElementById("adjustTargetBalance").value = "";
+        document.getElementById("adjustReason").value = "";
+        updateAdjustBalanceUI();
+      }
     };
 
     document.getElementById("downloadCsvBtn").addEventListener("click", () => {
@@ -1546,6 +1610,7 @@
               <span>設定残高: ${(d.targetBalance||0).toLocaleString()}円</span>
             </div>
             <div>メモ/理由: ${d.reason || 'なし'}</div>
+            ${adjustDetailHtml(d)}
             <div class="action-btns">
               <button type="button" class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
             </div>
@@ -1569,6 +1634,7 @@
 
       // 残高直接調整の差分計算に使う現在残高（会費収入 - コート代、残高調整分は上のループで加減済み）
       currentCalculatedNetBalance = totalIncome - totalCourt;
+      updateAdjustBalanceUI();
 
       updateMemberStatsTable(memberStats, totalPracticeCount);
       updateSummary();
