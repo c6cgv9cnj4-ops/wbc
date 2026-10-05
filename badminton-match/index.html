@@ -203,6 +203,107 @@ select.input{padding-right:12px}
 #pCta{position:sticky;bottom:0;z-index:5}
 .cta{margin:0 -16px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--nav);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--sep)}
 .hidden{display:none!important}
+
+/* ===== 最終UI v2: 1画面で「今・次・休み」が読める。文字の大小と余白で階層をつくり、枠・影・色を最小化 ===== */
+:root{--bg:#fbfbfd;--shadow:none;--lw:2.7em}
+@media (prefers-color-scheme:dark){:root{--bg:#000}}
+main{padding:2px 20px 8px}
+body{padding-bottom:env(safe-area-inset-bottom)}
+#banners:empty{display:none}
+.nav{background:var(--nav);border-bottom:0;padding:calc(10px + env(safe-area-inset-top)) 20px 8px}
+.nav h1{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.nav .sub{font-size:12px;font-weight:500;margin-top:0}
+.adm-btn{appearance:none;border:0;background:transparent;color:var(--label2);font-size:13px;font-weight:600;padding:6px 10px;border-radius:999px;cursor:pointer;min-height:32px}
+.adm-btn:active{background:var(--fill)}
+.adm-btn.on{color:var(--blue)}
+.adm-btn.on::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:middle}
+.card{box-shadow:none;border:.5px solid var(--sep);border-radius:18px}
+.stack>*+*{margin-top:0}
+.stack>*:empty{display:none}
+#pPick>.who-pick>*+*{margin-top:14px}
+.who-pick .suggest{background:transparent;border-radius:0;border-top:.5px solid var(--sep)}
+.empty{padding:28px 0;font-weight:500;font-size:15px}
+.banner{border-radius:12px}
+/* 自分: 1行目に状況(青=出番/橙=休み)、2行目に次の出番。ブロックにしない */
+.status{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 10px;padding:10px 0 4px;background:transparent!important;box-shadow:none!important;border-radius:0;color:var(--label)}
+.status .k{font-size:12px;font-weight:600;color:var(--label2);opacity:1}
+.status .v{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.status .s{flex-basis:100%;font-size:13px;font-weight:500;color:var(--label2);margin-top:1px;line-height:1.4}
+.status.play .v,.status.next .v{color:var(--blue)}
+.status.rest .v{color:var(--orange)}
+.status.idle .v{color:var(--label)}
+.status.flash{animation:flash2 3.5s ease-out}
+@keyframes flash2{0%,40%{background:var(--orange-t)}100%{background:transparent}}
+/* 試合ボード: 現在(主役) > 次(一段下げる) > 休み(小さく)。左端の揃い(--lw)で「コートN/ペア/ラベル」を縦に揃える */
+.board{margin-top:0}
+.blk{padding:16px 0;border-top:.5px solid var(--sep)}
+.board>.blk:first-child{border-top:0;padding-top:8px}
+.sec-h{font-size:12px;font-weight:600;color:var(--label2);letter-spacing:.04em;display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.sec-g{font-weight:500;color:var(--label3)}
+.gno{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-top:2px}
+.cts{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px 24px;margin-top:12px}
+.ct{display:grid;grid-template-columns:var(--lw) 1fr;align-items:baseline;column-gap:6px}
+.ct>.ct-h{grid-column:1/-1;font-size:13px;font-weight:700;color:var(--label2);margin-bottom:0}
+.ct>.vs{grid-column:2}
+.tl{font-size:10px;font-weight:600;color:var(--label3);letter-spacing:.04em}
+.tm{font-size:22px;font-weight:700;letter-spacing:-.01em;line-height:1.3;display:flex;align-items:center;flex-wrap:wrap;margin:0 0 0 -8px}
+.tm .nm{padding:1px 8px}
+.vs{font-size:10px;font-weight:700;color:var(--label3);letter-spacing:.14em;margin:0;line-height:1.7;text-align:left}
+.ct.mine,.nx.mine{border-left:3px solid var(--blue);padding-left:12px;margin-left:-15px}
+.nx{display:grid;grid-template-columns:var(--lw) 1fr;align-items:baseline;column-gap:6px;padding:8px 0 0;font-size:17px;font-weight:600;color:var(--label)}
+.nx.mine{padding-top:8px}
+.nx-c{font-size:12px;font-weight:600;color:var(--label2)}
+.nx-t{display:flex;align-items:baseline;flex-wrap:wrap;min-width:0;margin-left:-6px}
+.nx .nl{display:inline-flex;align-items:baseline;flex-wrap:wrap}
+.nx .vsm{font-size:10px;font-weight:700;color:var(--label3);margin:0 8px 0 0;letter-spacing:.1em}
+.nx-t{column-gap:14px}
+.nx-b{display:inline-flex;align-items:baseline;flex-wrap:wrap}
+.nx .nl .nm,.nx .nm{white-space:nowrap}
+.nx .nm{padding:1px 6px}
+.rl{display:flex;align-items:baseline;gap:6px;padding-top:6px;font-size:15px;font-weight:600}
+.rl-k{font-size:12px;font-weight:600;color:var(--label2);width:var(--lw);flex:none}
+.rl-n{display:flex;flex-wrap:wrap;color:var(--label)}
+.rl .nm{padding:1px 8px 1px 0}
+.nm.me{padding:1px 10px}
+.nm.me,.nm.me.edit{background:var(--blue-t);color:var(--blue)}
+.nm.sel,.nm.sel.me{background:var(--orange);color:#fff}
+.hint{font-size:12px;color:var(--label3);margin:0;font-weight:500}
+.me-tag{font-size:11px;font-weight:700;color:var(--blue);background:var(--blue-t);border-radius:999px;padding:2px 8px}
+/* 参加者一覧・自分（運営の手前に控えめに） */
+.plist{margin-top:4px;border-top:.5px solid var(--sep)}
+.plist>summary{list-style:none;cursor:pointer;padding:14px 0;font-size:14px;font-weight:600;color:var(--label2);display:flex;justify-content:space-between;align-items:center}
+.plist>summary::-webkit-details-marker{display:none}
+.plist>summary::after{content:"›";font-size:20px;color:var(--label3);transition:transform .2s}
+.plist[open]>summary::after{transform:rotate(90deg)}
+.plist-b{display:flex;flex-wrap:wrap;gap:6px 14px;padding:0 0 14px;font-size:15px;font-weight:500}
+.pn.me{color:var(--blue);font-weight:700}
+.pn.off{opacity:.45;text-decoration:line-through}
+.me-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:var(--label2);padding:4px 0 14px}
+/* 運営: 目立たせず、フラットな一覧(区切り線のみ)。次へ/1試合戻るは下部の固定バー */
+.adm-h{padding:14px 0 2px;border-top:.5px solid var(--sep)}
+.stack.adm>*+*{margin-top:0}
+.opsd{border:0;border-radius:0;background:transparent;border-top:.5px solid var(--sep)}
+.opsd:first-of-type{border-top:0}
+.opsd>summary{padding:13px 0;font-size:16px;font-weight:500;color:var(--label);min-height:48px}
+.opsd>.fold-body{padding:0 0 14px}
+.opsd>.card{padding:0 0 14px}
+.grp{border-radius:14px;background:var(--card2)}
+.grp.acts{background:transparent;border-radius:0}
+.grp.acts>.cell{padding:0;min-height:48px;border-top:.5px solid var(--sep)}
+.grp.acts>.cell+.cell::before{display:none}
+.grp.acts>.cell.link{font-size:16px;font-weight:500}
+.grp.acts>.cell.link.danger{color:var(--red)}
+.stack.adm>.card.sec{border:0;border-radius:0;padding:14px 0;border-top:.5px solid var(--sep);background:transparent}
+.opsd>.card{background:transparent}
+.card.hero{border:0;padding:4px 0 10px;background:transparent}
+.hero-n{font-size:52px}
+.stack.sec.plain{padding:6px 0;border:0;background:transparent}
+.stack.sec>*+*{margin-top:12px}
+.cta{background:var(--nav);border-top:.5px solid var(--sep);margin:0 -20px;padding:10px 20px calc(10px + env(safe-area-inset-bottom))}
+.btn.big{min-height:52px;font-size:17px;border-radius:26px}
+.btn.big.tint{background:var(--fill);color:var(--label)}
+.adm-row{grid-template-columns:1fr 1.5fr;gap:8px}
+.adm-row .btn{white-space:nowrap;padding:0 10px;font-size:16px}
 </style>
 </head>
 <body>
@@ -277,6 +378,13 @@ async function initDB() {
           else { const cur = db[key] || {}, d = { ...o.data }; for (const k in d) if (d[k] && d[k].__inc !== undefined) d[k] = (cur[k] || 0) + d[k].__inc; db[key] = { ...cur, ...d }; }
         }
         localStorage.setItem(MK, JSON.stringify(db)); fire();
+      },
+      async read(p) { const v = load()[p.join('/')]; return v === undefined ? null : JSON.parse(JSON.stringify(v)); },
+      async tx(fn) { // 読んで確認してから書く（競合時は fn が CONFLICT を投げて中止）。書き込みは最後にまとめて適用
+        if (window.__bmFault) { const f = window.__bmFault; window.__bmFault = null; if (f.before) f.before(); throw Object.assign(new Error(f.code), { code: f.code }); } // デモ確認用の疑似エラー（?mock=1 のみ）
+        const db = load(), writes = [];
+        const api = { get: async p => { const v = db[p.join('/')]; return v === undefined ? null : JSON.parse(JSON.stringify(v)); }, set: (p, data) => writes.push({ op: 'set', path: p, data }), del: p => writes.push({ op: 'del', path: p }) };
+        const r = await fn(api); await DB.commit(writes); return r;
       }
     };
     return;
@@ -296,6 +404,14 @@ async function initDB() {
       const b = F.writeBatch(fs);
       for (const o of ops) { const ref = F.doc(fs, ...o.path); if (o.op === 'del') b.delete(ref); else b.set(ref, conv(o.data), { merge: true }); }
       await b.commit();
+    },
+    async read(p) { const sn = await F.getDocFromServer(F.doc(fs, ...p)); return sn.exists() ? sn.data() : null; },
+    async tx(fn) { // Firestore transaction: 読み取りを先に行い、条件を満たすときだけ書く（競合時は fn が CONFLICT を投げて中止）
+      return F.runTransaction(fs, async t => fn({
+        get: async p => { const sn = await t.get(F.doc(fs, ...p)); return sn.exists() ? sn.data() : null; },
+        set: (p, data) => t.set(F.doc(fs, ...p), conv(data), { merge: true }),
+        del: p => t.delete(F.doc(fs, ...p))
+      }));
     }
   };
 }
@@ -356,9 +472,52 @@ function presentAtts() { return S.atts.filter(a => a.present !== false); }
 async function enterAttendee(m) { // 本日の参加にする（名簿 members は書かない。名前は当日のスナップショットとして保存）
   await guard(() => DB.commit([{ op: 'set', path: ['bm_sessions', S.date, 'attendees', m.id], data: { name: m.name, status: 'active', restLeft: 0, forcedRest: false, present: true, joinedAt: Date.now() } }]));
 }
-async function guard(fn) { try { await fn(); } catch (e) { console.error(e); toast('保存に失敗しました。通信または権限を確認してください', 4200); S.err = S.err || '保存に失敗: ' + (e.code || e.message); renderAll(); } }
+async function guard(fn) { try { await fn(); } catch (e) { if (e && e.conflict) { toast('他の端末で状態が更新されました。画面を更新してください', 4600); return; } console.error(e); toast('保存に失敗しました。通信または権限を確認してください', 4200); S.err = S.err || '保存に失敗: ' + (e.code || e.message); renderAll(); } }
+// 「次へ」等の transaction。同じ試合IDを他端末が先に確定した場合、Rules は permission-denied を返す。
+// サーバー上の状態が押した時点から変わっていると確認できたときだけ競合として扱い、それ以外の拒否・通信エラーは従来どおりエラーにする
+async function txRace(fp0, fn) {
+  try { return await DB.tx(fn); }
+  catch (e) {
+    if (e && e.code === 'permission-denied') { let moved = false; try { moved = fpOf(await DB.read(sessPath())) !== fp0; } catch (_) {} if (moved) throw CONFLICT(); }
+    throw e;
+  }
+}
+// Adminの自動「次の組」更新。書き込む瞬間にサーバー上のセッションを読み直し、終了済み・進行済み・手動調整済みなら何も書かない（遅延書き込み対策）
+async function autoSetNext(n, fp0) {
+  try {
+    await DB.tx(async tx => {
+      const d = await tx.get(sessPath());
+      if (!d || d.status === 'closed' || fpOf(d) !== fp0 || (d.next && d.next.manual)) return;
+      tx.set(sessPath(), { next: n });
+    });
+  } catch (e) { if (e && e.code === 'permission-denied') return; console.error(e); } // 終了直後など書けない状態は黙ってスキップ（次の再描画で再判定される）
+}
 const patchAtt = (id, data) => guard(() => DB.commit([{ op: 'set', path: ['bm_sessions', S.date, 'attendees', id], data }]));
 const patchSession = data => guard(() => DB.commit([{ op: 'set', path: ['bm_sessions', S.date], data }]));
+
+/* ---------- 確定試合の一次データ（bm_games: 1試合=1ドキュメントの追記型。削除せず status で管理） ---------- */
+const CONFLICT = () => Object.assign(new Error('conflict'), { conflict: true });
+const isoNow = () => new Date().toISOString();
+const sessPath = () => ['bm_sessions', S.date];
+const gameId = n => `${S.date}_${pad(n)}`;
+const fpOf = d => d ? `${d.gameNo || 0}|${(d.history || []).length}|${(d.current && d.current.startedAt) || ''}|${d.status || 'open'}` : 'none'; // 画面を開いた時点の状態の指紋（競合検知用）
+function buildGame(round, no, sess, o) { // 確定試合のドキュメント。memberId と名前スナップショットの両方を保存
+  const locks = (sess && sess.locks) || [], nm = id => nameOf(id);
+  const flag = id => { const a = S.attMap[id]; return !a ? 'notPresent' : a.present === false ? 'removed' : a.status === 'left' ? 'left' : a.forcedRest ? 'forcedRest' : null; }; // 確定時点で早退・休憩・出席取消になっていた人（組には入っていたが実際は出ていない可能性）
+  const person = (id, extra) => { const f = flag(id); return { id, name: nm(id), ...extra, ...(f ? { statusAtConfirm: f } : {}) }; };
+  const team = ids => { const fixed = locks.some(l => ids.includes(l.a) && ids.includes(l.b)); return ids.map(id => person(id, { fixed })); };
+  const inRound = new Set([...round.courts.flatMap(c => [...c.a, ...c.b]), ...round.bench]);
+  const absent = S.atts.filter(a => a.present !== false && !inRound.has(a.id)).map(a => ({ id: a.id, name: nm(a.id), reason: a.status === 'left' ? 'left' : a.forcedRest ? 'forcedRest' : a.restLeft > 0 ? 'restLeft' : 'notInRound' }));
+  const d = { schema: 1, sessionId: S.date, date: S.date, gameNo: no, status: o.status, startedAt: round.startedAt || null,
+    courts: round.courts.map((c, i) => ({ court: i + 1, teamA: team(c.a), teamB: team(c.b) })),
+    bench: round.bench.map(id => person(id)), absent, maxCourts: maxCourts(), courtsOverride: (sess && sess.courtsOverride) || null,
+    manualAdjusted: !!round.adj, voidCount: { __inc: o.status === 'voided' ? 1 : 0 } };
+  if (o.confirmedAt) d.confirmedAt = o.confirmedAt;
+  if (o.status === 'voided') { d.voidedAt = o.at; d.lastVoidedAt = o.at; d.voidReason = o.reason; } else { d.voidedAt = null; d.voidReason = null; }
+  if (o.backfilled) d.backfilled = true;
+  return d;
+}
+const voidPatch = (at, reason) => ({ status: 'voided', voidedAt: at, lastVoidedAt: at, voidReason: reason, voidCount: { __inc: 1 } }); // 既存の記録は消さず「取消」にするだけ
 
 /* ---------- 組み合わせ生成 ---------- */
 const pk = (x, y) => [x, y].sort().join('|');
@@ -419,6 +578,8 @@ function newRound(includeCurrent, eligOverride) {
 let busy = false;
 async function advance() {
   const s = S.session; if (!s || busy) return;
+  if (s.status === 'closed') return toast('今週のWBCは終了しています');
+  const fp0 = fpOf(s); // 押した時点の状態の指紋。transaction で現在のFirestore状態と一致するか確認する
   if (s.current && s.next && s.next.manual && s.next.sig !== makeSig(eligibleIds(), s.courtsOverride, s.locks)) {
     const r = await sheet({ title: '参加状況が変わっています', msg: '手動調整した「次の組」に、休み・帰宅した人が含まれている可能性があります。', actions: [{ label: '再生成して開始', cls: 'primary', value: 'regen' }, { label: 'このまま開始', value: 'go' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
     if (!r || r.value === 'x') return; if (r.value === 'regen') { s.next = null; }
@@ -432,9 +593,15 @@ async function advance() {
   const eligAfter = newAtts.filter(a => a.present !== false && a.status === 'active' && !(a.restLeft > 0) && !a.forcedRest).map(a => a.id);
   const sim = { ...s, history, current: cur };
   const nxt = genRound(eligAfter, computeStats(sim, true), s.locks || [], s.courtsOverride, maxCourts());
-  const ops = [{ op: 'set', path: ['bm_sessions', S.date], data: { current: { ...cur, manual: false }, next: nxt ? { ...nxt, sig: makeSig(eligAfter, s.courtsOverride, s.locks), manual: false } : null, history, gameNo: (s.gameNo || 0) + 1 } }];
-  dec.forEach(a => ops.push({ op: 'set', path: ['bm_sessions', S.date, 'attendees', a.id], data: { restLeft: a.restLeft - 1 } }));
-  await guard(() => DB.commit(ops)); busy = false;
+  const at = isoNow(), gn = s.current ? (s.current.no || s.gameNo || ((s.history || []).length + 1)) : 0, newNo = (s.gameNo || 0) + 1;
+  const data = { current: { ...cur, manual: false, adj: !!cur.manual, startedAt: at, no: newNo }, next: nxt ? { ...nxt, sig: makeSig(eligAfter, s.courtsOverride, s.locks), manual: false } : null, history, gameNo: newNo };
+  await guard(() => txRace(fp0, async tx => {
+    if (fpOf(await tx.get(sessPath())) !== fp0) throw CONFLICT(); // 他の端末で進行・戻し・終了されていたら中止
+    tx.set(sessPath(), data);
+    dec.forEach(a => tx.set(['bm_sessions', S.date, 'attendees', a.id], { restLeft: a.restLeft - 1 }));
+    if (s.current) tx.set(['bm_games', gameId(gn)], buildGame(s.current, gn, s, { status: 'confirmed', confirmedAt: at })); // 旧currentを確定試合として記録（nextは未確定なので記録しない）
+  }));
+  busy = false;
 }
 async function regenNext() {
   const s = S.session; if (!s) return;
@@ -445,7 +612,7 @@ function swapIds(round, x, y) { const map = id => id === x ? y : id === y ? x : 
 function pickPlayer(key, id) {
   if (!S.sel || S.sel.key !== key) { S.sel = { key, id }; return renderAll(); }
   if (S.sel.id === id) { S.sel = null; return renderAll(); }
-  const r = swapIds(S.session[key], S.sel.id, id); if (key === 'next') r.manual = true; S.sel = null;
+  const r = swapIds(S.session[key], S.sel.id, id); if (key === 'next') r.manual = true; if (key === 'current') r.adj = true; S.sel = null;
   patchSession({ [key]: r });
 }
 let autoBusy = false;
@@ -453,11 +620,11 @@ function adminAuto() { // 参加状況の変化に合わせて「次の組」を
   if (!S.isAdmin || autoBusy || !S.ready.s || !S.ready.a) return;
   const s = S.session;
   if (!s) { autoBusy = true; patchSession({ date: S.date, courtsOverride: null, current: null, next: null, history: [], gameNo: 0, locks: [] }).finally(() => { autoBusy = false; }); return; }
-  if (!s.current) return;
+  if (!s.current || s.status === 'closed') return;
   const elig = eligibleIds(), canGen = elig.length >= 4, sig = makeSig(elig, s.courtsOverride, s.locks);
   if ((!s.next && canGen) || (s.next && !s.next.manual && s.next.sig !== sig)) {
     autoBusy = true; const n = newRound(true, elig);
-    patchSession({ next: n }).finally(() => { autoBusy = false; });
+    autoSetNext(n, fpOf(s)).finally(() => { autoBusy = false; });
   }
 }
 
@@ -467,49 +634,50 @@ function nameEl(id, key, editable, meId) {
   const gone = S.attMap[id] && (S.attMap[id].status === 'left' || S.attMap[id].present === false);
   return h('button', { class: cls, type: 'button', onclick: editable ? () => pickPlayer(key, id) : null, style: gone ? 'text-decoration:line-through;opacity:.6' : '' }, nameOf(id));
 }
-function teamEl(ids, key, editable, meId) { return h('div', { class: 'team' }, ids.map((id, i) => [i ? h('span', { class: 'dot' }, '・') : null, nameEl(id, key, editable, meId)])); }
-function courtCard(round, key, i, gameNo, editable, meId) {
+const dotEl = () => h('span', { class: 'dot' }, '・');
+function teamEl(ids, key, editable, meId) { return h('div', { class: 'tm' }, ids.map((id, i) => [i ? dotEl() : null, nameEl(id, key, editable, meId)])); }
+function courtBlock(round, key, i, editable, meId) { // 現在の試合: コートごとに「ペアA VS ペアB」を大きく
   const c = round.courts[i], mine = meId && [...c.a, ...c.b].includes(meId);
-  return h('div', { class: 'card court' + (mine ? ' mine' : '') },
-    h('div', { class: 'court-h' }, h('span', { class: 'n' }, `コート${i + 1}（第${gameNo}試合）`), mine ? h('span', { class: 'pill blue' }, 'あなた') : (editable ? h('span', { class: 'pill' }, '名前をタップで入替') : null)),
-    teamEl(c.a, key, editable, meId), h('div', { class: 'vs' }, 'VS'), teamEl(c.b, key, editable, meId));
+  return h('div', { class: 'ct' + (mine ? ' mine' : '') },
+    h('div', { class: 'ct-h' }, `コート${i + 1}`),
+    h('div', { class: 'tl' }, 'ペアA'), teamEl(c.a, key, editable, meId), h('div', { class: 'vs' }, 'VS'), h('div', { class: 'tl' }, 'ペアB'), teamEl(c.b, key, editable, meId));
 }
-function subCard(round, key, i, gameNo, editable, meId) {
+function nextRow(round, key, i, editable, meId) { // 次の試合: 一段小さく1行で
   const c = round.courts[i], mine = meId && [...c.a, ...c.b].includes(meId);
-  const line = ids => ids.map((id, k) => [k ? h('span', { class: 'dot', style: 'margin:0 2px' }, '・') : null, nameEl(id, key, editable, meId)]);
-  return h('div', { class: 'card court sub' + (mine ? ' mine' : '') },
-    h('div', { class: 'court-h' }, h('span', { class: 'n' }, `コート${i + 1}（第${gameNo}試合）`), mine ? h('span', { class: 'pill green' }, 'あなた') : null),
-    h('div', { class: 'line' }, line(c.a), h('span', { class: 'vsm' }, 'VS'), line(c.b)));
+  const line = ids => h('span', { class: 'nl' }, ids.map((id, k) => [k ? dotEl() : null, nameEl(id, key, editable, meId)]));
+  return h('div', { class: 'nx' + (mine ? ' mine' : '') }, h('span', { class: 'nx-c' }, `コート${i + 1}`), h('span', { class: 'nx-t' }, line(c.a), h('span', { class: 'nx-b' }, h('span', { class: 'vsm' }, 'VS'), line(c.b))));
 }
-function benchEl(round, key, editable, meId, label) {
-  if (!round || !round.bench || !round.bench.length) return null;
-  return h('div', { class: 'card', style: 'padding:14px 16px' }, h('div', { class: 'title', style: 'margin-left:0' }, label),
-    h('div', { class: 'bench' }, round.bench.map(id => editable
-      ? h('button', { class: 'chip' + (S.sel && S.sel.key === key && S.sel.id === id ? ' me' : ''), type: 'button', style: 'border:0;cursor:pointer', onclick: () => pickPlayer(key, id) }, nameOf(id))
-      : h('span', { class: 'chip' + (id === meId ? ' me' : '') }, nameOf(id)))));
+function restSection(s, closed, editable, meId) { // 休み: いま／次の休み（入替できる）＋休憩指定・早退を1か所にコンパクトに
+  const chips = (ids, key) => h('span', { class: 'rl-n' }, ids.map(id => editable && !closed
+    ? h('button', { class: 'nm edit' + (id === meId ? ' me' : '') + (S.sel && S.sel.key === key && S.sel.id === id ? ' sel' : ''), type: 'button', onclick: () => pickPlayer(key, id) }, nameOf(id))
+    : h('span', { class: 'nm' + (id === meId ? ' me' : '') }, nameOf(id))));
+  const pres = presentAtts(), forced = pres.filter(a => a.status !== 'left' && (a.forcedRest || a.restLeft > 0)), left = pres.filter(a => a.status === 'left');
+  const rows = [];
+  if (s.current && s.current.bench && s.current.bench.length) rows.push(['いま', chips(s.current.bench, 'current')]);
+  if (!closed && s.next && s.next.bench && s.next.bench.length) rows.push(['次', chips(s.next.bench, 'next')]);
+  if (forced.length) rows.push(['休憩', h('span', { class: 'rl-n' }, forced.map(a => h('span', { class: 'nm' + (a.id === meId ? ' me' : '') }, nameOf(a.id) + (a.forcedRest ? '' : `（あと${a.restLeft}試合）`))))]);
+  if (left.length) rows.push(['早退', h('span', { class: 'rl-n' }, left.map(a => h('span', { class: 'nm' + (a.id === meId ? ' me' : '') }, nameOf(a.id))))]);
+  if (!rows.length) return null;
+  return h('section', { class: 'blk' }, h('div', { class: 'sec-h' }, '休み'), rows.map(([k, n]) => h('div', { class: 'rl' }, h('span', { class: 'rl-k' }, k), n)));
 }
 function gameBoard(editable, meId) {
-  const s = S.session, wrap = h('div', { class: 'stack' });
-  if (!s || (!s.current && !s.next)) { wrap.append(h('div', { class: 'card empty' }, s ? 'まだ試合が始まっていません' : '本日のセッションはまだありません')); return wrap; }
-  const gn = s.gameNo || 0;
+  const s = S.session, wrap = h('div', { class: 'board' });
+  if (!s || (!s.current && !s.next)) { if (!meId) wrap.append(h('div', { class: 'empty' }, s ? 'まだ試合が始まっていません' : '本日のセッションはまだありません')); return wrap; }
+  const gn = s.gameNo || 0, closed = s.status === 'closed';
   const inRound = (r, i) => !!meId && [...r.courts[i].a, ...r.courts[i].b].includes(meId);
   const order = r => { const idx = r.courts.map((_, i) => i); const mine = idx.filter(i => inRound(r, i)); return [...mine, ...idx.filter(i => !mine.includes(i))]; }; // 自分のコートを先頭へ
   if (s.current) {
-    wrap.append(h('div', { class: 'title', style: 'margin:0 4px -6px' }, '現在の試合'));
-    let othersLabeled = false;
-    order(s.current).forEach(i => {
-      if (meId && !inRound(s.current, i) && !othersLabeled && s.current.courts.some((_, j) => inRound(s.current, j))) { othersLabeled = true; wrap.append(h('div', { class: 'title', style: 'margin:6px 4px -6px' }, '他のコート')); }
-      wrap.append(courtCard(s.current, 'current', i, gn, editable, meId));
-    });
-    const b = benchEl(s.current, 'current', editable, meId, '休憩'); b && wrap.append(b);
+    const sec = h('section', { class: 'blk cur' }, h('div', { class: 'sec-h' }, h('span', null, closed ? '最後の試合' : '現在の試合'), editable && !closed ? h('span', { class: 'hint' }, 'タップで入れ替え') : null), h('div', { class: 'gno' }, `第${gn}試合`));
+    const cs = h('div', { class: 'cts' }); order(s.current).forEach(i => cs.append(courtBlock(s.current, 'current', i, editable, meId))); sec.append(cs); wrap.append(sec);
   }
+  if (closed) { const r = restSection(s, true, editable, meId); r && wrap.append(r); return wrap; }
   if (s.next) {
-    wrap.append(h('div', { class: 'title', style: 'margin:22px 4px -4px' }, '次の試合' + (editable && s.next.manual ? '　手動調整済み' : '')));
-    order(s.next).forEach(i => wrap.append(subCard(s.next, 'next', i, gn + 1, editable, meId)));
-    const b = benchEl(s.next, 'next', editable, meId, '休憩'); b && wrap.append(b);
+    const sec = h('section', { class: 'blk nxt' }, h('div', { class: 'sec-h' }, '次の試合' + (editable && s.next.manual ? '　手動調整済み' : ''), h('span', { class: 'sec-g' }, `第${gn + 1}試合`)));
+    order(s.next).forEach(i => sec.append(nextRow(s.next, 'next', i, editable, meId))); wrap.append(sec);
   } else if (s.current) {
-    wrap.append(h('div', { class: 'title', style: 'margin:22px 4px -4px' }, '次の試合'), h('div', { class: 'card empty', style: 'padding:18px' }, '次の試合はまだありません'));
+    wrap.append(h('section', { class: 'blk nxt' }, h('div', { class: 'sec-h' }, '次の試合'), h('div', { class: 'empty', style: 'padding:6px 0 0;text-align:left' }, '次の試合はまだありません')));
   }
+  const r = restSection(s, false, editable, meId); r && wrap.append(r);
   return wrap;
 }
 function pairInfo(round, id) { // そのROUNDでの自分のコート・相方・相手
@@ -519,17 +687,18 @@ function pairInfo(round, id) { // そのROUNDでの自分のコート・相方�
 }
 const joinNames = ids => ids.map(nameOf).join('・');
 function myStatus(meId) { // 状況カードの中身（表示だけ。DBには書かない）
-  const s = S.session, a = S.attMap[meId], cur = s && s.current, nxt = s && s.next, k = 'あなたの状況';
+  const s = S.session, a = S.attMap[meId], cur = s && s.current, nxt = s && s.next, k = 'あなた';
+  if (s && s.status === 'closed') return { cls: 'idle', k, v: '今週のWBCは終了しました', lines: ['おつかれさまでした'] };
   if (!a || a.present === false) return { cls: 'idle', k, v: '参加登録をお待ちください', lines: ['Adminが参加登録すると、ここに出番が表示されます'] };
   const ci = pairInfo(cur, meId), ni = pairInfo(nxt, meId);
   const after = () => a.status === 'left' ? ['次：なし（早退）'] : a.forcedRest ? ['次：休憩（Adminの指定）'] : a.restLeft > 0 ? [`次：休み予約中（あと${a.restLeft}試合）`] :
-    !nxt ? ['次：未定'] : ni ? [`次：コート${ni.court}`, `　相方：${joinNames(ni.partner)}`, `　相手：${joinNames(ni.opp)}`] : ['次：休憩'];
-  if (ci) return { cls: 'play', k: '現在', v: `コート${ci.court} でプレー中`, lines: [`相方：${joinNames(ci.partner)}`, `相手：${joinNames(ci.opp)}`, ...after()] };
+    !nxt ? ['次：未定'] : ni ? [`次：コート${ni.court}　相方 ${joinNames(ni.partner)}　相手 ${joinNames(ni.opp)}`] : ['次：休憩'];
+  if (ci) return { cls: 'play', k, v: `コート${ci.court} でプレー中`, lines: after() }; // 相方・相手は下の「現在の試合」に出ているので重ねて表示しない
   if (a.status === 'left') return { cls: 'idle', k, v: '早退済み', lines: [] };
   if (a.forcedRest) return { cls: 'rest', k, v: '休憩中', lines: ['Adminの指定による休憩です。復帰はAdminにお伝えください'] };
   if (a.restLeft > 0) return { cls: 'rest', k, v: `休み予約中（あと${a.restLeft}試合）`, lines: [] };
   if (!cur) return { cls: 'idle', k, v: '試合開始をお待ちください', lines: [] };
-  if (cur.bench.includes(meId)) return { cls: ni ? 'next' : 'rest', k: '現在', v: '休憩中', lines: after() };
+  if (cur.bench.includes(meId)) return { cls: ni ? 'next' : 'rest', k, v: '休憩中', lines: after() };
   return { cls: 'idle', k, v: '次の組をお待ちください', lines: after() };
 }
 function statusCard(st, flash) {
@@ -541,14 +710,14 @@ let pPickKey = null;
 function renderParticipant(root) {
   if (!root.querySelector('#pStatus')) { root.replaceChildren(h('div', { class: 'stack' }, h('div', { id: 'pPick' }), h('div', { id: 'pStatus' }), h('div', { id: 'pBoard' }), h('div', { id: 'pWho' }), h('div', { id: 'pMe' }), h('div', { id: 'pAdmin' }), h('div', { id: 'pCta' }))); pPickKey = null; }
   const pick = $('#pPick'), st = $('#pStatus'), bd = $('#pBoard'), who = $('#pWho'), meBox = $('#pMe'), adm = $('#pAdmin'), cta = $('#pCta');
-  if (!(S.ready.m && S.ready.a && S.ready.s)) { pick.replaceChildren(h('div', { class: 'card empty' }, '読み込み中…')); pPickKey = null; st.replaceChildren(); bd.replaceChildren(); who.replaceChildren(); meBox.replaceChildren(); adm.replaceChildren(); cta.replaceChildren(); return; }
+  if (!(S.ready.m && S.ready.a && S.ready.s)) { pick.replaceChildren(h('div', { class: 'empty' }, '読み込み中…')); pPickKey = null; st.replaceChildren(); bd.replaceChildren(); who.replaceChildren(); meBox.replaceChildren(); adm.replaceChildren(); cta.replaceChildren(); return; }
   if (S.me && !S.memberMap[S.me.id]) setMe(null); // 旧形式のID（m_…）や名簿から消えた人は無効 → 名前選択へ
   const me = S.me;
   if (!me) {
     const key = S.members.map(m => m.id + ':' + m.name).join('|');
     if (pPickKey !== key) {
       pPickKey = key;
-      pick.replaceChildren(h('div', { class: 'card stack' }, h('div', null, h('div', { class: 'h2' }, 'あなたの名前を選んでください'), h('div', { class: 'small muted', style: 'margin-top:2px' }, '選ぶとこの端末に記憶され、あなたの出番が強調表示されます。参加の登録はAdminが行います。')),
+      pick.replaceChildren(h('div', { class: 'who-pick' }, h('div', null, h('div', { class: 'h2' }, 'あなたの名前を選んでください'), h('div', { class: 'small muted', style: 'margin-top:4px' }, '選ぶとこの端末に記憶され、あなたの出番が強調表示されます。参加の登録はAdminが行います。')),
         S.members.length ? h('div', { class: 'suggest list', style: 'max-height:55vh' }, S.members.map(m => h('div', { class: 'li tap', onclick: () => { setMe({ id: m.id }); renderAll(); } }, h('div', { class: 'grow t' }, m.name)))) : h('div', { class: 'small muted' }, '名簿がまだありません')));
     }
     st.replaceChildren(); meBox.replaceChildren();
@@ -558,12 +727,14 @@ function renderParticipant(root) {
     if (!S.flash || S.flash.id !== me.id) S.flash = { id: me.id, key, until: 0 };
     else if (S.flash.key !== key) S.flash = { id: me.id, key, until: Date.now() + 3500 }; // 自分に関わる表示が変わったときだけ短時間ハイライト
     st.replaceChildren(statusCard(sc, Date.now() < S.flash.until));
-    meBox.replaceChildren(h('div', { class: 'card row between', style: 'padding:12px 16px' }, h('div', { class: 'small muted' }, `${nameOf(me.id)} さんとして表示中`), h('button', { class: 'btn plain', onclick: () => { setMe(null); renderAll(); } }, '別の人に変更')));
+    meBox.replaceChildren(h('div', { class: 'me-foot' }, h('span', null, `${nameOf(me.id)} さんとして表示中`), h('button', { class: 'link', onclick: () => { setMe(null); renderAll(); } }, '名前を変更')));
   }
-  bd.replaceChildren(...(S.isAdmin && S.sel ? [h('div', { class: 'banner info', style: 'margin-bottom:12px' }, `「${nameOf(S.sel.id)}」を選択中 — 入れ替える相手の名前をタップ（もう一度タップで解除）`)] : []), gameBoard(S.isAdmin, me ? me.id : null));
+  bd.replaceChildren(...(S.isAdmin && S.sel ? [h('div', { class: 'banner info', style: 'margin-bottom:14px' }, `「${nameOf(S.sel.id)}」を選択中 — 入れ替える相手の名前をタップ（もう一度タップで解除）`)] : []), gameBoard(S.isAdmin, me ? me.id : null));
   const pres = presentAtts();
-  who.replaceChildren(pres.length ? h('div', { class: 'card' }, h('div', { class: 'title', style: 'margin-left:0' }, `本日の参加者 ${pres.length}人`),
-    h('div', { class: 'bench' }, pres.map(x => h('span', { class: 'chip' + (x.id === (me && me.id) ? ' me' : '') + ((x.status === 'left' || x.restLeft > 0 || x.forcedRest) ? ' off' : '') }, nameOf(x.id))))) : '');
+  const whoOpen = !!S.open.who;
+  who.replaceChildren(pres.length && !(S.isAdmin && !(S.session && S.session.current)) ? (() => { const d = h('details', { class: 'plist', open: whoOpen ? '' : null }, h('summary', null, `本日の参加者　${pres.length}人`),
+    h('div', { class: 'plist-b' }, pres.map(x => h('span', { class: 'pn' + (x.id === (me && me.id) ? ' me' : '') + ((x.status === 'left' || x.restLeft > 0 || x.forcedRest) ? ' off' : '') }, nameOf(x.id)))));
+    d.addEventListener('toggle', () => { S.open.who = d.open; }); return d; })() : '');
   renderAdminArea(adm, cta);
 }
 
@@ -645,17 +816,60 @@ function fold(key, title, node) { // 折りたたみ（開閉状態は再描画�
   d.addEventListener('toggle', () => { S.open[key] = d.open; });
   return d;
 }
-async function undoAdvance() { // 直前の「次へ」を1回だけ戻す: 履歴末尾の組を現在へ、いまの現在の組を次の試合へ（履歴は削除せず入れ替えるだけ・1回の書き込み）
+async function undoAdvance() { // 直前の「次へ」を1回だけ戻す: 履歴末尾の組を現在へ、いまの現在の組を次の試合へ。履歴は削除せず入れ替えるだけ。戻した試合の bm_games は削除せず voided にする
   const s = S.session; if (!s || !s.current || busy) return;
-  const hist = s.history || [], gn = s.gameNo || 0;
+  if (s.status === 'closed') return toast('今週のWBCは終了しています');
+  const hist = s.history || [], gn = s.gameNo || 0, fp0 = fpOf(s);
   if (!hist.length) return toast('これより前の試合はありません');
   if (S.atts.some(a => a.restLeft > 0)) return toast('休み予約中の人がいるため戻せません');
   const r = await sheet({ title: '1試合戻しますか？', msg: `第${gn}試合 → 第${gn - 1}試合に戻します。いま表示中の「現在の試合」は「次の試合」に戻ります。`, actions: [{ label: '1試合戻す', cls: 'danger', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
   if (!r || r.value !== 'ok') return;
-  const s2 = S.session; // 確認中に別の端末で進行していないか再確認
-  if (!s2 || !s2.current || (s2.gameNo || 0) !== gn || (s2.history || []).length !== hist.length) return toast('状態が変わりました。もう一度確認してください');
   busy = true;
-  await guard(() => DB.commit([{ op: 'set', path: ['bm_sessions', S.date], data: { current: { ...hist[hist.length - 1], manual: false }, next: { ...s2.current, manual: false }, history: hist.slice(0, -1), gameNo: gn - 1 } }]));
+  const at = isoNow();
+  await guard(() => txRace(fp0, async tx => {
+    const d = await tx.get(sessPath());
+    if (fpOf(d) !== fp0 || !d.current || !(d.history || []).length) throw CONFLICT(); // 確認中に他の端末で状態が変わっていたら中止
+    const h = d.history, prev = h[h.length - 1], no = prev.no || h.length, ex = await tx.get(['bm_games', gameId(no)]);
+    tx.set(sessPath(), { current: { ...prev, manual: false }, next: { ...d.current, manual: false }, history: h.slice(0, -1), gameNo: (d.gameNo || 0) - 1 });
+    tx.set(['bm_games', gameId(no)], ex ? voidPatch(at, 'undo') : buildGame(prev, no, d, { status: 'voided', at, reason: 'undo', backfilled: true })); // 記録は残して voided（古い版で作られた試合は補完して voided）
+  }));
+  busy = false;
+}
+async function closeSession() { // 「次回の準備」= 今週のセッションを終了する（何も削除しない）
+  const s = S.session; if (!s || busy) return;
+  if (s.status === 'closed') return toast('すでに終了しています');
+  const hasCur = !!s.current, hist0 = s.history || [], gn = hasCur ? (s.current.no || s.gameNo || (hist0.length + 1)) : 0, fp0 = fpOf(s);
+  const r = await sheet({ title: hasCur ? `第${gn}試合を確定して、今週のWBCを終了しますか？` : '今週のWBCを終了しますか？',
+    msg: '「次回の準備」です。試合の記録は削除されません。終了後は操作できなくなります（Adminだけが再開できます）。翌週は新しいセッションとして自動的に始まります。',
+    actions: hasCur ? [{ label: '確定して終了', cls: 'primary', value: 'ok' }, { label: '記録せず終了', cls: 'danger', value: 'skip' }, { label: 'キャンセル', cls: 'plain', value: 'x' }]
+      : [{ label: '終了する', cls: 'primary', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
+  if (!r || r.value === 'x') return;
+  const finalize = hasCur && r.value === 'ok';
+  busy = true; const at = isoNow();
+  await guard(() => txRace(fp0, async tx => {
+    const d = await tx.get(sessPath());
+    if (fpOf(d) !== fp0 || d.status === 'closed') throw CONFLICT(); // 二重実行・他端末での更新は中止
+    const h = d.history || [], exs = [];
+    for (let i = 0; i < h.length; i++) exs.push(await tx.get(['bm_games', gameId(h[i].no || i + 1)]));
+    h.forEach((rd, i) => { const no = rd.no || i + 1; // 記録のない過去の試合（古い版で作られたもの）を補完。既存の記録は変更しない
+      if (!exs[i] || exs[i].status !== 'confirmed') tx.set(['bm_games', gameId(no)], buildGame(rd, no, d, { status: 'confirmed', backfilled: true })); }); // 無い／取消扱いのままの記録は、履歴の組（正）の内容で補完する
+    if (finalize) tx.set(['bm_games', gameId(gn)], buildGame(d.current, gn, d, { status: 'confirmed', confirmedAt: at }));
+    tx.set(sessPath(), { status: 'closed', closedAt: at, gameCount: h.length + (finalize ? 1 : 0), finalGameNo: hasCur ? gn : null, finalConfirmed: finalize, finalDiscarded: hasCur && !finalize });
+  }));
+  busy = false;
+}
+async function reopenSession() { // Adminだけが再開できる。最終試合を確定していた場合は、その記録を voided に戻す（再度「次へ」/終了で確定し直す）
+  const s = S.session; if (!s || busy || s.status !== 'closed') return;
+  const r = await sheet({ title: '再開しますか？', msg: '終了を取り消して、通常の操作に戻します。記録は削除されません。', actions: [{ label: '再開する', cls: 'primary', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
+  if (!r || r.value !== 'ok') return;
+  busy = true; const at = isoNow(), fp0 = fpOf(s);
+  await guard(() => txRace(fp0, async tx => {
+    const d = await tx.get(sessPath());
+    if (!d || d.status !== 'closed') throw CONFLICT();
+    const fgid = d.finalConfirmed && d.finalGameNo ? gameId(d.finalGameNo) : null, ex = fgid ? await tx.get(['bm_games', fgid]) : null;
+    if (fgid && ex) tx.set(['bm_games', fgid], voidPatch(at, 'reopen'));
+    tx.set(sessPath(), { status: 'open', reopenedAt: at, lastClosedAt: d.closedAt || null, closedAt: null, gameCount: null, finalConfirmed: false, finalDiscarded: false, reopenCount: { __inc: 1 } });
+  }));
   busy = false;
 }
 function renderAdminArea(box, ctaBox) { // Adminだけに、参加者画面の下部へ「運営」を表示（独立したAdmin画面はない）
@@ -663,7 +877,13 @@ function renderAdminArea(box, ctaBox) { // Adminだけに、参加者画面の�
   const s = S.session, elig = eligibleIds(), mc = maxCourts(), maxC = Math.min(mc, Math.floor(elig.length / 4)), started = !!(s && s.current);
   const { card, ops, nSel } = attNodes(true), stack = h('div', { class: 'stack adm' });
   const courtSeg = () => seg('courts', [{ v: 0, t: '自動' }, ...Array.from({ length: mc }, (_, i) => ({ v: i + 1, t: `${i + 1}面` }))], Math.min((s && s.courtsOverride) || 0, mc), v => patchSession({ courtsOverride: v || null }), 'lg');
-  stack.append(h('div', { class: 'title', style: 'margin:22px 4px -4px' }, '運営'));
+  stack.append(h('div', { class: 'sec-h adm-h' }, '運営'));
+  if (s && s.status === 'closed') { // 終了後は通常操作を止め、Adminだけが再開できる
+    stack.append(h('div', { class: 'stack sec plain' }, h('div', { class: 'sec-t' }, h('span', null, '記録'), h('span', { class: 'sec-n' }, `${s.gameCount == null ? 0 : s.gameCount}試合`)),
+      h('div', { class: 'small muted' }, '試合の記録は残っています。翌週は新しいセッションとして自動的に始まります。'),
+      h('button', { class: 'btn tint block', onclick: reopenSession }, '再開する')));
+    ctaBox.replaceChildren(); box.replaceChildren(stack); return;
+  }
   if (!started) { // 試合開始前: 参加人数 → 参加者チップ → 追加 → コート設定 → 試合開始
     const n = elig.length, ready = n >= 4;
     stack.append(h('div', { class: 'card hero' },
@@ -674,6 +894,7 @@ function renderAdminArea(box, ctaBox) { // Adminだけに、参加者画面の�
     if (ops) stack.append(fold('ops', '休憩・早退の操作', ops));
     stack.append(h('div', { class: 'card stack sec' }, h('div', { class: 'sec-t' }, h('span', null, 'コート'), h('span', { class: 'sec-n' }, ready ? `最大${maxC}面` : '')), courtSeg()));
     stack.append(fold('more', 'ペア固定・その他', pairsNode()));
+    stack.append(h('div', { class: 'grp acts' }, h('div', { class: 'cell link danger', onclick: resetSession }, '本日の試合をリセット')));
     ctaBox.replaceChildren(h('div', { class: 'cta' }, h('button', { class: 'btn primary big', disabled: !s || !ready, onclick: advance }, '試合開始')));
   } else {
     restAlerts(s, elig).forEach(t => stack.append(h('div', { class: 'banner warn', style: 'font-size:12px;padding:8px 12px' }, '⚠ ' + t)));
@@ -686,15 +907,16 @@ function renderAdminArea(box, ctaBox) { // Adminだけに、参加者画面の�
     if (ops) stack.append(fold('ops', '休憩・早退', ops));
     stack.append(fold('court', 'コート設定', h('div', { class: 'fold-body stack' }, courtSeg(), h('button', { class: 'btn tint block', onclick: regenNext }, '次の試合を組み直す（シャッフル）'))));
     stack.append(fold('more', 'ペア固定・その他', pairsNode()));
+    stack.append(h('div', { class: 'grp acts' }, h('div', { class: 'cell link', onclick: closeSession }, '次回の準備（今週を終了）'), h('div', { class: 'cell link danger', onclick: resetSession }, '本日の試合をリセット')));
   }
   box.replaceChildren(stack);
 }
 const joinMember = r => enterAttendee(r).then(() => toast(`${r.name}さんを参加にしました`));
 const restMember = (r, on) => patchAtt(r.id, { forcedRest: on, restLeft: 0 });
-const undoLeave = r => patchAtt(r.id, { status: 'active', restLeft: 0 });
+const undoLeave = r => patchAtt(r.id, { status: 'active', restLeft: 0, leftAt: null });
 async function leaveMember(r) {
   const v = await sheet({ title: `${r.name}さんを早退にしますか？`, msg: '現在の組は変わりません。次の組から外れます。取り消す場合は「取消」を押してください。', actions: [{ label: '早退にする', cls: 'danger', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
-  if (v && v.value === 'ok') patchAtt(r.id, { status: 'left' });
+  if (v && v.value === 'ok') patchAtt(r.id, { status: 'left', leftAt: isoNow() });
 }
 async function removeAttendee(r) { // 名簿は残し、当日の対戦対象から外す（present=false）。出場済みの人だけ確認する
   const played = S.session && computeStats(S.session, true).games[r.id];
@@ -748,7 +970,6 @@ function pairsNode() { // ペア固定・URL・リセット・PIN・ログアウ
     h('div', { class: 'cell' }, h('div', { class: 'urlt' }, url)),
     h('div', { class: 'cell link', onclick: async () => { try { await navigator.clipboard.writeText(url); toast('URLをコピーしました'); } catch { toast('コピーできませんでした。手動でコピーしてください'); } } }, 'URLをコピー')));
   stack.append(h('div', { class: 'gt' }, 'その他'), h('div', { class: 'grp' },
-    h('div', { class: 'cell link', onclick: resetSession }, '本日の試合をリセット'),
     h('div', { class: 'cell link', onclick: changePin }, 'PINを変更'),
     h('div', { class: 'cell link', onclick: () => { ssDel('bm_admin_ok'); S.isAdmin = false; renderAll(); } }, 'Adminからログアウト')));
   return stack;
@@ -765,11 +986,18 @@ function setLock(x, y) { // y が空ならペア解除。新規ペアは未使�
   patchSession({ locks }); renderAll();
 }
 async function resetSession() {
-  const r = await sheet({ title: '本日の試合をリセット', msg: '対戦履歴・現在／次の組・ペア固定を消します。出席者は残ります。', actions: [{ label: 'リセットする', cls: 'danger', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
+  const r = await sheet({ title: '本日の試合をリセット', msg: '対戦履歴・現在／次の組・ペア固定を消します。出席者は残ります。確定済みの試合記録は削除されず、「取消」扱いで残ります。', actions: [{ label: 'リセットする', cls: 'danger', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
   if (!r || r.value !== 'ok') return;
-  const ops = [{ op: 'set', path: ['bm_sessions', S.date], data: { current: null, next: null, history: [], gameNo: 0, locks: [] } }];
-  S.atts.forEach(a => ops.push({ op: 'set', path: ['bm_sessions', S.date, 'attendees', a.id], data: { restLeft: 0, forcedRest: false } }));
-  await guard(() => DB.commit(ops)); toast('リセットしました');
+  const fp0 = fpOf(S.session), at = isoNow();
+  await guard(() => txRace(fp0, async tx => {
+    const d = await tx.get(sessPath());
+    if (fpOf(d) !== fp0 || (d && d.status === 'closed')) throw CONFLICT();
+    const h = (d && d.history) || [], exs = [];
+    for (let i = 0; i < h.length; i++) exs.push(await tx.get(['bm_games', gameId(h[i].no || i + 1)]));
+    h.forEach((rd, i) => { const no = rd.no || i + 1; tx.set(['bm_games', gameId(no)], exs[i] ? voidPatch(at, 'reset') : buildGame(rd, no, d, { status: 'voided', at, reason: 'reset', backfilled: true })); });
+    tx.set(sessPath(), { current: null, next: null, history: [], gameNo: 0, locks: [] });
+    S.atts.forEach(a => tx.set(['bm_sessions', S.date, 'attendees', a.id], { restLeft: 0, forcedRest: false }));
+  })); toast('リセットしました');
 }
 async function changePin() {
   const r = await sheet({ title: 'PINを変更', input: { type: 'password', inputmode: 'numeric', maxlength: 8, placeholder: '新しいPIN（4〜8桁）' }, actions: [{ label: '変更する', cls: 'primary', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
@@ -781,8 +1009,8 @@ async function changePin() {
 function renderAll() {
   S.isAdmin = !!S.config && !!S.config.pinHash && ssGet('bm_admin_ok') === S.config.pinHash; // 内部のadmin判定（PIN認証）は従来どおり
   const app = $('#app');
-  if (!app.querySelector('main')) app.replaceChildren(h('header', { class: 'nav' }, h('div', { class: 'nav-in' }, h('div', null, h('h1', null, '🏸 バド対戦表'), h('div', { class: 'sub', id: 'navSub' })))), h('div', { id: 'banners', style: 'max-width:560px;margin:12px auto 0;padding:0 16px' }), h('main', { id: 'view' }));
-  $('#navSub').textContent = `${S.date.replace(/-/g, '/')}${MOCK ? '　デモモード' : ''}${S.isAdmin ? '　Admin' : ''}`;
+  if (!app.querySelector('main')) app.replaceChildren(h('header', { class: 'nav' }, h('div', { class: 'nav-in' }, h('div', null, h('h1', null, 'バド対戦表'), h('div', { class: 'sub', id: 'navSub' })), h('button', { class: 'adm-btn', id: 'navAdmin', type: 'button', onclick: () => { if (S.isAdmin) { const t = $('#pAdmin'); t && t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } else openAdminLogin(); } }, 'Admin'))), h('div', { id: 'banners', style: 'max-width:560px;margin:12px auto 0;padding:0 16px' }), h('main', { id: 'view' }));
+  $('#navSub').textContent = `${S.date.replace(/-/g, '/')}${MOCK ? '　デモモード' : ''}`; $('#navAdmin').classList.toggle('on', !!S.isAdmin);
   const bn = [];
   if (S.err) bn.push(h('div', { class: 'banner err' }, 'データベースに接続できません: ' + S.err + '（Firestoreルール未設定の可能性）'));
   if (MOCK) bn.push(h('div', { class: 'banner info', style: 'margin-top:8px' }, 'デモモード：このブラウザ内にのみ保存されます（本番DBには書き込みません）'));
@@ -811,7 +1039,7 @@ document.addEventListener('click', e => { if (S.pairSel && !e.target.closest('.p
 document.addEventListener('visibilitychange', () => { if (!document.hidden && todayStr() !== S.date) { S.date = todayStr(); startSubs(); } });
 await initDB();
 renderAll(); startSubs();
-if (MOCK) window.__bm = { S, DB, advance, regenNext };
+if (MOCK) window.__bm = { S, DB, advance, regenNext, undoAdvance, closeSession, reopenSession, resetSession };
 </script>
 </body>
 </html>
