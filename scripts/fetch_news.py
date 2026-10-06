@@ -79,6 +79,7 @@ from bs4 import BeautifulSoup
 
 import market_news_curation
 import discord_style
+import local_news_filter
 import mastodon_anzn
 import news_alerts
 
@@ -98,7 +99,10 @@ ANZN_URL = "https://anzn.net/sp/?11217F&r1=1"
 # 巻き込まれた事故・事件、ドラマのロケ地情報等のノイズが多かったため、
 # 北本市を中心とした生活圏(県央エリア)の市区町村名だけをOR検索する
 # クエリに変更した(2026-08-26)。
-SAITAMA_LOCAL_AREAS = ["北本市", "桶川市", "鴻巣市", "上尾市", "大宮区"]
+# 2026-10-06: #webhook_local は「北本・鴻巣・桶川周辺で地元の会話材料になるニュース」にする。
+# 検索は中心3市と生活圏(周辺市)を分け、さいたま市(大宮区)は外した。選別は local_news_filter.py。
+SAITAMA_LOCAL_AREAS = ["北本市", "桶川市", "鴻巣市"]
+SAITAMA_NEARBY_AREAS = ["上尾市", "久喜市", "伊奈町", "蓮田市"]
 
 # 2026-09-06追加: Google News検索の補完として、一次情報源・地域専門メディアの
 # RSSを直接購読する。北本市公式noteは自治体の一次情報(広報・イベント)、
@@ -117,13 +121,14 @@ LOCAL_DIRECT_RSS_FEEDS = [
 ]
 
 
-def _build_saitama_local_rss_url():
-    query = "(" + " OR ".join(SAITAMA_LOCAL_AREAS) + ") when:1d"
+def _build_saitama_local_rss_url(areas=None):
+    query = "(" + " OR ".join(areas or SAITAMA_LOCAL_AREAS) + ") when:1d"
     q = urllib.parse.quote(query)
     return f"https://news.google.com/rss/search?q={q}&hl=ja&gl=JP&ceid=JP:ja"
 
 
 GOOGLE_NEWS_SAITAMA_RSS = _build_saitama_local_rss_url()
+GOOGLE_NEWS_NEARBY_RSS = _build_saitama_local_rss_url(SAITAMA_NEARBY_AREAS)
 
 # 上記のOR検索だけでは除外しきれない広域政治・予算ニュースや、地域名の
 # 偶然の一致(例: 「北本市の男性が(他県)で事故」のような他県発の事件・事故に
@@ -964,8 +969,12 @@ def build_local_news_message(state, now):
     # 2026-09-13: Google News検索と直接RSS(号外NET等)の両方に同一記事が
     # 混ざるケースがあるため、生URLではなくnormalize_url()した値でバッチ内
     # 重複判定する(パラメータ違いのURLでも同一記事として1回にまとめる)。
-    saitama_all = fetch_rss_items(GOOGLE_NEWS_SAITAMA_RSS)
-    seen_in_batch = {normalize_url(item["url"]) for item in saitama_all}
+    saitama_all, seen_in_batch = [], set()
+    for item in fetch_rss_items(GOOGLE_NEWS_SAITAMA_RSS) + fetch_rss_items(GOOGLE_NEWS_NEARBY_RSS):
+        key = normalize_url(item["url"])
+        if key not in seen_in_batch:
+            seen_in_batch.add(key)
+            saitama_all.append(item)
     for feed_url in LOCAL_DIRECT_RSS_FEEDS:
         for item in fetch_direct_rss_items(feed_url):
             key = normalize_url(item["url"])
@@ -975,7 +984,7 @@ def build_local_news_message(state, now):
             saitama_all.append(item)
 
     saitama_new = dedupe_new_items(saitama_all, "url", state, now)
-    saitama_general = []
+    saitama_general, curation_dropped = [], []
     for item in saitama_new:
         if is_saitama_local_noise(item["title"]):
             continue
@@ -984,8 +993,17 @@ def build_local_news_message(state, now):
             continue
         if is_sports_related(item["title"]):
             sports_items.append(item)
-        else:
+            continue
+        # 2026-10-06: 北本周辺の会話材料になるものだけ残す(さいたま市・全国向けPR・中古車・全国チェーン等は除外)
+        keep, reason, _region = local_news_filter.classify(item["title"], item["url"])
+        if keep:
             saitama_general.append(item)
+        else:
+            curation_dropped.append((reason, item["title"]))
+    if curation_dropped:
+        print(f"[INFO] ローカルニュース選別: 北本周辺の話題でないため除外 {len(curation_dropped)}件(採用{len(saitama_general)}件)")
+        for reason, title in curation_dropped[:20]:
+            print(f"  - {reason}: {title[:80]}")
 
     if anzn_via_mac():
         # 2026-10-02: あんぜんねっと本体はActionsから読めないため、公式Mastodon経由の災害発生情報を
