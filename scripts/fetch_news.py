@@ -79,6 +79,7 @@ from bs4 import BeautifulSoup
 
 import market_news_curation
 import discord_style
+import kitamoto_origin
 import local_news_filter
 import mastodon_anzn
 import news_alerts
@@ -129,6 +130,8 @@ def _build_saitama_local_rss_url(areas=None):
 
 GOOGLE_NEWS_SAITAMA_RSS = _build_saitama_local_rss_url()
 GOOGLE_NEWS_NEARBY_RSS = _build_saitama_local_rss_url(SAITAMA_NEARBY_AREAS)
+# 2026-10-06: 北本ゆかり型(台帳の人物名で検索。台帳が空ならNone)。判定は kitamoto_origin.py
+GOOGLE_NEWS_ORIGIN_RSS = kitamoto_origin.search_url()
 
 # 上記のOR検索だけでは除外しきれない広域政治・予算ニュースや、地域名の
 # 偶然の一致(例: 「北本市の男性が(他県)で事故」のような他県発の事件・事故に
@@ -970,7 +973,8 @@ def build_local_news_message(state, now):
     # 混ざるケースがあるため、生URLではなくnormalize_url()した値でバッチ内
     # 重複判定する(パラメータ違いのURLでも同一記事として1回にまとめる)。
     saitama_all, seen_in_batch = [], set()
-    for item in fetch_rss_items(GOOGLE_NEWS_SAITAMA_RSS) + fetch_rss_items(GOOGLE_NEWS_NEARBY_RSS):
+    origin_feed = fetch_rss_items(GOOGLE_NEWS_ORIGIN_RSS) if GOOGLE_NEWS_ORIGIN_RSS else []
+    for item in fetch_rss_items(GOOGLE_NEWS_SAITAMA_RSS) + fetch_rss_items(GOOGLE_NEWS_NEARBY_RSS) + origin_feed:
         key = normalize_url(item["url"])
         if key not in seen_in_batch:
             seen_in_batch.add(key)
@@ -985,7 +989,18 @@ def build_local_news_message(state, now):
 
     saitama_new = dedupe_new_items(saitama_all, "url", state, now)
     saitama_general, curation_dropped = [], []
+    origin_items, origin_counts = [], {}
     for item in saitama_new:
+        # 2026-10-06: 北本ゆかり型(台帳の人物の重要な記事)は、スポーツ記事でも地域ニュースを優先する。
+        # 地域ニュースへ入れた記事はスポーツ側へ送らない(二重配信防止)。人物ごとの件数上限を超えた分は送らない。
+        person = kitamoto_origin.match(item["title"])
+        if person:
+            n = origin_counts.get(person["name"], 0)
+            if n < kitamoto_origin.MAX_PER_PERSON:
+                origin_counts[person["name"]] = n + 1
+                origin_items.append(item)
+                print(f"[INFO] 北本ゆかり型として採用({person['name']}): {item['title'][:70]}")
+            continue
         if is_saitama_local_noise(item["title"]):
             continue
         if is_mlb_related(item["title"]):
@@ -1000,6 +1015,7 @@ def build_local_news_message(state, now):
             saitama_general.append(item)
         else:
             curation_dropped.append((reason, item["title"]))
+    saitama_general = origin_items + saitama_general   # 北本ゆかり型を先頭(優先)に置く
     if curation_dropped:
         print(f"[INFO] ローカルニュース選別: 北本周辺の話題でないため除外 {len(curation_dropped)}件(採用{len(saitama_general)}件)")
         for reason, title in curation_dropped[:20]:
@@ -1538,6 +1554,13 @@ def _handle_sports_leak(sports_items, sports_webhook, now, source_label):
     """
     if not sports_items:
         return False
+    # 2026-10-06: 北本ゆかり型(台帳の人物の重要な記事)は地域ニュース側で配信するため、スポーツ側へは送らない
+    origin_dup = [i for i in sports_items if kitamoto_origin.match(i["title"])]
+    if origin_dup:
+        print(f"[INFO] 北本ゆかり型のため地域ニュース側を優先し、スポーツ側へは送りません: {len(origin_dup)}件")
+        sports_items = [i for i in sports_items if i not in origin_dup]
+        if not sports_items:
+            return False
     print(f"=== {source_label}からスポーツ記事を検知: {len(sports_items)}件 ===")
     for item in sports_items:
         print(f"  {item['title']}")

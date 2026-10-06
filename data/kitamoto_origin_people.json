@@ -1,0 +1,83 @@
+{
+ "version": 1,
+ "purpose": "北本ゆかり型: 北本で育った人物の全国・プロスポーツ等の重要な記事を、地域ニュース(#webhook_local)へ優先して採用するための台帳",
+ "criteria": {
+  "strong": "北本市立の小学校・中学校に在籍/卒業、または北本で育ったことを信頼できる根拠で確認できた人物だけ。",
+  "not_added": "「北本市出身」の記載だけ、高校だけ・大学だけ・勤務先だけ北本、成人後の短期居住、埼玉県出身のみは追加しない(推測で追加しない)",
+  "article_rule": "記事タイトルに氏名(または別表記)が完全一致で含まれること。require_any がある人物は、タイトルにそのいずれかの語も必要(同姓同名の誤検出防止)。結果一覧・日程・中継・出演告知など一覧型のタイトルは対象外"
+ },
+ "people": [
+  {
+   "name": "北條巧",
+   "aliases": [],
+   "class": "strong",
+   "role": "トライアスロン選手",
+   "relation": "北本市立北本中学校",
+   "evidence_quote": "埼玉県北本市出身。北本市立北本中学校、埼玉県立熊谷高等学校を経て、日本体育大学…",
+   "evidence_url": "https://ja.wikipedia.org/wiki/北條巧",
+   "require_any": [],
+   "added": "2026-10-06"
+  },
+  {
+   "name": "樋口正修",
+   "aliases": [],
+   "class": "strong",
+   "role": "プロ野球選手(中日ドラゴンズ)",
+   "relation": "北本市立東小学校・北本市立東中学校",
+   "evidence_quote": "北本市立東小学校1年時に北本マリナーズ(現:北本Mセブンズ)で野球を始め…",
+   "evidence_url": "https://ja.wikipedia.org/wiki/樋口正修",
+   "require_any": [],
+   "added": "2026-10-06"
+  },
+  {
+   "name": "佐藤悠介",
+   "aliases": [],
+   "class": "strong",
+   "role": "サッカー選手",
+   "relation": "北本市立西中学校(北本少年SC)",
+   "evidence_quote": "ユース経歴: 北本少年SC → 埼玉県北本市立西中学校 → 読売ジュニアユース…",
+   "evidence_url": "https://ja.wikipedia.org/wiki/佐藤悠介",
+   "require_any": [
+    "サッカー",
+    "J1",
+    "J2",
+    "J3",
+    "JFL",
+    "FC",
+    "SC",
+    "ヴェルディ",
+    "監督",
+    "コーチ",
+    "ゴール"
+   ],
+   "added": "2026-10-06",
+   "note": "同姓同名が多いため、サッカー関連語の併記を必要とする"
+  },
+  {
+   "name": "新井馨",
+   "aliases": [],
+   "class": "strong",
+   "role": "元北本市長",
+   "relation": "石戸国民学校(現北本市立石戸小学校)卒業",
+   "evidence_quote": "石戸国民学校（現北本市立石戸小学校）卒業",
+   "evidence_url": "https://ja.wikipedia.org/wiki/新井馨",
+   "require_any": [
+    "北本",
+    "市長"
+   ],
+   "added": "2026-10-06",
+   "note": "同姓同名の誤検出を避けるため、北本・市長の併記を必要とする"
+  },
+  {
+   "name": "パーマ大佐",
+   "aliases": [],
+   "class": "strong",
+   "role": "お笑い芸人",
+   "relation": "北本市立北本中学校",
+   "evidence_quote": "北本市立北本中学校、正智深谷高等学校卒業",
+   "evidence_url": "https://ja.wikipedia.org/wiki/パーマ大佐",
+   "require_any": [],
+   "added": "2026-10-06"
+  }
+ ]
+}
