@@ -14,10 +14,12 @@
     (通常のスポーツ記事は従来どおりスポーツ側へ回る)。
   - 北本ゆかり型と判定した記事は地域ニュース側を優先し、スポーツ側へは二重に送らない。
   - 同じ人物の記事が1回の配信に並びすぎないよう、人物ごとに MAX_PER_PERSON 件までにする。
+    件数を数える前に、同一見出しの媒体違い(転載)は1件にまとめる(headline_key。媒体名だけを正規化する)。
 """
 import json
 import os
 import re
+import unicodedata
 import urllib.parse
 
 LEDGER_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data",
@@ -27,6 +29,11 @@ MAX_PER_PERSON = 3
 # 一覧型・告知型のタイトル(人物の「重要な記事」ではない)
 LISTING_RE = re.compile(r"ライブ中継|ライブ配信|DAZN|スコア|星取|試合結果|結果一覧|日程|番組表|放送予定|テレビ放送|"
                         r"出演者|出演情報|出演決定|チケット|公演|ラインナップ|予告先発|\bvs\b|\bVS\b|第\d+節|ライブ\s*中継")
+
+# 見出し末尾の「（媒体名）」とみなす語(明らかな媒体名だけ。「（中日）」のようにチーム名と紛らわしい語は含めない)
+MEDIA_WORDS = ("新聞", "スポーツ", "ニュース", "NEWS", "News", "ONLINE", "Online", "オンライン", "Web", "WEB", "通信",
+               "放送", "報知", "スポニチ", "サンスポ", "ORICON", "共同", "時事", "TBS", "NHK", "Yahoo", "週刊", "デイリー")
+_PAREN_TAIL = re.compile(r"\s*[（(]([^（）()]{1,25})[）)]\s*$")
 
 _cache = {}
 
@@ -53,6 +60,20 @@ def _title_body(title):
         if 0 < len(src) <= 40:
             return body
     return title
+
+
+def headline_key(title):
+    """同一見出し(媒体違いの転載)を同じ値にする比較用キー。
+    末尾の「 - 媒体名」と、明らかな媒体名の「（媒体名）」だけを外し、全角半角・空白をそろえる。
+    同一出来事かどうかの意味判定はしない(見出しが違えば別記事)。"""
+    body = _title_body(title)
+    while True:
+        m = _PAREN_TAIL.search(body)
+        if m and any(w in m.group(1) for w in MEDIA_WORDS):
+            body = body[:m.start()]
+            continue
+        break
+    return re.sub(r"\s+", "", unicodedata.normalize("NFKC", body))
 
 
 def match(title, ledger=None):

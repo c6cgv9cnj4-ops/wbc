@@ -989,12 +989,18 @@ def build_local_news_message(state, now):
 
     saitama_new = dedupe_new_items(saitama_all, "url", state, now)
     saitama_general, curation_dropped = [], []
-    origin_items, origin_counts = [], {}
+    origin_items, origin_counts, origin_headlines, origin_dups = [], {}, set(), 0
     for item in saitama_new:
         # 2026-10-06: 北本ゆかり型(台帳の人物の重要な記事)は、スポーツ記事でも地域ニュースを優先する。
         # 地域ニュースへ入れた記事はスポーツ側へ送らない(二重配信防止)。人物ごとの件数上限を超えた分は送らない。
         person = kitamoto_origin.match(item["title"])
         if person:
+            # 同一見出しの媒体違い(転載)は1件にまとめ、人物別の件数上限を消費させない
+            hkey = (person["name"], kitamoto_origin.headline_key(item["title"]))
+            if hkey in origin_headlines:
+                origin_dups += 1
+                continue
+            origin_headlines.add(hkey)
             n = origin_counts.get(person["name"], 0)
             if n < kitamoto_origin.MAX_PER_PERSON:
                 origin_counts[person["name"]] = n + 1
@@ -1016,6 +1022,8 @@ def build_local_news_message(state, now):
         else:
             curation_dropped.append((reason, item["title"]))
     saitama_general = origin_items + saitama_general   # 北本ゆかり型を先頭(優先)に置く
+    if origin_dups:
+        print(f"[INFO] 北本ゆかり型: 同一見出し(媒体違い)を1件にまとめました: {origin_dups}件")
     if curation_dropped:
         print(f"[INFO] ローカルニュース選別: 北本周辺の話題でないため除外 {len(curation_dropped)}件(採用{len(saitama_general)}件)")
         for reason, title in curation_dropped[:20]:

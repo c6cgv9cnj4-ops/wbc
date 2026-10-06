@@ -184,5 +184,83 @@ class SportsRouteTest(unittest.TestCase):
         self.assertEqual(len(sent), 1)                      # 一覧型は台帳対象外=従来どおりスポーツ側
 
 
+class HeadlineKeyTest(unittest.TestCase):
+    BASE = "【トライアスロン】今大会日本勢１号金のトライアスロン男子・北條巧「優勝を誇りに思う」"
+
+    def test_same_headline_different_outlets_same_key(self):
+        a = self.BASE + " - 日刊スポーツ"
+        b = self.BASE + " (日刊スポーツ) - news.yahoo.co.jp"
+        c = self.BASE + "（日刊スポーツ） - news.yahoo.co.jp"
+        d = self.BASE
+        self.assertEqual(len({ko.headline_key(t) for t in (a, b, c, d)}), 1)
+
+    def test_width_and_spaces_are_normalized(self):
+        self.assertEqual(ko.headline_key("北條巧 が 金メダル １号 - 朝日新聞"), ko.headline_key("北條巧が金メダル1号 - jiji.com"))
+
+    def test_different_headlines_stay_different(self):
+        self.assertNotEqual(ko.headline_key("北條巧「優勝を誇りに思う」 - 日刊スポーツ"), ko.headline_key("北條巧が帰国会見 - 日刊スポーツ"))
+
+    def test_only_obvious_media_in_parentheses_is_removed(self):
+        self.assertNotEqual(ko.headline_key("樋口正修が打撃好調（中日）"), ko.headline_key("樋口正修が打撃好調"))   # チーム名は媒体名ではない
+        self.assertNotEqual(ko.headline_key("北條巧が金（初）"), ko.headline_key("北條巧が金"))
+        self.assertEqual(ko.headline_key("樋口正修が初打点 (週刊ベースボールONLINE)"), ko.headline_key("樋口正修が初打点"))
+
+
+class OriginDedupeIntegrationTest(unittest.TestCase):
+    def feed(self, titles):
+        return [{"title": t, "url": f"https://news.google.com/rss/articles/d{i}", "published": "10/06 08:00"} for i, t in enumerate(titles)]
+
+    def run_digest(self, titles, core=()):
+        base = DigestIntegrationTest()
+        return base.run_digest(core=list(core), origin=self.feed(titles))
+
+    H = "今大会日本勢１号金のトライアスロン男子・北條巧「優勝を誇りに思う」"
+
+    def test_same_story_three_outlets_becomes_one_line(self):
+        msg, sports = self.run_digest([self.H + " - 日刊スポーツ", self.H + " (日刊スポーツ) - news.yahoo.co.jp",
+                                       self.H + "（日刊スポーツ） - news.yahoo.co.jp"])
+        self.assertEqual(msg.count("北條巧"), 1)
+        self.assertIn("日刊スポーツ", msg)                  # 代表は先着(最初の媒体)
+        self.assertEqual(sports, [])
+
+    def test_different_headlines_are_separate_articles(self):
+        msg, _ = self.run_digest([self.H + " - 日刊スポーツ", "北條巧が帰国会見「次はオリンピック」 - 朝日新聞"])
+        self.assertEqual(msg.count("北條巧"), 2)
+
+    def test_cap_still_applies_after_dedupe(self):
+        titles = []
+        for i in range(5):                                   # 5つの別記事、それぞれ転載2件
+            titles += [f"北條巧が金メダル 別記事{i} - 媒体A", f"北條巧が金メダル 別記事{i} (媒体B新聞) - news.yahoo.co.jp"]
+        msg, _ = self.run_digest(titles)
+        self.assertEqual(msg.count("北條巧"), ko.MAX_PER_PERSON)
+
+    def test_dedupe_does_not_consume_cap(self):
+        titles = [self.H + " - 日刊スポーツ", self.H + " (日刊スポーツ) - news.yahoo.co.jp", self.H + "（日刊スポーツ） - news.yahoo.co.jp",
+                  "北條巧が帰国会見 - 朝日新聞", "北條巧、次戦はW杯 - 共同通信"]
+        msg, _ = self.run_digest(titles)
+        self.assertEqual(msg.count("北條巧"), 3)             # 転載が枠を使い切らず、別記事が3件まで入る
+        self.assertIn("帰国会見", msg)
+        self.assertIn("次戦はW杯", msg)
+
+    def test_per_person_independent(self):
+        h = "金メダルに「ありがとう」"
+        msg, _ = self.run_digest([f"北條巧が{h} - 媒体A", f"中日・樋口正修が{h} - 媒体B"])
+        self.assertIn("北條巧", msg)
+        self.assertIn("樋口正修", msg)
+
+    def test_non_ledger_person_not_included(self):
+        msg, _ = self.run_digest(["大島敦氏が金メダルを祝福 - 朝日新聞", "北條巧が金メダル - 朝日新聞"])
+        self.assertNotIn("大島敦", msg)
+        self.assertIn("北條巧", msg)
+
+    def test_sports_double_delivery_still_zero(self):
+        base = DigestIntegrationTest()
+        msg, sports = base.run_digest(core=["中日 3-2 阪神 延長10回サヨナラ - 日刊スポーツ"],
+                                      origin=self.feed(["中日、1番・樋口正修のプロ初適時打 - 中日新聞Web",
+                                                        "中日、1番・樋口正修のプロ初適時打 (中日新聞Web) - news.yahoo.co.jp"]))
+        self.assertEqual(msg.count("樋口正修"), 1)
+        self.assertFalse([x for x in sports if "樋口正修" in x["title"]])
+
+
 if __name__ == "__main__":
     unittest.main()
