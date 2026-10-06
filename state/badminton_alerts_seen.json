@@ -14,7 +14,6 @@
     "https://www.sposoku.com/malaysiaopen/::×緑川・松山　1－2　〇CHENG・ZHANG(中国)": "2026-09-24T22:47:44.014486+09:00"
   },
   "seen_badspi_urls": {
-    "https://www.badspi.jp/202609062321/?utm_source=rss&utm_medium=rss&utm_campaign=202609062321": "2026-09-07T01:17:39.207308+09:00",
     "https://www.badspi.jp/202609071159/?utm_source=rss&utm_medium=rss&utm_campaign=202609071159": "2026-09-07T17:11:23.590489+09:00",
     "https://www.badspi.jp/202609082028/?utm_source=rss&utm_medium=rss&utm_campaign=202609082028": "2026-09-08T21:52:34.829882+09:00",
     "https://www.badspi.jp/202609091959/?utm_source=rss&utm_medium=rss&utm_campaign=202609091959": "2026-09-09T21:58:21.676266+09:00",
@@ -89,7 +88,8 @@
     "https://www.badspi.jp/202609291934/?utm_source=rss&utm_medium=rss&utm_campaign=202609291934": "2026-09-30T08:13:18.063359+09:00",
     "https://www.badspi.jp/202609301013/?utm_source=rss&utm_medium=rss&utm_campaign=202609301013": "2026-09-30T13:04:48.053636+09:00",
     "https://www.badspi.jp/202610012012/?utm_source=rss&utm_medium=rss&utm_campaign=202610012012": "2026-10-02T02:22:25.326838+09:00",
-    "https://www.badspi.jp/202610061050/?utm_source=rss&utm_medium=rss&utm_campaign=202610061050": "2026-10-06T11:30:56.153351+09:00"
+    "https://www.badspi.jp/202610061050/?utm_source=rss&utm_medium=rss&utm_campaign=202610061050": "2026-10-06T11:30:56.153351+09:00",
+    "https://www.badspi.jp/202610062147/?utm_source=rss&utm_medium=rss&utm_campaign=202610062147": "2026-10-07T02:58:51.512449+09:00"
   },
   "seen_national_summaries": {
     "https://www.sposoku.com/wakabacup-badminton/::優勝：岡垣ジュニア(福岡県)準優勝：Selfish(神奈川県)第三位：shinshin(石川県)、F.Flash(埼玉県)": "2026-10-06T04:48:47.421266+09:00",
@@ -255,7 +255,8 @@
     "https://news.google.com/rss/articles/CBMiV0FVX3lxTE51aHRlRWhfQ3NXeC00Y0w0d2RfRHdMM3lPU3NZOGoxMGtlbDE1cEVJbGVOZG1OZk1SbEE2QXd2SE01OEtDTHdYTGJIMWxnejRTMDF5amRhcw?oc=5": "2026-10-06T20:55:36.454281+09:00",
     "https://news.google.com/rss/articles/CBMif0FVX3lxTE05QzFnYVNYRlJQVlVCSUM0bm9TcTI3N181ZDgwUEFDWlpQTUN0V2NFSjd1RmFhVEpYN0gycXpxcjlUMjVaUW9ieEFnWWRqdjJwa2UxX2VwMUE5ZnRFYm9aeERBR1FiVVkycmxyakk4NEphQWMtVEN0VkhaQU8xVTQ?oc=5": "2026-10-06T20:55:36.454281+09:00",
     "https://news.google.com/rss/articles/CBMiV0FVX3lxTE4xZ1hYMUNnYXQyem0xMURqNEh4Y0laN2l2N3hiQUVON3NJa2hHSkxiVkFiM3BENUR5QUtXQkxFUGtlaWtWT2V1ak9VaVdYN1YtYzlCWGpCRQ?oc=5": "2026-10-06T20:55:36.454281+09:00",
-    "https://news.google.com/rss/articles/CBMicEFVX3lxTE5oQXdRQ1p5U2hHQlpSQVgxWm9IeEtsaW0xT05DVlYwVzNaSDM0QlZrWnJaZC1iUmJyNkhlU3ZIWGFVQlQyUHZZSUpFbVJvMVZZdENmVzJrR2V3QnAzUnVwZHZveFdFU09idi1yTTFCaGE?oc=5": "2026-10-06T20:55:36.454281+09:00"
+    "https://news.google.com/rss/articles/CBMicEFVX3lxTE5oQXdRQ1p5U2hHQlpSQVgxWm9IeEtsaW0xT05DVlYwVzNaSDM0QlZrWnJaZC1iUmJyNkhlU3ZIWGFVQlQyUHZZSUpFbVJvMVZZdENmVzJrR2V3QnAzUnVwZHZveFdFU09idi1yTTFCaGE?oc=5": "2026-10-06T20:55:36.454281+09:00",
+    "https://news.google.com/rss/articles/CBMiVkFVX3lxTE4wOFJIaVpjMmRvOGpYZXBZQ0VNV1hjNG9IRjQwZ1FzVU5MX2hlcGVoUTVhU0pjTDZpeERKd0pCWWZOWWtEYzFjM3A2amI4N1dmS0Izam5R?oc=5": "2026-10-07T02:58:51.512449+09:00"
   },
   "seen_nba_result_ids": {
     "853": "2026-10-06T20:55:36.454281+09:00",
@@ -292,8 +293,18 @@
   "digest_pool": {
     "matches": [],
     "summaries": [],
-    "badspi": [],
-    "gnews": [],
+    "badspi": [
+      {
+        "title": "【世界ジュニア2026】日本がドイツを２−０で破り２連勝！7日に決勝トーナメント進出をかけてスペインと激突！＜団体戦2日目／予選リーグ＞",
+        "url": "https://www.badspi.jp/202610062147/?utm_source=rss&utm_medium=rss&utm_campaign=202610062147"
+      }
+    ],
+    "gnews": [
+      {
+        "title": "「脱！サウナ体育館」始動 バドミントン桃田選手ら環境整備訴え",
+        "url": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE4wOFJIaVpjMmRvOGpYZXBZQ0VNV1hjNG9IRjQwZ1FzVU5MX2hlcGVoUTVhU0pjTDZpeERKd0pCWWZOWWtEYzFjM3A2amI4N1dmS0Izam5R?oc=5"
+      }
+    ],
     "nba": []
   },
   "wr_rankings": {
