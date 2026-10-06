@@ -78,6 +78,7 @@ import requests
 from bs4 import BeautifulSoup
 
 import market_news_curation
+import discord_style
 import mastodon_anzn
 import news_alerts
 
@@ -1323,10 +1324,11 @@ def build_sports_leak_message(sports_items, now):
     """
     if not sports_items:
         return None
-    now_jst = now.strftime("%Y-%m-%d %H:%M")
-    lines = [f"# ⚾ 一般ニュースフィードで検知したスポーツ記事 ({now_jst} JST時点)"]
+    # 2026-10-06: 巨大な「#」見出し+絵文字をやめ、太字1行+小さな補足に整理(共通原則は discord_style.py)。
+    lines = [discord_style.heading("スポーツ記事"),
+             discord_style.subtext(f"一般ニュースフィードで検知 ・ {now.strftime('%m/%d %H:%M')} JST")]
     for item in sports_items:
-        lines.append(f"- [{item['title']}](<{item['url']}>)")
+        lines.append(discord_style.bullet_link(item["title"], item["url"]))
     return "\n".join(lines)
 
 
@@ -1632,7 +1634,7 @@ def main():
     # 2026-09-26追加: 実行中に記録した重要な異常を、最後にまとめてDiscordへ通知する
     # (news_alerts.py。通知の成否は終了コードに影響させない)。
     news_alerts.flush({"local": local_webhook, "news": news_webhook, "market": market_webhook},
-                      send_to_discord, state, now)
+                      send_to_discord, state, now, embed_fn=send_embed_to_discord)
 
     save_seen_state(state)
 

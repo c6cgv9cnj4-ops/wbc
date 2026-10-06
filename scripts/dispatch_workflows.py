@@ -113,7 +113,8 @@ def check_anzn_liveness(now, dry_run=False):
             news_alerts.record("anzn_local_stale", "local", "あんぜんねっと自宅Mac配信(launchd)",
                                f"最終実行から{stale_minutes:.0f}分経過(anzn-local ジョブの停止・異常終了の可能性)",
                                "停止中(復旧までは安全安心情報の新着が届きません)")
-            news_alerts.flush({"local": webhook}, fetch_news.send_to_discord, dstate, now)
+            news_alerts.flush({"local": webhook}, fetch_news.send_to_discord, dstate, now,
+                              embed_fn=fetch_news.send_embed_to_discord)
         else:
             print("  [ERROR] 通知用の DISCORD_WEBHOOK_LOCAL が見つかりません。")
     if not dry_run:

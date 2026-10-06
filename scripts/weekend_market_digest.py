@@ -266,7 +266,7 @@ def main(argv=None):
         news_alerts.record("discord_send_weekend", "market", "Discord送信(週末マーケットニュース)",
                            "送信失敗", "スキップ(既送信にせず次回に回す)")
     news_alerts.flush({"market": webhook, "news": os.environ.get("DISCORD_WEBHOOK_NEWS")},
-                      fn.send_to_discord, state, now)
+                      fn.send_to_discord, state, now, embed_fn=fn.send_embed_to_discord)
     save_state(state)
     return 0 if ok else 1
 

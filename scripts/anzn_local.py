@@ -171,7 +171,8 @@ def run(args):
         print(f"[INFO] あんぜんねっと新着{len(new_items)}件を送信しました。")
         publish_mac_sent({k for k in (mastodon_anzn.anzn_key_from_url(i.get("url")) for i in new_items) if k}, now)
 
-    news_alerts.flush({"local": webhook}, fetch_news.send_to_discord, state, now)
+    news_alerts.flush({"local": webhook}, fetch_news.send_to_discord, state, now,
+                      embed_fn=fetch_news.send_embed_to_discord)
     fetch_news.save_seen_state(state)
     return exit_code
 
