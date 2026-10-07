@@ -357,5 +357,35 @@ class AdminDigestTest(unittest.TestCase):
         self.assertIsNone(msg)
 
 
+class LocalFetchLimitTest(unittest.TestCase):
+    """地域ニュースの候補取得数(2026-10-07)。10件制限で11件目以降がフィルター前に落ちないこと。"""
+
+    def test_limit_constants(self):
+        self.assertEqual(fn.LOCAL_RSS_ITEM_LIMIT, 30)
+        self.assertEqual(fn.RSS_ITEM_LIMIT, 10)               # 経済・全国ニュース・直接フィードは従来のまま
+
+    def test_local_digest_requests_local_limit_for_google_news(self):
+        calls = {}
+
+        def fake_rss(url, limit=fn.RSS_ITEM_LIMIT):
+            calls[url] = limit
+            return []
+        with mock.patch.dict(os.environ, {"ANZN_SOURCE": "mac"}), \
+             mock.patch.object(fn, "fetch_rss_items", side_effect=fake_rss), \
+             mock.patch.object(fn, "fetch_direct_rss_items", return_value=[]), \
+             mock.patch.object(fn.mastodon_anzn, "fetch_recent_items", return_value=[]):
+            fn.build_local_news_message({}, NOW)
+        for url in (fn.GOOGLE_NEWS_SAITAMA_RSS, fn.GOOGLE_NEWS_NEARBY_RSS, fn.GOOGLE_NEWS_ADMIN_RSS):
+            self.assertEqual(calls[url], fn.LOCAL_RSS_ITEM_LIMIT, url)
+
+    def test_items_beyond_10th_reach_the_filter(self):
+        import feedparser
+        entries = [{"title": f"記事{i}", "link": f"https://example.com/{i}", "published_parsed": None} for i in range(25)]
+        feed = mock.Mock(entries=entries)
+        with mock.patch.object(feedparser, "parse", return_value=feed):
+            self.assertEqual(len(fn.fetch_rss_items("u", fn.LOCAL_RSS_ITEM_LIMIT)), 25)
+            self.assertEqual(len(fn.fetch_rss_items("u")), 10)
+
+
 if __name__ == "__main__":
     unittest.main()

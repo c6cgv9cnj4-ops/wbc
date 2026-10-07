@@ -395,6 +395,10 @@ def format_yf_line(label, symbol):
 # 30分間隔のポーリングで新着を取りこぼしにくくする。
 ANZN_ITEM_LIMIT = 10
 RSS_ITEM_LIMIT = 10
+# 2026-10-07: 地域ニュース(Google News検索: core/nearby/ゆかり型/行政問題)の候補取得数。
+# 1日窓でも core 13件・nearby 34件ほどあり、10件では11件目以降がフィルター前に落ちていた。
+# 経済・全国ニュース・直接フィードは従来の RSS_ITEM_LIMIT のまま(配信内容を変えないため分けている)。
+LOCAL_RSS_ITEM_LIMIT = 30
 
 STATE_PATH = "state/news_seen.json"
 STATE_RETENTION_DAYS = 14  # 古い記録は掃除して肥大化を防ぐ
@@ -979,10 +983,11 @@ def build_local_news_message(state, now):
     # 混ざるケースがあるため、生URLではなくnormalize_url()した値でバッチ内
     # 重複判定する(パラメータ違いのURLでも同一記事として1回にまとめる)。
     saitama_all, seen_in_batch = [], set()
-    origin_feed = fetch_rss_items(GOOGLE_NEWS_ORIGIN_RSS) if GOOGLE_NEWS_ORIGIN_RSS else []
+    origin_feed = fetch_rss_items(GOOGLE_NEWS_ORIGIN_RSS, LOCAL_RSS_ITEM_LIMIT) if GOOGLE_NEWS_ORIGIN_RSS else []
     # 行政問題の検索結果は先頭に置く(同じ記事が他の検索にも出た場合に、この由来の印を残すため)
-    admin_feed = [{**it, "admin_query": True} for it in fetch_rss_items(GOOGLE_NEWS_ADMIN_RSS)]
-    for item in admin_feed + fetch_rss_items(GOOGLE_NEWS_SAITAMA_RSS) + fetch_rss_items(GOOGLE_NEWS_NEARBY_RSS) + origin_feed:
+    admin_feed = [{**it, "admin_query": True} for it in fetch_rss_items(GOOGLE_NEWS_ADMIN_RSS, LOCAL_RSS_ITEM_LIMIT)]
+    for item in (admin_feed + fetch_rss_items(GOOGLE_NEWS_SAITAMA_RSS, LOCAL_RSS_ITEM_LIMIT)
+                 + fetch_rss_items(GOOGLE_NEWS_NEARBY_RSS, LOCAL_RSS_ITEM_LIMIT) + origin_feed):
         key = normalize_url(item["url"])
         if key not in seen_in_batch:
             seen_in_batch.add(key)
