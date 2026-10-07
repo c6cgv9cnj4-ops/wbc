@@ -233,5 +233,129 @@ class NearbyImpactTest(unittest.TestCase):
         self.assertEqual(lf.classify("鴻巣市と上尾市が合同で防災訓練")[2], "鴻巣")
 
 
+REAL_ADMIN = ("懲戒処分…仕事を4カ月放置した市職員 主査級42歳 さらに決裁のない書類も発行、公印を不正使用、上司にウソを報告し免職に "
+              "主幹級の職員は確認不足、“1366万円分”のミス - 埼玉新聞")
+
+
+class AdminIssueTest(unittest.TestCase):
+    """北本市行政の問題・不祥事・ミスは最優先(2026-10-07)。市役所のイベント・募集・制度案内は優先しない。"""
+
+    ADMIN = [
+        "北本市職員を懲戒処分 公印を不正使用 - 埼玉新聞",
+        "北本市が1366万円を返還 事務処理ミスで - 朝日新聞",
+        "北本市、給付金を誤って支給 市が謝罪し再発防止策 - 東京新聞",
+        "北本市が国民健康保険税の算定誤り 過大徴収分を返還へ - 埼玉新聞",
+        "北本市教育委員会が誤通知 保護者に訂正と謝罪 - 毎日新聞",
+        "北本市役所で個人情報が漏えい 市が公表 - 読売新聞",
+        "北本市の指定管理者選定に問題 市議会で追及 - 埼玉新聞",
+    ]
+    ORDINARY = [
+        "北本市役所で市民向けイベントを開催 - 埼玉新聞",
+        "北本市が子育て支援の新制度を案内 申請受付中 - 広報",
+        "北本市職員が募集 来年度採用試験の案内 - 市公式",
+        "北本市長が小学校を訪問 - 埼玉新聞",
+        "ミス・ユニバース候補が北本市を訪問 - 埼玉新聞",
+    ]
+
+    def test_admin_issue_is_top_priority(self):
+        for t in self.ADMIN:
+            with self.subTest(t=t):
+                ok, reason, region = lf.classify(t)
+                self.assertTrue(ok, reason)
+                self.assertEqual(reason, "keep:kitamoto_admin_issue")
+                self.assertEqual(lf.priority_level(t, reason, region), lf.LEVEL_ADMIN_ISSUE)
+
+    def test_ordinary_city_hall_news_is_not_elevated(self):
+        for t in self.ORDINARY:
+            with self.subTest(t=t):
+                ok, reason, region = lf.classify(t)
+                self.assertNotEqual(reason, "keep:kitamoto_admin_issue")
+
+    def test_other_municipality_admin_issue_not_elevated(self):
+        for t in ("鴻巣市職員を懲戒処分 公印を不正使用 - 埼玉新聞", "桶川市が事務処理ミス 市が謝罪 - 埼玉新聞", "蓮田市が誤通知 謝罪 - 埼玉新聞"):
+            with self.subTest(t=t):
+                self.assertNotEqual(lf.classify(t)[1], "keep:kitamoto_admin_issue")
+                self.assertNotEqual(lf.classify(t, via_admin_query=True)[1], "keep:kitamoto_admin_issue(via_query)")
+
+    def test_title_without_city_name_needs_the_query_origin(self):
+        # 実在の報道(2026-05-25 埼玉新聞): タイトルに市名が無い。通常経路では採用せず、『北本市』検索由来の場合だけ採用する
+        self.assertFalse(lf.classify(REAL_ADMIN)[0])
+        ok, reason, region = lf.classify(REAL_ADMIN, via_admin_query=True)
+        self.assertEqual((ok, reason, region), (True, "keep:kitamoto_admin_issue(via_query)", "北本"))
+        self.assertFalse(lf.classify("さいたま市職員を懲戒処分 公印を不正使用 - 埼玉新聞", via_admin_query=True)[0])   # 他の市名が出る
+        self.assertFalse(lf.classify("市役所で市民向けイベントを開催 - 埼玉新聞", via_admin_query=True)[0])         # 問題語が無い
+
+    def test_official_note_needs_a_strong_issue_word(self):
+        self.assertEqual(lf.classify("事務処理ミスのお詫びと再発防止について", NOTE)[1], "keep:kitamoto_admin_issue")
+        self.assertEqual(lf.classify("イベント案内のお詫びと訂正", NOTE)[1], "keep:direct_feed")   # 軽微な訂正は通常扱い
+
+    def test_noise_rules_still_win(self):
+        self.assertFalse(keep("北本市の中古車ミス 入荷しました 年式2017 - 中古車のガリバー"))
+
+    def test_priority_levels(self):
+        pl = lambda t, u="": lf.priority_level(t, *[lf.classify(t, u)[i] for i in (1, 2)])
+        self.assertEqual(pl("北本市の小学校で運動会 - 埼玉新聞"), lf.LEVEL_KITAMOTO_NORMAL)
+        self.assertEqual(pl("北本市が新庁舎の整備計画を発表 - 埼玉新聞"), lf.LEVEL_KITAMOTO_MAJOR)
+        self.assertEqual(pl("北本市で停電 約3000戸 - 埼玉新聞"), lf.LEVEL_KITAMOTO_MAJOR)
+        self.assertEqual(pl("鴻巣市の小学校で稲刈り体験"), lf.LEVEL_NEAR_CORE)
+        self.assertEqual(pl("久喜市が事業を見直し 90億円削減 - 埼玉新聞"), lf.LEVEL_RESCUED)
+        self.assertLess(lf.LEVEL_ADMIN_ISSUE, lf.LEVEL_KITAMOTO_MAJOR)
+        self.assertLess(lf.LEVEL_KITAMOTO_MAJOR, lf.LEVEL_KITAMOTO_NORMAL)
+        self.assertLess(lf.LEVEL_KITAMOTO_NORMAL, lf.LEVEL_NEAR_CORE)
+        self.assertLess(lf.LEVEL_NEAR_CORE, lf.LEVEL_RESCUED)
+
+    def test_far_municipality_excluded_except_wide_area_major(self):
+        self.assertEqual(lf.classify("さいたま市で新店オープン - 号外NET")[1], "drop:region_not_kitamoto_area")
+        self.assertEqual(lf.classify("さいたま市で大規模火災 埼玉県 - 埼玉新聞")[1], "drop:region_not_kitamoto_area")
+        ok, reason, region = lf.classify("大雨で県内広域に避難指示 さいたま市や川口市でも浸水被害 - 埼玉新聞")
+        self.assertTrue(ok, reason)
+        self.assertTrue(reason.startswith("keep:far_high_impact"))
+
+
+class AdminDigestTest(unittest.TestCase):
+    """build_local_news_message: 行政問題が先頭・スポーツ側や通常記事より優先。既存の経路(ゆかり型・防災・スポーツ)は従来どおり。"""
+
+    def run_digest(self, core=(), admin=(), nearby=(), origin=()):
+        def fake_rss(url, limit=10):
+            titles = {fn.GOOGLE_NEWS_ADMIN_RSS: admin, fn.GOOGLE_NEWS_NEARBY_RSS: nearby}.get(url)
+            if url == fn.GOOGLE_NEWS_ORIGIN_RSS:
+                return list(origin)
+            titles = core if titles is None else titles
+            return [{"title": t, "url": f"https://news.google.com/rss/articles/{abs(hash(t))}", "published": "10/06 08:00"} for t in titles]
+        with mock.patch.dict(os.environ, {"ANZN_SOURCE": "mac"}), \
+             mock.patch.object(fn, "fetch_rss_items", side_effect=fake_rss), \
+             mock.patch.object(fn, "fetch_direct_rss_items", return_value=[]), \
+             mock.patch.object(fn.mastodon_anzn, "fetch_recent_items", return_value=[]):
+            return fn.build_local_news_message({}, NOW)
+
+    def lines(self, msg):
+        return [ln for ln in msg.split("\n") if ln.startswith("- [")]
+
+    def test_order(self):
+        origin = [{"title": "アジア大会の金メダル第1号は北條巧 - 朝日新聞", "url": "https://news.google.com/rss/articles/o1", "published": ""}]
+        msg, _ = self.run_digest(
+            core=["鴻巣市の小学校で稲刈り体験 - 埼玉新聞", "北本市の小学校で運動会 - 埼玉新聞", "北本市が新庁舎の整備計画を発表 - 埼玉新聞"],
+            admin=[REAL_ADMIN, "北本市職員を懲戒処分 公印を不正使用 - 埼玉新聞"],
+            nearby=["久喜市が事業を見直し 90億円削減 - 埼玉新聞", "蓮田市の人気ラーメン店が閉店 - ブログ"], origin=origin)
+        ls = self.lines(msg)
+        order = [next(i for i, ln in enumerate(ls) if k in ln) for k in
+                 ("1366万円", "懲戒処分 公印", "北條巧", "新庁舎", "運動会", "稲刈り", "90億円")]
+        self.assertEqual(order, sorted(order), ls)
+        self.assertNotIn("ラーメン", msg)                      # 周辺の通常ニュースは従来どおり採用しない
+
+    def test_admin_issue_not_diverted_to_sports_or_noise(self):
+        msg, sports = self.run_digest(core=["北本市教育委員会が部活動の補助金を過大支給 市が謝罪 - 埼玉新聞"])
+        self.assertIn("過大支給", msg)
+        self.assertEqual(sports, [])
+
+    def test_admin_same_headline_deduped(self):
+        msg, _ = self.run_digest(admin=[REAL_ADMIN, REAL_ADMIN.replace(" - 埼玉新聞", " - 別媒体")])
+        self.assertEqual(msg.count("1366万円"), 1)
+
+    def test_unrelated_query_hits_not_adopted(self):
+        msg, _ = self.run_digest(core=[], admin=["さいたま市職員を懲戒処分 公印を不正使用 - 埼玉新聞", "全国の自治体で不適切会計 - 共同通信"])
+        self.assertIsNone(msg)
+
+
 if __name__ == "__main__":
     unittest.main()

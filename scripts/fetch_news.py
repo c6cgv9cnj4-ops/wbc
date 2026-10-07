@@ -132,6 +132,12 @@ GOOGLE_NEWS_SAITAMA_RSS = _build_saitama_local_rss_url()
 GOOGLE_NEWS_NEARBY_RSS = _build_saitama_local_rss_url(SAITAMA_NEARBY_AREAS)
 # 2026-10-06: 北本ゆかり型(台帳の人物名で検索。台帳が空ならNone)。判定は kitamoto_origin.py
 GOOGLE_NEWS_ORIGIN_RSS = kitamoto_origin.search_url()
+# 2026-10-07: 北本市行政の問題(不祥事・事務ミス・返還・謝罪等)。報道タイトルに「北本市」が無いこともあるため
+# 『北本市』×問題語の検索でも拾う(判定は local_news_filter.is_admin_issue。検索に出ただけでは採用しない)
+ADMIN_ISSUE_TERMS = ["懲戒処分", "不祥事", "不適切", "ミス", "誤り", "誤通知", "返還", "謝罪", "再発防止", "過大", "未徴収", "情報漏えい",
+                     "公印", "公文書"]
+GOOGLE_NEWS_ADMIN_RSS = ("https://news.google.com/rss/search?q=" + urllib.parse.quote(
+    '"北本市" (' + " OR ".join(ADMIN_ISSUE_TERMS) + ") when:3d") + "&hl=ja&gl=JP&ceid=JP:ja")
 
 # 上記のOR検索だけでは除外しきれない広域政治・予算ニュースや、地域名の
 # 偶然の一致(例: 「北本市の男性が(他県)で事故」のような他県発の事件・事故に
@@ -974,7 +980,9 @@ def build_local_news_message(state, now):
     # 重複判定する(パラメータ違いのURLでも同一記事として1回にまとめる)。
     saitama_all, seen_in_batch = [], set()
     origin_feed = fetch_rss_items(GOOGLE_NEWS_ORIGIN_RSS) if GOOGLE_NEWS_ORIGIN_RSS else []
-    for item in fetch_rss_items(GOOGLE_NEWS_SAITAMA_RSS) + fetch_rss_items(GOOGLE_NEWS_NEARBY_RSS) + origin_feed:
+    # 行政問題の検索結果は先頭に置く(同じ記事が他の検索にも出た場合に、この由来の印を残すため)
+    admin_feed = [{**it, "admin_query": True} for it in fetch_rss_items(GOOGLE_NEWS_ADMIN_RSS)]
+    for item in admin_feed + fetch_rss_items(GOOGLE_NEWS_SAITAMA_RSS) + fetch_rss_items(GOOGLE_NEWS_NEARBY_RSS) + origin_feed:
         key = normalize_url(item["url"])
         if key not in seen_in_batch:
             seen_in_batch.add(key)
@@ -988,8 +996,9 @@ def build_local_news_message(state, now):
             saitama_all.append(item)
 
     saitama_new = dedupe_new_items(saitama_all, "url", state, now)
-    saitama_general, curation_dropped = [], []
+    saitama_general, curation_dropped, ranked = [], [], []
     origin_items, origin_counts, origin_headlines, origin_dups = [], {}, set(), 0
+    admin_headlines = set()
     for item in saitama_new:
         # 2026-10-06: 北本ゆかり型(台帳の人物の重要な記事)は、スポーツ記事でも地域ニュースを優先する。
         # 地域ニュースへ入れた記事はスポーツ側へ送らない(二重配信防止)。人物ごとの件数上限を超えた分は送らない。
@@ -1009,6 +1018,17 @@ def build_local_news_message(state, now):
                 origin_items.append(item)
                 print(f"[INFO] 北本ゆかり型として採用({person['name']}): {item['title'][:80]}")
             continue
+        # 2026-10-07: 北本市行政の問題は最優先。ノイズ語・スポーツ振り分けより前に判定し、他の経路へ流さない
+        keep, reason, region = local_news_filter.classify(item["title"], item["url"],
+                                                          via_admin_query=item.get("admin_query", False))
+        if keep and reason.startswith("keep:kitamoto_admin_issue"):
+            hkey = kitamoto_origin.headline_key(item["title"])     # 同一見出しの媒体違い・URL違いは1件にまとめる
+            if hkey in admin_headlines:
+                continue
+            admin_headlines.add(hkey)
+            ranked.append((local_news_filter.LEVEL_ADMIN_ISSUE, item))
+            print(f"[INFO] 北本市行政の問題として最優先で採用({reason}): {item['title'][:80]}")
+            continue
         if is_saitama_local_noise(item["title"]):
             continue
         if is_mlb_related(item["title"]):
@@ -1018,12 +1038,14 @@ def build_local_news_message(state, now):
             sports_items.append(item)
             continue
         # 2026-10-06: 北本周辺の会話材料になるものだけ残す(さいたま市・全国向けPR・中古車・全国チェーン等は除外)
-        keep, reason, _region = local_news_filter.classify(item["title"], item["url"])
         if keep:
-            saitama_general.append(item)
+            ranked.append((local_news_filter.priority_level(item["title"], reason, region), item))
         else:
             curation_dropped.append((reason, item["title"]))
-    saitama_general = origin_items + saitama_general   # 北本ゆかり型を先頭(優先)に置く
+    # 表示順: 北本市行政の問題 → 北本ゆかり型 → 北本の重要 → 北本の通常 → 鴻巣・桶川・上尾 → 周辺の重大(救済)。同順位は取得順
+    ranked.sort(key=lambda r: r[0])
+    admin_items = [it for lv, it in ranked if lv == local_news_filter.LEVEL_ADMIN_ISSUE]
+    saitama_general = admin_items + origin_items + [it for lv, it in ranked if lv != local_news_filter.LEVEL_ADMIN_ISSUE]
     if origin_dups:
         print(f"[INFO] 北本ゆかり型: 同一見出し(媒体違い)を1件にまとめました: {origin_dups}件")
     if curation_dropped:

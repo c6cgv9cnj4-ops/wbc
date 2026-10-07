@@ -6,6 +6,8 @@
 「北本を中心に、北本・鴻巣・桶川周辺で、地元の人との会話材料になるニュース」にする。
 「地域名が入っている=地域ニュース」にはしない。タイトル(と配信元)から次の順で判定する。
 
+  0. 最優先: 北本市役所・北本市行政が当事者の問題(不祥事・事務ミス・誤通知・返還・謝罪・訂正・情報漏えい・入札/契約の重大問題など)。
+     報道・公式発表に書かれた具体的な事実(語)だけで判定し、市役所のイベント・募集・制度案内は優先しない(下記 ADMIN_*)
   1. 地域: 北本市 > 鴻巣市・桶川市・上尾市(通常優先) > 久喜・蓮田・伊奈・加須・白岡など周辺自治体 > その他
      さいたま市・全国の記事は、北本・鴻巣・桶川・上尾が出てこなければ除外する
      周辺自治体と埼玉県全体の記事は、自治体との距離だけで決めない: 通常のニュースは抑え、北本の人との
@@ -15,6 +17,9 @@
   3. 全国向けPR・転載サイト: 北本・鴻巣・桶川が出て、かつ地域の話題の手がかりがある場合だけ残す
   4. 周辺自治体・埼玉県全体: 高インパクトのシグナル(IMPACT_PATTERNS)がある場合だけ残す
   5. 北本市公式note・号外NET(鴻巣・北本/上尾・桶川)の直接購読は地域の一次・専門情報として優先する
+
+表示順は priority_level(): 1=北本市行政の問題 2=北本の重大・重要な市政 3=北本の通常 4=鴻巣・桶川・上尾 6=周辺の重大(救済)。
+周辺の通常ニュース(5)は従来どおり採用しない。さいたま市など遠方は原則除外(県内広域の災害・重大事件のみ例外)。
 
 防災・緊急情報(公式Mastodon経由)はこのフィルタの対象外(別経路)。
 判定は説明可能なルールだけ(LLMは使わない)。除外理由は reason に残し、ログで確認できる。
@@ -74,6 +79,45 @@ IMPACT_PATTERNS = {
 }
 
 
+# --- 北本市行政・市役所が当事者の問題(最優先) -----------------------------------------
+# 報道・公式発表のタイトルに書かれた事実の語だけで判定する(システム側で政治的な評価はしない)。
+# 「市役所」「市長」などが出るだけのイベント・募集・制度案内は対象外(問題を示す語が必要)。
+ADMIN_ACTOR_RE = re.compile(r"北本市(?:役所|職員|教育委員会|教委|議会|長|立|が|は|、)|北本市の(?:職員|担当者|担当課|事務|指定管理|入札|契約|業務委託|補助金|給付|徴収|算定|税|手当|公文書|公印)")
+ADMIN_GENERIC_ACTOR_RE = re.compile(r"市職員|市役所|市教委|市議会|市長|市が|市は|市の(?:職員|担当|事務)|主幹級|主査級|課長級|係長級")
+ADMIN_STRONG_RE = re.compile(
+    r"懲戒(?:処分|免職|解雇)|諭旨|停職|減給|戒告|免職|不祥事|不適切|不正(?:使用|受給|流用|請求|に|な)|公印|公文書|"
+    r"(?<!ミ)ミス(?!ター|コン|ティ|テリ|マッチ|ユニバース|ジャパン|北本|・)|"
+    r"誤(?:り|っ|通知|説明|支給|送付|請求|算定|入力|交付|記載|案内|発送|廃棄)|過大|過少|過誤|算定(?:誤り|漏れ)|"
+    r"未徴収|徴収漏れ|請求漏れ|支給漏れ|過払い|返還(?:へ|を|請求|命令|する|し|金)|再発防止|謝罪|陳謝|"
+    r"情報漏えい|情報漏洩|個人情報[^。]{0,6}(?:流出|漏|紛失|誤)|着服|横領|収賄|談合|"
+    r"入札[^。]{0,8}(?:不正|問題|やり直し|中止|無効)|指定管理[^。]{0,10}(?:問題|不正|違反|取り消|取消|解除|辞退)|"
+    r"(?:契約|工事)[^。]{0,6}(?:違反|不正)|問題視|紛失|百条委員会|第三者委員会|不信任")
+ADMIN_SOFT_RE = re.compile(r"訂正|お詫び|不備|違法")
+FAR_WIDE_AREA_RE = re.compile(r"県内|県全域|県南|県央|県北|広域|複数の市")
+
+
+def is_admin_issue(body, source_kind="title"):
+    """北本市行政が当事者の問題か。
+    source_kind: "title"=タイトルに『北本市(役所/職員/…)』と問題を示す語が並ぶ / "self"=北本市公式の自己発信(強い問題語のみ) /
+    "query"=『北本市』×問題語の検索で得た記事でタイトルに市名が無い(他の市町村名が出ない・行政の主体を示す語と強い問題語が必要)。
+    """
+    text = unicodedata.normalize("NFKC", body)
+    if source_kind == "title":
+        return bool(ADMIN_ACTOR_RE.search(text) and (ADMIN_STRONG_RE.search(text) or ADMIN_SOFT_RE.search(text)))
+    if source_kind == "self":
+        return bool(ADMIN_STRONG_RE.search(text))
+    if any(m in text for m in [*CORE, *NEARBY, *OTHER_MUNICIPALITIES] if m != "北本"):
+        return False
+    if "北本" in text:
+        return bool(ADMIN_ACTOR_RE.search(text) and ADMIN_STRONG_RE.search(text))
+    return bool(ADMIN_GENERIC_ACTOR_RE.search(text) and ADMIN_STRONG_RE.search(text))
+
+
+# 北本の重要な市政(通常の市役所のお知らせは含めない)
+CITY_POLICY_RE = re.compile(r"市長選|市議選|市議会議員選挙|補正予算|当初予算|決算|条例|財政|市政|総合振興計画|新庁舎|庁舎|"
+                            r"公共施設[^。]{0,6}(?:再編|統廃合)|議会[^。]{0,4}(?:可決|否決|承認)")
+
+
 def impact_categories(body):
     """高インパクトのシグナルに当たった分類名の一覧(全角数字は半角にそろえて判定)。"""
     text = unicodedata.normalize("NFKC", body)
@@ -112,9 +156,10 @@ def _has(text, words):
     return any(w in text for w in words)
 
 
-def classify(title, url=""):
+def classify(title, url="", via_admin_query=False):
     """記事を採用するか判定する。戻り値: (採用するか, 理由コード, 地域ラベル)。
-    理由コードは `keep:` で始まれば採用、`drop:` で始まれば除外(ログ・テスト用)。"""
+    理由コードは `keep:` で始まれば採用、`drop:` で始まれば除外(ログ・テスト用)。
+    via_admin_query: 『北本市』×問題語のGoogle News検索で得た記事(タイトルに市名が無い報道を拾うため)。"""
     body, source = split_source(title)
     host = urlsplit(url or "").netloc.lower()
     direct = next(((d, v) for d, v in DIRECT_FEEDS.items() if host.endswith(d)), None)
@@ -132,6 +177,14 @@ def classify(title, url=""):
     if _has(body, CHAINS) and COMMERCIAL_RE.search(body):
         return False, "drop:national_chain_commercial", ""
 
+    # --- 北本市行政・市役所が当事者の問題は最優先(地域の距離・種別の判定より前) ---
+    if is_admin_issue(body, "title"):
+        return True, "keep:kitamoto_admin_issue", "北本"
+    if direct and direct[0].startswith("kitamoto-city") and is_admin_issue(body, "self"):
+        return True, "keep:kitamoto_admin_issue", "北本"
+    if via_admin_query and is_admin_issue(body, "query"):
+        return True, "keep:kitamoto_admin_issue(via_query)", "北本"
+
     # --- 地域(core=北本・鴻巣・桶川・上尾 / nearby=久喜・蓮田・伊奈・加須・白岡など / prefecture=埼玉県全体) ---
     if core_hit:
         tier, region = "core", ("北本" if "北本" in core_hit else core_hit[0])
@@ -141,6 +194,9 @@ def classify(title, url=""):
         tier, region = "nearby", near_hit[0]
     elif "埼玉県" in body and not _has(body, OTHER_MUNICIPALITIES):
         tier, region = "prefecture", "埼玉県"      # 特定の他市町村の話題ではない県全体の記事
+    elif (_has(body, OTHER_MUNICIPALITIES) and FAR_WIDE_AREA_RE.search(body)
+          and {"災害", "重大事故・事件"} & set(impact_categories(body))):
+        tier, region = "far", "埼玉県"            # 遠方(さいたま市等)は原則除外。県内広域の災害・重大事件だけ例外
     else:
         return False, "drop:region_not_kitamoto_area", ""
 
@@ -151,10 +207,31 @@ def classify(title, url=""):
         return False, "drop:pr_or_aggregator_without_local_signal", ""
 
     # --- 周辺自治体・県全体は、自治体の距離ではなく、会話材料になる規模・重要性のシグナルで決める ---
-    if tier in ("nearby", "prefecture"):
+    if tier in ("nearby", "prefecture", "far"):
         impact = impact_categories(body)
         if impact:
             return True, f"keep:{tier}_high_impact({'/'.join(impact)})", region
         return False, f"drop:{tier}_normal_news", ""
 
     return True, "keep:direct_feed" if direct else "keep:core", region
+
+
+# --- 表示順(優先順位) --------------------------------------------------------------
+LEVEL_ADMIN_ISSUE = 1       # 北本市行政の重大な問題・不祥事・ミス
+LEVEL_KITAMOTO_MAJOR = 2    # 北本の重大ニュース・重要な市政
+LEVEL_KITAMOTO_NORMAL = 3   # 北本の通常ニュース
+LEVEL_NEAR_CORE = 4         # 鴻巣・桶川・上尾
+LEVEL_RESCUED = 6           # 周辺・県内広域の重大ニュース(周辺の通常=5 は採用しないので、採用分では最後)
+
+
+def priority_level(title, reason, region):
+    """採用記事の表示順(小さいほど先)。reason/region は classify() の戻り値。"""
+    body, _ = split_source(title)
+    if reason.startswith("keep:kitamoto_admin_issue"):
+        return LEVEL_ADMIN_ISSUE
+    if region == "北本" or "北本" in body:
+        text = unicodedata.normalize("NFKC", body)
+        return LEVEL_KITAMOTO_MAJOR if (impact_categories(body) or CITY_POLICY_RE.search(text)) else LEVEL_KITAMOTO_NORMAL
+    if reason.startswith("keep:nearby") or reason.startswith("keep:prefecture") or reason.startswith("keep:far"):
+        return LEVEL_RESCUED
+    return LEVEL_NEAR_CORE
