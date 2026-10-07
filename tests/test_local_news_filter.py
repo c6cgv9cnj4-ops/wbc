@@ -387,5 +387,36 @@ class LocalFetchLimitTest(unittest.TestCase):
             self.assertEqual(len(fn.fetch_rss_items("u")), 10)
 
 
+class NegatedImpactTest(unittest.TestCase):
+    """「緊急性なく」のように重要度を打ち消す表現を、高インパクトのシグナルにしない(2026-10-07)。"""
+
+    HASUDA = ("突然…市立保育園が休園 施設の老朽化も緊急性なく きっかけは近くに新設する民間こども園 子育て支援に力を入れる蓮田市、"
+              "説明会で存続の可能性は説明せず 保護者らに広がる動揺 存続求め署名活動も - 埼玉新聞")
+
+    def test_negated_importance_is_not_a_signal(self):
+        for t in ("老朽化も緊急性なく休園", "緊急ではない対応", "重大ではないと説明", "重大な問題はない", "緊急性は低い", "緊急性がない"):
+            with self.subTest(t=t):
+                self.assertEqual(lf.impact_categories(t), [])
+
+    def test_real_importance_still_a_signal(self):
+        for t in ("緊急事態を宣言", "緊急対応を実施", "緊急性が高い", "緊急の対応が必要", "重大な影響が出る", "大規模改修へ", "異例の対応"):
+            with self.subTest(t=t):
+                self.assertEqual(lf.impact_categories(t), ["規模・緊急"])
+
+    def test_hasuda_nursery_is_ordinary_nearby(self):
+        self.assertEqual(lf.classify(self.HASUDA), (False, "drop:nearby_normal_news", ""))
+
+    def test_kuki_90oku_still_high_impact(self):
+        for t in ("44事業見直しへ、削減効果90億円 財政再建取り組む久喜市 埼玉 [埼玉県] - 朝日新聞",
+                  "埼玉・久喜市長「苦渋の決断」、予算９０億円削減・防災施設の整備は延期…でも「貯金」３年後に枯渇か - 読売新聞"):
+            ok, reason, region = lf.classify(t)
+            self.assertTrue(ok, reason)
+            self.assertTrue(reason.startswith("keep:nearby_high_impact"), reason)
+
+    def test_other_categories_unaffected(self):
+        self.assertTrue(lf.classify("伊奈町で竜巻 住宅に被害")[0])
+        self.assertTrue(lf.classify("久喜市で多重事故 死者も - 埼玉新聞")[0])
+
+
 if __name__ == "__main__":
     unittest.main()

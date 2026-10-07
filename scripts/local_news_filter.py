@@ -118,10 +118,22 @@ CITY_POLICY_RE = re.compile(r"市長選|市議選|市議会議員選挙|補正�
                             r"公共施設[^。]{0,6}(?:再編|統廃合)|議会[^。]{0,4}(?:可決|否決|承認)")
 
 
+# 「緊急性なく」「重大ではない」のように、重要度の語を直後で打ち消している表現はシグナルにしない。
+# 打ち消しの有無を見るのは重要度の語(規模・緊急)だけ。他の分類(災害・事故など)の語は従来どおり。
+_NEGATED_TAIL = re.compile(
+    r"(?:な(?:問題|影響|被害|事故|けが|支障)?)?(?:性|度)?(?:は|も|が)?"
+    r"(?:なく|ない|なし|なかっ|ではな|でな|じゃな|ありませ|とは言え|認められ|を要しな|を要さな|低|さほど)")
+
+
+def _has_unnegated(rx, text):
+    return any(not _NEGATED_TAIL.match(text[m.end():m.end() + 12]) for m in rx.finditer(text))
+
+
 def impact_categories(body):
     """高インパクトのシグナルに当たった分類名の一覧(全角数字は半角にそろえて判定)。"""
     text = unicodedata.normalize("NFKC", body)
-    return [name for name, rx in IMPACT_PATTERNS.items() if rx.search(text)]
+    return [name for name, rx in IMPACT_PATTERNS.items()
+            if (_has_unnegated(rx, text) if name == "規模・緊急" else rx.search(text))]
 
 
 # --- ノイズ ---------------------------------------------------------------
