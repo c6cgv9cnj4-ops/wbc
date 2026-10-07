@@ -15,6 +15,9 @@
   - 北本ゆかり型と判定した記事は地域ニュース側を優先し、スポーツ側へは二重に送らない。
   - 同じ人物の記事が1回の配信に並びすぎないよう、人物ごとに MAX_PER_PERSON 件までにする。
     件数を数える前に、同一見出しの媒体違い(転載)は1件にまとめる(headline_key。媒体名だけを正規化する)。
+  - 地域ニュースに採用した記事は、読者が「なぜ全国ニュースが地域ニュースにあるのか」分かるよう、
+    氏名の直後に台帳の「北本との関係」から作った短い表示を付ける(display_label / label_title)。
+    例: 樋口正修（北本・東小／東中）。台帳の根拠引用・URLはDiscordには出さない。
 """
 import json
 import os
@@ -74,6 +77,43 @@ def headline_key(title):
             continue
         break
     return re.sub(r"\s+", "", unicodedata.normalize("NFKC", body))
+
+
+_OLD_SCHOOL = re.compile(r"[^\s・／/、,，（()）]{1,8}(?:国民学校|尋常小学校)[（(]現([^）)]+)[）)]")
+_SCHOOL = re.compile(r"(?:北本市立)?([^\s・／/、,，（()）立]{1,6}?)(小学校|中学校)")
+
+
+def display_label(person):
+    """台帳の relation(北本との関係)から、Discord表示用の短い関係を作る。
+    例: 「北本市立東小学校・北本市立東中学校」→「北本・東小／東中」。学校名が読み取れない場合は
+    「北本で育った」系なら「北本育ち」、それ以外は関係の文言を短くして使う(推測で補わない)。"""
+    rel = (person.get("relation") or "").strip()
+    rel = _OLD_SCHOOL.sub(r"\1", rel)                 # 「石戸国民学校(現北本市立石戸小学校)」→ 現在の学校名
+    schools = []
+    for m in _SCHOOL.finditer(rel):
+        short = m.group(1) + ("小" if m.group(2) == "小学校" else "中")
+        if short not in schools:
+            schools.append(short)
+    if schools:
+        return "北本・" + "／".join(schools)
+    if "北本で育" in rel:
+        return "北本育ち"
+    short = re.sub(r"北本市立|[（(][^）)]*[）)]", "", rel).strip("・ ")
+    return ("北本・" + short[:12]) if short else "北本"
+
+
+def label_title(title, person):
+    """記事タイトルの氏名の直後に（北本との関係）を挟む。既に付いている場合や氏名が無い場合はそのまま。"""
+    label = f"（{display_label(person)}）"
+    for n in [person["name"], *person.get("aliases", [])]:
+        i = title.find(n)
+        if i < 0:
+            continue
+        j = i + len(n)
+        if title[j:j + 3] in ("（北本", "(北本"):
+            return title
+        return title[:j] + label + title[j:]
+    return title
 
 
 def match(title, ledger=None):

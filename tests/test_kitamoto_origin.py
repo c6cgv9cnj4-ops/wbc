@@ -127,7 +127,7 @@ class DigestIntegrationTest(unittest.TestCase):
         lines = [ln for ln in msg.split("\n") if ln.startswith("- [")]
         self.assertIn("北條巧", lines[0])                   # 北本ゆかり型を先頭に置く
         self.assertIn("北本市で秋まつり開催", lines[-1])
-        self.assertEqual(lines[0], "- [アジア大会の金メダル第1号は北條巧 - 朝日新聞](<https://news.google.com/rss/articles/o1>) `[10/05 20:00]`")
+        self.assertEqual(lines[0], "- [アジア大会の金メダル第1号は北條巧（北本・北本中） - 朝日新聞](<https://news.google.com/rss/articles/o1>) `[10/05 20:00]`")
         self.assertIn("## 🚨 防災・緊急情報", msg)
 
     def test_general_sports_still_goes_to_sports(self):
@@ -260,6 +260,77 @@ class OriginDedupeIntegrationTest(unittest.TestCase):
                                                         "中日、1番・樋口正修のプロ初適時打 (中日新聞Web) - news.yahoo.co.jp"]))
         self.assertEqual(msg.count("樋口正修"), 1)
         self.assertFalse([x for x in sports if "樋口正修" in x["title"]])
+
+
+class DisplayLabelTest(unittest.TestCase):
+    """台帳の「北本との関係」から読者向けの短い表示を作る(人物ごとの関係をコードに持たない)。"""
+    EXPECTED = {"北條巧": "北本・北本中", "樋口正修": "北本・東小／東中", "佐藤悠介": "北本・西中",
+                "新井馨": "北本・石戸小", "パーマ大佐": "北本・北本中"}
+
+    def test_all_five_labels_come_from_the_ledger(self):
+        people = {p["name"]: p for p in ko.load_ledger()["people"]}
+        self.assertEqual(set(people), set(self.EXPECTED))
+        for name, label in self.EXPECTED.items():
+            self.assertEqual(ko.display_label(people[name]), label, name)
+
+    def test_higuchi_is_exactly_the_required_form(self):
+        p = next(x for x in ko.load_ledger()["people"] if x["name"] == "樋口正修")
+        self.assertEqual(f"{p['name']}（{ko.display_label(p)}）", "樋口正修（北本・東小／東中）")
+        t = "樋口正修「ファンから頂いたバスボム、キティーちゃんでした！」"
+        self.assertEqual(ko.label_title(t, p), "樋口正修（北本・東小／東中）「ファンから頂いたバスボム、キティーちゃんでした！」")
+
+    def test_generic_conversion_not_hardcoded(self):
+        self.assertEqual(ko.display_label({"relation": "北本市立中丸小学校・北本市立北本中学校"}), "北本・中丸小／北本中")
+        self.assertEqual(ko.display_label({"relation": "石戸国民学校(現北本市立石戸小学校)卒業"}), "北本・石戸小")
+        self.assertEqual(ko.display_label({"relation": "北本で育った"}), "北本育ち")
+        self.assertEqual(ko.display_label({"relation": ""}), "北本")
+
+    def test_ledger_change_changes_label(self):
+        p = {"name": "テスト太郎", "aliases": [], "class": "strong", "require_any": [], "relation": "北本市立南小学校・北本市立宮内中学校"}
+        self.assertEqual(ko.label_title("テスト太郎が優勝", p), "テスト太郎（北本・南小／宮内中）が優勝")
+
+    def test_label_title_rules(self):
+        p = next(x for x in ko.load_ledger()["people"] if x["name"] == "北條巧")
+        self.assertEqual(ko.label_title("中日・北條巧が金 - 朝日新聞", p), "中日・北條巧（北本・北本中）が金 - 朝日新聞")
+        once = ko.label_title("北條巧が金", p)
+        self.assertEqual(ko.label_title(once, p), once)                        # 二重に付けない
+        self.assertEqual(ko.label_title("別の記事", p), "別の記事")               # 氏名が無ければそのまま
+
+    def test_no_evidence_in_label(self):
+        for p in ko.load_ledger()["people"]:
+            label = ko.display_label(p)
+            self.assertNotIn("http", label)
+            self.assertNotIn(p["evidence_quote"][:6], label)
+            self.assertNotIn("出身", label)                                       # 「北本市出身」と断定しない
+
+
+class LabelIntegrationTest(unittest.TestCase):
+    def test_digest_line_has_label_and_no_evidence(self):
+        base = DigestIntegrationTest()
+        origin = [{"title": "樋口正修「ファンから頂いたバスボム、キティーちゃんでした！」 - 週刊ベースボールONLINE",
+                   "url": "https://news.google.com/rss/articles/l1", "published": "10/06 09:00"}]
+        msg, sports = base.run_digest(origin=origin)
+        self.assertIn("[樋口正修（北本・東小／東中）「ファンから頂いたバスボム、キティーちゃんでした！」 - 週刊ベースボールONLINE]", msg)
+        self.assertNotIn("wikipedia", msg)
+        self.assertNotIn("北本市立", msg)
+        self.assertEqual(sports, [])
+
+    def test_all_five_get_label_in_digest(self):
+        base = DigestIntegrationTest()
+        origin = [{"title": t, "url": f"https://news.google.com/rss/articles/m{i}", "published": ""} for i, t in enumerate(
+            ["北條巧が金メダル - 朝日新聞", "中日・樋口正修が初打点 - 中日新聞Web", "元北本市長の新井馨氏が死去 - 埼玉新聞",
+             "サッカー・佐藤悠介が現役引退を発表 - スポーツ報知", "パーマ大佐、結婚を発表 - ORICON NEWS"])]
+        msg, _ = base.run_digest(origin=origin)
+        for name, label in DisplayLabelTest.EXPECTED.items():
+            self.assertIn(f"{name}（{label}）", msg, name)
+
+    def test_headline_dedupe_still_works_with_label(self):
+        base = DigestIntegrationTest()
+        h = "北條巧が金メダル「ありがとう」"
+        origin = [{"title": h + " - 日刊スポーツ", "url": "https://news.google.com/rss/articles/n1", "published": ""},
+                  {"title": h + " (日刊スポーツ) - news.yahoo.co.jp", "url": "https://news.google.com/rss/articles/n2", "published": ""}]
+        msg, _ = base.run_digest(origin=origin)
+        self.assertEqual(msg.count("北條巧"), 1)
 
 
 if __name__ == "__main__":

@@ -61,7 +61,8 @@ class RealTitlesTest(unittest.TestCase):
         ("【鴻巣市】明用にある「天空の里」が開館4周年！", GOGUY_KK),
         ("【北本市】深井にあるヘイワールドで人気のシール販売会が開催されます♪", GOGUY_KK),
         ("【桶川市】桶川で見つけた異国情緒！本格ロシア料理カフェ『サリュート』", GOGUY_AO),
-        ("【伊奈町】伊奈町の隠れ家『CAFE THE GARDEN』が7周年！お宝マーケットが開催されます！！", GOGUY_AO),
+        ("【上尾市】衝撃…ガチャが消えた。 人気店『#C-pla』が異例の全店一斉休業へ… - 号外NET", ""),         # 上尾は通常優先
+        ("【上尾市】24時間いつでも『お店の味』が買える！？ホルモン焼屋さんの驚きの自販機", GOGUY_AO),
         ("週末の地元行事パート②◎#上尾市領家工業団地内の企業が主催する【領工会まつり】に出席し... - 選挙ドットコム", ""),
     ]
     DROP = [
@@ -75,9 +76,9 @@ class RealTitlesTest(unittest.TestCase):
         "（埼玉）さいたま市見沼区風渡野で暴行未遂　１０月５日 - ｄメニューニュース",
         "【上尾市】イオンモール上尾の「イオンバイク」が売場を拡大！10月9日にリニューアルオープン♪ - 埼玉マガジン",
         "【上尾市】密着～『業務スーパー上尾店』が待望のリニューアル！ - 号外NET",
-        "【上尾市】衝撃…ガチャが消えた。 人気店『#C-pla』が異例の全店一斉休業へ… - 号外NET",
+        "【伊奈町】伊奈町の隠れ家『CAFE THE GARDEN』が7周年！お宝マーケットが開催されます！！ - 号外NET",
+        "蓮田市の公立保育園が休園へ - 埼玉新聞",
         "北上尾 一棟マンション - rakumachi.jp",
-        "埼玉上尾、今季の目標は「優勝」　権田寛奈、人生初体験の主将に／SVリーグ女子 - sanspo.com",
         "【埼玉県】「こどもの居場所フェア埼玉」を開催します―地域でこどもの未来を応援― - ニコニコニュース",
         "給食に日高屋のタンメン…子どもたち夢中で箸を進める 創業者の故郷で特別メニュー",
         "週末にかけて地元行事に参加させていただきました。 - 選挙ドットコム",
@@ -105,14 +106,15 @@ class RegionPriorityTest(unittest.TestCase):
         self.assertEqual(lf.classify("鴻巣市の小学校で運動会")[2], "鴻巣")
         self.assertEqual(lf.classify("桶川市の公民館でイベント")[2], "桶川")
 
-    def test_nearby_requires_local_signal(self):
+    def test_nearby_needs_high_impact_and_ageo_is_core(self):
         self.assertTrue(keep("久喜市長が予算削減の方針を発表 - 読売新聞"))
-        self.assertFalse(keep("上尾市にオープンしたカフェに行ってきた - ブログ"))
-        self.assertEqual(lf.classify("伊奈町で小学校の運動会")[2], "伊奈町")
+        self.assertTrue(keep("上尾市にオープンしたカフェに行ってきた - ブログ"))        # 上尾は通常優先
+        self.assertFalse(keep("伊奈町で小学校の運動会"))                                # 周辺自治体の通常ニュースは抑える
+        self.assertEqual(lf.classify("伊奈町で竜巻 住宅に被害")[2], "伊奈町")
 
     def test_direct_feed_defaults(self):
         self.assertEqual(lf.classify("ふみだスコーレのご報告", NOTE), (True, "keep:direct_feed", "北本"))
-        self.assertFalse(keep("ホルモン焼屋さんの自販機がとっても便利", GOGUY_AO))      # 上尾・桶川版の市名なしは周辺扱い
+        self.assertTrue(keep("ホルモン焼屋さんの自販機がとっても便利", GOGUY_AO))       # 上尾・桶川版は通常優先
         self.assertTrue(keep("【桶川市】桶川の歴史を語る会", GOGUY_AO))
 
     def test_split_source(self):
@@ -138,7 +140,7 @@ class DigestIntegrationTest(unittest.TestCase):
         msg, sports = self.run_digest(
             ["北本市の小学校で運動会 - 埼玉新聞", "【さいたま市浦和区】新店オープン - 号外NET",
              "新着情報“ノアハイブリッドG”入荷しました！ - 中古車のガリバー", "鴻巣市にもあるケンタッキーが新商品を発売"],
-            nearby_titles=["上尾市議会が決算を審議 - 埼玉新聞", "上尾市の人気ラーメン店が閉店 - ブログ"])
+            nearby_titles=["上尾市議会が決算を審議 - 埼玉新聞", "蓮田市の人気ラーメン店が閉店 - ブログ"])
         self.assertIn("北本市の小学校で運動会", msg)
         self.assertIn("上尾市議会が決算を審議", msg)
         for bad in ("さいたま市浦和区", "ガリバー", "ケンタッキー", "人気ラーメン店"):
@@ -173,6 +175,62 @@ class DigestIntegrationTest(unittest.TestCase):
         self.assertNotIn("大宮区", core + near)
         for city in ("上尾市", "久喜市", "伊奈町"):
             self.assertIn(city, near)
+
+
+class NearbyImpactTest(unittest.TestCase):
+    """周辺自治体・県全体は、自治体名ではなく会話材料になる規模・重要性のシグナルで決める。"""
+
+    def test_kuki_90oku_cut_is_adopted(self):
+        for t in ("埼玉 財政再建の久喜市で事業見直し 90億円削減へ - NHKニュース",
+                  "埼玉・久喜市長「苦渋の決断」、予算９０億円削減・防災施設の整備は延期 - 読売新聞",
+                  "44事業見直しへ、削減効果90億円 財政再建取り組む久喜市 埼玉 [埼玉県] - 朝日新聞"):
+            ok, reason, region = lf.classify(t)
+            self.assertTrue(ok, t)
+            self.assertIn("nearby_high_impact", reason)
+            self.assertEqual(region, "久喜")
+
+    def test_hasuda_ordinary_news_is_suppressed(self):
+        for t in ("蓮田市の公立保育園が休園へ - 埼玉新聞", "【蓮田市】新しいカフェがオープン！ - 号外NET", "蓮田市の小学校で運動会 - 埼玉新聞"):
+            self.assertEqual(lf.classify(t)[1], "drop:nearby_normal_news", t)
+
+    def test_not_a_fixed_rule_by_municipality(self):
+        self.assertTrue(keep("蓮田市で大規模停電 約3000戸 - 埼玉新聞"))                  # 蓮田でも重大なら採用
+        self.assertFalse(keep("久喜市の新しいカフェがオープン - ブログ"))                 # 久喜でも通常なら抑える
+        self.assertFalse(keep("【久喜市】いよいよ明日が営業最終日。「ピザハット 久喜テラレス店」が閉店 - 号外NET"))
+
+    def test_signal_categories(self):
+        cases = {"加須市で竜巻 住宅の屋根が飛ぶ": "災害", "白岡市で死亡事故 トラックと衝突": "重大事故・事件",
+                 "久喜市が行政改革プラン 職員削減へ": "財政・行政改革", "幸手市で新制度を導入へ 全世帯対象": "制度・施策",
+                 "加須市 路線バスが運休 ダイヤ改正で": "交通・施設・住民影響", "行田市で重大な不祥事 緊急会見": "規模・緊急"}
+        for t, cat in cases.items():
+            self.assertIn(cat, lf.impact_categories(t), t)
+            self.assertTrue(keep(t), t)
+
+    def test_amount_threshold_and_fullwidth_digits(self):
+        self.assertIn("財政・行政改革", lf.impact_categories("予算９０億円削減"))
+        self.assertEqual(lf.impact_categories("事業費5億円を計上"), [])
+        self.assertEqual(lf.impact_categories("蓮田市が保育園の運営を見直し"), [])
+
+    def test_prefecture_wide_policy(self):
+        ok, reason, region = lf.classify("埼玉県が来年度から新制度を導入へ 全県で - 埼玉新聞")
+        self.assertTrue(ok)
+        self.assertEqual((region, reason.split("(")[0]), ("埼玉県", "keep:prefecture_high_impact"))
+        self.assertEqual(lf.classify("【埼玉県】「こどもの居場所フェア埼玉」を開催します - ニコニコニュース")[1].split(":")[1][:10], "pr_or_aggr")
+        self.assertEqual(lf.classify("埼玉県を代表するリサイクルショップ 月間大賞者発表 - 埼玉新聞")[1], "drop:prefecture_normal_news")
+        self.assertEqual(lf.classify("さいたま市で大規模火災 埼玉県 - 埼玉新聞")[1], "drop:region_not_kitamoto_area")   # 特定の他市の話題
+
+    def test_existing_noise_rules_still_apply(self):
+        self.assertFalse(keep("久喜市で中古車入荷しました 年式2017 - 中古車のガリバー"))
+        self.assertFalse(keep("鴻巣市にもあるケンタッキーが新商品を発売"))
+        self.assertFalse(keep("震度5 埼玉県久喜市 地震詳細"))
+        self.assertFalse(keep("【開催報告】久喜市の地域活性化イベント 大規模に開催 - PR TIMES"))     # PR/転載は中心の自治体+地域の手がかりが必要
+
+    def test_core_unchanged(self):
+        self.assertTrue(keep("北本市の小学校で運動会 - 埼玉新聞"))
+        self.assertTrue(keep("鴻巣市議会が補正予算を可決 - 埼玉新聞"))
+        self.assertTrue(keep("桶川市の公民館でイベント"))
+        self.assertTrue(keep("上尾市議会が決算を審議 - 埼玉新聞"))
+        self.assertEqual(lf.classify("鴻巣市と上尾市が合同で防災訓練")[2], "鴻巣")
 
 
 if __name__ == "__main__":

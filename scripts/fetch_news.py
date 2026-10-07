@@ -103,7 +103,7 @@ ANZN_URL = "https://anzn.net/sp/?11217F&r1=1"
 # 2026-10-06: #webhook_local は「北本・鴻巣・桶川周辺で地元の会話材料になるニュース」にする。
 # 検索は中心3市と生活圏(周辺市)を分け、さいたま市(大宮区)は外した。選別は local_news_filter.py。
 SAITAMA_LOCAL_AREAS = ["北本市", "桶川市", "鴻巣市"]
-SAITAMA_NEARBY_AREAS = ["上尾市", "久喜市", "伊奈町", "蓮田市"]
+SAITAMA_NEARBY_AREAS = ["上尾市", "久喜市", "伊奈町", "蓮田市", "加須市", "白岡市"]
 
 # 2026-09-06追加: Google News検索の補完として、一次情報源・地域専門メディアの
 # RSSを直接購読する。北本市公式noteは自治体の一次情報(広報・イベント)、
@@ -1004,8 +1004,10 @@ def build_local_news_message(state, now):
             n = origin_counts.get(person["name"], 0)
             if n < kitamoto_origin.MAX_PER_PERSON:
                 origin_counts[person["name"]] = n + 1
+                # 読者向けに、氏名の直後へ台帳の「北本との関係」を付ける(例: 樋口正修（北本・東小／東中）)
+                item = {**item, "title": kitamoto_origin.label_title(item["title"], person)}
                 origin_items.append(item)
-                print(f"[INFO] 北本ゆかり型として採用({person['name']}): {item['title'][:70]}")
+                print(f"[INFO] 北本ゆかり型として採用({person['name']}): {item['title'][:80]}")
             continue
         if is_saitama_local_noise(item["title"]):
             continue
