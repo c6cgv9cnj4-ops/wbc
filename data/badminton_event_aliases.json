@@ -1,0 +1,401 @@
+{
+ "_note": "ニュース見出しの日本語表記 → BWF公式カレンダーの英語大会名(語の集合で照合)。名前の対応だけを持つ。大会格・ポイント・日程は一切持たない(BWF公式から取得する)。同名が複数ある大会(例: ドイツオープン)は照合時に『複数候補』になり確認中として扱う。 countries=公式カレンダーの国コードの制約、extra_ok=この大会の公式名に含まれてよい追加語、sponsor_words=どの大会でも公式名に含まれてよいスポンサー等の語。公式名にこれ以外の語が含まれる場合は別の大会として扱い一致させない(例: Junior・Team・Mixed)。",
+ "events": [
+  {
+   "en": "Arctic Open",
+   "display": "アークティック・オープン",
+   "ja": [
+    "アークティックオープン",
+    "アークティック・オープン"
+   ],
+   "countries": [
+    "FIN"
+   ]
+  },
+  {
+   "en": "Malaysia Open",
+   "display": "マレーシア・オープン",
+   "ja": [
+    "マレーシアオープン",
+    "マレーシア・オープン"
+   ],
+   "countries": [
+    "MAS"
+   ]
+  },
+  {
+   "en": "Malaysia Masters",
+   "display": "マレーシア・マスターズ",
+   "ja": [
+    "マレーシアマスターズ",
+    "マレーシア・マスターズ"
+   ],
+   "countries": [
+    "MAS"
+   ]
+  },
+  {
+   "en": "India Open",
+   "display": "インド・オープン",
+   "ja": [
+    "インドオープン",
+    "インド・オープン"
+   ],
+   "countries": [
+    "IND"
+   ]
+  },
+  {
+   "en": "Indonesia Open",
+   "display": "インドネシア・オープン",
+   "ja": [
+    "インドネシアオープン",
+    "インドネシア・オープン"
+   ],
+   "countries": [
+    "INA"
+   ]
+  },
+  {
+   "en": "Indonesia Masters",
+   "display": "インドネシア・マスターズ",
+   "ja": [
+    "インドネシアマスターズ",
+    "インドネシア・マスターズ"
+   ],
+   "countries": [
+    "INA"
+   ]
+  },
+  {
+   "en": "All England",
+   "display": "全英オープン",
+   "ja": [
+    "全英オープン",
+    "オールイングランド"
+   ],
+   "countries": [
+    "ENG"
+   ]
+  },
+  {
+   "en": "German Open",
+   "display": "ドイツ・オープン",
+   "ja": [
+    "ドイツオープン",
+    "ジャーマンオープン",
+    "ドイツ・オープン"
+   ],
+   "countries": [
+    "GER"
+   ]
+  },
+  {
+   "en": "HYLO Open",
+   "display": "ハイロ・オープン",
+   "ja": [
+    "ハイロオープン",
+    "ハイロ・オープン"
+   ],
+   "countries": [
+    "GER"
+   ]
+  },
+  {
+   "en": "French Open",
+   "display": "フランス・オープン",
+   "ja": [
+    "フランスオープン",
+    "フレンチオープン",
+    "フランス・オープン"
+   ],
+   "countries": [
+    "FRA"
+   ]
+  },
+  {
+   "en": "Swiss Open",
+   "display": "スイス・オープン",
+   "ja": [
+    "スイスオープン",
+    "スイス・オープン"
+   ],
+   "countries": [
+    "SUI"
+   ]
+  },
+  {
+   "en": "Thailand Open",
+   "display": "タイ・オープン",
+   "ja": [
+    "タイオープン",
+    "タイ・オープン"
+   ],
+   "countries": [
+    "THA"
+   ]
+  },
+  {
+   "en": "Thailand Masters",
+   "display": "タイ・マスターズ",
+   "ja": [
+    "タイマスターズ",
+    "タイ・マスターズ"
+   ],
+   "countries": [
+    "THA"
+   ]
+  },
+  {
+   "en": "Singapore Open",
+   "display": "シンガポール・オープン",
+   "ja": [
+    "シンガポールオープン",
+    "シンガポール・オープン"
+   ],
+   "countries": [
+    "SGP"
+   ]
+  },
+  {
+   "en": "Japan Open",
+   "display": "ジャパン・オープン",
+   "ja": [
+    "ジャパンオープン",
+    "日本オープン",
+    "ジャパン・オープン"
+   ],
+   "countries": [
+    "JPN"
+   ]
+  },
+  {
+   "en": "Kumamoto Masters",
+   "display": "熊本マスターズ・ジャパン",
+   "ja": [
+    "熊本マスターズ"
+   ],
+   "countries": [
+    "JPN"
+   ]
+  },
+  {
+   "en": "Korea Open",
+   "display": "韓国オープン",
+   "ja": [
+    "韓国オープン",
+    "コリアオープン"
+   ],
+   "countries": [
+    "KOR"
+   ]
+  },
+  {
+   "en": "China Open",
+   "display": "中国オープン",
+   "ja": [
+    "中国オープン",
+    "チャイナオープン"
+   ],
+   "countries": [
+    "CHN"
+   ]
+  },
+  {
+   "en": "China Masters",
+   "display": "中国マスターズ",
+   "ja": [
+    "中国マスターズ",
+    "チャイナマスターズ"
+   ],
+   "countries": [
+    "CHN"
+   ]
+  },
+  {
+   "en": "Hong Kong Open",
+   "display": "香港オープン",
+   "ja": [
+    "香港オープン",
+    "ホンコンオープン"
+   ],
+   "countries": [
+    "HKG"
+   ]
+  },
+  {
+   "en": "Macau Open",
+   "display": "マカオ・オープン",
+   "ja": [
+    "マカオオープン",
+    "マカオ・オープン"
+   ],
+   "countries": [
+    "MAC"
+   ],
+   "extra_ok": [
+    "sands",
+    "china",
+    "ltd"
+   ]
+  },
+  {
+   "en": "Taipei Open",
+   "display": "台北オープン",
+   "ja": [
+    "台北オープン",
+    "チャイニーズ・タイペイオープン",
+    "チャイニーズタイペイオープン"
+   ],
+   "countries": [
+    "TPE"
+   ]
+  },
+  {
+   "en": "Denmark Open",
+   "display": "デンマーク・オープン",
+   "ja": [
+    "デンマークオープン",
+    "デンマーク・オープン"
+   ],
+   "countries": [
+    "DEN"
+   ]
+  },
+  {
+   "en": "Australian Open",
+   "display": "オーストラリア・オープン",
+   "ja": [
+    "オーストラリアオープン",
+    "オーストラリア・オープン"
+   ],
+   "countries": [
+    "AUS"
+   ]
+  },
+  {
+   "en": "US Open",
+   "display": "USオープン",
+   "ja": [
+    "USオープン",
+    "アメリカオープン"
+   ],
+   "countries": [
+    "USA"
+   ]
+  },
+  {
+   "en": "Canada Open",
+   "display": "カナダ・オープン",
+   "ja": [
+    "カナダオープン",
+    "カナダ・オープン"
+   ],
+   "countries": [
+    "CAN"
+   ]
+  },
+  {
+   "en": "Orleans Masters",
+   "display": "オルレアン・マスターズ",
+   "ja": [
+    "オルレアンマスターズ",
+    "オルレアン・マスターズ"
+   ],
+   "countries": [
+    "FRA"
+   ]
+  },
+  {
+   "en": "Spain Masters",
+   "display": "スペイン・マスターズ",
+   "ja": [
+    "スペインマスターズ",
+    "スペイン・マスターズ"
+   ],
+   "countries": [
+    "ESP"
+   ]
+  },
+  {
+   "en": "World Tour Finals",
+   "display": "ワールドツアー・ファイナルズ",
+   "ja": [
+    "ワールドツアーファイナルズ",
+    "ワールドツアー・ファイナルズ"
+   ],
+   "countries": [
+    "CHN"
+   ],
+   "extra_ok": [
+    "hsbc",
+    "bwf"
+   ]
+  },
+  {
+   "en": "World Junior Championships",
+   "display": "世界ジュニア選手権",
+   "ja": [
+    "世界ジュニア選手権",
+    "世界ジュニア"
+   ]
+  },
+  {
+   "en": "Asian Games",
+   "display": "アジア競技大会",
+   "ja": [
+    "アジア競技大会",
+    "アジア大会"
+   ],
+   "countries": [
+    "JPN"
+   ],
+   "extra_ok": [
+    "20th",
+    "aichi",
+    "nagoya",
+    "individual"
+   ]
+  },
+  {
+   "en": "World Championships",
+   "display": "世界選手権",
+   "ja": [
+    "世界選手権"
+   ],
+   "extra_ok": [
+    "totalenergies",
+    "bwf"
+   ]
+  }
+ ],
+ "sponsor_words": [
+  "yonex",
+  "victor",
+  "li",
+  "ning",
+  "hsbc",
+  "bwf",
+  "daihatsu",
+  "toyota",
+  "perodua",
+  "allianz",
+  "kff",
+  "sathio",
+  "group",
+  "clash",
+  "clans",
+  "badminton",
+  "open",
+  "championships",
+  "presented",
+  "sunrise",
+  "polytron",
+  "roketto",
+  "wondr",
+  "bni",
+  "kawasaki",
+  "dunlop",
+  "tour"
+ ]
+}

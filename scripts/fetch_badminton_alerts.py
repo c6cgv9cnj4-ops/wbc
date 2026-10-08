@@ -109,6 +109,8 @@ import feedparser
 import requests
 from bs4 import BeautifulSoup
 
+import badminton_tournament_master as tournament_master
+
 JST = datetime.timezone(datetime.timedelta(hours=9))
 STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "state", "badminton_alerts_seen.json")
 STATE_RETENTION_DAYS = 30
@@ -947,6 +949,45 @@ def _build_tie_embed(items, wr_rankings, color):
     }
 
 
+# 大会マスター(2026-10-08)。main()が設定する。未設定(テスト・単体実行)なら記事Embedは従来のまま。
+_TOURNAMENT_META = None
+
+
+def set_tournament_meta(service):
+    global _TOURNAMENT_META
+    _TOURNAMENT_META = service
+
+
+def decorate_embed_with_tournament_meta(embed, article_titles):
+    """記事Embedの先頭に、BWF公式から補完した大会メタ情報(大会格・レベル・ポイント・日本選手)を付ける。
+    大会を特定できない記事には何も付けない。特定できない大会名がある場合は『確認中』の1行だけを付ける(推測しない)。
+    補完に失敗しても記事の配信は止めない。"""
+    svc = _TOURNAMENT_META
+    if svc is None:
+        return embed
+    try:
+        info = {"kind": "none"}
+        for t in article_titles:
+            info = svc.resolve(t)
+            if info["kind"] != "none":
+                break
+        title_ja, meta = tournament_master.render_meta(info, svc)
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] 大会メタ情報の補完に失敗しました(記事は従来の表示で配信します): {err}")
+        return embed
+    if not meta:
+        return embed
+    body = embed["description"]
+    if title_ja:
+        original = embed["title"][2:].strip() if embed["title"].startswith("🏸") else embed["title"]
+        head = f"{meta}{tournament_master.SEP}\n**{original}**\n"
+        embed = {**embed, "title": f"🏸 {title_ja}"[:256]}
+    else:
+        head = meta
+    embed = {**embed, "description": (head + body)[:4000]}
+    return embed
+
+
 def build_article_embeds(articles, wr_rankings, color):
     """記事群からEmbedを組み立てる(badspi/Google News共通)。同一対戦カード
     (tie_key)を検知した記事が複数あれば1通に統合し(2026-09-22追加。修正前は
@@ -961,11 +1002,11 @@ def build_article_embeds(articles, wr_rankings, color):
     for a, e in enriched:
         tie_key = _tie_group_key(e.get("details"))
         if tie_key is None:
-            embeds.append({
+            embeds.append(decorate_embed_with_tournament_meta({
                 "title": f"🏸 {a['title']}"[:256],
                 "description": render_article_description(a, wr),
                 "color": color,
-            })
+            }, [a["title"]]))
         elif tie_key not in emitted_ties:
             emitted_ties.add(tie_key)
             group_items = [(a2, e2) for a2, e2 in enriched if _tie_group_key(e2.get("details")) == tie_key]
@@ -1143,6 +1184,7 @@ def fetch_wr_rankings_detailed():
     rankings = {}
     japan_rankings = {}
     by_category = {}
+    names_ja = {}      # 欧文名(語の集合キー) → 日本語氏名。大会マスターの日本選手表示用(2026-10-08)
     for category, url in WR_RANKING_URLS.items():
         try:
             resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
@@ -1177,6 +1219,8 @@ def fetch_wr_rankings_detailed():
                 if key and key not in rankings:  # 既に(より上位の)登録があれば上書きしない
                     rankings[key] = rank
             _add_category_index(by_category.setdefault(category, {}), jp_name, alpha_name, rank)
+            if jp_name and len(re.findall(r"[A-Za-z]+", alpha_name)) >= 2:
+                names_ja.setdefault(tournament_master.token_key(alpha_name), jp_name)
             count += 1
 
             country_img = tr.select_one(".contryCell img")
@@ -1191,6 +1235,8 @@ def fetch_wr_rankings_detailed():
                 })
         japan_rankings[category] = sorted(japan_list, key=lambda p: p["rank"])
         print(f"[INFO] 世界ランキング取得({category}): {count}件(うち日本人{len(japan_list)}人)")
+    if names_ja:
+        by_category["_names_ja"] = names_ja
     return rankings, japan_rankings, by_category
 
 
@@ -2254,6 +2300,10 @@ def main():
         wr_rankings = wr_cache.get("data", {})
         print(f"[INFO] 世界ランキングのキャッシュを使用します(更新: {wr_updated_at})。")
 
+    # 大会マスター(BWF公式から補完。同じ大会・年は再利用し、必要なときだけ公式を再検証する)
+    meta_service = tournament_master.TournamentMaster(ja_names=(wr_by_category or {}).get("_names_ja", {}), now=now)
+    set_tournament_meta(meta_service)
+
     if weekly_check_time:
         state["last_weekly_ranking_check_date"] = now.strftime("%Y-%m-%d")  # 同じ週に2回走らないよう先に記録
         if not japan_rankings:
@@ -2360,6 +2410,10 @@ def main():
         else:
             print("[INFO] 配信対象の新着はありませんでした。")
 
+    if meta_service.dirty:
+        tournament_master.save_master(meta_service.master)
+    for msg in meta_service.errors:
+        print(f"[WARN] 大会マスター: {msg}")
     save_seen_state(state)
 
     if had_error:
