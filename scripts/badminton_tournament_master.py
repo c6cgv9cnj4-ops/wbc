@@ -25,6 +25,8 @@ import os
 import re
 import unicodedata
 
+import badminton_player_names as player_names
+
 MASTER_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "state", "badminton_tournament_master.json")
 ALIASES_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "badminton_event_aliases.json")
 
@@ -299,9 +301,7 @@ def parse_entry_list_text(text):
     return out
 
 
-def token_key(latin):
-    toks = re.findall(r"[A-Za-z][A-Za-z'\-]*", latin or "")
-    return " ".join(sorted(t.upper() for t in toks))
+token_key = player_names.token_key      # 欧文名の語集合キー(日本語氏名の対応表と共通)
 
 
 # ---------------------------------------------------------------- マスター本体 ----
@@ -341,13 +341,14 @@ def save_master(master, path=None):
 class TournamentMaster:
     """大会マスターの参照・検証・更新。通信は fetcher 経由(1回の実行で同じ年/ファイルは1度しか取りに行かない)。"""
 
-    def __init__(self, master=None, fetcher=None, now=None, aliases=None, ja_names=None, sponsor_words=None):
+    def __init__(self, master=None, fetcher=None, now=None, aliases=None, ja_names=None, sponsor_words=None, names=None):
         self.master = master if master is not None else load_master()
         self.fetcher = fetcher or Fetcher()
         self.now = now or datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
         self.aliases = aliases if aliases is not None else load_aliases()
         self.sponsor_words = set(sponsor_words if sponsor_words is not None else load_alias_file().get("sponsor_words", []))
-        self.ja_names = ja_names or {}          # {欧文の語集合キー(token_key): 日本語氏名}
+        # 日本語氏名の対応表(世界ランキングとは別データ。data/badminton_player_names_ja.json)。ja_names は {token_key: 氏名} 形式の差し替え用(テスト等)
+        self.names = names if names is not None else (_DictNames(ja_names) if ja_names else player_names.PlayerNames())
         self.dirty = False
         self._run_fetched = set()               # この実行で取得済みのキー(同一年・同一ファイルの再取得を防ぐ)
         self.errors = []
@@ -552,9 +553,17 @@ class TournamentMaster:
             return None
         out = []
         for p in players:
-            ja = self.ja_names.get(token_key(p["latin"]))
+            ja = self.names.lookup(p["latin"], p["gender"])
             out.append({"name": re.sub(r"\s+", "", ja) if ja else p["latin"], "gender": p["gender"], "draw": p["draw"]})
         return out
+
+
+class _DictNames:
+    def __init__(self, d):
+        self.d = d
+
+    def lookup(self, latin, gender=None):
+        return self.d.get(token_key(latin))
 
 
 def rec_key(rec):

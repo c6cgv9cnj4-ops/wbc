@@ -11,6 +11,7 @@ from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "scripts"))
+import badminton_player_names as bpn  # noqa: E402
 import badminton_tournament_master as bm  # noqa: E402
 import fetch_badminton_alerts as fb  # noqa: E402
 
@@ -19,6 +20,16 @@ NOW = dt.datetime(2026, 10, 8, 12, 0, tzinfo=JST)
 TITLE = "【アークティックオープン2026】渡邉航貴が台湾のベテラン選手に勝利！田中湧士、沖本優大も2回戦進出！＜2日目結果＞"
 ALIASES = bm.load_aliases()
 SPONSORS = bm.load_alias_file()["sponsor_words"]
+
+
+def _names():
+    d = bpn.empty_names()
+    for ja, latin, g in (("渡邉航貴", "koki watanabe", "M"), ("田中湧士", "yushi tanaka", "M")):
+        bpn.add_player(d, ja, latin, g, "https://www.badminton.or.jp/national/player/view/1", "", NOW)
+    return bpn.PlayerNames(d)
+
+
+JA_NAMES = _names()
 
 
 def fixture(name):
@@ -97,8 +108,7 @@ class FakeFetcher:
 
 def make(fetcher=None, now=NOW, master=None):
     f = fetcher or FakeFetcher()
-    svc = bm.TournamentMaster(master=master if master is not None else bm.empty_master(), fetcher=f, now=now, aliases=ALIASES, sponsor_words=SPONSORS,
-                              ja_names={bm.token_key("WATANABE Koki"): "渡邉　航貴", bm.token_key("TANAKA Yushi"): "田中湧士"})
+    svc = bm.TournamentMaster(master=master if master is not None else bm.empty_master(), fetcher=f, now=now, aliases=ALIASES, sponsor_words=SPONSORS, names=JA_NAMES)
     return svc, f
 
 

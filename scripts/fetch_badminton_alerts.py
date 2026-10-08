@@ -1184,7 +1184,6 @@ def fetch_wr_rankings_detailed():
     rankings = {}
     japan_rankings = {}
     by_category = {}
-    names_ja = {}      # 欧文名(語の集合キー) → 日本語氏名。大会マスターの日本選手表示用(2026-10-08)
     for category, url in WR_RANKING_URLS.items():
         try:
             resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
@@ -1219,8 +1218,6 @@ def fetch_wr_rankings_detailed():
                 if key and key not in rankings:  # 既に(より上位の)登録があれば上書きしない
                     rankings[key] = rank
             _add_category_index(by_category.setdefault(category, {}), jp_name, alpha_name, rank)
-            if jp_name and len(re.findall(r"[A-Za-z]+", alpha_name)) >= 2:
-                names_ja.setdefault(tournament_master.token_key(alpha_name), jp_name)
             count += 1
 
             country_img = tr.select_one(".contryCell img")
@@ -1235,8 +1232,6 @@ def fetch_wr_rankings_detailed():
                 })
         japan_rankings[category] = sorted(japan_list, key=lambda p: p["rank"])
         print(f"[INFO] 世界ランキング取得({category}): {count}件(うち日本人{len(japan_list)}人)")
-    if names_ja:
-        by_category["_names_ja"] = names_ja
     return rankings, japan_rankings, by_category
 
 
@@ -2301,7 +2296,7 @@ def main():
         print(f"[INFO] 世界ランキングのキャッシュを使用します(更新: {wr_updated_at})。")
 
     # 大会マスター(BWF公式から補完。同じ大会・年は再利用し、必要なときだけ公式を再検証する)
-    meta_service = tournament_master.TournamentMaster(ja_names=(wr_by_category or {}).get("_names_ja", {}), now=now)
+    meta_service = tournament_master.TournamentMaster(now=now)
     set_tournament_meta(meta_service)
 
     if weekly_check_time:

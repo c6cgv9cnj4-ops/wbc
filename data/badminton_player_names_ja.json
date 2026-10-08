@@ -1,0 +1,404 @@
+{
+ "ambiguous": {},
+ "players": {
+  "AISO MIKOTO": {
+   "gender": "F",
+   "ja": "相磯美心",
+   "latin": "mikoto aiso",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/165",
+   "source_url": "https://www.badminton.or.jp/national/player/view/165",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "AKANE YAMAGUCHI": {
+   "gender": "F",
+   "ja": "山口茜",
+   "latin": "akane yamaguchi",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/60",
+   "source_url": "https://www.badminton.or.jp/national/player/view/60",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "AKECHI HINA": {
+   "gender": "F",
+   "ja": "明地陽菜",
+   "latin": "hina akechi",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/95",
+   "source_url": "https://www.badminton.or.jp/national/player/view/95",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "AKIRA KOGA": {
+   "gender": "M",
+   "ja": "古賀輝",
+   "latin": "akira koga",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/35",
+   "source_url": "https://www.badminton.or.jp/national/player/view/35",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "FUKUSHIMA YUKI": {
+   "gender": "F",
+   "ja": "福島由紀",
+   "latin": "yuki fukushima",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/71",
+   "source_url": "https://www.badminton.or.jp/national/player/view/71",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "GUNJI RIKO": {
+   "gender": "F",
+   "ja": "郡司莉子",
+   "latin": "riko gunji",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/91",
+   "source_url": "https://www.badminton.or.jp/national/player/view/91",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "HARA NANAKO": {
+   "gender": "F",
+   "ja": "原菜那子",
+   "latin": "nanako hara",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/163",
+   "source_url": "https://www.badminton.or.jp/national/player/view/163",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "HARUKI KAWABE": {
+   "gender": "M",
+   "ja": "川邊悠陽",
+   "latin": "haruki kawabe",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/158",
+   "source_url": "https://www.badminton.or.jp/national/player/view/158",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "HIROKAMI RUI": {
+   "gender": "F",
+   "ja": "廣上瑠依",
+   "latin": "rui hirokami",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/142",
+   "source_url": "https://www.badminton.or.jp/national/player/view/142",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "HIROKI MIDORIKAWA": {
+   "gender": "M",
+   "ja": "緑川大輝",
+   "latin": "hiroki midorikawa",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/43",
+   "source_url": "https://www.badminton.or.jp/national/player/view/43",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "HIROKI NISHI": {
+   "gender": "M",
+   "ja": "西大輝",
+   "latin": "hiroki nishi",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/6",
+   "source_url": "https://www.badminton.or.jp/national/player/view/6",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "HIROKI OKAMURA": {
+   "gender": "M",
+   "ja": "岡村洋輝",
+   "latin": "hiroki okamura",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/37",
+   "source_url": "https://www.badminton.or.jp/national/player/view/37",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "HOBARA SAYAKA": {
+   "gender": "F",
+   "ja": "保原彩夏",
+   "latin": "sayaka hobara",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/100",
+   "source_url": "https://www.badminton.or.jp/national/player/view/100",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "HOKI TAKURO": {
+   "gender": "M",
+   "ja": "保木卓朗",
+   "latin": "takuro hoki",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/1",
+   "source_url": "https://www.badminton.or.jp/national/player/view/1",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "HYUGA TAKANO": {
+   "gender": "M",
+   "ja": "髙野日向",
+   "latin": "hyuga takano",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/156",
+   "source_url": "https://www.badminton.or.jp/national/player/view/156",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "IWANAGA RIN": {
+   "gender": "F",
+   "ja": "岩永鈴",
+   "latin": "rin iwanaga",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/11",
+   "source_url": "https://www.badminton.or.jp/national/player/view/11",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "KAKERU KUMAGAI": {
+   "gender": "M",
+   "ja": "熊谷翔",
+   "latin": "kakeru kumagai",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/54",
+   "source_url": "https://www.badminton.or.jp/national/player/view/54",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "KAMATA NIJIKA": {
+   "gender": "F",
+   "ja": "鎌田虹花",
+   "latin": "nijika kamata",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/515",
+   "source_url": "https://www.badminton.or.jp/national/player/view/515",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "KAZUYA MINAMOTO": {
+   "gender": "M",
+   "ja": "南本和哉",
+   "latin": "kazuya minamoto",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/514",
+   "source_url": "https://www.badminton.or.jp/national/player/view/514",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "KENTA MATSUKAWA": {
+   "gender": "M",
+   "ja": "松川健大",
+   "latin": "kenta matsukawa",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/159",
+   "source_url": "https://www.badminton.or.jp/national/player/view/159",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "KENTA NISHIMOTO": {
+   "gender": "M",
+   "ja": "西本拳太",
+   "latin": "kenta nishimoto",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/9",
+   "source_url": "https://www.badminton.or.jp/national/player/view/9",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "KIE NAKANISHI": {
+   "gender": "F",
+   "ja": "中西貴映",
+   "latin": "kie nakanishi",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/10",
+   "source_url": "https://www.badminton.or.jp/national/player/view/10",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "KIYOSE RIKO": {
+   "gender": "F",
+   "ja": "清瀬璃子",
+   "latin": "riko kiyose",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/162",
+   "source_url": "https://www.badminton.or.jp/national/player/view/162",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "KOBAYASHI YUGO": {
+   "gender": "M",
+   "ja": "小林優吾",
+   "latin": "yugo kobayashi",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/3",
+   "source_url": "https://www.badminton.or.jp/national/player/view/3",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "KODAI NARAOKA": {
+   "gender": "M",
+   "ja": "奈良岡功大",
+   "latin": "kodai naraoka",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/5",
+   "source_url": "https://www.badminton.or.jp/national/player/view/5",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "KOKI WATANABE": {
+   "gender": "M",
+   "ja": "渡邉航貴",
+   "latin": "koki watanabe",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/30",
+   "source_url": "https://www.badminton.or.jp/national/player/view/30",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "KYOHEI YAMASHITA": {
+   "gender": "M",
+   "ja": "山下恭平",
+   "latin": "kyohei yamashita",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/42",
+   "source_url": "https://www.badminton.or.jp/national/player/view/42",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "MANAMI SUIZU": {
+   "gender": "F",
+   "ja": "水津愛美",
+   "latin": "manami suizu",
+   "retrieved_at": "2026-10-08T15:59:07.621555+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/145",
+   "source_url": "https://www.badminton.or.jp/national/player/view/145",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "MATSUMOTO MAYU": {
+   "gender": "F",
+   "ja": "松本麻佑",
+   "latin": "mayu matsumoto",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/77",
+   "source_url": "https://www.badminton.or.jp/national/player/view/77",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "MATSUYAMA NAMI": {
+   "gender": "F",
+   "ja": "松山奈未",
+   "latin": "nami matsuyama",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/4",
+   "source_url": "https://www.badminton.or.jp/national/player/view/4",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "MAYA TAGUCHI": {
+   "gender": "F",
+   "ja": "田口真彩",
+   "latin": "maya taguchi",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/265",
+   "source_url": "https://www.badminton.or.jp/national/player/view/265",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "MIYASHITA REI": {
+   "gender": "M",
+   "ja": "宮下怜",
+   "latin": "rei miyashita",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/157",
+   "source_url": "https://www.badminton.or.jp/national/player/view/157",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "MIYAZAKI TOMOKA": {
+   "gender": "F",
+   "ja": "宮崎友花",
+   "latin": "tomoka miyazaki",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/92",
+   "source_url": "https://www.badminton.or.jp/national/player/view/92",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "MIYU TAKAHASHI": {
+   "gender": "F",
+   "ja": "髙橋美優",
+   "latin": "miyu takahashi",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/97",
+   "source_url": "https://www.badminton.or.jp/national/player/view/97",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "MOMOHA NIIMI": {
+   "gender": "F",
+   "ja": "新見桃芭",
+   "latin": "momoha niimi",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/164",
+   "source_url": "https://www.badminton.or.jp/national/player/view/164",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "NAKADE SUMIRE": {
+   "gender": "F",
+   "ja": "中出すみれ",
+   "latin": "Sumire Nakade",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/496",
+   "source_url": "https://www.badminton.or.jp/national/player/view/496",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "NATSU SAITO": {
+   "gender": "F",
+   "ja": "齋藤夏",
+   "latin": "natsu saito",
+   "retrieved_at": "2026-10-08T15:59:07.621555+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/90",
+   "source_url": "https://www.badminton.or.jp/national/player/view/90",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "NAYU SHIRAKAWA": {
+   "gender": "F",
+   "ja": "白川菜結",
+   "latin": "Nayu Shirakawa",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/495",
+   "source_url": "https://www.badminton.or.jp/national/player/view/495",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "NOMURA TAKUMI": {
+   "gender": "M",
+   "ja": "野村拓海",
+   "latin": "takumi nomura",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/13",
+   "source_url": "https://www.badminton.or.jp/national/player/view/13",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "OKIMOTO YUDAI": {
+   "gender": "M",
+   "ja": "沖本優大",
+   "latin": "yudai okimoto",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/53",
+   "source_url": "https://www.badminton.or.jp/national/player/view/53",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "RIKI TAKEI": {
+   "gender": "M",
+   "ja": "武井凜生",
+   "latin": "riki takei",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/52",
+   "source_url": "https://www.badminton.or.jp/national/player/view/52",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "SHIMOGAMI YUICHI": {
+   "gender": "M",
+   "ja": "霜上雄一",
+   "latin": "yuichi shimogami",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/12",
+   "source_url": "https://www.badminton.or.jp/national/player/view/12",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "TANAKA YUSHI": {
+   "gender": "M",
+   "ja": "田中湧士",
+   "latin": "yushi tanaka",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/49",
+   "source_url": "https://www.badminton.or.jp/national/player/view/49",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  },
+  "WATANABE YUZUNO": {
+   "gender": "F",
+   "ja": "渡邉柚乃",
+   "latin": "yuzuno watanabe",
+   "retrieved_at": "2026-10-08T15:49:53.728806+09:00",
+   "snapshot_url": "https://web.archive.org/web/20261005202856/https://www.badminton.or.jp/national/player/view/160",
+   "source_url": "https://www.badminton.or.jp/national/player/view/160",
+   "verified_at": "2026-10-08T16:09:59.459394+09:00"
+  }
+ },
+ "schema_version": 1,
+ "source": "日本バドミントン協会(badminton.or.jp)日本代表選手ページ",
+ "updated_at": "2026-10-08T16:09:59.459394+09:00"
+}
