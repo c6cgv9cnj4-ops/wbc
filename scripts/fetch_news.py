@@ -82,6 +82,7 @@ import discord_style
 import kitamoto_origin
 import local_news_filter
 import mastodon_anzn
+import gemini_guard
 import news_alerts
 
 USER_AGENT = (
@@ -1107,7 +1108,57 @@ def fetch_yahoo_pickup_body(url):
     return text[:NATIONAL_NEWS_BODY_MAX_CHARS] if text else None
 
 
-def summarize_national_news(client, items):
+JST_TZ = datetime.timezone(datetime.timedelta(hours=9))
+
+
+def record_gemini_failure(base_kind, channel, target, err, delivery, held=None):
+    """Gemini失敗を通知用に整理して記録する(2026-10-09)。
+    通知に出す: HTTPステータス・失敗した処理の回数・保留した記事数・再試行方針・次回再試行の見込み。
+    時刻は『待機時刻が分かっている場合(Googleの待ち時間に基づく)』だけ表示し、分からないときは出さない。
+    原因別にkindを分け(例: gemini_national:quota)、エラー内容が変わったときは12時間抑止の対象外にする。
+    生のエラー全文・記事本文・APIキーは出さない。"""
+    lines = []
+    code = status = None
+    if isinstance(err, gemini_guard.GeminiBlocked):
+        code, status = 429, "RESOURCE_EXHAUSTED"
+        lines.append("失敗: API呼び出しなし（利用上限の待機中のため送信していません）")
+        policy = "利用上限の待ち時間が終わるまでAPIを呼びません（無駄な再試行をしない）"
+        nxt = f"{err.until.astimezone(JST_TZ):%H:%M} JST以降の実行で再開（Googleが示した待ち時間に基づく目安）"
+    elif isinstance(err, gemini_guard.GeminiCallError):
+        info = err.info
+        code, status = info.code, info.status
+        waited = f"、待機{int(err.waited)}秒" if err.waited else ""
+        lines.append(f"失敗: 要約処理1回（API呼び出し{err.attempts}回{waited}）")
+        if info.kind == "quota":
+            wait_text = f"（{gemini_guard.format_duration(info.retry_after)}）" if info.retry_after is not None else ""
+            policy = f"利用上限のため再試行せず、待ち時間{wait_text}が終わるまでAPIを呼びません"
+            if err.backoff_until:
+                nxt = f"{err.backoff_until.astimezone(JST_TZ):%H:%M} JST以降の実行で再開" + ("（Googleが示した待ち時間に基づく目安）" if info.retry_after is not None else "（待ち時間が示されなかったため当方の既定で控えます）")
+            else:
+                nxt = None
+        elif info.kind in ("rate", "transient"):
+            policy = f"待ち時間を置いて最大{gemini_guard.MAX_RETRIES}回まで再試行しましたが回復しませんでした"
+            nxt = "次回の定期実行（通常30分ごと）。時刻は確定できません"
+        else:
+            policy = "再試行しても直らないエラーのため再試行していません"
+            nxt = "次回の定期実行（通常30分ごと）。同じ原因なら再度失敗します"
+    else:
+        lines.append("失敗: 要約処理1回（応答を処理できませんでした）")
+        policy = "再試行は次回の定期実行で行います"
+        nxt = "次回の定期実行（通常30分ごと）。時刻は確定できません"
+    if code:
+        lines.append(f"HTTP {code}" + (f" {status}" if status else ""))
+    if held is not None:
+        lines.append(f"保留: 記事{held}件（既読にせず、次回以降の実行で再処理します）")
+    lines.append(f"再試行方針: {policy}")
+    if nxt:
+        lines.append(f"次回の再試行: {nxt}")
+    suffix = "quota" if code == 429 else (f"http{code}" if code else "other")
+    detail = f"Gemini APIエラー HTTP {code}: {status}" if code else "Gemini応答の処理に失敗"
+    news_alerts.record(f"{base_kind}:{suffix}", channel, target, detail, delivery, extra=lines)
+
+
+def summarize_national_news(client, items, guard=None):
     """タイトル+Yahoo pickup本文リード文を渡し、Geminiに重要トピック4〜6件の
     選定・カテゴリ分け・3行の事実要約を依頼する。本文が取得できなかった記事は
     候補から除外し、本文に無い情報は推測で補わない指示を明示している。
@@ -1139,8 +1190,16 @@ Yahoo!ニュースが無料公開しているリード文(本文の一部)が付
 [{{"index": 0, "category": "政治", "headline": "見出し",
    "summary_lines": ["1行目", "2行目", "3行目"]}}]"""
 
+    guard = guard or gemini_guard.Guard({})
+    guard.last_error = None
     try:
-        resp = client.models.generate_content(model=GEMINI_MODEL_NAME, contents=prompt)
+        # 2026-10-09: 再試行・待機は gemini_guard に任せる(429の待ち時間を尊重し、日次上限では呼び出しを控える)
+        resp = guard.call(lambda: client.models.generate_content(model=GEMINI_MODEL_NAME, contents=prompt))
+    except (gemini_guard.GeminiBlocked, gemini_guard.GeminiCallError) as err:
+        print(f"[WARN] Gemini主要ニュース要約を実行できませんでした: {news_alerts.short_error(err)}")
+        guard.last_error = err
+        return None
+    try:
         text = resp.text.strip()
         text = re.sub(r"^```(json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
         parsed = json.loads(text)
@@ -1149,10 +1208,8 @@ Yahoo!ニュースが無料公開しているリード文(本文の一部)が付
     except Exception as err:  # noqa: BLE001
         # 2026-09-26: Gemini処理そのものの失敗は None を返し、「正常に処理して0件」([])と区別する
         # (呼び出し側で既送信記録を取り消し、記事を次回以降に再試行させるため)。
-        print(f"[WARN] Gemini主要ニュース要約に失敗しました: {err}")
-        news_alerts.record("gemini_national", "news", "全国主要ニュース(Gemini要約)",
-                           f"Gemini APIエラー {news_alerts.short_error(err)}",
-                           "スキップ(記事は既送信扱いにせず次回以降に再試行)")
+        print(f"[WARN] Gemini主要ニュース要約の応答を解析できませんでした: {news_alerts.short_error(err)}")
+        guard.last_error = err
         return None
 
     results = []
@@ -1172,7 +1229,7 @@ Yahoo!ニュースが無料公開しているリード文(本文の一部)が付
     return results
 
 
-def build_national_news_message(client, state, now):
+def build_national_news_message(client, state, now, guard=None):
     """新着が1件も無ければ(None, [])を返す(Discordへ空更新を送らないため)。
     戻り値は (message_or_None, sports_items) のタプル。
     sports_itemsは、一般ニュースフィードに混入していたスポーツ記事(#webhook_news
@@ -1209,6 +1266,17 @@ def build_national_news_message(client, state, now):
     if not top_general:
         return None, sports_items
 
+    guard = guard or gemini_guard.Guard(state)
+    blocked = guard.blocked()
+    if blocked:
+        # 2026-10-09: Geminiが待機中(利用上限の待ち時間内)。本文取得もAPI呼び出しもせず、記事は既読にしないで保留する
+        for item in top_general:
+            state.pop(normalize_url(item["url"]), None)
+        print(f"[WARN] Geminiが待機中のため全国主要ニュースの要約をスキップします({blocked[0].astimezone(JST_TZ):%H:%M} JST以降に再開)。記事{len(top_general)}件は保留。")
+        record_gemini_failure("gemini_national", "news", "全国主要ニュース(Gemini要約)",
+                              gemini_guard.GeminiBlocked(*blocked), "スキップ(この回の全国ニュースは配信されません。記事は保留)", held=len(top_general))
+        return None, sports_items
+
     # 本文取得はネットワークコストがかかるため、候補数を上限で絞る
     # (新しい記事を優先。RSSは新着順で返ってくる)。
     candidates = top_general[:NATIONAL_NEWS_CANDIDATE_LIMIT]
@@ -1218,16 +1286,20 @@ def build_national_news_message(client, state, now):
     for item in candidates:
         item["body"] = fetch_yahoo_pickup_body(item["url"])
 
-    summarized = summarize_national_news(client, candidates)
+    summarized = summarize_national_news(client, candidates, guard)
     if summarized is None:
         # 2026-09-26: Gemini失敗時は、dedupe_new_items()が付けた既送信記録を取り消す
         # (取り消さないとGemini復旧後も再配信されず記事が失われるため)。
         # 正常に0件だった場合([])は従来どおり記録を残し、無限に再試行しない。
         for item in top_general:
             state.pop(normalize_url(item["url"]), None)
+        record_gemini_failure("gemini_national", "news", "全国主要ニュース(Gemini要約)", getattr(guard, "last_error", None),
+                              "スキップ(この回の全国ニュースは配信されません。記事は保留)", held=len(top_general))
+        return None, sports_items
+    news_alerts.clear(state, "gemini_national")       # 呼び出しに成功=復旧。再発したらすぐ通知できるよう抑止を解除する
     if not summarized:
         print("[WARN] 主要ニュースの要約が0件だったため、この回の配信をスキップします。")
-        news_alerts.record("gemini_national", "news", "全国主要ニュース(Gemini要約)",
+        news_alerts.record("gemini_national:empty", "news", "全国主要ニュース(Gemini要約)",
                            "要約が0件", "スキップ(この回の全国ニュースは配信されません)")
         return None, sports_items
 
@@ -1262,7 +1334,7 @@ def _market_signature(nikkei, usdjpy, jgb):
     return json.dumps(parts, ensure_ascii=False, sort_keys=True)
 
 
-def build_market_message(state, now, gemini_client=None):
+def build_market_message(state, now, gemini_client=None, guard=None):
     """株価は常に送る。経済ニュースは新着があるときだけ追記する。
     2026-08-28、細川さんの指定により、日経の取引時間中か否かで表示する
     指数・先物のセットを切り替える。
@@ -1356,11 +1428,13 @@ def build_market_message(state, now, gemini_client=None):
     if biz_new:
         # 2026-09-25追加: 同じ材料の記事をグループ化し、カテゴリ・重要度順に整理する
         # (market_news_curation.py)。失敗時は None が返り、従来の箇条書きに戻す。
-        curated = market_news_curation.curate(biz_new, gemini_client, GEMINI_MODEL_NAME)
+        guard = guard or gemini_guard.Guard(state)
+        curated = market_news_curation.curate(biz_new, gemini_client, GEMINI_MODEL_NAME, caller=guard.call)
         if curated is None and market_news_curation.LAST_ERROR:
-            news_alerts.record("gemini_market", "market", "経済ニュースの材料整理(Gemini)",
-                               f"Gemini APIエラー {news_alerts.short_error(market_news_curation.LAST_ERROR)}",
-                               "継続(従来の箇条書き表示で配信)")
+            record_gemini_failure("gemini_market", "market", "経済ニュースの材料整理(Gemini)", market_news_curation.LAST_ERROR,
+                                  "継続(従来の箇条書き表示で配信)")
+        elif curated is not None:
+            news_alerts.clear(state, "gemini_market")
         if curated:
             lines.extend(market_news_curation.render_groups(curated))
         else:
@@ -1635,6 +1709,7 @@ def main():
     state = load_seen_state()
     state = prune_old_entries(state, now)
     check_dispatcher_gap(state, now)
+    gemini_guard_obj = gemini_guard.Guard(state)     # 2026-10-09: 全国ニュース要約・経済ニュース整理で共有(待機状態はstateに保存)
 
     had_error = False
 
@@ -1679,7 +1754,7 @@ def main():
     # 全国系(#webhook_news): 主要ニュース(Yahoo!トップピックス)のみ。
     if news_webhook:
         keys_before_national = set(state)
-        national_message, national_sports_items = build_national_news_message(gemini_client, state, now)
+        national_message, national_sports_items = build_national_news_message(gemini_client, state, now, gemini_guard_obj)
         if national_message:
             print("=== 全国ニュースメッセージ(新着あり) ===")
             print(national_message)
@@ -1697,7 +1772,7 @@ def main():
 
     if market_webhook:
         keys_before_market = set(state)
-        market_message, skip_as_duplicate = build_market_message(state, now, gemini_client)
+        market_message, skip_as_duplicate = build_market_message(state, now, gemini_client, gemini_guard_obj)
         print("=== マーケットメッセージ ===")
         print(market_message)
         if skip_as_duplicate:
