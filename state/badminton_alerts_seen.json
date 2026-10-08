@@ -90,7 +90,8 @@
     "https://www.badspi.jp/202610061050/?utm_source=rss&utm_medium=rss&utm_campaign=202610061050": "2026-10-06T11:30:56.153351+09:00",
     "https://www.badspi.jp/202610062147/?utm_source=rss&utm_medium=rss&utm_campaign=202610062147": "2026-10-07T02:58:51.512449+09:00",
     "https://www.badspi.jp/202610060955/?utm_source=rss&utm_medium=rss&utm_campaign=202610060955": "2026-10-07T10:48:38.472094+09:00",
-    "https://www.badspi.jp/202610081103/?utm_source=rss&utm_medium=rss&utm_campaign=202610081103": "2026-10-08T11:16:27.482111+09:00"
+    "https://www.badspi.jp/202610081103/?utm_source=rss&utm_medium=rss&utm_campaign=202610081103": "2026-10-08T11:16:27.482111+09:00",
+    "https://www.badspi.jp/202610081209/?utm_source=rss&utm_medium=rss&utm_campaign=202610081209": "2026-10-08T13:37:03.490758+09:00"
   },
   "seen_national_summaries": {
     "https://www.sposoku.com/wakabacup-badminton/::優勝：岡垣ジュニア(福岡県)準優勝：Selfish(神奈川県)第三位：shinshin(石川県)、F.Flash(埼玉県)": "2026-10-06T04:48:47.421266+09:00",
@@ -109,12 +110,6 @@
     "https://www.sposoku.com/interhigh-badminton/::優勝：上野・伴野(ふたば未来学園)準優勝：河村・星野(埼玉栄)第三位：永渕・西川(佐賀女)、橋村・阿波(柳井商工・柳井)": "2026-10-06T04:48:47.421266+09:00"
   },
   "seen_gnews_urls": {
-    "https://news.google.com/rss/articles/CBMibkFVX3lxTFBqMXNWNi1GdGprS3F2V2dJUjRIc1BFYkxWdHZLZnhURlBNTHVTRVN4ZG1LZXd4Wk9NR0drUC0tWU52aUZ5TnFTWHhMVWJTczdPai15UTgxQjBzZDY4TTJmQ253ODNTWjRINUs5YWJ3?oc=5": "2026-09-08T12:09:48.139662+09:00",
-    "https://news.google.com/rss/articles/CBMie0FVX3lxTE9YWTlOd09NMmUxWEh0NVlwRlhXczNrMkczMTYwSDE5ZVYyZncxVVlnQ28yRkJyWmJ6ampzWkxzTXFfR2NzdUVYUUxrRDdJM1pRYVBfNk9SSGpmQjJwR0xVQmNaUlQ4V0dJS3dpRlVCdU9PNEdJelVfSmNMMA?oc=5": "2026-09-08T12:09:48.139662+09:00",
-    "https://news.google.com/rss/articles/CBMic0FVX3lxTFBvUEdoVWVGMGkyTEZxTjdTNnA2TTBnYW9GcmVGME5JWFNtZUxsakFpRTJ1UmFsX1hfWlc4Z0FiRXRmRWZvU2lsYTBiNS1oZTUxaklOUXBfb1RmOGpBeHBVWEduUEJabjZGMGtNUXVHaGVXQzg?oc=5": "2026-09-08T12:09:48.139662+09:00",
-    "https://news.google.com/rss/articles/CBMibkFVX3lxTE1hN2ZqYldNR2hETjFSbFh2SzRUQTV0R2Yxb0tPZ0p1OHl6Rkg5ZDVQYUtVQU9CMFhWZVB1UHdsV3NNMWZqNEM3V0lQSnQ5QUZqYjFxWDU5TWVQdWEyM0dXUzF3VXRPTWtsT2U5eXR3?oc=5": "2026-09-08T12:09:48.139662+09:00",
-    "https://news.google.com/rss/articles/CBMie0FVX3lxTE9KMFA4dkJtbW5FM0didWRZOFFxdUJCc2NmazNxZmRldkxvTFJMOXlZZjlQTENEMTBDX3N2cFk1NGJtdkN6aG9rdXVZbTJ6YlRxbzdBZ3c2ZkxsMG1aVWo5cnMyeWxyLWdIRFJ4LW1hZkk5cmtJWXlBMFRrcw?oc=5": "2026-09-08T12:09:48.139662+09:00",
-    "https://news.google.com/rss/articles/CBMif0FVX3lxTFBlVkluLUd0SWhhNXhaNXRPVGRSNV9jUGNfYURmVWtDaG5HdzkxczZsTXY5dkp3QzBwWEVXWmZsNnJ3eUNnZlFRc3RnazVwVk8zUGlTOVNvRzlqeXF6b3VDSXh3NDFJOG5KVW9Qc0hrRlh1MjdrOTZhSWpGRFNEYVE?oc=5": "2026-09-08T12:09:48.139662+09:00",
     "https://news.google.com/rss/articles/CBMiW0FVX3lxTE45YWFMYWNnc24wRXJxN0lrbWZucnVuX05WQzBjVGJOLUJBc2V3MzlWUzdtNXZRa3BQaWtvQWR4N0hxMUJ5TURtVG1HbWk3aXFPbVQ1UnhLLW1HX0k?oc=5": "2026-09-08T17:04:46.934983+09:00",
     "https://news.google.com/rss/articles/CBMiXEFVX3lxTE5IRXhDT1BKNjJZa1lXOWI4WVB6cVJzY0ZYaXo4OVFTWU5rWFpsa1hPZUN3cUNHTjVLYVl4cWhQTE1pUHYxN2xNczJ6cDVvZ1paTTFQZjVFOXM2NjlC?oc=5": "2026-09-08T17:04:46.934983+09:00",
     "https://news.google.com/rss/articles/CBMiVEFVX3lxTE9NYm5OdE5DMnQ0N19TZ2NqUVZtczRIR1JaYUZQb28wSXlQT0NYcEd6TWVnTEw5YlpqMFluaEh6d2ZpTlIxMGxQazBRQ3dha2k2MEhuQg?oc=5": "2026-09-09T02:05:04.039054+09:00",
