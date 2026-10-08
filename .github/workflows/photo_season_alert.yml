@@ -24,7 +24,7 @@ jobs:
           python-version: "3.11"
 
       - name: 依存パッケージをインストール
-        run: pip install requests
+        run: pip install requests beautifulsoup4
 
       - name: 見頃の関東カメラスポットを抽出してDiscordへ通知
         env:
