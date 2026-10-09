@@ -1111,6 +1111,16 @@ def fetch_yahoo_pickup_body(url):
 JST_TZ = datetime.timezone(datetime.timedelta(hours=9))
 
 
+def _next_retry_text(until, basis):
+    """次回の再試行の見込み(通知用)。日次境界は推定であり回復を保証しないことを必ず添える。"""
+    t = f"{until.astimezone(JST_TZ):%H:%M} JST以降の実行で再試行"
+    if "日次境界" in basis:
+        return t + "（太平洋時間0時の推定。回復は保証されません）"
+    if basis:
+        return t + f"（{basis}）"
+    return t
+
+
 def record_gemini_failure(base_kind, channel, target, err, delivery, held=None):
     """Gemini失敗を通知用に整理して記録する(2026-10-09)。
     通知に出す: HTTPステータス・失敗した処理の回数・保留した記事数・再試行方針・次回再試行の見込み。
@@ -1123,7 +1133,7 @@ def record_gemini_failure(base_kind, channel, target, err, delivery, held=None):
         code, status = 429, "RESOURCE_EXHAUSTED"
         lines.append("失敗: API呼び出しなし（利用上限の待機中のため送信していません）")
         policy = "利用上限の待ち時間が終わるまでAPIを呼びません（無駄な再試行をしない）"
-        nxt = f"{err.until.astimezone(JST_TZ):%H:%M} JST以降の実行で再開（Googleが示した待ち時間に基づく目安）"
+        nxt = _next_retry_text(err.until, getattr(err, "basis", ""))
     elif isinstance(err, gemini_guard.GeminiCallError):
         info = err.info
         code, status = info.code, info.status
@@ -1132,10 +1142,7 @@ def record_gemini_failure(base_kind, channel, target, err, delivery, held=None):
         if info.kind == "quota":
             wait_text = f"（{gemini_guard.format_duration(info.retry_after)}）" if info.retry_after is not None else ""
             policy = f"利用上限のため再試行せず、待ち時間{wait_text}が終わるまでAPIを呼びません"
-            if err.backoff_until:
-                nxt = f"{err.backoff_until.astimezone(JST_TZ):%H:%M} JST以降の実行で再開" + ("（Googleが示した待ち時間に基づく目安）" if info.retry_after is not None else "（待ち時間が示されなかったため当方の既定で控えます）")
-            else:
-                nxt = None
+            nxt = _next_retry_text(err.backoff_until, getattr(err, "basis", "")) if err.backoff_until else None
         elif info.kind in ("rate", "transient"):
             policy = f"待ち時間を置いて最大{gemini_guard.MAX_RETRIES}回まで再試行しましたが回復しませんでした"
             nxt = "次回の定期実行（通常30分ごと）。時刻は確定できません"

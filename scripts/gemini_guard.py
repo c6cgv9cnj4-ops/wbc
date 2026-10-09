@@ -21,13 +21,29 @@ import datetime
 import re
 import time
 
-BACKOFF_PREFIX = "_gemini_backoff:"       # state キー。値はISO日時(この時刻まで呼び出さない)。サフィックスは理由(quota)
+try:
+    from zoneinfo import ZoneInfo
+    _PACIFIC = ZoneInfo("America/Los_Angeles")
+except Exception:  # noqa: BLE001  時刻帯データが無い環境では下の既定値で動く
+    _PACIFIC = None
+
+# 日次上限の境界(2026-10-09 B案)。クォータが『太平洋時間0時』でリセットされるかは【未確認】であり、
+# 境界は推定値にすぎない。回復を保証する時刻ではない(境界で再試行して失敗すれば、次の境界まで待つだけ)。
+# 太平洋時間0時のJST時刻は夏時間(3/9〜11/1頃)は16:00、冬時間は17:00。時刻帯データが無い場合は冬時間側(17:00)に倒す。
+# 17:00は夏時間でもリセット後になるため、待ちが最大1時間延びるだけで回復を取り逃がさない。
+FALLBACK_BOUNDARY_JST_HOUR = 17
+BACKOFF_PREFIX = "_gemini_backoff:"
+BASIS_PREFIX = "_gemini_backoff_basis:"       # state キー。値はISO日時(この時刻まで呼び出さない)。サフィックスは理由(quota)
 MAX_RETRIES = 2
 BASE_DELAY_SECONDS = 4.0
 MAX_SINGLE_WAIT_SECONDS = 60.0
 WAIT_BUDGET_SECONDS = 120.0
 DEFAULT_QUOTA_BACKOFF_MINUTES = 60        # 日次上限なのに待ち時間が返らなかったときの控え時間(Googleの案内ではなく当方の方針)
 JST = datetime.timezone(datetime.timedelta(hours=9))
+BASIS_RETRY_INFO = "Googleの待ち時間(境界より前のため採用)"
+BASIS_BOUNDARY = "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)"
+BASIS_DEFAULT = "既定の控え時間(Googleの待ち時間なし。境界より前)"
+BASIS_MINUTE = "分あたり上限のGoogle待ち時間(日次境界は適用しない)"
 
 _TRANSIENT_STATUS = {"UNAVAILABLE", "DEADLINE_EXCEEDED", "INTERNAL"}
 
@@ -42,12 +58,13 @@ class ErrorInfo:
 
 
 class GeminiBlocked(Exception):
-    """待機中のため呼び出しを行わなかった。"""
+    """待機中のため呼び出しを行わなかった。basis は再試行時刻の根拠(推定かどうか)。"""
 
-    def __init__(self, until, reason="quota"):
+    def __init__(self, until, reason="quota", basis=""):
         super().__init__(f"Gemini待機中: {until.isoformat()}まで({reason})")
         self.until = until
         self.reason = reason
+        self.basis = basis
         self.info = ErrorInfo("quota", 429, "RESOURCE_EXHAUSTED", daily=True)
         self.attempts = 0
         self.waited = 0.0
@@ -56,13 +73,14 @@ class GeminiBlocked(Exception):
 class GeminiCallError(Exception):
     """再試行しても成功しなかった(または再試行しても無駄な)失敗。"""
 
-    def __init__(self, info, attempts, waited, original, backoff_until=None):
+    def __init__(self, info, attempts, waited, original, backoff_until=None, basis=""):
         super().__init__(f"Gemini呼び出し失敗 code={info.code} status={info.status} kind={info.kind} attempts={attempts}")
         self.info = info
         self.attempts = attempts
         self.waited = waited
         self.original = original
         self.backoff_until = backoff_until
+        self.basis = basis
 
 
 # ---------------------------------------------------------------- エラーの分類 ----
@@ -122,9 +140,11 @@ def classify(err):
         status = m.group(1) if m else None
     retry_after = parse_retry_after(err)
     if code == 429 or status == "RESOURCE_EXHAUSTED":
-        daily = "PerDay" in text
+        daily = "PerDay" in text                       # quotaId の GenerateRequestsPerDay... (日次上限)
+        # 日次上限は待機扱い(境界ロジック)。分あたり上限は短ければ再試行、長ければ待機扱い(境界は適用しない)
         long_wait = retry_after is not None and retry_after > MAX_SINGLE_WAIT_SECONDS
-        return ErrorInfo("quota" if (daily or long_wait) else "rate", 429, status or "RESOURCE_EXHAUSTED", retry_after, daily)
+        kind = "quota" if (daily or long_wait) else "rate"
+        return ErrorInfo(kind, 429, status or "RESOURCE_EXHAUSTED", retry_after, daily)
     low = text.lower()
     name = type(err).__name__.lower()
     if (code in (500, 502, 503, 504) or status in _TRANSIENT_STATUS or "timeout" in name or "timed out" in low
@@ -144,6 +164,38 @@ def format_duration(seconds):
     return f"約{s}秒"
 
 
+# ---------------------------------------------------------------- 日次境界(推定) ----
+def next_daily_boundary(now):
+    """now より後の最初の『太平洋時間0時』をJSTで返す(zoneinfo で夏時間・冬時間を自動で扱う)。
+    戻り値: (JST の aware datetime, 根拠の文言)。時刻帯データが無い環境では JST 17:00 を使う(冬時間側・安全側)。
+    注意: クォータのリセットが太平洋時間0時であることは未確認。ここで得る時刻は推定。"""
+    if _PACIFIC is None:
+        boundary = now.astimezone(JST).replace(hour=FALLBACK_BOUNDARY_JST_HOUR, minute=0, second=0, microsecond=0)
+        if boundary <= now.astimezone(JST):
+            boundary += datetime.timedelta(days=1)
+        return boundary, "日次境界(時刻帯データなしのため JST17時を使用・推定)"
+    local = now.astimezone(_PACIFIC)
+    next_day = local.date() + datetime.timedelta(days=1)            # 今日の0時は now 以前なので、翌日の0時が『次』
+    midnight = datetime.datetime(next_day.year, next_day.month, next_day.day, tzinfo=_PACIFIC)
+    return midnight.astimezone(JST), "日次境界(太平洋時間0時・推定)"
+
+
+def daily_retry_until(now, retry_after):
+    """日次上限の再試行時刻。Googleの待ち時間(retry_after秒)と日次境界を比べ、早い方を採る。
+    Google側の時刻が境界を越える場合は境界に短縮する。待ち時間が無い場合は既定の控え時間と境界の早い方。
+    戻り値: (再試行時刻 JST, 根拠の文言)。回復を保証する時刻ではない。"""
+    boundary, boundary_basis = next_daily_boundary(now)
+    if retry_after is None:
+        candidate = now.astimezone(JST) + datetime.timedelta(minutes=DEFAULT_QUOTA_BACKOFF_MINUTES)
+        basis = BASIS_DEFAULT
+    else:
+        candidate = now.astimezone(JST) + datetime.timedelta(seconds=retry_after)
+        basis = BASIS_RETRY_INFO
+    if candidate > boundary:
+        return boundary, BASIS_BOUNDARY + "／" + boundary_basis
+    return candidate, basis
+
+
 # ---------------------------------------------------------------- ガード ----
 class Guard:
     """stateに待機時刻を持つ呼び出しラッパー。state は fetch_news の既送信記録(ISO日時の辞書)を共有する。"""
@@ -159,7 +211,7 @@ class Guard:
 
     # ----- 待機状態 -----
     def blocked(self):
-        """待機中なら (until, reason)。期限切れの記録は消す。"""
+        """待機中なら (until, reason, basis)。期限切れの記録は消す。"""
         now = self.clock()
         best = None
         for key in [k for k in self.state if k.startswith(BACKOFF_PREFIX)]:
@@ -170,17 +222,19 @@ class Guard:
                 continue
             if until <= now:
                 self.state.pop(key, None)
+                self.state.pop(BASIS_PREFIX + key[len(BACKOFF_PREFIX):], None)
             elif best is None or until > best[0]:
-                best = (until, key[len(BACKOFF_PREFIX):])
+                reason = key[len(BACKOFF_PREFIX):]
+                best = (until, reason, self.state.get(BASIS_PREFIX + reason, ""))
         return best
 
-    def _set_backoff(self, seconds, reason="quota"):
-        until = self.clock() + datetime.timedelta(seconds=seconds)
+    def _set_backoff(self, until, reason="quota", basis=""):
         self.state[BACKOFF_PREFIX + reason] = until.isoformat()
+        self.state[BASIS_PREFIX + reason] = basis
         return until
 
     def _clear_backoff(self):
-        for key in [k for k in self.state if k.startswith(BACKOFF_PREFIX)]:
+        for key in [k for k in self.state if k.startswith(BACKOFF_PREFIX) or k.startswith(BASIS_PREFIX)]:
             self.state.pop(key, None)
 
     # ----- 呼び出し -----
@@ -188,7 +242,7 @@ class Guard:
         """fn() を実行する。成功すれば結果を返す。待機中は GeminiBlocked、失敗は GeminiCallError。"""
         blocked = self.blocked()
         if blocked:
-            raise GeminiBlocked(blocked[0], blocked[1])
+            raise GeminiBlocked(blocked[0], blocked[1], blocked[2])
         attempts, waited = 0, 0.0
         while True:
             attempts += 1
@@ -202,9 +256,15 @@ class Guard:
                 if info.kind == "fatal":
                     raise GeminiCallError(info, attempts, waited, err) from err
                 if info.kind == "quota":
-                    seconds = info.retry_after if info.retry_after is not None else DEFAULT_QUOTA_BACKOFF_MINUTES * 60
-                    until = self._set_backoff(seconds)
-                    raise GeminiCallError(info, attempts, waited, err, backoff_until=until) from err
+                    now = self.clock()
+                    if info.daily:
+                        until, basis = daily_retry_until(now, info.retry_after)
+                    elif info.retry_after is not None:
+                        until, basis = now.astimezone(JST) + datetime.timedelta(seconds=info.retry_after), BASIS_MINUTE
+                    else:
+                        until, basis = now.astimezone(JST) + datetime.timedelta(minutes=DEFAULT_QUOTA_BACKOFF_MINUTES), BASIS_DEFAULT
+                    self._set_backoff(until, "quota", basis)
+                    raise GeminiCallError(info, attempts, waited, err, backoff_until=until, basis=basis) from err
                 if attempts > self.max_retries:
                     raise GeminiCallError(info, attempts, waited, err) from err
                 wait = info.retry_after if info.retry_after is not None else BASE_DELAY_SECONDS * (2 ** (attempts - 1))

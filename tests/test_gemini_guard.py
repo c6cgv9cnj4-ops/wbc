@@ -170,6 +170,117 @@ class GuardTest(unittest.TestCase):
         self.assertEqual((f.calls, g.sleeps, cm.exception.info.kind), (1, [], "fatal"))
 
 
+class DailyBoundaryTest(unittest.TestCase):
+    """B案(2026-10-09): 日次上限の再試行時刻 = Googleの待ち時間と『次の太平洋時間0時(推定)』の早い方。
+    太平洋時間0時のJST時刻は夏時間16:00・冬時間17:00。クォータのリセット時刻は未確認のため、回復は保証しない。"""
+
+    def J(self, y, mo, d, h=0, mi=0, sec=0):
+        return dt.datetime(y, mo, d, h, mi, sec, tzinfo=JST)
+
+    def test_boundary_summer_and_winter(self):
+        self.assertEqual(gg.next_daily_boundary(self.J(2026, 10, 9, 7, 46))[0], self.J(2026, 10, 9, 16))   # 夏時間 PDT
+        self.assertEqual(gg.next_daily_boundary(self.J(2026, 12, 1, 10))[0], self.J(2026, 12, 1, 17))      # 冬時間 PST
+
+    def test_strictly_after_now(self):
+        self.assertEqual(gg.next_daily_boundary(self.J(2026, 10, 9, 16))[0], self.J(2026, 10, 10, 16))     # ちょうど境界なら次の境界
+
+    def test_dst_switch_2026(self):
+        # 2026-03-08 が夏時間開始。切替後の境界は 16:00 に変わる
+        self.assertEqual(gg.next_daily_boundary(self.J(2026, 3, 7, 18))[0], self.J(2026, 3, 8, 17))     # 切替前(冬時間)
+        self.assertEqual(gg.next_daily_boundary(self.J(2026, 3, 8, 18))[0], self.J(2026, 3, 9, 16))
+
+    def test_year_end(self):
+        self.assertEqual(gg.next_daily_boundary(self.J(2026, 12, 31, 20))[0], self.J(2027, 1, 1, 17))
+
+    def test_fallback_without_timezone_data(self):
+        with mock.patch.object(gg, "_PACIFIC", None):
+            self.assertEqual(gg.next_daily_boundary(self.J(2026, 10, 9, 10))[0], self.J(2026, 10, 9, 17))
+            self.assertEqual(gg.next_daily_boundary(self.J(2026, 10, 9, 17, 30))[0], self.J(2026, 10, 10, 17))
+            self.assertIn("推定", gg.next_daily_boundary(self.J(2026, 10, 9, 10))[1])
+
+    def test_retry_info_before_boundary_is_kept(self):
+        until, basis = gg.daily_retry_until(self.J(2026, 10, 9, 7, 46), 4393)
+        self.assertEqual(until, self.J(2026, 10, 9, 8, 59, 13))      # 4393秒後
+        self.assertEqual(basis, gg.BASIS_RETRY_INFO)
+
+    def test_retry_info_past_boundary_is_shortened(self):
+        until, basis = gg.daily_retry_until(self.J(2026, 10, 9, 10), 86400)
+        self.assertEqual(until, self.J(2026, 10, 9, 16))
+        self.assertIn("回復は保証されない", basis)
+
+    def test_missing_retry_after_uses_default_but_not_past_boundary(self):
+        self.assertEqual(gg.daily_retry_until(self.J(2026, 10, 9, 7, 46), None), (self.J(2026, 10, 9, 8, 46), gg.BASIS_DEFAULT))
+        until, basis = gg.daily_retry_until(self.J(2026, 10, 9, 15, 30), None)
+        self.assertEqual(until, self.J(2026, 10, 9, 16))
+        self.assertIn("回復は保証されない", basis)
+
+    def test_daily_429_blocks_until_boundary_then_allows_retry(self):
+        clock = {"now": self.J(2026, 10, 9, 10)}
+        state = {}
+        g = gg.Guard(state, clock=lambda: clock["now"], sleep=lambda s: None)
+        with self.assertRaises(gg.GeminiCallError) as cm:
+            g.call(Flaky(quota_error("86400s")))
+        self.assertEqual(cm.exception.backoff_until, self.J(2026, 10, 9, 16))
+        clock["now"] = self.J(2026, 10, 9, 15, 59)
+        with self.assertRaises(gg.GeminiBlocked):
+            g.call(Flaky())
+        clock["now"] = self.J(2026, 10, 9, 16)                       # 期限ちょうど: 再試行してよい
+        f = Flaky()
+        self.assertEqual(g.call(f), "OK")
+        self.assertEqual(f.calls, 1)
+        self.assertEqual([k for k in state if k.startswith(gg.BACKOFF_PREFIX) or k.startswith(gg.BASIS_PREFIX)], [])   # 成功で解除
+
+    def test_consecutive_daily_429_recomputes_each_time(self):
+        clock = {"now": self.J(2026, 10, 9, 10)}
+        g = gg.Guard({}, clock=lambda: clock["now"], sleep=lambda s: None)
+        with self.assertRaises(gg.GeminiCallError) as c1:
+            g.call(Flaky(quota_error("86400s")))
+        self.assertEqual(c1.exception.backoff_until, self.J(2026, 10, 9, 16))
+        clock["now"] = self.J(2026, 10, 9, 16, 0, 30)                # 境界直後にまた429
+        with self.assertRaises(gg.GeminiCallError) as c2:
+            g.call(Flaky(quota_error("4393s")))
+        self.assertEqual(c2.exception.backoff_until, self.J(2026, 10, 9, 16, 0, 30) + dt.timedelta(seconds=4393))   # 境界(次の10/10 16:00)より前なのでGoogle値
+        self.assertEqual(c2.exception.basis, gg.BASIS_RETRY_INFO)
+        self.assertEqual(g.calls, 2)
+
+    def test_per_minute_long_wait_ignores_daily_boundary(self):
+        g = gg.Guard({}, clock=lambda: self.J(2026, 10, 9, 10), sleep=lambda s: None)
+        with self.assertRaises(gg.GeminiCallError) as cm:
+            g.call(Flaky(quota_error("600s", daily=False)))
+        self.assertEqual(cm.exception.backoff_until, self.J(2026, 10, 9, 10, 10))   # 10:10 = 境界(16:00)を使わない
+        self.assertEqual(cm.exception.basis, gg.BASIS_MINUTE)
+
+    def test_per_minute_short_retries_without_backoff(self):
+        g = gg.Guard({}, clock=lambda: self.J(2026, 10, 9, 10), sleep=lambda s: None)
+        f = Flaky(quota_error("20s", daily=False))
+        self.assertEqual(g.call(f), "OK")
+        self.assertEqual(g.sleeps if hasattr(g, "sleeps") else None, None)
+        self.assertEqual([k for k in g.state if k.startswith(gg.BACKOFF_PREFIX)], [])
+
+    def test_expired_basis_is_removed_with_backoff(self):
+        state = {gg.BACKOFF_PREFIX + "quota": self.J(2026, 10, 9, 9).isoformat(), gg.BASIS_PREFIX + "quota": "x"}
+        g = gg.Guard(state, clock=lambda: self.J(2026, 10, 9, 10), sleep=lambda s: None)
+        self.assertIsNone(g.blocked())
+        self.assertEqual(state, {})
+
+    def test_blocked_returns_basis(self):
+        state = {}
+        g = gg.Guard(state, clock=lambda: self.J(2026, 10, 9, 10), sleep=lambda s: None)
+        with self.assertRaises(gg.GeminiCallError):
+            g.call(Flaky(quota_error("86400s")))
+        until, reason, basis = g.blocked()
+        self.assertEqual((until, reason), (self.J(2026, 10, 9, 16), "quota"))
+        self.assertIn("回復は保証されない", basis)
+
+    def test_notice_text_says_boundary_is_estimated(self):
+        import fetch_news as fnews
+        txt = fnews._next_retry_text(self.J(2026, 10, 9, 16), gg.BASIS_BOUNDARY)
+        self.assertIn("16:00 JST以降の実行で再試行", txt)
+        self.assertIn("推定", txt)
+        self.assertIn("回復は保証されません", txt)
+        self.assertNotIn("回復は保証されません", fnews._next_retry_text(self.J(2026, 10, 9, 8, 59), gg.BASIS_RETRY_INFO))
+
+
 # ------------------------------------------------------------------ 全国主要ニュース ----
 class Resp:
     def __init__(self, text):
@@ -230,7 +341,7 @@ class NationalFlowTest(unittest.TestCase):
         d = payload["description"]
         for expect in ("**全国主要ニュース(Gemini要約)**", "Geminiの利用上限に達しました", "・失敗: 要約処理1回（API呼び出し1回）", "・HTTP 429 RESOURCE_EXHAUSTED",
                        "・保留: 記事5件（既読にせず、次回以降の実行で再処理します）", "・再試行方針: 利用上限のため再試行せず、待ち時間（約1時間13分）が終わるまでAPIを呼びません",
-                       "・次回の再試行: 08:59 JST以降の実行で再開（Googleが示した待ち時間に基づく目安）", "影響: 今回はスキップ。この回の全国ニュースは配信されません。記事は保留。"):
+                       "・次回の再試行: 08:59 JST以降の実行で再試行（Googleの待ち時間(境界より前のため採用)）", "影響: 今回はスキップ。この回の全国ニュースは配信されません。記事は保留。"):
             self.assertIn(expect, d)
         self.assertIn("同じ異常は12時間通知しません", payload["footer"]["text"])
         for secret in ("SECRET-LIKE", "violations", "{'error'", "quotaId"):
@@ -247,7 +358,7 @@ class NationalFlowTest(unittest.TestCase):
         self.assertEqual(keys(state), [])                          # 引き続き保留(既読にしない)
         d = na.build_embeds({}, later)[0]["news"]["embeds"][0]["description"]
         self.assertIn("API呼び出しなし（利用上限の待機中のため送信していません）", d)
-        self.assertIn("・次回の再試行: 08:59 JST以降の実行で再開", d)
+        self.assertIn("・次回の再試行: 08:59 JST以降の実行で再試行", d)
 
     def test_notice_is_suppressed_for_same_error_then_recovers(self):
         state = {}
