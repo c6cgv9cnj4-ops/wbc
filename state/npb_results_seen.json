@@ -1,8 +1,4 @@
 {
-  "2026-09-24": {
-    "finals": 2,
-    "hash": "066e288a3fd4cc021a0b26981a954b101673575e7ffd7dc5990a28ebdff0a02c"
-  },
   "2026-09-25": {
     "finals": 5,
     "hash": "e7100e3a4f123a288fca4930c3ce5aee4d3b5896498086a6b732f246ebf77281"
@@ -54,5 +50,8 @@
   "2026-10-08": {
     "finals": 1,
     "hash": "a16805cc88de90410a5c5fda8ac864fb5d2d3e7f616c8703d9a2377d9a7b846c"
+  },
+  "2026-10-09": {
+    "kind": "no_games"
   }
 }
