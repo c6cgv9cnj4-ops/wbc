@@ -281,9 +281,32 @@
     .sim-set-grid .form-row { margin-bottom: 0; min-width: 0; }
     .sim-set-grid .form-row label { line-height: 1.4; }
     button.sim-reset-btn { margin-top: 14px; padding: 8px 14px; font-size: 0.8rem; background: #e5e5ea; color: var(--text-main); }
+    /* ===== Admin出し分け・参加者連携・残高アコーディオン ===== */
+    body.locked #mainPage, body.locked #reportPage { display: none !important; }
+    .app-header { position: relative; }
+    .admin-btn { position: absolute; right: 0; top: 50%; transform: translateY(-50%); border: 0; background: transparent; color: var(--text-sub); font-size: 0.8rem; font-weight: 600; padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+    .admin-btn.on { color: var(--primary-color); }
+    .admin-btn.on::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--success-color); margin-right: 6px; vertical-align: middle; }
+    .admin-gate { max-width: 640px; margin: 40px auto; padding: 28px 20px; text-align: center; color: var(--text-sub); }
+    .admin-gate strong { display: block; font-size: 1.05rem; color: var(--text-main); margin-bottom: 8px; }
+    .admin-gate button { margin-top: 16px; }
+    .admin-ov { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .admin-box { background: #fff; border-radius: 16px; padding: 20px; width: 100%; max-width: 340px; }
+    .admin-box h3 { margin: 0 0 10px; font-size: 1.05rem; }
+    .admin-box input { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 1.1rem; margin-bottom: 12px; }
+    .admin-box .row { display: flex; gap: 8px; }
+    .admin-box .row button { flex: 1; }
+    .attend-banner { margin: 0 0 12px; padding: 10px 12px; border-radius: var(--radius-sm); background: #eef5ff; border: 1px solid #bae0ff; font-size: 0.85rem; color: var(--text-main); }
+    .attend-banner:empty { display: none; }
+    .attend-banner .ab-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .attend-banner .ab-row button { padding: 6px 12px; font-size: 0.8rem; border: 1px solid var(--primary-color); background: #fff; color: var(--primary-color); border-radius: 999px; font-weight: 600; cursor: pointer; }
+    .attend-banner .ab-note { margin-top: 6px; color: var(--text-sub); font-size: 0.78rem; }
+    details.pool-acc > summary { cursor: pointer; font-weight: 700; color: var(--text-sub); list-style: none; padding: 4px 0; }
+    details.pool-acc > summary::-webkit-details-marker { display: none; }
+    details.pool-acc[open] > summary { margin-bottom: 12px; }
   </style>
 </head>
-<body>
+<body class="locked">
 
   <div id="toastContainer"></div>
 
@@ -302,7 +325,9 @@
 
   <div class="app-header">
     <h1>🏸 バドミントン現場記録</h1>
+    <button type="button" class="admin-btn" id="adminBtn">Admin</button>
   </div>
+  <div id="adminGate" class="admin-gate"></div>
 
   <div id="mainPage">
     <!-- 1. 現場入力 -->
@@ -314,6 +339,7 @@
         </div>
       </div>
 
+      <div id="attendeeImport" class="attend-banner"></div>
       <div class="section-title">
         <span>👥 参加メンバー選択</span>
         <span style="font-size:0.75rem; color:var(--text-sub);">(タップ: 500円青 ➔ 400円緑 ➔ 未選択)</span>
@@ -366,10 +392,6 @@
           <div class="profit-card">
             <div class="profit-card-label">💰 本日の純損益</div>
             <div id="todayNetProfitDisplay" class="profit-card-value">0 円</div>
-          </div>
-          <div class="profit-card" style="background:#f6ffed; border-color:#b7ebc6;">
-            <div class="profit-card-label" style="color:#274fee;">📈 8/7からの累計損益</div>
-            <div id="sinceAug7ProfitDisplay" class="profit-card-value" style="color:var(--success-color);">0 円</div>
           </div>
         </div>
 
@@ -511,7 +533,15 @@
       <div id="historyList">データを読み込み中...</div>
     </div>
 
-    <!-- 5. 残高直接調整 -->
+    <!-- 5. 通算残高・累計（Adminだけが開ける。非Adminはゲートで画面ごと非表示） -->
+    <details class="container pool-acc" id="poolAccordion" style="border-top: 4px solid var(--warning-color);">
+      <summary>💰 通算残高・累計（Adminのみ・タップで開く）</summary>
+      <div class="profit-summary-grid" style="margin-bottom:12px;">
+        <div class="profit-card" style="background:#f6ffed; border-color:#b7ebc6;">
+            <div class="profit-card-label" style="color:#274fee;">📈 8/7からの累計損益</div>
+            <div id="sinceAug7ProfitDisplay" class="profit-card-value" style="color:var(--success-color);">0 円</div>
+          </div>
+      </div>
     <div class="container" style="border-top: 4px solid var(--warning-color);">
       <div class="section-title" style="color: var(--warning-color);">
         <span>🔧 残高の直接調整</span>
@@ -527,7 +557,7 @@
         </div>
         <div class="form-row">
           <label>調整後のピッタリ残高 (円)</label>
-          <input type="number" id="adjustTargetBalance" placeholder="例: 155130">
+          <input type="number" id="adjustTargetBalance" placeholder="例: 100000">
           <div id="adjustPreview" class="adjust-preview">調整後の残高を入力すると、差額を表示します</div>
         </div>
         <div class="form-row">
@@ -537,6 +567,7 @@
         <button type="button" id="saveAdjustBtn" class="btn-adjust">💾 残高をこの金額に調整する</button>
       </form>
     </div>
+    </details>
   </div>
 
   <!-- レポート画面 -->
@@ -546,10 +577,10 @@
         <button type="button" id="goToMainBtn" class="btn-back">← 戻る</button>
         <span>📊 詳細分析レポート</span>
       </div>
-      <div style="margin-top:16px;">
-        <div style="font-weight:600; font-size:0.85rem; margin-bottom:6px;">📊 月別 収支推移</div>
+      <details class="pool-acc" style="margin-top:16px;">
+        <summary>📊 月別 収支推移（Adminのみ・タップで開く）</summary>
         <canvas id="financeChart" width="400" height="180"></canvas>
-      </div>
+      </details>
       <div style="margin-top:24px;">
         <div style="font-weight:600; font-size:0.85rem; margin-bottom:4px;">⚖️ 各回の損益</div>
         <canvas id="breakEvenChart" width="400" height="200"></canvas>
@@ -697,9 +728,10 @@
     function parseJSONSafe(str, fallback) {
       try { return JSON.parse(str); } catch (e) { return fallback; }
     }
-    let rawMembersData = parseJSONSafe(safeGetLS("bad_members", "[]"), []);
-    let rawEventsData = parseJSONSafe(safeGetLS("bad_events", "[]"), []);
-    let rawReservesData = parseJSONSafe(safeGetLS("bad_reserves", "[]"), []);
+    // 会計・履歴・名簿は、Adminログイン成功後にはじめて読み込む（startAccounting）。非Adminの間は端末キャッシュも読まない
+    let rawMembersData = [];
+    let rawEventsData = [];
+    let rawReservesData = [];
     // 会費・運営シミュレーション（別scriptブロック）が開催履歴を「読み取り専用」で参照するための窓口
     window.badApp = { getEvents: () => rawEventsData };
 
@@ -851,6 +883,7 @@
     const memberListContainer = document.getElementById("memberList");
     new Sortable(memberListContainer, {
       animation: 150,
+      disabled: true, // 名簿は参加回数の順に自動で並べる。ドラッグで members.order を上書きしないよう無効化（コードは残す）
       onEnd: async () => {
         const chips = Array.from(memberListContainer.querySelectorAll(".member-chip"));
         if (isFirebaseReady && db) {
@@ -933,7 +966,7 @@
 
     function renderMembersUI(members) {
       memberListContainer.innerHTML = "";
-      members.forEach((data) => {
+      sortMembersByAttendance(members).forEach((data) => {
         const chip = document.createElement("div");
         const currentFee = selectedMemberFees.get(data.name);
         
@@ -1901,12 +1934,164 @@
     /* ===== Firebase 匿名認証 → リアルタイム購読の起動 ===== */
     // Firestore セキュリティルールを request.auth != null に絞れるよう、
     // ページ表示時に自動で匿名サインインし、認証成立後に購読を開始する。
+    /* ===== Admin（乱数表と共通のPIN）。UIの出し分け＋会計データの遅延ロード ===== */
+    // 非Adminの間は、会計・履歴・名簿のリスナー／端末キャッシュ読み込みを一切開始しない（通信にもメモリにも載せない）。
+    // ※ PIN自体はクライアント側の簡易ロックで、Firestoreルールでは強制されない（bm_config/admin のハッシュは読める）。
+    const ADMIN_KEY = "bm_admin_ok";
+    let adminCfg = undefined; // undefined=読込中 / null=未設定
+    let isAdmin = false, accountingOn = false, authReady = false, rtStarted = false, cfgSubscribed = false;
+    const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
+    const ssDel = (k) => { try { sessionStorage.removeItem(k); } catch (e) {} };
+    async function hashPin(pin) {
+      const data = new TextEncoder().encode("bm-v1:" + pin);
+      if (crypto && crypto.subtle) return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", data))).map(b => b.toString(16).padStart(2, "0")).join("");
+      let x = 5381; for (const b of data) x = ((x << 5) + x + b) >>> 0; return "w" + x.toString(16);
+    }
+    function refreshAdminUI() {
+      isAdmin = !!adminCfg && !!adminCfg.pinHash && ssGet(ADMIN_KEY) === adminCfg.pinHash;
+      document.body.classList.toggle("locked", !isAdmin);
+      const btn = document.getElementById("adminBtn"), gate = document.getElementById("adminGate");
+      btn.classList.toggle("on", isAdmin);
+      gate.style.display = isAdmin ? "none" : "";
+      if (!isAdmin) {
+        gate.innerHTML = "";
+        const t = document.createElement("strong");
+        const d = document.createElement("div");
+        if (adminCfg === undefined) { t.textContent = "読み込み中…"; }
+        else if (!adminCfg || !adminCfg.pinHash) { t.textContent = "Adminのログインが必要です"; d.textContent = "Admin PINが未設定です。乱数表（バド対戦表）でPINを設定してください。"; }
+        else { t.textContent = "Adminのログインが必要です"; d.textContent = "このページは主催者（Admin）専用です。"; }
+        gate.append(t, d);
+        if (adminCfg && adminCfg.pinHash) { const b = document.createElement("button"); b.type = "button"; b.className = "btn-primary"; b.textContent = "Adminログイン"; b.addEventListener("click", openAdminLogin); gate.append(b); }
+      }
+      if (isAdmin) startAccounting();
+    }
+    function openAdminLogin() {
+      if (!adminCfg || !adminCfg.pinHash) return showToast("Admin PINが未設定です。乱数表で設定してください", "info");
+      const ov = document.createElement("div"); ov.className = "admin-ov";
+      ov.innerHTML = '<div class="admin-box"><h3>Adminログイン</h3><input type="password" inputmode="numeric" maxlength="8" placeholder="PIN（4〜8桁）" autocomplete="off"><div class="row"><button type="button" class="btn-cancel-save" data-x>キャンセル</button><button type="button" class="btn-primary" data-ok>ログイン</button></div></div>';
+      document.body.append(ov);
+      const inp = ov.querySelector("input"); inp.focus();
+      const close = () => ov.remove();
+      ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+      ov.querySelector("[data-x]").addEventListener("click", close);
+      const go = async () => {
+        const pin = inp.value.trim();
+        if (!/^\d{4,8}$/.test(pin)) return showToast("4〜8桁の数字で入力してください", "error");
+        if (Date.now() < (openAdminLogin.lockUntil || 0)) return showToast("しばらくしてから再試行してください", "error");
+        if (await hashPin(pin) === adminCfg.pinHash) { openAdminLogin.fails = 0; try { sessionStorage.setItem(ADMIN_KEY, adminCfg.pinHash); } catch (e) {} close(); refreshAdminUI(); }
+        else { if ((openAdminLogin.fails = (openAdminLogin.fails || 0) + 1) >= 5) { openAdminLogin.lockUntil = Date.now() + 30000; openAdminLogin.fails = 0; } showToast("PINが違います", "error"); inp.value = ""; }
+      };
+      ov.querySelector("[data-ok]").addEventListener("click", go);
+      inp.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+    }
+    document.getElementById("adminBtn").addEventListener("click", () => {
+      if (isAdmin) { if (confirm("Adminからログアウトしますか？")) { ssDel(ADMIN_KEY); location.reload(); } } // 再読み込みで、メモリ上の会計データも消す
+      else openAdminLogin();
+    });
+    function subscribeAdminConfig() {
+      if (cfgSubscribed) return; cfgSubscribed = true;
+      onSnapshot(doc(db, "bm_config", "admin"), (snap) => { adminCfg = snap.exists() ? snap.data() : null; refreshAdminUI(); },
+        (err) => { console.warn("bm_config 読み取り失敗:", err); adminCfg = null; refreshAdminUI(); });
+    }
+    // Admin確認後にだけ呼ぶ。端末キャッシュの読み込み → Firestoreリスナー開始
+    function startAccounting() {
+      if (accountingOn) return; accountingOn = true;
+      rawMembersData = parseJSONSafe(safeGetLS("bad_members", "[]"), []);
+      rawEventsData = parseJSONSafe(safeGetLS("bad_events", "[]"), []);
+      rawReservesData = parseJSONSafe(safeGetLS("bad_reserves", "[]"), []);
+      renderMembersUI(rawMembersData); renderReservesUI(rawReservesData); renderEventsUI(rawEventsData);
+      ensureRealtime();
+    }
+    function ensureRealtime() { if (accountingOn && authReady && !rtStarted) { rtStarted = true; subscribeRealtime(); } }
+
+    /* ===== 乱数表の当日参加者を読み込む（読み取り専用。bm_* には書き込まない） ===== */
+    let attendeeUnsub = null, attendeeState = { date: null, list: [], error: false }, membersLive = false, userTouched = false;
+    const autoApplied = new Set();
+    function attendeeEntries() { // 出席者 → 名簿(members)のID突き合わせ。名簿に無い人は unknown
+      const known = [], unknown = [];
+      attendeeState.list.forEach((a) => {
+        const m = rawMembersData.find((x) => x.id === a.id);
+        if (m) known.push(m.name); else unknown.push(a.name || "？");
+      });
+      return { known, unknown };
+    }
+    function applyAttendees(mode) {
+      const { known } = attendeeEntries();
+      if (mode === "replace") { selectedMemberFees.clear(); transferGrantNames.clear(); }
+      known.forEach((name) => { if (!selectedMemberFees.has(name)) selectedMemberFees.set(name, 500); });
+      renderMemberSelection(); updateSummary(); renderAttendeeBanner();
+    }
+    function renderAttendeeBanner() {
+      const box = document.getElementById("attendeeImport"); if (!box) return;
+      box.innerHTML = "";
+      if (editingDocId || !accountingOn) return;
+      const { known, unknown } = attendeeEntries();
+      const row = document.createElement("div"); row.className = "ab-row";
+      const label = document.createElement("span");
+      if (attendeeState.error) label.textContent = "🏸 乱数表の参加者を取得できませんでした";
+      else if (!attendeeState.list.length) label.textContent = "🏸 乱数表の参加者: この日はまだありません";
+      else label.textContent = `🏸 乱数表の参加者 ${attendeeState.list.length}人`;
+      row.append(label);
+      if (known.length) {
+        const add = document.createElement("button"); add.type = "button"; add.textContent = "追加で読み込む";
+        add.addEventListener("click", () => { userTouched = true; applyAttendees("add"); });
+        const rep = document.createElement("button"); rep.type = "button"; rep.textContent = "置き換えて読み込む";
+        rep.addEventListener("click", () => { if (selectedMemberFees.size && !confirm("現在の選択を、乱数表の参加者で置き換えますか？")) return; userTouched = true; applyAttendees("replace"); });
+        row.append(add, rep);
+      }
+      box.append(row);
+      if (unknown.length) { const n = document.createElement("div"); n.className = "ab-note"; n.textContent = `名簿にいない参加者: ${unknown.join("、")}（下の追加欄で名簿に登録すると選べます）`; box.append(n); }
+    }
+    function maybeAutoApply() { // 初期選択: 選択が空・編集中でない・当日に未記録・ユーザー未操作のときだけ、日付ごとに1回
+      renderAttendeeBanner();
+      const date = eventDateInput.value;
+      if (!membersLive || editingDocId || userTouched || autoApplied.has(date) || attendeeState.date !== date) return;
+      if (!attendeeState.list.length || selectedMemberFees.size) return;
+      if (rawEventsData.some((e) => e.type === "practice" && e.date === date)) return;
+      autoApplied.add(date); applyAttendees("add");
+    }
+    function watchAttendees() {
+      if (attendeeUnsub) { attendeeUnsub(); attendeeUnsub = null; }
+      const date = eventDateInput.value;
+      attendeeState = { date, list: [], error: false };
+      if (!(isFirebaseReady && db && authReady && date)) return renderAttendeeBanner();
+      attendeeUnsub = onSnapshot(collection(db, "bm_sessions", date, "attendees"), (snap) => {
+        attendeeState = { date, list: snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.present !== false), error: false };
+        maybeAutoApply();
+      }, (err) => { console.warn("attendees 読み取り失敗:", err); attendeeState = { date, list: [], error: true }; renderAttendeeBanner(); });
+    }
+    if (eventDateInput) eventDateInput.addEventListener("change", () => { userTouched = false; if (accountingOn) watchAttendees(); });
+    document.getElementById("memberList").addEventListener("click", () => { userTouched = true; }, true);
+
+    /* ===== 名簿の並び順: 参加回数（全期間）の多い順。表示だけで members.order は変更しない ===== */
+    function attendanceCounts() {
+      const c = {};
+      rawEventsData.forEach((e) => { if (e.type === "practice") tfArr(e.members).forEach((n) => { c[n] = (c[n] || 0) + 1; }); });
+      return c;
+    }
+    function sortMembersByAttendance(members) {
+      const c = attendanceCounts();
+      return members.map((m, i) => ({ m, i })).sort((a, b) => (c[b.m.name] || 0) - (c[a.m.name] || 0) || ((a.m.order ?? 1e9) - (b.m.order ?? 1e9)) || (a.i - b.i)).map((x) => x.m);
+    }
+    if (new URLSearchParams(location.search).has("test")) { // 検証用フック（?test=1 のときだけ。通常利用では露出しない）
+      window.badApp.__t = {
+        setAdminCfg: (c) => { adminCfg = c; refreshAdminUI(); },
+        setAttendees: (list) => { attendeeState = { date: eventDateInput.value, list, error: false }; membersLive = true; maybeAutoApply(); },
+        setMembers: (l) => { rawMembersData = l; membersLive = true; renderMembersUI(rawMembersData); },
+        setEvents: (l) => { rawEventsData = l; renderMembersUI(rawMembersData); },
+        state: () => ({ isAdmin, accountingOn, rtStarted, nMembers: rawMembersData.length, nEvents: rawEventsData.length, nReserves: rawReservesData.length, fees: [...selectedMemberFees.entries()], userTouched }),
+        order: () => [...document.querySelectorAll("#memberList .member-chip")].map((x) => x.dataset.name)
+      };
+    }
+
     function subscribeRealtime() {
+      watchAttendees();
       onSnapshot(query(collection(db, "members"), orderBy("order", "asc")), (snapshot) => {
         rawMembersData = [];
         snapshot.forEach((docSnap) => rawMembersData.push({ id: docSnap.id, ...docSnap.data() }));
         safeSetLS("bad_members", JSON.stringify(rawMembersData));
         renderMembersUI(rawMembersData);
+        membersLive = true; maybeAutoApply();
       });
       onSnapshot(query(collection(db, "reserves"), orderBy("targetDate", "asc")), (snapshot) => {
         rawReservesData = [];
@@ -1919,16 +2104,17 @@
         snapshot.forEach((docSnap) => rawEventsData.push({ id: docSnap.id, ...docSnap.data() }));
         safeSetLS("bad_events", JSON.stringify(rawEventsData));
         renderEventsUI(rawEventsData);
+        renderMembersUI(rawMembersData); maybeAutoApply(); // 参加回数の並び順を最新の履歴で更新
       });
     }
 
     if (isFirebaseReady && db && auth) {
-      let realtimeStarted = false;
       onAuthStateChanged(auth, (user) => {
-        if (user && !realtimeStarted) {
-          realtimeStarted = true;
+        if (user && !authReady) {
+          authReady = true;
           console.log("匿名認証OK uid:", user.uid);
-          subscribeRealtime();
+          subscribeAdminConfig(); // PIN照合用の設定だけは先に読む（会計データはAdmin確認後）
+          ensureRealtime();
         }
       });
       signInAnonymously(auth).catch((err) => {
@@ -1938,12 +2124,13 @@
           "error",
           6000
         );
-        // フォールバック: 端末に残っているローカルデータで表示だけは行う
-        renderMembersUI(rawMembersData);
-        renderReservesUI(rawReservesData);
-        renderEventsUI(rawEventsData);
+        // フォールバック: Admin確認後に限り、端末に残っているローカルデータで表示（startAccounting 済みなら描画済み）
+        if (accountingOn) { renderMembersUI(rawMembersData); renderReservesUI(rawReservesData); renderEventsUI(rawEventsData); }
       });
+    } else {
+      adminCfg = null; // Firebase未接続の環境ではAdmin確認ができないため、ロックのまま
     }
+    refreshAdminUI();
 
     /* ===== 日程コピペ用モーダル（本日以降・予約済みのみ抽出） ===== */
     (function initScheduleCopyModal() {
@@ -2162,7 +2349,7 @@
     // shuttlesPerSession(6個/開催)は仮定値。半年後に実際の購入数などから消費量を見積もれたら、
     // この値（または画面の設定欄）を更新すれば、以降の試算すべてに反映される。
     const SIM_DEFAULTS = Object.freeze({
-      startBalance: 155130,
+      startBalance: 0, // 現在の資金は残高情報のためソースに持たない。シミュレーション設定欄から手入力する（端末内に保存）
       targetBalance: 50000,
       baseFee: 500,
       womenFee: 400,
