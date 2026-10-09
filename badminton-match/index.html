@@ -381,6 +381,10 @@ async function initDB() {
         localStorage.setItem(MK, JSON.stringify(db)); fire();
       },
       async read(p) { const v = load()[p.join('/')]; return v === undefined ? null : JSON.parse(JSON.stringify(v)); },
+      async list(path, limit) { // コレクション直下のドキュメントをID降順で（最大 limit 件）
+        const db = load(), key = path.join('/'), out = Object.keys(db).filter(k => k.startsWith(key + '/') && k.split('/').length === path.length + 1).map(k => ({ id: k.split('/').pop(), ...JSON.parse(JSON.stringify(db[k])) }));
+        out.sort((a, b) => (a.id < b.id ? 1 : -1)); return limit ? out.slice(0, limit) : out;
+      },
       async tx(fn) { // 読んで確認してから書く（競合時は fn が CONFLICT を投げて中止）。書き込みは最後にまとめて適用
         if (window.__bmFault) { const f = window.__bmFault; window.__bmFault = null; if (f.before) f.before(); throw Object.assign(new Error(f.code), { code: f.code }); } // デモ確認用の疑似エラー（?mock=1 のみ）
         const db = load(), writes = [];
@@ -407,6 +411,10 @@ async function initDB() {
       await b.commit();
     },
     async read(p) { const sn = await F.getDocFromServer(F.doc(fs, ...p)); return sn.exists() ? sn.data() : null; },
+    async list(path, limit) { // コレクション直下のドキュメントをID降順で（最大 limit 件）。1回きりの取得
+      const q = limit ? F.query(F.collection(fs, ...path), F.orderBy(F.documentId(), 'desc'), F.limit(limit)) : F.collection(fs, ...path);
+      return (await F.getDocs(q)).docs.map(d => ({ id: d.id, ...d.data() }));
+    },
     async tx(fn) { // Firestore transaction: 読み取りを先に行い、条件を満たすときだけ書く（競合時は fn が CONFLICT を投げて中止）
       return F.runTransaction(fs, async t => fn({
         get: async p => { const sn = await t.get(F.doc(fs, ...p)); return sn.exists() ? sn.data() : null; },
@@ -1023,12 +1031,39 @@ function renderAll() {
   if (isAdminRoute() && !S.isAdmin && S.ready.c && !S.loginShown) { S.loginShown = true; openAdminLogin(); } // URL末尾 #admin でAdminログインのシートを開く
   adminAuto();
 }
+/* ---------- 名簿の並び: 参加回数（過去の出席記録）の多い常連を上に。同数は名簿の order 順 ---------- */
+// 出席データは bm_sessions/{日付}/attendees のみを使う（events は収支・残高を含むため、参加者画面には読み込まない）。
+// 直近 ATT_SESSIONS 回の開催を集計。終了済みの回は不変なので端末に保存し、毎回は読み直さない。同名の重複ドキュメントは名前で合算
+const ATT_SESSIONS = 30, ATT_CACHE = 'bm_att_cache_v1';
+S.attCounts = {};
+const countKey = m => (m && m.name) || '';
+function sortMembers(list) {
+  const c = S.attCounts || {};
+  return list.slice().sort((x, y) => (c[countKey(y)] || 0) - (c[countKey(x)] || 0) || (x.order ?? 1e9) - (y.order ?? 1e9) || (x.name > y.name ? 1 : -1));
+}
+async function loadAttendanceCounts() {
+  try {
+    let cache = {}; try { cache = JSON.parse(lsGet(ATT_CACHE) || '{}') || {}; } catch { cache = {}; }
+    const sess = await DB.list(['bm_sessions'], ATT_SESSIONS), next = {}, total = {};
+    for (const se of sess) {
+      let names = se.status === 'closed' ? cache[se.id] : null; // 終了済みの回だけ端末の保存分を使う（開催中・再開された回は毎回読み直す）
+      if (!names) {
+        const at = await DB.list(['bm_sessions', se.id, 'attendees']);
+        names = at.filter(a => a.present !== false).map(a => (S.memberMap[a.id] && S.memberMap[a.id].name) || a.name).filter(Boolean);
+      }
+      if (se.status === 'closed') next[se.id] = names;
+      names.forEach(n => { total[n] = (total[n] || 0) + 1; });
+    }
+    lsSet(ATT_CACHE, JSON.stringify(next));
+    S.attCounts = total; S.members = sortMembers(S.members); renderAll();
+  } catch (e) { console.warn('参加回数の集計に失敗（名簿は従来の順で表示）:', e); }
+}
 let unsubs = [];
 function startSubs() {
   unsubs.forEach(u => u()); unsubs = []; S.ready = { m: false, s: false, a: false, c: false };
   const err = e => { S.err = e.code || e.message; renderAll(); };
   unsubs.push(DB.sub(['members'], (l, fc) => { noteConn(fc); // 既存「バドミントン管理」の名簿（読み取り専用）。memberId＝ドキュメントID
-    S.members = l.filter(m => typeof m.name === 'string' && m.name.trim()).sort((x, y) => (x.order ?? 1e9) - (y.order ?? 1e9) || (x.name > y.name ? 1 : -1));
+    S.members = sortMembers(l.filter(m => typeof m.name === 'string' && m.name.trim()));
     S.memberMap = Object.fromEntries(S.members.map(m => [m.id, m])); S.ready.m = true; S.err = null; renderAll(); }, true, err));
   unsubs.push(DB.sub(['bm_sessions', S.date, 'attendees'], (l, fc) => { noteConn(fc); S.atts = l; S.attMap = Object.fromEntries(l.map(a => [a.id, a])); S.ready.a = true; renderAll(); }, true, err));
   unsubs.push(DB.sub(['bm_sessions', S.date], (d, fc) => { noteConn(fc); S.session = d; S.ready.s = true; renderAll(); }, false, err));
@@ -1037,10 +1072,10 @@ function startSubs() {
 addEventListener('online', () => { S.offline = false; renderAll(); }); addEventListener('offline', () => { S.offline = true; renderAll(); });
 addEventListener('hashchange', () => { S.sel = null; S.pairSel = null; S.loginShown = false; renderAll(); });
 document.addEventListener('click', e => { if (S.pairSel && !e.target.closest('.pick') && !e.target.closest('.as-ov') && !e.target.closest('.sheet')) { S.pairSel = null; renderAll(); } });
-document.addEventListener('visibilitychange', () => { if (!document.hidden && todayStr() !== S.date) { S.date = todayStr(); startSubs(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && todayStr() !== S.date) { S.date = todayStr(); startSubs(); loadAttendanceCounts(); } });
 await initDB();
-renderAll(); startSubs();
-if (MOCK) window.__bm = { S, DB, advance, regenNext, undoAdvance, closeSession, reopenSession, resetSession };
+renderAll(); startSubs(); loadAttendanceCounts();
+if (MOCK) window.__bm = { S, DB, loadAttendanceCounts, sortMembers, advance, regenNext, undoAdvance, closeSession, reopenSession, resetSession };
 </script>
 </body>
 </html>
