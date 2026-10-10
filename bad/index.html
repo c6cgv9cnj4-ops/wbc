@@ -1769,7 +1769,8 @@
           practiceBreakEvenData.push({ date: d.date.substring(5), profit: calculatedNetProfit });
 
           if (d.members && d.members.length > 0) {
-            d.members.forEach(m => {
+            d.members.forEach(m0 => {
+              const m = canonName(m0); // 改名の読み替え（表示集計のみ）
               if (!memberStats[m]) memberStats[m] = { total: 0, year: 0, month: 0 };
               memberStats[m].total++;
               if (d.date && d.date.startsWith(nowYear)) memberStats[m].year++;
@@ -2064,9 +2065,14 @@
     document.getElementById("memberList").addEventListener("click", () => { userTouched = true; }, true);
 
     /* ===== 名簿の並び順: 参加回数（全期間）の多い順。表示だけで members.order は変更しない ===== */
+    // 改名・表記ゆれの読み替え（集計・並び順の表示だけ。events に保存された名前は書き換えない）
+    function canonName(n) {
+      const ALIAS = { "ゆーこりん": "すがわら", "理恵": "りえ" };
+      return Object.prototype.hasOwnProperty.call(ALIAS, n) ? ALIAS[n] : n;
+    }
     function attendanceCounts() {
       const c = {};
-      rawEventsData.forEach((e) => { if (e.type === "practice") tfArr(e.members).forEach((n) => { c[n] = (c[n] || 0) + 1; }); });
+      rawEventsData.forEach((e) => { if (e.type === "practice") tfArr(e.members).forEach((n0) => { const n = canonName(n0); c[n] = (c[n] || 0) + 1; }); });
       return c;
     }
     function sortMembersByAttendance(members) {
