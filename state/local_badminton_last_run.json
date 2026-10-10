@@ -1,5 +1,5 @@
 {
- "run_at": "2026-10-09T10:46:44+09:00",
+ "run_at": "2026-10-10T10:33:21+09:00",
  "log": [
   "[seed] 鴻巣市バドミントン連盟: ページ1件 + PDF6件を確認",
   "[seed] 鴻巣市バドミントン連盟(スケジュール): ページ1件 + PDF0件を確認",
@@ -7,7 +7,7 @@
   "[seed] 北本市スポーツ(市公式): ページ1件 + PDF0件を確認",
   "[seed] 北本市体育センター 大会・イベント: ページ1件 + PDF0件を確認",
   "[minton] 埼玉県の今後の大会0件を巡回＋市町名検索(追加0件) → 対象自治体の会場で今後開催 0件",
-  "[saibad] RSS由来 4件",
+  "[saibad] RSS由来 5件",
   "[search] 失敗 北本市・鴻巣市 バドミントン 大会 団体戦 ダブ…: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
   "[search] 失敗 北本市・鴻巣市 バドミントン ダブルス シニア …: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
   "[search] 失敗 桶川市・上尾市・伊奈町・蓮田市・白岡市 バドミン…: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
@@ -21,11 +21,42 @@
   "[search] 失敗 北本市 広報きたもと バドミントン 大会 参加者…: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
   "[search] 失敗 北本市スポーツ協会 バドミントン大会 2026 …: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
   "[search] 実在確認できたページ 0件",
-  "[docs] 抽出対象ページ合計 15件",
+  "[docs] 抽出対象ページ合計 16件",
   "[koho] 【最新号】広報きたもと2026年（令和8年）10月号（No.1064）: 大会関連の記載 0件",
   "[koho] 広報きたもと2026年（令和8年）9月号（No.1063）: 大会関連の記載 0件",
   "[koho] 広報きたもと2026年（令和8年）8月号（No.1062）: 大会関連の記載 1件"
  ],
- "matched": [],
+ "matched": [
+  {
+   "name": "第41回 鴻巣市市民バドミントン大会",
+   "date": "2026-10-18",
+   "muni": "鴻巣市",
+   "status": "締切済",
+   "entry": [
+    "2026-08-10",
+    "2026-09-11"
+   ],
+   "events": [
+    "男子ダブルス",
+    "女子ダブルス",
+    "男子シニア",
+    "女子シニア",
+    "小学生"
+   ],
+   "classes": [
+    "A（上級）",
+    "B（中級）",
+    "C1（初級）",
+    "C2（始めて2年未満の中学生及び一般初心者、70歳以上のシニア）",
+    "シニアA（50歳以上）",
+    "シニアB（60歳以上）",
+    "小学生A（上級）",
+    "小学生B（中級）",
+    "小学生C（初級）"
+   ],
+   "url": "https://www.r-kounosubad.com/_files/ugd/81f490_2e390b377b46420e8c948ee437884fb8.pdf",
+   "source": "鴻巣市バドミントン連盟(PDF)"
+  }
+ ],
  "dropped": []
 }
