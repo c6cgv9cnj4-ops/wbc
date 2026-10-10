@@ -305,6 +305,53 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 .btn.big.tint{background:var(--fill);color:var(--label)}
 .adm-row{grid-template-columns:1fr 1.5fr;gap:8px}
 .adm-row .btn{white-space:nowrap;padding:0 10px;font-size:16px}
+/* ===== 老眼対策: 文字サイズ3段階（標準/大/特大）・名前の重なり解消・次の試合カード =====
+   選手名は --fs 倍率で拡大。コート番号・ペア記号などのラベルは拡大を抑える(--fl)。設定はこの端末のlocalStorageだけ */
+:root{--fs:1;--fl:1}
+html[data-fs="l"]{--fs:1.22;--fl:1.08}
+html[data-fs="xl"]{--fs:1.5;--fl:1.15}
+/* 重なりの原因: 負のマージン(-8px/-6px)とパディング0の並びで、折り返し時に名前同士が詰まる → gapで間隔を確保し、名前は折り返さない */
+.tm{font-size:calc(22px*var(--fs));margin:0;gap:2px 4px;line-height:1.25}
+.tm .nm,.nx .nm,.rl .nm,.nm{white-space:nowrap;padding:2px 6px;margin:0}
+.tm .dot,.nx .dot{margin:0 1px}
+.ct{column-gap:8px}
+.ct>.ct-h{font-size:calc(13px*var(--fl))}
+.tl{font-size:calc(10px*var(--fl))}
+.vs{font-size:calc(10px*var(--fl))}
+.nx{font-size:calc(17px*var(--fs))}
+.nx-c{font-size:calc(12px*var(--fl))}
+.nx-t{margin-left:0;gap:2px 12px}
+.nx .vsm{font-size:calc(10px*var(--fl));margin:0 6px 0 0}
+.rl{font-size:calc(15px*var(--fs));align-items:baseline;gap:8px}
+.rl-k{font-size:calc(12px*var(--fl))}
+.rl-n{gap:2px 10px}
+.gno{font-size:calc(30px*var(--fl))}
+.ct.mine,.nx.mine{margin-left:0;padding-left:12px;border-left:3px solid var(--blue)}
+/* 自分の名前: 色＋太字で強調（端末ごとの選択 bm_me をそのまま利用） */
+.nm.me,.nm.me.edit{background:var(--blue);color:#fff;font-weight:800}
+.nm.sel,.nm.sel.me{background:var(--orange);color:#fff}
+.pn.me{font-weight:800;color:var(--blue)}
+/* 特大・大: ラベル列を縦積みにして名前に幅を回す */
+html[data-fs="l"] .ct,html[data-fs="xl"] .ct,html[data-fs="xl"] .nx{grid-template-columns:1fr}
+html[data-fs="l"] .ct>.vs,html[data-fs="xl"] .ct>.vs{grid-column:1}
+html[data-fs="xl"] .nx-t{flex-direction:column;align-items:flex-start}
+html[data-fs="xl"] .rl{flex-direction:column;gap:2px}
+/* 状態ラベル(色＋文字) */
+.st-pill{display:inline-block;font-size:calc(11px*var(--fl));font-weight:700;border-radius:999px;padding:1px 8px;margin-left:8px;vertical-align:middle}
+.st-play{background:var(--blue-t);color:var(--blue)}
+.st-next{background:var(--green-t);color:var(--green)}
+.st-rest{background:var(--orange-t);color:var(--orange)}
+/* 次の試合カード（画面上部） */
+.ncard{margin:10px 0 6px;padding:14px 16px;border-radius:18px;background:var(--green-t);border:1px solid var(--green)}
+.ncard.rest{background:var(--orange-t);border-color:var(--orange)}
+.ncard.none{background:var(--fill);border-color:var(--sep)}
+.ncard .nk{font-size:calc(12px*var(--fl));font-weight:700;color:var(--label2)}
+.ncard .nv{font-size:calc(26px*var(--fs));font-weight:800;letter-spacing:-.02em;line-height:1.25;margin-top:2px}
+.ncard .nr{display:flex;align-items:baseline;gap:8px;margin-top:6px;font-size:calc(20px*var(--fs));font-weight:700}
+.ncard .nr b{font-size:calc(12px*var(--fl));font-weight:700;color:var(--label2);min-width:3em}
+.ncard .nw{margin-top:8px;font-size:calc(13px*var(--fl));font-weight:600;color:var(--label2)}
+.fs-btn{appearance:none;border:0;background:transparent;color:var(--label2);font-size:13px;font-weight:700;padding:6px 8px;border-radius:999px;cursor:pointer;min-height:32px}
+.fs-btn:active{background:var(--fill)}
 </style>
 </head>
 <body>
@@ -648,13 +695,13 @@ function teamEl(ids, key, editable, meId) { return h('div', { class: 'tm' }, ids
 function courtBlock(round, key, i, editable, meId) { // 現在の試合: コートごとに「ペアA VS ペアB」を大きく
   const c = round.courts[i], mine = meId && [...c.a, ...c.b].includes(meId);
   return h('div', { class: 'ct' + (mine ? ' mine' : '') },
-    h('div', { class: 'ct-h' }, `コート${i + 1}`),
+    h('div', { class: 'ct-h' }, `コート${i + 1}`, h('span', { class: 'st-pill st-play' }, '試合中')),
     h('div', { class: 'tl' }, 'ペアA'), teamEl(c.a, key, editable, meId), h('div', { class: 'vs' }, 'VS'), h('div', { class: 'tl' }, 'ペアB'), teamEl(c.b, key, editable, meId));
 }
 function nextRow(round, key, i, editable, meId) { // 次の試合: 一段小さく1行で
   const c = round.courts[i], mine = meId && [...c.a, ...c.b].includes(meId);
   const line = ids => h('span', { class: 'nl' }, ids.map((id, k) => [k ? dotEl() : null, nameEl(id, key, editable, meId)]));
-  return h('div', { class: 'nx' + (mine ? ' mine' : '') }, h('span', { class: 'nx-c' }, `コート${i + 1}`), h('span', { class: 'nx-t' }, line(c.a), h('span', { class: 'nx-b' }, h('span', { class: 'vsm' }, 'VS'), line(c.b))));
+  return h('div', { class: 'nx' + (mine ? ' mine' : '') }, h('span', { class: 'nx-c' }, `コート${i + 1}`, h('span', { class: 'st-pill st-next' }, '次')), h('span', { class: 'nx-t' }, line(c.a), h('span', { class: 'nx-b' }, h('span', { class: 'vsm' }, 'VS'), line(c.b))));
 }
 function restSection(s, closed, editable, meId) { // 休み: いま／次の休み（入替できる）＋休憩指定・早退を1か所にコンパクトに
   const chips = (ids, key) => h('span', { class: 'rl-n' }, ids.map(id => editable && !closed
@@ -667,7 +714,7 @@ function restSection(s, closed, editable, meId) { // 休み: いま／次の休�
   if (forced.length) rows.push(['休憩', h('span', { class: 'rl-n' }, forced.map(a => h('span', { class: 'nm' + (a.id === meId ? ' me' : '') }, nameOf(a.id) + (a.forcedRest ? '' : `（あと${a.restLeft}試合）`))))]);
   if (left.length) rows.push(['早退', h('span', { class: 'rl-n' }, left.map(a => h('span', { class: 'nm' + (a.id === meId ? ' me' : '') }, nameOf(a.id))))]);
   if (!rows.length) return null;
-  return h('section', { class: 'blk' }, h('div', { class: 'sec-h' }, '休み'), rows.map(([k, n]) => h('div', { class: 'rl' }, h('span', { class: 'rl-k' }, k), n)));
+  return h('section', { class: 'blk' }, h('div', { class: 'sec-h' }, '休み', h('span', { class: 'st-pill st-rest' }, '休憩')), rows.map(([k, n]) => h('div', { class: 'rl' }, h('span', { class: 'rl-k' }, k), n)));
 }
 function gameBoard(editable, meId) {
   const s = S.session, wrap = h('div', { class: 'board' });
@@ -710,6 +757,22 @@ function myStatus(meId) { // 状況カードの中身（表示だけ。DBには�
   if (cur.bench.includes(meId)) return { cls: ni ? 'next' : 'rest', k, v: '休憩中', lines: after() };
   return { cls: 'idle', k, v: '次の組をお待ちください', lines: after() };
 }
+function nextCard(meId) { // 自分の次の出番を画面上部に大きく表示（表示だけ。生成ロジックは変更しない）
+  const s = S.session, a = S.attMap[meId];
+  if (!s || s.status === 'closed' || !a || a.present === false || !s.current) return null;
+  const mk = (cls, k, v, rows, note) => h('div', { class: 'ncard ' + cls }, h('div', { class: 'nk' }, k), h('div', { class: 'nv' }, v),
+    (rows || []).map(([l, t]) => h('div', { class: 'nr' }, h('b', null, l), h('span', null, t))), note ? h('div', { class: 'nw' }, note) : null);
+  if (a.status === 'left') return mk('none', '次の試合', '早退済みです', [], null);
+  if (a.forcedRest) return mk('rest', '次の試合', '休憩中（Adminの指定）', [], '復帰はAdminにお伝えください');
+  if (a.restLeft > 0) return mk('rest', '次の試合', `休み予約中（あと${a.restLeft}試合）`, [], null);
+  if (!s.next) return mk('none', '次の試合', '次の組は未定です', [], null);
+  const ni = pairInfo(s.next, meId);
+  if (!ni) return mk('rest', '次の試合', '次は休みです', [], null);
+  const playingNow = !!pairInfo(s.current, meId);
+  // 残り試合数: 次の組は「いまの試合」の直後に始まる。いま休みなら あと1試合待ち、いまプレー中なら続けて出番（これ以上先は未生成のため数えない）
+  const note = playingNow ? 'いまの試合のあと、続けて出番です' : 'いまの試合が終わったら出番です（あと1試合）';
+  return mk('', `次の試合（第${(s.gameNo || 0) + 1}試合）`, `コート${ni.court}`, [['ペア', joinNames(ni.partner) || '（相方なし）'], ['相手', joinNames(ni.opp)]], note);
+}
 function statusCard(st, flash) {
   return h('div', { class: 'status ' + st.cls + (flash ? ' flash' : '') }, h('span', { class: 'k' }, st.k), h('span', { class: 'v' }, st.v), st.lines.map(t => h('span', { class: 's' }, t)));
 }
@@ -735,7 +798,8 @@ function renderParticipant(root) {
     const sc = myStatus(me.id), key = JSON.stringify([sc.cls, sc.v, sc.lines]);
     if (!S.flash || S.flash.id !== me.id) S.flash = { id: me.id, key, until: 0 };
     else if (S.flash.key !== key) S.flash = { id: me.id, key, until: Date.now() + 3500 }; // 自分に関わる表示が変わったときだけ短時間ハイライト
-    st.replaceChildren(statusCard(sc, Date.now() < S.flash.until));
+    const nc = nextCard(me.id), scv = nc ? { ...sc, lines: sc.lines.filter(t => !t.startsWith('次：')) } : sc; // 次の出番はカードに集約し重ねて出さない
+    st.replaceChildren(statusCard(scv, Date.now() < S.flash.until), nc || '');
     meBox.replaceChildren(h('div', { class: 'me-foot' }, h('span', null, `${nameOf(me.id)} さんとして表示中`), h('button', { class: 'link', onclick: () => { setMe(null); renderAll(); } }, '名前を変更')));
   }
   bd.replaceChildren(...(S.isAdmin && S.sel ? [h('div', { class: 'banner info', style: 'margin-bottom:14px' }, `「${nameOf(S.sel.id)}」を選択中 — 入れ替える相手の名前をタップ（もう一度タップで解除）`)] : []), gameBoard(S.isAdmin, me ? me.id : null));
@@ -1015,10 +1079,19 @@ async function changePin() {
 }
 
 /* ---------- シェル・ルーティング ---------- */
+/* ---------- 文字サイズ（標準/大/特大）。この端末だけ。localStorage bm_fs ---------- */
+const FS_LABEL = { m: '標準', l: '大', xl: '特大' };
+function applyFontSize(v) { const k = FS_LABEL[v] ? v : 'm'; document.documentElement.dataset.fs = k; const b = $('#navFs'); if (b) b.textContent = '文字：' + FS_LABEL[k]; }
+async function chooseFontSize() {
+  const v = await actionSheet('文字の大きさ', Object.entries(FS_LABEL).map(([value, label]) => ({ label, value })));
+  if (!v) return; lsSet('bm_fs', v); applyFontSize(v);
+}
+applyFontSize(lsGet('bm_fs') || 'm');
 function renderAll() {
   S.isAdmin = !!S.config && !!S.config.pinHash && ssGet('bm_admin_ok') === S.config.pinHash; // 内部のadmin判定（PIN認証）は従来どおり
   const app = $('#app');
-  if (!app.querySelector('main')) app.replaceChildren(h('header', { class: 'nav' }, h('div', { class: 'nav-in' }, h('div', null, h('h1', null, 'バド対戦表'), h('div', { class: 'sub', id: 'navSub' })), h('button', { class: 'adm-btn', id: 'navAdmin', type: 'button', onclick: () => { if (S.isAdmin) { const t = $('#pAdmin'); t && t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } else openAdminLogin(); } }, 'Admin'))), h('div', { id: 'banners', style: 'max-width:560px;margin:12px auto 0;padding:0 16px' }), h('main', { id: 'view' }));
+  if (!app.querySelector('main')) app.replaceChildren(h('header', { class: 'nav' }, h('div', { class: 'nav-in' }, h('div', null, h('h1', null, 'バド対戦表'), h('div', { class: 'sub', id: 'navSub' })), h('button', { class: 'fs-btn', id: 'navFs', type: 'button', onclick: chooseFontSize }, '文字'), h('button', { class: 'adm-btn', id: 'navAdmin', type: 'button', onclick: () => { if (S.isAdmin) { const t = $('#pAdmin'); t && t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } else openAdminLogin(); } }, 'Admin'))), h('div', { id: 'banners', style: 'max-width:560px;margin:12px auto 0;padding:0 16px' }), h('main', { id: 'view' }));
+  applyFontSize(document.documentElement.dataset.fs || 'm');
   $('#navSub').textContent = `${S.date.replace(/-/g, '/')}${MOCK ? '　デモモード' : ''}`; $('#navAdmin').classList.toggle('on', !!S.isAdmin);
   const bn = [];
   if (S.err) bn.push(h('div', { class: 'banner err' }, 'データベースに接続できません: ' + S.err + '（Firestoreルール未設定の可能性）'));
