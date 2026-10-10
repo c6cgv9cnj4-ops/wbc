@@ -562,6 +562,8 @@
         "青崎有吾": { birth: "1991-06-28", src: "https://ja.wikipedia.org/wiki/%E9%9D%92%E5%B4%8E%E6%9C%89%E5%90%BE" },
         "蝉谷めぐ実": { birth: "1992-07-23", src: "https://ja.wikipedia.org/wiki/%E8%9D%89%E8%B0%B7%E3%82%81%E3%81%90%E5%AE%9F" },
         "荻堂顕": { birth: "1994-03-25", src: "https://ja.wikipedia.org/wiki/%E8%8D%BB%E5%A0%82%E9%A1%95" },
+        "宮下奈都": { birth: "1967-01-02", src: "https://books.bunshun.jp/sp/hitsuji-hagane" },
+        "加藤シゲアキ": { birth: "1987-07-11", src: "https://www.bcnretail.com/topics_detail9/20220719_288481.html" },
     };
 
     const booksData = [
@@ -778,7 +780,7 @@
         { id:"b70", genre:"otherlit", awardLabel:"第45回 吉川英治文学新人賞", score:null,
           title:"リラの花咲くけものみち", author:"藤岡陽子", wikipediaExists:true,
           synopsis:"訪問看護師として働く女性が、患者やその家族との関わりを通じて、生と死に向き合っていく人間ドラマ。" },
-        { id:"b71", genre:"otherlit", awardLabel:"第46回 吉川英治文学新人賞", score:null,
+        { id:"b71", genre:"otherlit", awardLabel:"第46回 吉川英治文学新人賞", date:"2025-03-05", score:null,
           title:"飽くなき地景", author:"荻堂顕", wikipediaExists:true,
           synopsis:"都市開発で財を成した旧華族の家に生まれた青年が、家業には興味を持てず、一族に伝わる名刀の美に魅せられていく。東京の景観と家族史を描く。" },
         { id:"b72", genre:"otherlit", awardLabel:"第46回 吉川英治文学新人賞", score:null,
@@ -1075,7 +1077,8 @@
     sortBooksByDateDesc(booksData);
 
     // 受賞時年齢（満年齢）。著者の生年月日と受賞日（getBookDate）から算出する。
-    // 受賞日は月単位（1日扱い）のため、誕生日がその月の2日以降の作品は±1歳ずれる可能性がある。
+    // 受賞日が日単位で確認できない（date未指定）作品は月の1日扱いになる。その月が誕生月と同じで
+    // 誕生日が2日以降なら年齢を確定できないため、年齢は表示しない。
     function ageAtAward(book) {
         const info = AUTHOR_BIRTH[book.author];
         const awardTime = getBookDate(book);
@@ -1083,6 +1086,8 @@
         const [by, bm, bd] = info.birth.split('-').map(Number);
         const ad = new Date(awardTime);
         const ay = ad.getUTCFullYear(), am = ad.getUTCMonth() + 1, adt = ad.getUTCDate();
+        const exactDay = !!book.date && parseExplicitDate(book.date) !== null;
+        if (!exactDay && am === bm && bd > 1) return null;
         let age = ay - by;
         if (am < bm || (am === bm && adt < bd)) age -= 1;
         return age >= 0 ? age : null;
