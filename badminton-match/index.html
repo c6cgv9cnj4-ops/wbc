@@ -352,6 +352,14 @@ html[data-fs="xl"] .rl{flex-direction:column;gap:2px}
 .ncard .nw{margin-top:8px;font-size:calc(13px*var(--fl));font-weight:600;color:var(--label2)}
 .fs-btn{appearance:none;border:0;background:transparent;color:var(--label2);font-size:13px;font-weight:700;padding:6px 8px;border-radius:999px;cursor:pointer;min-height:32px}
 .fs-btn:active{background:var(--fill)}
+/* 自分の名前: 背景色＋太字＋枠線（色だけに依存しない） */
+.nm.me,.nm.me.edit{outline:2px solid var(--label);outline-offset:1px;border-radius:999px}
+.ncard .nr.mine span{font-weight:800}
+.ncard .nr b{min-width:4.2em}
+/* 操作ボタンも文字サイズに追従 */
+.btn.big{font-size:calc(17px*var(--fl));min-height:calc(52px*var(--fl))}
+.fs-btn,.adm-btn{font-size:calc(13px*var(--fl))}
+.cta .btn.big{padding:0 calc(10px*var(--fl))}
 </style>
 </head>
 <body>
@@ -757,21 +765,26 @@ function myStatus(meId) { // 状況カードの中身（表示だけ。DBには�
   if (cur.bench.includes(meId)) return { cls: ni ? 'next' : 'rest', k, v: '休憩中', lines: after() };
   return { cls: 'idle', k, v: '次の組をお待ちください', lines: after() };
 }
-function nextCard(meId) { // 自分の次の出番を画面上部に大きく表示（表示だけ。生成ロジックは変更しない）
-  const s = S.session, a = S.attMap[meId];
-  if (!s || s.status === 'closed' || !a || a.present === false || !s.current) return null;
-  const mk = (cls, k, v, rows, note) => h('div', { class: 'ncard ' + cls }, h('div', { class: 'nk' }, k), h('div', { class: 'nv' }, v),
-    (rows || []).map(([l, t]) => h('div', { class: 'nr' }, h('b', null, l), h('span', null, t))), note ? h('div', { class: 'nw' }, note) : null);
+function nextCard(meId) { // 次の試合を画面上部に大きく表示（表示だけ。生成ロジックは変更しない）。自分未選択でも全コートを表示し、名前選択を促す
+  const s = S.session, a = meId ? S.attMap[meId] : null;
+  if (!s || s.status === 'closed' || !s.current) return null;
+  const mk = (cls, k, v, rows, note) => h('div', { class: 'ncard ' + cls }, h('div', { class: 'nk' }, k), v ? h('div', { class: 'nv' }, v) : null,
+    (rows || []).map(([l, t, mine]) => h('div', { class: 'nr' + (mine ? ' mine' : '') }, h('b', null, l), h('span', null, t))), note ? h('div', { class: 'nw' }, note) : null);
+  const label = `次の試合（第${(s.gameNo || 0) + 1}試合）`;
+  const allCourts = () => (s.next ? s.next.courts : []).map((c, i) => [`コート${i + 1}`, `${joinNames(c.a)}　VS　${joinNames(c.b)}`, meId && [...c.a, ...c.b].includes(meId)]);
+  if (!meId) return s.next ? mk('', label, '', allCourts(), '上の「あなたの名前を選んでください」で自分を選ぶと、出番が強調表示されます') : null;
+  if (!a || a.present === false) return null;
   if (a.status === 'left') return mk('none', '次の試合', '早退済みです', [], null);
   if (a.forcedRest) return mk('rest', '次の試合', '休憩中（Adminの指定）', [], '復帰はAdminにお伝えください');
   if (a.restLeft > 0) return mk('rest', '次の試合', `休み予約中（あと${a.restLeft}試合）`, [], null);
   if (!s.next) return mk('none', '次の試合', '次の組は未定です', [], null);
   const ni = pairInfo(s.next, meId);
-  if (!ni) return mk('rest', '次の試合', '次は休みです', [], null);
+  const others = s.next.courts.map((c, i) => [`コート${i + 1}`, `${joinNames(c.a)}　VS　${joinNames(c.b)}`, false]).filter((_, i) => !ni || i !== ni.court - 1);
+  if (!ni) return mk('rest', label, '次は休みです', others, null);
   const playingNow = !!pairInfo(s.current, meId);
   // 残り試合数: 次の組は「いまの試合」の直後に始まる。いま休みなら あと1試合待ち、いまプレー中なら続けて出番（これ以上先は未生成のため数えない）
   const note = playingNow ? 'いまの試合のあと、続けて出番です' : 'いまの試合が終わったら出番です（あと1試合）';
-  return mk('', `次の試合（第${(s.gameNo || 0) + 1}試合）`, `コート${ni.court}`, [['ペア', joinNames(ni.partner) || '（相方なし）'], ['相手', joinNames(ni.opp)]], note);
+  return mk('', label, `コート${ni.court}`, [['ペア', joinNames(ni.partner) || '（相方なし）', true], ['相手', joinNames(ni.opp), false], ...others], note);
 }
 function statusCard(st, flash) {
   return h('div', { class: 'status ' + st.cls + (flash ? ' flash' : '') }, h('span', { class: 'k' }, st.k), h('span', { class: 'v' }, st.v), st.lines.map(t => h('span', { class: 's' }, t)));
@@ -792,7 +805,7 @@ function renderParticipant(root) {
       pick.replaceChildren(h('div', { class: 'who-pick' }, h('div', null, h('div', { class: 'h2' }, 'あなたの名前を選んでください'), h('div', { class: 'small muted', style: 'margin-top:4px' }, '選ぶとこの端末に記憶され、あなたの出番が強調表示されます。参加の登録はAdminが行います。')),
         S.members.length ? h('div', { class: 'suggest list', style: 'max-height:55vh' }, S.members.map(m => h('div', { class: 'li tap', onclick: () => { setMe({ id: m.id }); renderAll(); } }, h('div', { class: 'grow t' }, m.name)))) : h('div', { class: 'small muted' }, '名簿がまだありません')));
     }
-    st.replaceChildren(); meBox.replaceChildren();
+    st.replaceChildren(nextCard(null) || ''); meBox.replaceChildren();
   } else {
     pPickKey = null; pick.replaceChildren();
     const sc = myStatus(me.id), key = JSON.stringify([sc.cls, sc.v, sc.lines]);
