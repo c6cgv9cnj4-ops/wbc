@@ -4,7 +4,7 @@
   "_alert:gemini_market": "2026-10-10T05:56:26.843558+09:00",
   "_alert:gemini_national": "2026-10-09T01:00:44.692178+09:00",
   "_alert:google_news_fetch": "2026-10-05T13:42:50.995229+09:00",
-  "_last_run_at": "2026-10-10T13:38:13.515354+09:00",
+  "_last_run_at": "2026-10-10T14:08:43.592194+09:00",
   "_mastodon_anzn_cursor": "2026-10-10T13:07:44.329133+09:00|117414481496635276",
   "_weekend_market_signature": "{\"jgb\": \"124.85\", \"nikkei\": \"69,030.92\", \"usdjpy\": 158.29}",
   "https://ageo-okegawa.goguynet.jp/2026/02/20/ageo-gyoumusu-pa-5/": "2026-10-04T03:00:51.426027+09:00",
@@ -1977,6 +1977,7 @@
   "https://toyokeizai.net/articles/-/960275": "2026-10-09T06:45:39.695986+09:00",
   "https://toyokeizai.net/articles/-/960300": "2026-10-09T07:16:10.489572+09:00",
   "https://toyokeizai.net/articles/-/960380": "2026-10-07T00:12:12.526612+09:00",
+  "https://toyokeizai.net/articles/-/960442": "2026-10-10T14:08:43.592194+09:00",
   "https://toyokeizai.net/articles/-/960473": "2026-10-08T06:38:55.551371+09:00",
   "https://toyokeizai.net/articles/-/960478": "2026-10-10T05:56:26.843558+09:00"
 }
