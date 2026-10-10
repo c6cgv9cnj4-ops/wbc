@@ -360,6 +360,13 @@ html[data-fs="xl"] .rl{flex-direction:column;gap:2px}
 .btn.big{font-size:calc(17px*var(--fl));min-height:calc(52px*var(--fl))}
 .fs-btn,.adm-btn{font-size:calc(13px*var(--fl))}
 .cta .btn.big{padding:0 calc(10px*var(--fl))}
+/* 次の試合カード内の名前: 1名ずつ1かたまり（名前の途中で改行しない）。狭い幅・特大では組ごとに折り返す */
+.ncard .nn{display:inline-block;white-space:nowrap}
+.ncard .nrt{min-width:0}
+.ncard .nvs{display:inline-block;font-size:calc(12px*var(--fl));font-weight:700;color:var(--label2);letter-spacing:.1em;margin:0 4px}
+/* ヘッダー: 「文字：特大」が折り返さないように */
+.fs-btn{white-space:nowrap;padding:6px 6px}
+.nav .sub{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -765,13 +772,14 @@ function myStatus(meId) { // 状況カードの中身（表示だけ。DBには�
   if (cur.bench.includes(meId)) return { cls: ni ? 'next' : 'rest', k, v: '休憩中', lines: after() };
   return { cls: 'idle', k, v: '次の組をお待ちください', lines: after() };
 }
+const teamNodes = ids => h('span', { class: 'tn' }, ids.map((id, i) => [i ? '・' : '', h('span', { class: 'nn' }, nameOf(id))])); // 名前は途中で折り返さない（1名＝1かたまり）
 function nextCard(meId) { // 次の試合を画面上部に大きく表示（表示だけ。生成ロジックは変更しない）。自分未選択でも全コートを表示し、名前選択を促す
   const s = S.session, a = meId ? S.attMap[meId] : null;
   if (!s || s.status === 'closed' || !s.current) return null;
   const mk = (cls, k, v, rows, note) => h('div', { class: 'ncard ' + cls }, h('div', { class: 'nk' }, k), v ? h('div', { class: 'nv' }, v) : null,
-    (rows || []).map(([l, t, mine]) => h('div', { class: 'nr' + (mine ? ' mine' : '') }, h('b', null, l), h('span', null, t))), note ? h('div', { class: 'nw' }, note) : null);
+    (rows || []).map(([l, t, mine]) => h('div', { class: 'nr' + (mine ? ' mine' : '') }, h('b', null, l), h('span', { class: 'nrt' }, t))), note ? h('div', { class: 'nw' }, note) : null);
   const label = `次の試合（第${(s.gameNo || 0) + 1}試合）`;
-  const allCourts = () => (s.next ? s.next.courts : []).map((c, i) => [`コート${i + 1}`, `${joinNames(c.a)}　VS　${joinNames(c.b)}`, meId && [...c.a, ...c.b].includes(meId)]);
+  const allCourts = () => (s.next ? s.next.courts : []).map((c, i) => [`コート${i + 1}`, [teamNodes(c.a), h('span', { class: 'nvs' }, ' VS '), teamNodes(c.b)], meId && [...c.a, ...c.b].includes(meId)]);
   if (!meId) return s.next ? mk('', label, '', allCourts(), '上の「あなたの名前を選んでください」で自分を選ぶと、出番が強調表示されます') : null;
   if (!a || a.present === false) return null;
   if (a.status === 'left') return mk('none', '次の試合', '早退済みです', [], null);
@@ -779,12 +787,12 @@ function nextCard(meId) { // 次の試合を画面上部に大きく表示（表
   if (a.restLeft > 0) return mk('rest', '次の試合', `休み予約中（あと${a.restLeft}試合）`, [], null);
   if (!s.next) return mk('none', '次の試合', '次の組は未定です', [], null);
   const ni = pairInfo(s.next, meId);
-  const others = s.next.courts.map((c, i) => [`コート${i + 1}`, `${joinNames(c.a)}　VS　${joinNames(c.b)}`, false]).filter((_, i) => !ni || i !== ni.court - 1);
+  const others = s.next.courts.map((c, i) => [`コート${i + 1}`, [teamNodes(c.a), h('span', { class: 'nvs' }, ' VS '), teamNodes(c.b)], false]).filter((_, i) => !ni || i !== ni.court - 1);
   if (!ni) return mk('rest', label, '次は休みです', others, null);
   const playingNow = !!pairInfo(s.current, meId);
   // 残り試合数: 次の組は「いまの試合」の直後に始まる。いま休みなら あと1試合待ち、いまプレー中なら続けて出番（これ以上先は未生成のため数えない）
   const note = playingNow ? 'いまの試合のあと、続けて出番です' : 'いまの試合が終わったら出番です（あと1試合）';
-  return mk('', label, `コート${ni.court}`, [['ペア', joinNames(ni.partner) || '（相方なし）', true], ['相手', joinNames(ni.opp), false], ...others], note);
+  return mk('', label, `コート${ni.court}`, [['ペア', ni.partner.length ? teamNodes(ni.partner) : '（相方なし）', true], ['相手', teamNodes(ni.opp), false], ...others], note);
 }
 function statusCard(st, flash) {
   return h('div', { class: 'status ' + st.cls + (flash ? ' flash' : '') }, h('span', { class: 'k' }, st.k), h('span', { class: 'v' }, st.v), st.lines.map(t => h('span', { class: 's' }, t)));
