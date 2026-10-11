@@ -328,59 +328,67 @@ def keys(state):
 
 
 class NationalFlowTest(unittest.TestCase):
-    def test_quota_holds_articles_and_notifies_once_with_details(self):
+    """2026-10-11: Gemini失敗・待機中は『見出しとリンクだけ』で配信を継続する(配信を止めない)。候補は配信済みとして記録する。"""
+
+    def test_quota_falls_back_to_titles_and_links_and_notifies_once(self):
         state = {}
         client = FakeClient(quota_error("4393s"))
         msg, bodies = run_national(client, state)
-        self.assertIsNone(msg)
-        self.assertEqual(keys(state), [])                          # 失敗記事は既読にしない
-        self.assertEqual(client.calls, 1)                          # 即時リトライしない
+        self.assertIsNotNone(msg)
+        self.assertIn("要約なし", msg)
+        self.assertEqual(msg.count("- ["), len(ITEMS))                # 見出し＋リンクを全候補分
+        self.assertIn("<https://news.yahoo.co.jp/pickup/0>", msg)
+        self.assertEqual(len(keys(state)), len(ITEMS))                 # 配信済みとして記録
+        self.assertEqual(client.calls, 1)                              # 即時リトライしない
         issues = na.issues()
-        self.assertEqual([(i["kind"], i["count"]) for i in issues], [("gemini_national:quota", 1)])     # ×2 にならない
-        payload = na.build_embeds({}, NOW)[0]["news"]["embeds"][0]
-        d = payload["description"]
-        for expect in ("**全国主要ニュース(Gemini要約)**", "Geminiの利用上限に達しました", "・失敗: 要約処理1回（API呼び出し1回）", "・HTTP 429 RESOURCE_EXHAUSTED",
-                       "・保留: 記事5件（既読にせず、次回以降の実行で再処理します）", "・再試行方針: 利用上限のため再試行せず、待ち時間（約1時間13分）が終わるまでAPIを呼びません",
-                       "・次回の再試行: 08:59 JST以降の実行で再試行（Googleの待ち時間(境界より前のため採用)）", "影響: 今回はスキップ。この回の全国ニュースは配信されません。記事は保留。"):
+        self.assertEqual([(i["kind"], i["count"]) for i in issues], [("gemini_national:quota", 1)])
+        d = na.build_embeds({}, NOW)[0]["news"]["embeds"][0]["description"]
+        for expect in ("Geminiの利用上限に達しました", "・再試行方針: 利用上限のため再試行せず、待ち時間（約1時間13分）が終わるまでAPIを呼びません",
+                       "影響: 配信は継続。要約なしのタイトルとリンクで配信。"):
             self.assertIn(expect, d)
-        self.assertIn("同じ異常は12時間通知しません", payload["footer"]["text"])
+        self.assertNotIn("保留", d)
         for secret in ("SECRET-LIKE", "violations", "{'error'", "quotaId"):
-            self.assertNotIn(secret, d + payload["footer"]["text"])
+            self.assertNotIn(secret, d)
 
-    def test_next_run_while_waiting_makes_no_api_call_and_keeps_holding(self):
+    def test_waiting_still_delivers_new_items_as_links_without_api_call(self):
         state = {}
         run_national(FakeClient(quota_error("4393s")), state)
+        new = [{"title": "新着の見出し", "url": "https://news.yahoo.co.jp/pickup/9", "published": "10/09 07:00"}]
         client2 = FakeClient()
         later = NOW + dt.timedelta(minutes=30)
-        msg, bodies = run_national(client2, state, now=later)
-        self.assertIsNone(msg)
-        self.assertEqual((client2.calls, bodies), (0, []))        # APIも本文取得も行わない
-        self.assertEqual(keys(state), [])                          # 引き続き保留(既読にしない)
+        msg, bodies = run_national(client2, state, now=later, items=new)
+        self.assertIn("新着の見出し", msg)
+        self.assertEqual((client2.calls, bodies), (0, []))            # 待機中はAPIも本文取得も行わない
         d = na.build_embeds({}, later)[0]["news"]["embeds"][0]["description"]
         self.assertIn("API呼び出しなし（利用上限の待機中のため送信していません）", d)
-        self.assertIn("・次回の再試行: 08:59 JST以降の実行で再試行", d)
+
+    def test_repeat_run_with_same_items_sends_nothing(self):
+        state = {}
+        run_national(FakeClient(quota_error("4393s")), state)
+        msg, _ = run_national(FakeClient(), state, now=NOW + dt.timedelta(minutes=30))
+        self.assertIsNone(msg)                                         # 既に配信した見出しは二度送らない
 
     def test_notice_is_suppressed_for_same_error_then_recovers(self):
         state = {}
         run_national(FakeClient(quota_error("4393s")), state)
         state[na.ALERT_STATE_PREFIX + "gemini_national:quota"] = NOW.isoformat()     # 通知済み
         later = NOW + dt.timedelta(minutes=30)
-        run_national(FakeClient(), state, now=later)
+        new1 = [{"title": "新しい1", "url": "https://news.yahoo.co.jp/pickup/8", "published": ""}]
+        run_national(FakeClient(), state, now=later, items=new1)
         _, notified, suppressed = na.build_embeds(state, later)
         self.assertEqual((notified, suppressed), ([], ["gemini_national:quota"]))     # 同じ異常は抑止
-        # 待ち時間が過ぎて復旧 → 記事は処理され、抑止が解除される
+        # 待ち時間が過ぎて復旧 → 要約が付き、抑止が解除される
         recovered = NOW + dt.timedelta(seconds=4394)
         client = FakeClient()
-        msg, _ = run_national(client, state, now=recovered)
-        self.assertIsNotNone(msg)
+        new2 = [{"title": "新しい2", "url": "https://news.yahoo.co.jp/pickup/7", "published": ""}]
+        msg, _ = run_national(client, state, now=recovered, items=new2)
         self.assertIn("見出しA", msg)
         self.assertEqual(client.calls, 1)
-        self.assertGreater(len(keys(state)), 0)                    # 成功した記事は既読になる
         self.assertNotIn(na.ALERT_STATE_PREFIX + "gemini_national:quota", state)
-        # 復旧後の再発は12時間以内でもすぐ通知される
         again = recovered + dt.timedelta(hours=1)
-        run_national(FakeClient(quota_error("100s", daily=True)), state, now=again, items=[{"title": "新しい", "url": "https://news.yahoo.co.jp/pickup/9", "published": ""}])
-        self.assertEqual(na.build_embeds(state, again)[1], ["gemini_national:quota"])
+        new3 = [{"title": "新しい3", "url": "https://news.yahoo.co.jp/pickup/6", "published": ""}]
+        run_national(FakeClient(quota_error("100s", daily=True)), state, now=again, items=new3)
+        self.assertEqual(na.build_embeds(state, again)[1], ["gemini_national:quota"])    # 復旧後の再発は即時通知
 
     def test_changed_error_is_not_buried_by_cooldown(self):
         state = {na.ALERT_STATE_PREFIX + "gemini_national:quota": NOW.isoformat()}
@@ -403,11 +411,11 @@ class NationalFlowTest(unittest.TestCase):
         self.assertEqual(client.calls, 2)
         self.assertEqual(na.issues(), [])
 
-    def test_unparseable_response_is_held_not_marked_read(self):
+    def test_unparseable_response_falls_back_to_links(self):
         state = {}
         msg, _ = run_national(FakeClient(Resp("これはJSONではない")), state)
-        self.assertIsNone(msg)
-        self.assertEqual(keys(state), [])
+        self.assertIn("要約なし", msg)
+        self.assertEqual(len(keys(state)), len(ITEMS))
         self.assertEqual(na.issues()[0]["kind"], "gemini_national:other")
 
     def test_empty_summary_keeps_old_behaviour(self):

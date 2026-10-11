@@ -1271,6 +1271,17 @@ Yahoo!ニュースが無料公開しているリード文(本文の一部)が付
     return results
 
 
+def build_national_news_fallback(items, now, reason):
+    """Gemini要約ができなかったときの全国ニュース配信(2026-10-11)。要約は付けず、見出しとリンクだけを送る。
+    配信を止めないための分岐。reason は通知用の短い説明(例: 利用上限の待機中・要約処理の失敗)。"""
+    now_jst = now.strftime("%Y-%m-%d %H:%M")
+    lines = [f"# 🌐 国内外の主要トップニュース ({now_jst} JST時点)",
+             f"-# 要約なし(AI要約を行えなかったため、見出しとリンクのみ。{reason})", ""]
+    for item in items:
+        lines.append(discord_style.bullet_link(item["title"], item["url"]))
+    return "\n".join(lines).rstrip()
+
+
 def build_national_news_message(client, state, now, guard=None):
     """新着が1件も無ければ(None, [])を返す(Discordへ空更新を送らないため)。
     戻り値は (message_or_None, sports_items) のタプル。
@@ -1309,35 +1320,36 @@ def build_national_news_message(client, state, now, guard=None):
         return None, sports_items
 
     guard = guard or gemini_guard.Guard(state)
+    candidates = top_general[:NATIONAL_NEWS_CANDIDATE_LIMIT]
+    # 2026-09-26(N4): 上限を超えた記事は既送信にせず、次回の候補に回す
+    for item in top_general[NATIONAL_NEWS_CANDIDATE_LIMIT:]:
+        state.pop(normalize_url(item["url"]), None)
     blocked = guard.blocked()
     if blocked:
-        # 2026-10-09: Geminiが待機中(利用上限の待ち時間内)。本文取得もAPI呼び出しもせず、記事は既読にしないで保留する
-        for item in top_general:
-            state.pop(normalize_url(item["url"]), None)
-        print(f"[WARN] Geminiが待機中のため全国主要ニュースの要約をスキップします({blocked[0].astimezone(JST_TZ):%H:%M} JST以降に再開)。記事{len(top_general)}件は保留。")
+        # 2026-10-11: Geminiが利用上限で待機中。APIも本文取得も行わず、見出しとリンクだけで配信を継続する
+        # (配信を止めない。要約は付かない)。候補は配信済みとして記録する。
+        print(f"[WARN] Geminiが待機中のため、全国主要ニュースを要約なし(見出しとリンク)で配信します({blocked[0].astimezone(JST_TZ):%H:%M} JST以降に要約を再開)。")
         record_gemini_failure("gemini_national", "news", "全国主要ニュース(Gemini要約)",
-                              gemini_guard.GeminiBlocked(*blocked), "スキップ(この回の全国ニュースは配信されません。記事は保留)", held=len(top_general))
-        return None, sports_items
+                              gemini_guard.GeminiBlocked(*blocked), "継続(要約なしのタイトルとリンクで配信)")
+        return build_national_news_fallback(candidates, now, "利用上限の待機中のため"), sports_items
 
     # 本文取得はネットワークコストがかかるため、候補数を上限で絞る
     # (新しい記事を優先。RSSは新着順で返ってくる)。
-    candidates = top_general[:NATIONAL_NEWS_CANDIDATE_LIMIT]
-    # 2026-09-26(N4): 上限を超えてGeminiに渡さなかった記事は既送信にせず、次回の候補に回す
-    for item in top_general[NATIONAL_NEWS_CANDIDATE_LIMIT:]:
-        state.pop(normalize_url(item["url"]), None)
     for item in candidates:
         item["body"] = fetch_yahoo_pickup_body(item["url"])
 
-    summarized = summarize_national_news(client, candidates, guard)
+    try:
+        summarized = summarize_national_news(client, candidates, guard)
+    except Exception as err:  # noqa: BLE001  想定外の例外でも配信を止めない(2026-10-11)
+        guard.last_error = err
+        summarized = None
     if summarized is None:
-        # 2026-09-26: Gemini失敗時は、dedupe_new_items()が付けた既送信記録を取り消す
-        # (取り消さないとGemini復旧後も再配信されず記事が失われるため)。
-        # 正常に0件だった場合([])は従来どおり記録を残し、無限に再試行しない。
-        for item in top_general:
-            state.pop(normalize_url(item["url"]), None)
+        # 2026-10-11: Gemini失敗(402/429/5xx・応答の解析失敗など)でも配信を止めず、
+        # 見出しとリンクだけの配信に切り替える。候補は配信済みとして記録する(次回の再試行はしない)。
         record_gemini_failure("gemini_national", "news", "全国主要ニュース(Gemini要約)", getattr(guard, "last_error", None),
-                              "スキップ(この回の全国ニュースは配信されません。記事は保留)", held=len(top_general))
-        return None, sports_items
+                              "継続(要約なしのタイトルとリンクで配信)")
+        print(f"[WARN] Gemini要約に失敗したため、全国主要ニュースを要約なし(見出しとリンク)で配信します({len(candidates)}件)。")
+        return build_national_news_fallback(candidates, now, "AI要約の処理に失敗したため"), sports_items
     news_alerts.clear(state, "gemini_national")       # 呼び出しに成功=復旧。再発したらすぐ通知できるよう抑止を解除する
     if not summarized:
         print("[WARN] 主要ニュースの要約が0件だったため、この回の配信をスキップします。")
