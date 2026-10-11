@@ -423,6 +423,11 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 .hint{color:var(--blue);font-weight:700;font-size:calc(13px*var(--fl));opacity:1}
 /* 入れ替え選択中の案内は、下の「休み」欄をタップしても見えるよう画面上部に固定 */
 #pBoard>.banner.info{position:sticky;top:52px;z-index:15;margin-bottom:8px}
+.rn{display:inline-flex;align-items:baseline;gap:4px}
+.rn-tag{font-size:calc(11px*var(--fl));font-weight:800;color:#1b5e20;background:rgba(27,94,32,.12);border-radius:6px;padding:0 6px}
+@media (prefers-color-scheme:dark){.rn-tag{color:#8fe39a;background:rgba(143,227,154,.16)}}
+.rl.minor{opacity:.72}
+.rl.minor .rl-k,.rl.minor .nm{font-size:calc(13px*var(--fl));font-weight:600}
 </style>
 </head>
 <body>
@@ -841,19 +846,25 @@ function courtGrid(round, key, i, gameNo, editable, meId, kind) {
     h('div', { class: 'cg-h' }, h('span', { class: 'cg-t' }, `第${gameNo}試合`), h('span', { class: 'cg-sep' }, '｜'), h('span', { class: 'cg-t' }, `コート${i + 1}`), pill),
     h('div', { class: 'cg-body' }, team(c.a, 'ペアA'), h('div', { class: 'cg-vs' }, h('span', null, 'VS')), team(c.b, 'ペアB')));
 }
-function restSection(s, closed, editable, meId) { // 休み: いま／次の休み（入替できる）＋休憩指定・早退を1か所にコンパクトに
-  const chips = (ids, key) => h('span', { class: 'rl-n' }, ids.map(id => editable && !closed
-    ? h('button', { class: 'nm edit' + (id === meId ? ' me' : '') + (S.sel && S.sel.key === key && S.sel.id === id ? ' sel' : ''), type: 'button', onclick: () => pickPlayer(key, id) }, nameOf(id))
-    : h('span', { class: 'nm' + (id === meId ? ' me' : '') }, nameOf(id))));
+function restSection(s, closed, editable, meId) { // 休み: いま／次の待機メンバー（入替できる）。休憩中・早退は別枠で小さく
+  // 待機欄に出すのは「参加中で、休憩中・早退でない人」だけ（休憩に切り替えた人が古い組の bench に残っていても出さない）
+  const waiting = id => { const a = S.attMap[id]; return !!a && a.present !== false && a.status !== 'left' && !a.forcedRest && !(a.restLeft > 0); };
+  const nextIds = new Set(s.next ? s.next.courts.flatMap(c => [...c.a, ...c.b]) : []);
+  const chips = (ids, key, markNext) => h('span', { class: 'rl-n' }, ids.map(id => h('span', { class: 'rn' },
+    editable && !closed
+      ? h('button', { class: 'nm edit' + (id === meId ? ' me' : '') + (S.sel && S.sel.key === key && S.sel.id === id ? ' sel' : ''), type: 'button', onclick: () => pickPlayer(key, id) }, nameOf(id))
+      : h('span', { class: 'nm' + (id === meId ? ' me' : '') }, nameOf(id)),
+    markNext && nextIds.has(id) ? h('span', { class: 'rn-tag' }, '次に出る') : null))); // いま休み → 次の試合に出る人には目印
   const pres = presentAtts(), forced = pres.filter(a => a.status !== 'left' && (a.forcedRest || a.restLeft > 0)), left = pres.filter(a => a.status === 'left');
   const rows = [];
-  if (s.current && s.current.bench && s.current.bench.length) rows.push(['いま', chips(s.current.bench, 'current')]);
-  if (!closed && s.next && s.next.bench && s.next.bench.length) rows.push(['次', chips(s.next.bench, 'next')]);
-  if (forced.length) rows.push(['休憩', h('span', { class: 'rl-n' }, forced.map(a => h('span', { class: 'nm' + (a.id === meId ? ' me' : '') }, nameOf(a.id) + (a.forcedRest ? '' : `（あと${a.restLeft}試合）`))))]);
-  if (left.length) rows.push(['早退', h('span', { class: 'rl-n' }, left.map(a => h('span', { class: 'nm' + (a.id === meId ? ' me' : '') }, nameOf(a.id))))]);
+  const nowRest = ((s.current && s.current.bench) || []).filter(waiting), nextRest = closed ? [] : ((s.next && s.next.bench) || []).filter(waiting);
+  if (nowRest.length) rows.push(['いま', chips(nowRest, 'current', true)]);
+  if (nextRest.length) rows.push(['次', chips(nextRest, 'next', false)]);
+  if (forced.length) rows.push(['休憩中', h('span', { class: 'rl-n' }, forced.map(a => h('span', { class: 'nm' + (a.id === meId ? ' me' : '') }, nameOf(a.id) + (a.forcedRest ? '' : `（あと${a.restLeft}試合）`)))), 'minor']);
+  if (left.length) rows.push(['早退', h('span', { class: 'rl-n' }, left.map(a => h('span', { class: 'nm' + (a.id === meId ? ' me' : '') }, nameOf(a.id)))), 'minor']);
   if (!rows.length) return null;
-  return h('section', { class: 'blk' }, h('div', { class: 'sec-h' }, '休み'), // 見出しは「休み」に一本化（右側の「休憩」バッジは廃止）
-    rows.map(([k, n]) => h('div', { class: 'rl' }, h('span', { class: 'rl-k' }, k), n)));
+  return h('section', { class: 'blk' }, h('div', { class: 'sec-h' }, '休み'), // 見出しは「休み」に一本化
+    rows.map(([k, n, cls]) => h('div', { class: 'rl' + (cls ? ' ' + cls : '') }, h('span', { class: 'rl-k' }, k), n)));
 }
 function gameBoard(editable, meId) {
   const s = S.session, wrap = h('div', { class: 'board' });
