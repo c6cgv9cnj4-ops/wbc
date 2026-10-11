@@ -860,7 +860,7 @@ function gameBoard(editable, meId) {
   if (!s || (!s.current && !s.next)) { if (!meId) wrap.append(h('div', { class: 'empty' }, s ? 'まだ試合が始まっていません' : '本日のセッションはまだありません')); return wrap; }
   const gn = s.gameNo || 0, closed = s.status === 'closed';
   const inRound = (r, i) => !!meId && [...r.courts[i].a, ...r.courts[i].b].includes(meId);
-  const order = r => { const idx = r.courts.map((_, i) => i); const mine = idx.filter(i => inRound(r, i)); return [...mine, ...idx.filter(i => !mine.includes(i))]; }; // 自分のコートを先頭へ
+  const order = r => r.courts.map((_, i) => i); // コート番号の昇順(コート1→コート2)に固定。自分のコートは左の青い縦線と名前の強調で示す
   if (s.current) {
     const sec = h('section', { class: 'blk cur' }, h('div', { class: 'sec-h' }, h('span', null, closed ? '最後の試合' : '現在の試合'), editable && !closed ? h('span', { class: 'hint' }, '名前を2人タップで入れ替え') : null));
     const line = meId ? myLine(meId) : null; line && sec.append(line);
