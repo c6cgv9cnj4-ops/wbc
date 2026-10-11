@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
@@ -415,6 +418,8 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 .adm-row .main-btn{min-height:58px;font-size:20px;border-radius:29px}
 .adm-btn{min-height:44px;padding:0 12px;display:inline-flex;align-items:center}
 .nav{padding-top:calc(4px + env(safe-area-inset-top));padding-bottom:4px}
+/* 視認性改善: 次の試合バッジ（濃い深緑＋白の太字。ライト/ダークとも十分なコントラスト） */
+.st-pill.st-next{background:#1b5e20;color:#fff;font-weight:800;padding:2px 10px;border-radius:6px}
 </style>
 </head>
 <body>
@@ -902,7 +907,7 @@ function nextNote(meId) { // 「次の試合」見出しの下に出す、自分
   if (!ni) return 'あなたは次は休みです';
   const playingNow = !!pairInfo(s.current, meId);
   // 残り試合数: 次の組は「いまの試合」の直後。いま休みなら あと1試合待ち、いまプレー中なら続けて出番（これ以上先は未生成のため数えない）
-  return `あなた：コート${ni.court}（相方 ${teamNodes(ni.partner) || 'なし'}／相手 ${teamNodes(ni.opp)}）— ` + (playingNow ? 'いまの試合のあと、続けて出番です' : 'いまの試合が終わったら出番です（あと1試合）');
+  return playingNow ? 'いまの試合のあと、続けて出番です' : 'いまの試合が終わったら出番です（あと1試合）'; // コート・ペア・相手は下の表と重複するため出さない
 }
 function myLine(meId) { // 現在の試合の見出し直下: 自分の状況を1行で（色＋文字）
   const st = myStatus(meId), flash = S.flash && S.flash.id === meId && Date.now() < S.flash.until;
@@ -1284,7 +1289,7 @@ function startSubs() {
 addEventListener('online', () => { S.offline = false; renderAll(); }); addEventListener('offline', () => { S.offline = true; renderAll(); });
 addEventListener('hashchange', () => { S.sel = null; S.pairSel = null; S.loginShown = false; renderAll(); });
 document.addEventListener('click', e => { if (S.pairSel && !e.target.closest('.pick') && !e.target.closest('.as-ov') && !e.target.closest('.sheet')) { S.pairSel = null; renderAll(); } });
-document.addEventListener('visibilitychange', () => { if (!document.hidden && todayStr() !== S.date) { S.date = todayStr(); startSubs(); loadAttendanceCounts(); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) return; if (todayStr() !== S.date) { S.date = todayStr(); startSubs(); loadAttendanceCounts(); } else { renderAll(); } updateTimerUI(); }); // スリープ復帰: 最新状態で再描画しタイマーを再評価
 await initDB();
 renderAll(); startSubs(); loadAttendanceCounts();
 if (MOCK) window.__bm = { S, DB, loadAttendanceCounts, sortMembers, advance, regenNext, undoAdvance, closeSession, reopenSession, resetSession };
