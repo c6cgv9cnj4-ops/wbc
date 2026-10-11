@@ -937,7 +937,34 @@ def _bousai_line(item):
     return f"- {when}［{item['city']}］{item['summary']}"
 
 
-def build_bousai_section(bousai_items, status="ok"):
+# 防災まとめ(直近24時間)の既掲載記録。キーは「bousai-shown:<記事キー>」、値は初めて掲載した日時。
+# 管理キー("_"始まり)にしない: Discord送信失敗時の _rollback_new_keys で取り消せるようにするため。
+# 即時通知(anzn_local)の既送信キー("anzn:…")とは別の名前空間で、即時通知の重複排除には触れない。
+BOUSAI_SHOWN_PREFIX = "bousai-shown:"
+
+
+def _bousai_item_id(item):
+    return item.get("key") or item.get("url") or f"{item.get('datetime', '')}|{item.get('city', '')}|{item.get('summary', '')}"
+
+
+def filter_bousai_already_shown(items, state):
+    """既に防災まとめに掲載したものを除く。戻り値: (今回新たに掲載する項目, 既掲載で省いた件数)。state は変更しない。"""
+    new_items, hidden = [], 0
+    for item in items:
+        if BOUSAI_SHOWN_PREFIX + _bousai_item_id(item) in state:
+            hidden += 1
+        else:
+            new_items.append(item)
+    return new_items, hidden
+
+
+def mark_bousai_shown(items, state, now):
+    """実際に掲載した防災項目を既掲載として記録する(メッセージを組み立てた後に呼ぶ)。"""
+    for item in items:
+        state.setdefault(BOUSAI_SHOWN_PREFIX + _bousai_item_id(item), now.isoformat())
+
+
+def build_bousai_section(bousai_items, status="ok", hidden=0):
     """ローカルニュースメッセージの最上部に必ず入れる「防災・緊急情報」
     セクション。該当情報が無くても省略せず、その旨を明記する
     (2026-08-28、細川さんの指定によるフォーマット)。
@@ -950,6 +977,9 @@ def build_bousai_section(bousai_items, status="ok"):
         lines.append("- あんぜんねっとを取得できませんでした（防災・緊急情報の有無は確認できていません）")
     elif status == "mastodon_failed":
         lines.append("- 公式Mastodon(あんぜんねっと)を取得できませんでした（災害発生情報の有無は確認できていません）")
+    elif not bousai_items and hidden:
+        # 直近24時間の情報はあるが、前回までのまとめに掲載済み(重複させない)
+        lines.append("- 新しく確認された防災・緊急情報はありません（直近24時間の掲載済み分は省略）")
     elif not bousai_items:
         if status == "mastodon":
             lines.append("- 直近24時間に確認された北本市・鴻巣市・桶川市の災害発生情報はありません（公式Mastodon経由）")
@@ -1070,14 +1100,19 @@ def build_local_news_message(state, now):
     else:
         bousai_items = fetch_bousai_summary_items(now)
         bousai_status = "ok" if ANZN_LAST_FETCH_OK else "failed"
-        # 新着ローカルニュースも、直近の防災アクティブ情報も無ければ送信しない
+    # 2026-10-11: 直近24時間の防災情報は、既に掲載したものを除いて載せる(同一内容の多重配信を防ぐ)
+    bousai_total = len(bousai_items)
+    bousai_items, bousai_hidden = filter_bousai_already_shown(bousai_items, state)
+    if not anzn_via_mac():
+        # 新着ローカルニュースも、新しい防災アクティブ情報も無ければ送信しない
         # (防災セクションが「異常なし」だけの空更新を毎回送るのは避ける)。
         if not saitama_general and not bousai_items:
             return None, sports_items
 
     now_jst = now.strftime("%Y-%m-%d %H:%M")
     lines = [f"# 🗾 埼玉・県央ローカルニュース ({now_jst} JST時点)", ""]
-    lines.append(build_bousai_section(bousai_items, bousai_status))
+    lines.append(build_bousai_section(bousai_items, bousai_status, hidden=bousai_hidden))
+    mark_bousai_shown(bousai_items[:BOUSAI_SUMMARY_MAX_ITEMS], state, now)
 
     if saitama_general:
         lines.append("")
