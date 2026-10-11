@@ -34,7 +34,7 @@ REF = "main"
 # (ワークフロー, 最小間隔[分])。cron の設定値に合わせる。
 WORKFLOWS = [
     ("jma_alerts.yml", 10),
-    ("news.yml", 30),
+    ("news.yml", 120),   # 2026-10-11: 30分→120分(Gemini無料枠の削減。news.ymlのcronも2時間ごと)
     ("nikkei_cnbc_digest.yml", 60),
 ]
 BUSY_STATUSES = {"queued", "in_progress", "waiting", "requested", "pending"}

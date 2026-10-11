@@ -1679,7 +1679,7 @@ def send_to_discord(webhook_url, message):
 # 30分程度ごとに実行される。MAC_DISPATCHER=on のときだけ前回実行時刻を記録し、間隔が
 # 大きく空いた場合(Macの停止・スリープ・gh認証切れ)を異常通知する。未設定なら何もしない。
 LAST_RUN_KEY = "_last_run_at"
-DISPATCHER_GAP_ALERT_MINUTES = 60
+DISPATCHER_GAP_ALERT_MINUTES = 150   # 2026-10-11: news.yml の起動間隔が2時間になったため 60→150分(2時間+余裕)。これ以下だと毎回誤検知する
 
 
 def check_dispatcher_gap(state, now):
