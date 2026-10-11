@@ -420,6 +420,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 .nav{padding-top:calc(4px + env(safe-area-inset-top));padding-bottom:4px}
 /* 視認性改善: 次の試合バッジ（濃い深緑＋白の太字。ライト/ダークとも十分なコントラスト） */
 .st-pill.st-next{background:#1b5e20;color:#fff;font-weight:800;padding:2px 10px;border-radius:6px}
+.hint{color:var(--blue);font-weight:700;font-size:calc(13px*var(--fl));opacity:1}
 </style>
 </head>
 <body>
@@ -858,13 +859,13 @@ function gameBoard(editable, meId) {
   const inRound = (r, i) => !!meId && [...r.courts[i].a, ...r.courts[i].b].includes(meId);
   const order = r => { const idx = r.courts.map((_, i) => i); const mine = idx.filter(i => inRound(r, i)); return [...mine, ...idx.filter(i => !mine.includes(i))]; }; // 自分のコートを先頭へ
   if (s.current) {
-    const sec = h('section', { class: 'blk cur' }, h('div', { class: 'sec-h' }, h('span', null, closed ? '最後の試合' : '現在の試合'), editable && !closed ? h('span', { class: 'hint' }, 'タップで入れ替え') : null));
+    const sec = h('section', { class: 'blk cur' }, h('div', { class: 'sec-h' }, h('span', null, closed ? '最後の試合' : '現在の試合'), editable && !closed ? h('span', { class: 'hint' }, '名前を2人タップで入れ替え') : null));
     const line = meId ? myLine(meId) : null; line && sec.append(line);
     const cs = h('div', { class: 'cgs' }); order(s.current).forEach(i => cs.append(courtGrid(s.current, 'current', i, gn, editable, meId, 'cur'))); sec.append(cs); wrap.append(sec);
   }
   if (closed) { const r = restSection(s, true, editable, meId); r && wrap.append(r); return wrap; }
   if (s.next) {
-    const sec = h('section', { class: 'blk nxt' }, h('div', { class: 'sec-h' }, h('span', null, '次の試合' + (editable && s.next.manual ? '　手動調整済み' : ''))));
+    const sec = h('section', { class: 'blk nxt' }, h('div', { class: 'sec-h' }, h('span', null, '次の試合' + (editable && s.next.manual ? '　手動調整済み' : '')), editable ? h('span', { class: 'hint' }, '名前を2人タップで入れ替え') : null));
     const note = nextNote(meId); note && sec.append(h('div', { class: 'nnote' }, note));
     const cs = h('div', { class: 'cgs' }); order(s.next).forEach(i => cs.append(courtGrid(s.next, 'next', i, gn + 1, editable, meId, 'nxt'))); sec.append(cs); wrap.append(sec);
   } else if (s.current) {
