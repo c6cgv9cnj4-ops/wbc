@@ -906,7 +906,7 @@ function nextNote(meId) { // 「次の試合」見出しの下に出す、自分
   if (a.restLeft > 0) return `休み予約中（あと${a.restLeft}試合）`;
   if (!s.next) return '次の組は未定です';
   const ni = pairInfo(s.next, meId);
-  if (!ni) return 'あなたは次は休みです';
+  if (!ni) return null; // 次は休み: 下の「休み」欄に自分の名前が強調表示されるため、文章では重ねて出さない
   const playingNow = !!pairInfo(s.current, meId);
   // 残り試合数: 次の組は「いまの試合」の直後。いま休みなら あと1試合待ち、いまプレー中なら続けて出番（これ以上先は未生成のため数えない）
   return playingNow ? 'いまの試合のあと、続けて出番です' : 'いまの試合が終わったら出番です（あと1試合）'; // コート・ペア・相手は下の表と重複するため出さない
