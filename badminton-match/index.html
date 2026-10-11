@@ -848,7 +848,8 @@ function restSection(s, closed, editable, meId) { // 休み: いま／次の休�
   if (forced.length) rows.push(['休憩', h('span', { class: 'rl-n' }, forced.map(a => h('span', { class: 'nm' + (a.id === meId ? ' me' : '') }, nameOf(a.id) + (a.forcedRest ? '' : `（あと${a.restLeft}試合）`))))]);
   if (left.length) rows.push(['早退', h('span', { class: 'rl-n' }, left.map(a => h('span', { class: 'nm' + (a.id === meId ? ' me' : '') }, nameOf(a.id))))]);
   if (!rows.length) return null;
-  return h('section', { class: 'blk' }, h('div', { class: 'sec-h' }, '休み', h('span', { class: 'st-pill st-rest' }, '休憩')), rows.map(([k, n]) => h('div', { class: 'rl' }, h('span', { class: 'rl-k' }, k), n)));
+  return h('section', { class: 'blk' }, h('div', { class: 'sec-h' }, '休み'), // 見出しは「休み」に一本化（右側の「休憩」バッジは廃止）
+    rows.map(([k, n]) => h('div', { class: 'rl' }, h('span', { class: 'rl-k' }, k), n)));
 }
 function gameBoard(editable, meId) {
   const s = S.session, wrap = h('div', { class: 'board' });
