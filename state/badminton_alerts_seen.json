@@ -262,7 +262,8 @@
     "https://news.google.com/rss/articles/CBMif0FVX3lxTE1IdTRDTkNmU2lKUVdkbHpaMlhEdEtfRUtfRV9zZC0tWDFCMjYtQ25taGxoTzJXWDhkR0Z2OEhlRVduUTJDM0R6TEdZdGcyZ2VSd2VJMENFRS1NOWtUcndRZTRuc3N3OTA4cmJ5dVkwNUExYUdSdWpaZlpfNnoxN2s?oc=5": "2026-10-10T19:45:02.449581+09:00",
     "https://news.google.com/rss/articles/CBMic0FVX3lxTE5UOHJsNTRxeklNTFVKUTVWXzFTTkhCRDBocndWZDY2TWwySVRlZUdsZWZ6NEpyUklOTUpJZ2gwbVdaYkpKUzQ2enpaOE04YXNlVk55UlJOTzl0VzhzODRraUw0T1JRamlMYTJlZjBENlRFTnM?oc=5": "2026-10-11T07:57:19.924324+09:00",
     "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE5kWTVhZHMtMDM5QWlETl8zS3NHUlZudzhZSVlBS002WFBNeHc5V25IYV92c09CVGlhWGMxS3lRQlN0eUFYc3ZvRmREbnFnMGZZalZzMGF6cng0X1B2eTItLTNkMkZPNms?oc=5": "2026-10-11T13:07:41.778941+09:00",
-    "https://news.google.com/rss/articles/CBMiXEFVX3lxTE81MzNuTWgxR05nZmktbWN1OEdGQ2ZSbUxxaFNVbnhMS1dyOWFzbGVFbHFHejZnRkR4UnRENGdzd19TVHdNYzlDS0RUeVBKS3praFpvdENFMGdkdUNI?oc=5": "2026-10-12T01:33:47.106216+09:00"
+    "https://news.google.com/rss/articles/CBMiXEFVX3lxTE81MzNuTWgxR05nZmktbWN1OEdGQ2ZSbUxxaFNVbnhMS1dyOWFzbGVFbHFHejZnRkR4UnRENGdzd19TVHdNYzlDS0RUeVBKS3praFpvdENFMGdkdUNI?oc=5": "2026-10-12T01:33:47.106216+09:00",
+    "https://news.google.com/rss/articles/CBMiV0FVX3lxTE5INW1zZjBjTnhMWVdNMFhNNzBJVlpvMjJ1dElJZWlfSkx6UDNQSklVTlJTMmxPVVFMVTZFa2dnVE9xNWJ2NklmY1BZTWFSNlFvaGZucnhidw?oc=5": "2026-10-12T08:10:35.329378+09:00"
   },
   "seen_nba_result_ids": {
     "853": "2026-10-06T20:55:36.454281+09:00",
@@ -299,22 +300,12 @@
   "digest_pool": {
     "matches": [],
     "summaries": [],
-    "badspi": [
-      {
-        "title": "【アークティックオープン2026】田中湧士は準優勝！激戦を繰り広げるもあと一歩届かず＜決勝戦結果＞",
-        "url": "https://www.badspi.jp/202610112249/?utm_source=rss&utm_medium=rss&utm_campaign=202610112249"
-      }
-    ],
-    "gnews": [
-      {
-        "title": "バドミントン日本代表選手に聞いてみた！ 山口茜選手・宮崎友花選手｜Part.1",
-        "url": "https://news.google.com/rss/articles/CBMiXEFVX3lxTE81MzNuTWgxR05nZmktbWN1OEdGQ2ZSbUxxaFNVbnhMS1dyOWFzbGVFbHFHejZnRkR4UnRENGdzd19TVHdNYzlDS0RUeVBKS3praFpvdENFMGdkdUNI?oc=5"
-      }
-    ],
+    "badspi": [],
+    "gnews": [],
     "nba": []
   },
   "wr_rankings": {
-    "updated_at": "2026-10-11T07:57:19.924324+09:00",
+    "updated_at": "2026-10-12T08:10:35.329378+09:00",
     "data": {
       "ジョナタンクリスティー": 1,
       "JONATANCHRISTIE": 1,
