@@ -421,6 +421,8 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 /* 視認性改善: 次の試合バッジ（濃い深緑＋白の太字。ライト/ダークとも十分なコントラスト） */
 .st-pill.st-next{background:#1b5e20;color:#fff;font-weight:800;padding:2px 10px;border-radius:6px}
 .hint{color:var(--blue);font-weight:700;font-size:calc(13px*var(--fl));opacity:1}
+/* 入れ替え選択中の案内は、下の「休み」欄をタップしても見えるよう画面上部に固定 */
+#pBoard>.banner.info{position:sticky;top:52px;z-index:15;margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -802,6 +804,7 @@ async function regenNext() {
 }
 function swapIds(round, x, y) { const map = id => id === x ? y : id === y ? x : id; return { ...round, courts: round.courts.map(c => ({ a: c.a.map(map), b: c.b.map(map) })), bench: round.bench.map(map) }; }
 function pickPlayer(key, id) {
+  if (S.sel && S.sel.key !== key) toast('現在の試合と次の試合の間では入れ替えできません。選び直しました'); // 別セクションの名前を押したとき、黙って選択が移らないよう知らせる
   if (!S.sel || S.sel.key !== key) { S.sel = { key, id }; return renderAll(); }
   if (S.sel.id === id) { S.sel = null; return renderAll(); }
   const r = swapIds(S.session[key], S.sel.id, id); if (key === 'next') r.manual = true; if (key === 'current') r.adj = true; S.sel = null;
