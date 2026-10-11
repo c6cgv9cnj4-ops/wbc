@@ -1133,7 +1133,29 @@ function renderAdminArea(box, ctaBox) { // Adminだけに、参加者画面の�
   box.replaceChildren(stack);
 }
 const joinMember = r => enterAttendee(r).then(() => toast(`${r.name}さんを参加にしました`));
-const restMember = (r, on) => patchAtt(r.id, { forcedRest: on, restLeft: 0 });
+// 休憩にしたとき、その人が進行中の試合(current)に入っていれば、待機メンバーと自動で交代する。
+// 交代候補: 参加中(休憩・早退・出席取消でない)かつ現在の試合に出ていない人。試合数が最少 → 連続で休んだ数が多い → 最後の出場が古い → 参加順。
+// 状態更新と試合の差し替えは1つのtransaction(fpチェック付き)。交代後の試合は手動調整済み(adj)として記録される
+async function restMember(r, on) {
+  const s = S.session;
+  const inGame = on && s && s.status !== 'closed' && s.current && (s.current.courts || []).some(c => c.a.includes(r.id) || c.b.includes(r.id));
+  if (!inGame) return patchAtt(r.id, { forcedRest: on, restLeft: 0 });
+  const st = computeStats({ history: s.history || [] }, false), onCourt = new Set(s.current.courts.flatMap(c => [...c.a, ...c.b]));
+  const sub = S.atts.filter(a => a.id !== r.id && a.present !== false && a.status === 'active' && !a.forcedRest && !(a.restLeft > 0) && !onCourt.has(a.id))
+    .sort((x, y) => (st.games[x.id] || 0) - (st.games[y.id] || 0) || (st.streak[y.id] || 0) - (st.streak[x.id] || 0) || (st.last[x.id] ?? -1) - (st.last[y.id] ?? -1) || (x.joinedAt || 0) - (y.joinedAt || 0))[0];
+  if (!sub) { await patchAtt(r.id, { forcedRest: true, restLeft: 0 }); return toast(`${r.name}さんを休憩にしました。交代できる待機メンバーがいないため、現在の試合はそのままです`, 4600); }
+  const fp0 = fpOf(s), swap = id => id === r.id ? sub.id : id;
+  let ok = false;
+  await guard(() => txRace(fp0, async tx => {
+    const d = await tx.get(sessPath());
+    if (fpOf(d) !== fp0 || !d.current) throw CONFLICT(); // 確認中に他の端末で進行・戻しされていたら中止
+    const cur = d.current;
+    tx.set(sessPath(), { current: { ...cur, courts: cur.courts.map(c => ({ ...c, a: c.a.map(swap), b: c.b.map(swap) })), bench: (cur.bench || []).filter(id => id !== sub.id), adj: true } });
+    tx.set(['bm_sessions', S.date, 'attendees', r.id], { forcedRest: true, restLeft: 0 });
+    ok = true;
+  }));
+  if (ok) toast(`${r.name}さんを休憩にして、${nameOf(sub.id)}さんと交代しました`, 4200);
+}
 const undoLeave = r => patchAtt(r.id, { status: 'active', restLeft: 0, leftAt: null });
 async function leaveMember(r) {
   const v = await sheet({ title: `${r.name}さんを早退にしますか？`, msg: '現在の組は変わりません。次の組から外れます。取り消す場合は「取消」を押してください。', actions: [{ label: '早退にする', cls: 'danger', value: 'ok' }, { label: 'キャンセル', cls: 'plain', value: 'x' }] });
