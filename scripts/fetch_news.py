@@ -952,20 +952,38 @@ BOUSAI_EVENT_PREFIX = "bousai-event:"          # 発生日時・場所が一致�
 
 
 def _bousai_item_id(item):
-    return item.get("key") or item.get("url") or f"{item.get('datetime', '')}|{item.get('city', '')}|{item.get('summary', '')}"
+    """同一レコードを表すID。記事キー → URL → 投稿ID → (日時・市・要約・種別)の順。
+    2026-10-12: 投稿IDが無い場合も種別を含め、鎮火報と発生報を同じIDにしない。"""
+    if item.get("key"):
+        return item["key"]
+    if item.get("url"):
+        return item["url"]
+    if item.get("status_id"):
+        return f"status:{item['status_id']}"
+    return f"{item.get('datetime', '')}|{item.get('city', '')}|{item.get('summary', '')}|{item.get('status', '')}"
 
 
 def _norm_text(text):
     return re.sub(r"\s+", "", unicodedata.normalize("NFKC", text or "")).lower()
 
 
+def _bousai_status(item):
+    """報告の種別(発生・鎮火・更新など)。項目に無ければ要約・ID以外の本文から推定する。"""
+    status = item.get("status")
+    if status is None:
+        from mastodon_anzn import detect_report_status
+        status = detect_report_status(item.get("summary", ""))
+    return status or ""
+
+
 def _bousai_fingerprints(item):
-    """同一事案の判定キー: 記事ID(同一レコード)と、本文の SHA256(空白・全半角を除いた本文で完全一致のみ)。
-    2026-10-12: 類似度判定は使わない。発生日時・場所だけの一致では除外しない(別事案の取りこぼし防止)。"""
+    """同一事案の判定キー: 記事ID(同一レコード)と、『報告種別＋正規化本文』の SHA256(完全一致のみ)。
+    2026-10-12: 発生日時・場所だけの一致では除外しない。鎮火・更新は種別が違うので、同じ場所の発生報とは別情報として配信する。"""
     keys = [BOUSAI_SHOWN_PREFIX + _bousai_item_id(item)]
     body = _norm_text(item.get("summary"))
     if body:
-        keys.append(BOUSAI_BODY_PREFIX + hashlib.sha256(body.encode("utf-8")).hexdigest())
+        identity = f"{_bousai_status(item)}|{body}"
+        keys.append(BOUSAI_BODY_PREFIX + hashlib.sha256(identity.encode("utf-8")).hexdigest())
     return keys
 
 

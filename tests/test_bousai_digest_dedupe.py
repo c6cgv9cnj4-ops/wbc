@@ -123,7 +123,8 @@ class IsolationTest(unittest.TestCase):
     def test_item_identity_fallbacks(self):
         self.assertEqual(fn._bousai_item_id({"key": "k1", "url": "u"}), "k1")
         self.assertEqual(fn._bousai_item_id({"url": "u"}), "u")
-        self.assertEqual(fn._bousai_item_id({"datetime": "d", "city": "c", "summary": "s"}), "d|c|s")
+        self.assertEqual(fn._bousai_item_id({"datetime": "d", "city": "c", "summary": "s"}), "d|c|s|")
+        self.assertEqual(fn._bousai_item_id({"status_id": "7"}), "status:7")
 
 
 class WindowAndIdentityTest(unittest.TestCase):
