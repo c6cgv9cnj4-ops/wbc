@@ -19,6 +19,7 @@ APIキー・記事本文はログ・例外メッセージに出さない(詳細�
 """
 import datetime
 import re
+import threading
 import time
 
 try:
@@ -153,6 +154,48 @@ def classify(err):
     return ErrorInfo("fatal", code, status, retry_after)
 
 
+# ---------------------------------------------------------------- 呼び出しの計測(2026-10-13) ----
+# 1回のHTTP試行ごとに1行出す(再試行も1回と数える)。APIキー・応答本文・エラー文は出さず、status と code のみ。
+#   [GEMINI_CALL] count=12 task=local_search status=200 tokens=812
+#   [GEMINI_429]  count=13 task=local_search error=RESOURCE_EXHAUSTED kind=quota
+#   [GEMINI_ERR]  count=14 task=culture_filter status=503 kind=transient
+# count はプロセス内の累計。Guard を通らない呼び出しは数えられない(通すこと)。
+_CALL_LOCK = threading.Lock()
+_CALL_TOTAL = [0]
+
+
+def total_calls():
+    return _CALL_TOTAL[0]
+
+
+def _next_count():
+    with _CALL_LOCK:
+        _CALL_TOTAL[0] += 1
+        return _CALL_TOTAL[0]
+
+
+def _tokens_of(result):
+    try:
+        usage = getattr(result, "usage_metadata", None)
+        total = getattr(usage, "total_token_count", None)
+        return total if isinstance(total, int) else None
+    except Exception:  # noqa: BLE001  計測のための処理で本体を落とさない
+        return None
+
+
+def log_success(task, result):
+    tokens = _tokens_of(result)
+    print(f"[GEMINI_CALL] count={_next_count()} task={task} status=200 tokens={tokens if tokens is not None else '-'}")
+
+
+def log_error(task, info):
+    n = _next_count()
+    if info.kind in ("quota", "rate") and info.code == 429:
+        print(f"[GEMINI_429] count={n} task={task} error={info.status or 'RESOURCE_EXHAUSTED'} kind={info.kind}")
+    else:
+        print(f"[GEMINI_ERR] count={n} task={task} status={info.code or info.status or '-'} kind={info.kind}")
+
+
 def format_duration(seconds):
     """秒 → 『約1時間13分』『約45分』『約30秒』。"""
     s = int(round(seconds))
@@ -200,12 +243,15 @@ def daily_retry_until(now, retry_after):
 class Guard:
     """stateに待機時刻を持つ呼び出しラッパー。state は fetch_news の既送信記録(ISO日時の辞書)を共有する。"""
 
-    def __init__(self, state, clock=None, sleep=time.sleep, max_retries=MAX_RETRIES, wait_budget=WAIT_BUDGET_SECONDS):
+    def __init__(self, state, clock=None, sleep=time.sleep, max_retries=MAX_RETRIES, wait_budget=WAIT_BUDGET_SECONDS,
+                 retry_rate_limit=True):
         self.state = state
         self.clock = clock or (lambda: datetime.datetime.now(JST))
         self.sleep = sleep
         self.max_retries = max_retries
         self.wait_budget = wait_budget
+        # False の場合、分あたり上限(短い待ち時間の429)も再試行せず即座に失敗にする(Fast-Fail用途)
+        self.retry_rate_limit = retry_rate_limit
         self.waited_total = 0.0
         self.calls = 0
 
@@ -238,8 +284,9 @@ class Guard:
             self.state.pop(key, None)
 
     # ----- 呼び出し -----
-    def call(self, fn):
-        """fn() を実行する。成功すれば結果を返す。待機中は GeminiBlocked、失敗は GeminiCallError。"""
+    def call(self, fn, task="gemini"):
+        """fn() を実行する。成功すれば結果を返す。待機中は GeminiBlocked、失敗は GeminiCallError。
+        task は計測ログ(GEMINI_CALL/GEMINI_429)に出す呼び出し元の名前。"""
         blocked = self.blocked()
         if blocked:
             raise GeminiBlocked(blocked[0], blocked[1], blocked[2])
@@ -249,11 +296,12 @@ class Guard:
             self.calls += 1
             try:
                 result = fn()
-                self._clear_backoff()
-                return result
             except Exception as err:  # noqa: BLE001
                 info = classify(err)
+                log_error(task, info)
                 if info.kind == "fatal":
+                    raise GeminiCallError(info, attempts, waited, err) from err
+                if info.kind == "rate" and not self.retry_rate_limit:
                     raise GeminiCallError(info, attempts, waited, err) from err
                 if info.kind == "quota":
                     now = self.clock()
@@ -274,3 +322,7 @@ class Guard:
                 self.sleep(wait)
                 waited += wait
                 self.waited_total += wait
+            else:
+                log_success(task, result)
+                self._clear_backoff()
+                return result

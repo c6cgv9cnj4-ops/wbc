@@ -43,6 +43,8 @@ from urllib.parse import quote, urljoin, urlparse
 import requests
 from bs4 import BeautifulSoup
 
+import gemini_guard
+
 JST = timezone(timedelta(hours=9))
 GEMINI_MODEL_NAME = "gemini-3.6-flash"
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
@@ -277,10 +279,10 @@ def collect_koho_items(client, log, today):
                       "キー: page(ページ番号), quote(原文の該当部分を一字一句そのまま100〜300字), name, date(YYYY-MM-DD。年が無ければ"
                       f"{today.year}), venue, entry_start(YYYY-MM-DD), entry_end(YYYY-MM-DD), events(配列), classes(配列), eligibility, fee")
             try:
-                resp = client.models.generate_content(
+                resp = gemini_call("local_koho_pdf", lambda: client.models.generate_content(
                     model=GEMINI_MODEL_NAME,
                     contents=[types.Part.from_bytes(data=r.content, mime_type="application/pdf"), prompt],
-                    config=types.GenerateContentConfig(response_mime_type="application/json"))
+                    config=types.GenerateContentConfig(response_mime_type="application/json")))
                 data = json.loads(resp.text)
                 cache[pdf_url] = [x for x in (data if isinstance(data, list) else [data]) if isinstance(x, dict)]
             except Exception as ex:
@@ -323,6 +325,37 @@ def collect_saibad_docs(log):
 
 
 # ---------------------------------------------------------------- Gemini
+# 2026-10-13: 429対策。分あたり/日次いずれでも、この実行で429を1回でも受けたら以降のGemini呼び出しを省略する(Fast-Fail)。
+# 429は無料枠の使い切りを意味し、残りの呼び出しも同じく失敗して時間と枠を消費するだけのため。
+# 503などの一時的な失敗は gemini_guard の指数バックオフで再試行する(429だけを即打ち切る)。
+GEMINI_GUARD = gemini_guard.Guard({}, retry_rate_limit=False)
+GEMINI_GATE = {"reason": ""}
+
+
+class GeminiSkipped(Exception):
+    """この実行で既に429を受けたため、Geminiを呼ばずに省略した。"""
+
+
+def reset_gemini_gate():
+    GEMINI_GATE["reason"] = ""
+    GEMINI_GUARD.state.clear()
+
+
+def gemini_call(task, fn):
+    """Geminiの呼び出し入口。429を受けたら GEMINI_GATE を立て、以降は GeminiSkipped で即座に戻る。"""
+    if GEMINI_GATE["reason"]:
+        raise GeminiSkipped(task)
+    try:
+        return GEMINI_GUARD.call(fn, task=task)
+    except gemini_guard.GeminiBlocked as err:
+        GEMINI_GATE["reason"] = f"日次上限の待機中(〜{err.until.strftime('%m/%d %H:%M')}JST)"
+        raise
+    except gemini_guard.GeminiCallError as err:
+        if err.info.code == 429:
+            GEMINI_GATE["reason"] = "429 RESOURCE_EXHAUSTED"
+        raise
+
+
 def gemini_client():
     from google import genai
     key = os.environ.get("GEMINI_API_KEY")
@@ -346,11 +379,11 @@ def gemini_search_urls(client, log):
     queries.append("北本市スポーツ協会 バドミントン大会 2026 要項")
     for q in queries:
         try:
-            resp = client.models.generate_content(
+            resp = gemini_call("local_search", lambda: client.models.generate_content(
                 model=GEMINI_MODEL_NAME,
                 contents=f"次の条件に合う埼玉県のバドミントン大会の告知ページを検索してください: {q}",
                 config=types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())]),
-            )
+            ))
             n = 0
             for cand in (resp.candidates or []):
                 gm = getattr(cand, "grounding_metadata", None)
@@ -360,6 +393,9 @@ def gemini_search_urls(client, log):
                         urls.append(uri)
                         n += 1
             log.append(f"[search] {q[:34]}… → 候補URL {n}件")
+        except GeminiSkipped:
+            log.append("[search] 429のため残りの検索を省略しました")
+            break
         except Exception as ex:
             log.append(f"[search] 失敗 {q[:24]}…: {type(ex).__name__}: {str(ex)[:120]}")
     return urls
@@ -418,11 +454,11 @@ def links_for_prompt(doc):
 def extract_tournaments(client, doc):
     from google.genai import types
     try:
-        resp = client.models.generate_content(
+        resp = gemini_call("local_extract", lambda: client.models.generate_content(
             model=GEMINI_MODEL_NAME,
             contents=EXTRACT_PROMPT.format(url=doc["url"], text=doc["text"], links=links_for_prompt(doc)),
             config=types.GenerateContentConfig(response_mime_type="application/json"),
-        )
+        ))
         data = json.loads(resp.text)
     except Exception:
         return []
@@ -579,6 +615,7 @@ def main():
 
     today = datetime.now(JST).date()
     log = []
+    reset_gemini_gate()
     client = gemini_client()
     if client is None:
         print("[ERROR] GEMINI_API_KEY が未設定です。")
@@ -623,6 +660,8 @@ def main():
                 merged[k] = t
 
     items = sorted(merged.values(), key=lambda t: (t["_prio"], t["date"]))
+    if GEMINI_GATE["reason"]:
+        log.append(f"[gemini] {GEMINI_GATE['reason']}のため以降のGemini呼び出しを省略しました(該当分は今回未抽出・次回以降に再試行)")
     state = load_state()
     embeds, sent_keys, remind_keys = [], [], []
     for t in items:

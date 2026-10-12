@@ -60,6 +60,7 @@ import feedparser
 import requests
 from bs4 import BeautifulSoup
 import atomic_io
+import gemini_guard
 
 STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "state", "culture_news_seen.json")
 STATE_RETENTION_DAYS = 14
@@ -301,15 +302,16 @@ def fetch_direct_rss(feed_url, limit=15, retries=2):
     ]
 
 
-def filter_quality_articles(client, candidates, max_items=3, extra_instruction=None):
+def filter_quality_articles(client, candidates, max_items=3, extra_instruction=None, guard=None):
     """Geminiで「記名記事・専門性が高い・煽りでない」もののみ残す。
     extra_instruction を指定すると、トピックごとの追加条件(地域限定等)を
     プロンプトに追加できる。
-    API呼び出し自体が失敗した場合は、安全側(何も表示しない)に倒す
-    (低品質な記事を誤って通すより、今回は0件の方が実害が小さいため)。
+    API呼び出しが失敗した場合は None を返す(呼び出し側が見出しのみの箇条書きに切り替える)。
+    2026-10-13: 失敗時の戻り値を [] から None に変更(0件扱いと区別するため)。
     """
     if not candidates:
         return []
+    guard = guard or gemini_guard.Guard({})
 
     titles_text = "\n".join(f"{i}. {c['title']}" for i, c in enumerate(candidates))
     extra_text = f"\n{extra_instruction}\n" if extra_instruction else ""
@@ -324,19 +326,23 @@ def filter_quality_articles(client, candidates, max_items=3, extra_instruction=N
 自信が持てない場合は含めないでください。説明文は不要です。"""
 
     try:
-        from google import genai
-        resp = client.models.generate_content(model=GEMINI_MODEL_NAME, contents=prompt)
+        resp = guard.call(lambda: client.models.generate_content(model=GEMINI_MODEL_NAME, contents=prompt),
+                          task="culture_filter")
         text = resp.text.strip()
         text = re.sub(r"^```(json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
         indices = json.loads(text)
         selected = [candidates[i] for i in indices if isinstance(i, int) and 0 <= i < len(candidates)]
         return selected[:max_items]
     except Exception as err:  # noqa: BLE001
-        print(f"[WARN] Gemini質フィルタに失敗したため、このトピックは0件扱いにします: {err}")
-        return []
+        print(f"[WARN] Gemini質フィルタに失敗したため、AI選別なしの見出し一覧に切り替えます: {err}")
+        return None
 
 
-def build_topic_embeds(client, state, now):
+TOPIC_FALLBACK_MAX_ITEMS = 3  # AI選別が使えないときに見出しのみで出す件数(トピックごと)
+EXHIBITION_FALLBACK_MAX_ITEMS = 5  # 展覧会の抽出が使えないときに見出しのみで出す件数(1回の実行で)
+
+
+def build_topic_embeds(client, state, now, guard=None):
     embeds = []
     for topic_label, feed_urls in TOPIC_SOURCES.items():
         candidates = []
@@ -356,12 +362,17 @@ def build_topic_embeds(client, state, now):
             extra_instruction = APPLE_SV_INSTRUCTION
         else:
             extra_instruction = None
-        selected = filter_quality_articles(client, uniq_candidates, extra_instruction=extra_instruction)
+        selected = filter_quality_articles(client, uniq_candidates, extra_instruction=extra_instruction, guard=guard)
+        title = topic_label
+        if selected is None:
+            # Gemini失敗時: 既存の箇条書き形式で見出しとリンクだけ出す(選別なしであることを見出しに明記)
+            selected = uniq_candidates[:TOPIC_FALLBACK_MAX_ITEMS]
+            title = f"{topic_label}（AI選別なし・未確認）"
         if not selected:
             continue
         lines = [f"- [{a['title']}]({a['url']})" for a in selected]
         embeds.append({
-            "title": topic_label,
+            "title": title,
             "description": "\n".join(lines),
             "color": COLOR_CULTURE,
         })
@@ -419,15 +430,17 @@ def fetch_candidates_for_queries(queries, state):
     return uniq_candidates
 
 
-def extract_exhibitions_via_gemini(client, candidates, region_instruction=KANTO_INSTRUCTION):
+def extract_exhibitions_via_gemini(client, candidates, region_instruction=KANTO_INSTRUCTION, guard=None):
     """候補記事タイトルから、具体的な1つの展覧会/美術展/写真展/イベント/公演の
     開催情報(催事名・会場・開始日・終了日)を構造化抽出する。会期・開催日が
     読み取れない記事(感想記事、過去の回顧記事、チケット販売告知のみ等)は除外する。
     region_instructionにNoneを渡すと地域限定を適用しない(全国対象)。
-    API呼び出し自体が失敗した場合は安全側(0件)に倒す。
+    API呼び出しが失敗した場合は None を返す(呼び出し側が見出し一覧の箇条書きに切り替える)。
+    2026-10-13: 失敗時の戻り値を [] から None に変更(該当0件と区別するため)。
     """
     if not candidates:
         return []
+    guard = guard or gemini_guard.Guard({})
 
     titles_text = "\n".join(f"{i}. {c['title']}" for i, c in enumerate(candidates))
     region_text = f"\n{region_instruction}\n" if region_instruction else ""
@@ -452,13 +465,14 @@ def extract_exhibitions_via_gemini(client, candidates, region_instruction=KANTO_
 {titles_text}"""
 
     try:
-        resp = client.models.generate_content(model=GEMINI_MODEL_NAME, contents=prompt)
+        resp = guard.call(lambda: client.models.generate_content(model=GEMINI_MODEL_NAME, contents=prompt),
+                          task="culture_exhibition")
         text = resp.text.strip()
         text = re.sub(r"^```(json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
         parsed = json.loads(text)
     except Exception as err:  # noqa: BLE001
-        print(f"[WARN] Gemini展覧会/イベント情報抽出に失敗したため、このバッチは0件扱いにします: {err}")
-        return []
+        print(f"[WARN] Gemini展覧会/イベント情報抽出に失敗したため、見出し一覧の箇条書きに切り替えます: {err}")
+        return None
 
     results = []
     for item in parsed:
@@ -558,7 +572,7 @@ def verify_exhibition_page(url, exhibition_name, venue):
     return result
 
 
-def search_exhibition_link_candidates(client, exhibition_name, venue, start_date, end_date):
+def search_exhibition_link_candidates(client, exhibition_name, venue, start_date, end_date, guard=None):
     """Gemini(Google検索グラウンディング)で公式ページ等の候補URLを集める。
     ここで得たURLは「候補」に過ぎず、掲載前に必ずverify_exhibition_pageで検証する。
     戻り値: [{"url": str, "tier": "p1".."p4", "source": "model"|"grounding"}]
@@ -580,11 +594,12 @@ p4: 展覧会内容を確認できる信頼性の高いメディアのページ
 次の形式のJSON配列のみを出力してください(説明文は不要):
 [{{"url": "https://...", "tier": "p1"}}]"""
 
-    resp = client.models.generate_content(
+    guard = guard or gemini_guard.Guard({})
+    resp = guard.call(lambda: client.models.generate_content(
         model=GEMINI_MODEL_NAME,
         contents=prompt,
         config=types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())]),
-    )
+    ), task="culture_link")
 
     candidates = []
     text = (resp.text or "").strip()
@@ -612,7 +627,7 @@ p4: 展覧会内容を確認できる信頼性の高いメディアのページ
     return candidates[: LINK_MAX_CANDIDATES * 2]
 
 
-def find_verified_exhibition_links(client, exhibition_name, venue, start_date, end_date):
+def find_verified_exhibition_links(client, exhibition_name, venue, start_date, end_date, guard=None):
     """候補検索→実ページ検証→掲載リンク選定。
     選定ルール: 最優先tierの検証済みページを1本目(公式p1が確認できれば必ず1本目)。
     2本目は1本目と別ドメインかつ別tierで、判断材料が増える場合のみ付ける。
@@ -623,7 +638,7 @@ def find_verified_exhibition_links(client, exhibition_name, venue, start_date, e
     """
     checks = []
     try:
-        candidates = search_exhibition_link_candidates(client, exhibition_name, venue, start_date, end_date)
+        candidates = search_exhibition_link_candidates(client, exhibition_name, venue, start_date, end_date, guard=guard)
     except Exception as err:  # noqa: BLE001
         print(f"[WARN] 公式ページ候補の検索に失敗しました({exhibition_name}): {err}")
         return [], checks
@@ -681,14 +696,29 @@ def _link_text(link):
 
 
 def build_exhibition_embeds_from_candidates(client, candidates, state, now, region_instruction=KANTO_INSTRUCTION,
-                                            report=None):
+                                            report=None, guard=None):
     """candidatesのうちGeminiが展覧会/イベントと判定したものをEmbed化する。
     戻り値は (embeds, consumed_urls) のタプル。consumed_urlsはGeminiが
     展覧会/イベント候補として選んだ(=結果的にEmbed化されなかったものも含む)
     URL集合で、呼び出し側が「一般ニュースとしての二重掲載」を避けるために使う。
     reportにlistを渡すと、展覧会ごとのリンク検証ログを追記する(確認モード用)。
     """
-    extracted = extract_exhibitions_via_gemini(client, candidates, region_instruction=region_instruction)
+    guard = guard or gemini_guard.Guard(state)
+    extracted = extract_exhibitions_via_gemini(client, candidates, region_instruction=region_instruction, guard=guard)
+    if extracted is None:
+        # Gemini失敗時: 抽出できなかった見出しを『未確認』の箇条書きで出す(日付・会場は付けない)。
+        # 同じ記事を次回も出し続けないよう既送信として記録する。
+        items = candidates[:EXHIBITION_FALLBACK_MAX_ITEMS]
+        for c in items:
+            mark_seen(state, c["url"], now)
+        if not items:
+            return [], set()
+        lines = [f"- [{c['title']}]({c['url']})" for c in items]
+        return [{
+            "title": "🖼 展覧会・イベント（AI抽出なし・未確認）",
+            "description": "\n".join(lines),
+            "color": COLOR_CULTURE,
+        }], set()
 
     embeds = []
     consumed_urls = set()
@@ -715,7 +745,7 @@ def build_exhibition_embeds_from_candidates(client, candidates, state, now, regi
         cache_key = (ex["exhibition_name"], ex["venue"])
         if cache_key not in link_cache:
             link_cache[cache_key] = find_verified_exhibition_links(
-                client, ex["exhibition_name"], ex["venue"], start_date, end_date)
+                client, ex["exhibition_name"], ex["venue"], start_date, end_date, guard=guard)
         links, checks = link_cache[cache_key]
 
         # カレンダーの詳細欄には、検証済みの公式等ページがあればそれを、無ければ記事URLを入れる
@@ -898,12 +928,14 @@ def main():
     else:
         print("[INFO] 林信行氏の新着記事はありませんでした。")
 
-    topic_embeds = build_topic_embeds(client, state, now)
+    # 待機状態(日次上限など)は state に保存され、次回の実行でも呼び出しを控える
+    guard = gemini_guard.Guard(state)
+    topic_embeds = build_topic_embeds(client, state, now, guard=guard)
     embeds.extend(topic_embeds)
 
     exhibition_candidates = fetch_candidates_for_queries(EXHIBITION_QUERIES, state)
     exhibition_embeds, _ = build_exhibition_embeds_from_candidates(
-        client, exhibition_candidates, state, now, region_instruction=KANTO_INSTRUCTION
+        client, exhibition_candidates, state, now, region_instruction=KANTO_INSTRUCTION, guard=guard
     )
     embeds.extend(exhibition_embeds)
 
