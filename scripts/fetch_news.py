@@ -66,11 +66,13 @@ state/news_seen.json に記録し、そのURL/IDと重複するものはスキ�
   GEMINI_API_KEY         (必須。主要ニュースの要約生成用)
 """
 import datetime
+import difflib
 import json
 import os
 import re
 import sys
 import time
+import unicodedata
 import urllib.parse
 
 import feedparser
@@ -996,6 +998,65 @@ def build_bousai_section(bousai_items, status="ok", hidden=0):
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------
+# 埼玉・県央ローカルニュースの重複抑止(2026-10-12)
+#  - 直近 LOCAL_RECENT_DAYS 日に配信した見出しを state に記録し、同じ出来事の再配信を防ぐ
+#    (同じ記事でも媒体やGoogle NewsのURLが違うと、URL単位の重複判定をすり抜けるため)
+#  - 同一配信内の類似見出し(SequenceMatcher の類似度 LOCAL_TITLE_SIMILARITY 以上)は1件にまとめる
+#  - 市区町村名が異なる見出し、数字(日付・震度など)が異なる見出しは別の出来事として残す
+#    (例: 「上尾市・桶川市の大雨」と「鴻巣市・北本市の大雨」、「震度2 10/2」と「震度4 9/29」)
+# キーは "local-title:<正規化見出し>"。管理キー("_")ではないため、Discord送信失敗時は既存の rollback で取り消される。
+# ---------------------------------------------------------------------------
+LOCAL_TITLE_SIMILARITY = 0.6
+LOCAL_RECENT_DAYS = 3
+LOCAL_TITLE_KEY_PREFIX = "local-title:"
+LOCAL_TITLE_MIN_LEN = 8
+_LOCAL_TITLE_STRIP_RE = re.compile(r"[\s【】\[\]「」『』（）()・、。,.!！?？:：;；\"'“”‘’\-‐―－〜~…]+")
+
+
+def local_title_key(title):
+    """比較用の正規化見出し(媒体名・記号・空白を除き、全角半角と大小文字をそろえる)。"""
+    body = local_news_filter.split_source(title)[0]
+    return _LOCAL_TITLE_STRIP_RE.sub("", unicodedata.normalize("NFKC", body).lower())
+
+
+def is_same_local_story(a, b):
+    """2つの正規化見出しが同じ出来事か。市区町村・数字が食い違えば別の出来事とみなす。"""
+    if min(len(a), len(b)) < LOCAL_TITLE_MIN_LEN:
+        return False
+    ma = {m for m in local_news_filter.CORE + local_news_filter.NEARBY + local_news_filter.OTHER_MUNICIPALITIES if m in a}
+    mb = {m for m in local_news_filter.CORE + local_news_filter.NEARBY + local_news_filter.OTHER_MUNICIPALITIES if m in b}
+    if ma and mb and ma != mb:
+        return False
+    na, nb = set(re.findall(r"\d+", a)), set(re.findall(r"\d+", b))
+    if na and nb and na != nb:
+        return False
+    return difflib.SequenceMatcher(None, a, b).ratio() >= LOCAL_TITLE_SIMILARITY
+
+
+def dedupe_local_items(items, state, now):
+    """直近の配信済み見出しと、今回の一覧内の類似見出しを除く。戻り値: (残す項目, 除いた件数)。state は変更しない。"""
+    cutoff = (now - datetime.timedelta(days=LOCAL_RECENT_DAYS)).isoformat()
+    recent = [k[len(LOCAL_TITLE_KEY_PREFIX):] for k, v in state.items()
+              if k.startswith(LOCAL_TITLE_KEY_PREFIX) and v >= cutoff]
+    kept, kept_keys, dropped = [], [], 0
+    for item in items:
+        key = local_title_key(item["title"])
+        if any(is_same_local_story(key, r) for r in recent) or any(is_same_local_story(key, k) for k in kept_keys):
+            dropped += 1
+            continue
+        kept.append(item)
+        kept_keys.append(key)
+    return kept, dropped
+
+
+def mark_local_titles_sent(items, state, now):
+    for item in items:
+        key = local_title_key(item["title"])[:120]
+        if key:
+            state.setdefault(LOCAL_TITLE_KEY_PREFIX + key, now.isoformat())
+
+
 def build_local_news_message(state, now):
     """あんぜんねっとの新着自体はここには含めない(build_anzn_alert_embed()で
     速報として別送するため)。その代わり、直近BOUSAI_SUMMARY_HOURS時間分の
@@ -1081,7 +1142,14 @@ def build_local_news_message(state, now):
     # 表示順: 北本市行政の問題 → 北本ゆかり型 → 北本の重要 → 北本の通常 → 鴻巣・桶川・上尾 → 周辺の重大(救済)。同順位は取得順
     ranked.sort(key=lambda r: r[0])
     admin_items = [it for lv, it in ranked if lv == local_news_filter.LEVEL_ADMIN_ISSUE]
-    saitama_general = admin_items + origin_items + [it for lv, it in ranked if lv != local_news_filter.LEVEL_ADMIN_ISSUE]
+    # 2026-10-12: 直近3日に配信した出来事と、今回の一覧内の類似見出しを除く(同じ出来事の再配信を防ぐ)。
+    # 北本ゆかり型(origin)は人物別の件数上限と見出し重複で別に管理しているため対象外。
+    general_items = [it for lv, it in ranked if lv != local_news_filter.LEVEL_ADMIN_ISSUE]
+    kept, local_title_dups = dedupe_local_items(admin_items + general_items, state, now)
+    kept_ids = {id(it) for it in kept}
+    saitama_general = [it for it in admin_items if id(it) in kept_ids] + origin_items + [it for it in general_items if id(it) in kept_ids]
+    if local_title_dups:
+        print(f"[INFO] 同じ出来事の見出しを除外(直近配信済み・類似): {local_title_dups}件")
     if origin_dups:
         print(f"[INFO] 北本ゆかり型: 同一見出し(媒体違い)を1件にまとめました: {origin_dups}件")
     if curation_dropped:
@@ -1119,6 +1187,7 @@ def build_local_news_message(state, now):
         lines.append("## 📰 地域ニュース")
         for item in saitama_general:
             lines.append(f"- [{item['title']}](<{item['url']}>) `[{item['published']}]`")
+        mark_local_titles_sent(saitama_general, state, now)
 
     return "\n".join(lines), sports_items
 
