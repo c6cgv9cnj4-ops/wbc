@@ -109,6 +109,9 @@ import feedparser
 import requests
 from bs4 import BeautifulSoup
 
+import badminton_tournament_master as tournament_master
+import atomic_io
+
 JST = datetime.timezone(datetime.timedelta(hours=9))
 STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "state", "badminton_alerts_seen.json")
 STATE_RETENTION_DAYS = 30
@@ -226,8 +229,7 @@ def load_seen_state():
 
 def save_seen_state(state):
     os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
-    with open(STATE_PATH, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2)
+    atomic_io.write_json_atomic(STATE_PATH, state, ensure_ascii=False, indent=2)
 
 
 def _prune_dict(seen, cutoff):
@@ -947,6 +949,45 @@ def _build_tie_embed(items, wr_rankings, color):
     }
 
 
+# 大会マスター(2026-10-08)。main()が設定する。未設定(テスト・単体実行)なら記事Embedは従来のまま。
+_TOURNAMENT_META = None
+
+
+def set_tournament_meta(service):
+    global _TOURNAMENT_META
+    _TOURNAMENT_META = service
+
+
+def decorate_embed_with_tournament_meta(embed, article_titles):
+    """記事Embedの先頭に、BWF公式から補完した大会メタ情報(大会格・レベル・ポイント・日本選手)を付ける。
+    大会を特定できない記事には何も付けない。特定できない大会名がある場合は『確認中』の1行だけを付ける(推測しない)。
+    補完に失敗しても記事の配信は止めない。"""
+    svc = _TOURNAMENT_META
+    if svc is None:
+        return embed
+    try:
+        info = {"kind": "none"}
+        for t in article_titles:
+            info = svc.resolve(t)
+            if info["kind"] != "none":
+                break
+        title_ja, meta = tournament_master.render_meta(info, svc)
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] 大会メタ情報の補完に失敗しました(記事は従来の表示で配信します): {err}")
+        return embed
+    if not meta:
+        return embed
+    body = embed["description"]
+    if title_ja:
+        original = embed["title"][2:].strip() if embed["title"].startswith("🏸") else embed["title"]
+        head = f"{meta}{tournament_master.SEP}\n**{original}**\n"
+        embed = {**embed, "title": f"🏸 {title_ja}"[:256]}
+    else:
+        head = meta
+    embed = {**embed, "description": (head + body)[:4000]}
+    return embed
+
+
 def build_article_embeds(articles, wr_rankings, color):
     """記事群からEmbedを組み立てる(badspi/Google News共通)。同一対戦カード
     (tie_key)を検知した記事が複数あれば1通に統合し(2026-09-22追加。修正前は
@@ -961,11 +1002,11 @@ def build_article_embeds(articles, wr_rankings, color):
     for a, e in enriched:
         tie_key = _tie_group_key(e.get("details"))
         if tie_key is None:
-            embeds.append({
+            embeds.append(decorate_embed_with_tournament_meta({
                 "title": f"🏸 {a['title']}"[:256],
                 "description": render_article_description(a, wr),
                 "color": color,
-            })
+            }, [a["title"]]))
         elif tie_key not in emitted_ties:
             emitted_ties.add(tie_key)
             group_items = [(a2, e2) for a2, e2 in enriched if _tie_group_key(e2.get("details")) == tie_key]
@@ -1090,9 +1131,50 @@ CATEGORY_LABELS_JA = {
 }
 
 
+def _token_key(name):
+    """欧文名の語順違い(「HE Zhi Wei」と「Zhi Wei HE」)を同一視するための比較キー。
+    欧文の語が2つ以上あるときだけ作る(1語は同姓が多く、誤って同一人物にしないため)。"""
+    tokens = re.findall(r"[A-Za-z][A-Za-z'\-]*", name or "")
+    return " ".join(sorted(t.upper() for t in tokens)) if len(tokens) >= 2 and len(tokens) == len(re.findall(r"\S+", name)) else ""
+
+
+def _add_category_index(index, jp_name, alpha_name, rank):
+    """種目別の順位インデックスに登録する。完全一致キーは上位優先、語順違いキーは同名で順位が割れたら登録しない。"""
+    for raw in (jp_name, alpha_name):
+        key = _normalize_player_key(raw) if raw else ""
+        if key and key not in index:
+            index[key] = rank
+    tk = _token_key(alpha_name)
+    if tk:
+        tkey = "TOK:" + tk
+        if tkey in index and index[tkey] != rank:
+            index[tkey] = None      # 同じ語の組で順位が割れる=別人の可能性。使わない
+        elif tkey not in index:
+            index[tkey] = rank
+
+
+def lookup_category_rank(name, index):
+    """その種目の世界ランキング表(index)から、完全一致または欧文の語順違いだけで順位を引く。
+    部分一致などの推測はしない。見つからなければNone。"""
+    if not index:
+        return None
+    key = _normalize_player_key(name)
+    if key and key in index:
+        return index[key]
+    tk = _token_key(name)
+    return index.get("TOK:" + tk) if tk else None
+
+
 def fetch_wr_rankings():
+    """従来互換: (rankings, japan_rankings) だけを返す。種目別の順位は fetch_wr_rankings_detailed()。"""
+    rankings, japan_rankings, _by_category = fetch_wr_rankings_detailed()
+    return rankings, japan_rankings
+
+
+def fetch_wr_rankings_detailed():
     """バドナビからBWF世界ランキング5種目を取得する。
-    戻り値は (rankings, japan_rankings) のタプル。
+    戻り値は (rankings, japan_rankings, by_category) のタプル。
+    by_category は {種目キー: {正規化名: 順位}}(大会結果の表示で、その種目の順位を使うため。2026-10-08追加)。
     - rankings: 選手名の正規化キー→順位の辞書(WR注釈付与に使う、既存仕様)。
     - japan_rankings: {category: [{"rank","name_jp","name_alpha","player_id"}, ...]}
       国旗が"JPN"の行だけを順位順に集めたもの(火曜の日本勢ランキング
@@ -1101,6 +1183,7 @@ def fetch_wr_rankings():
     """
     rankings = {}
     japan_rankings = {}
+    by_category = {}
     for category, url in WR_RANKING_URLS.items():
         try:
             resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
@@ -1134,6 +1217,7 @@ def fetch_wr_rankings():
                 key = _normalize_player_key(raw_name) if raw_name else ""
                 if key and key not in rankings:  # 既に(より上位の)登録があれば上書きしない
                     rankings[key] = rank
+            _add_category_index(by_category.setdefault(category, {}), jp_name, alpha_name, rank)
             count += 1
 
             country_img = tr.select_one(".contryCell img")
@@ -1148,7 +1232,7 @@ def fetch_wr_rankings():
                 })
         japan_rankings[category] = sorted(japan_list, key=lambda p: p["rank"])
         print(f"[INFO] 世界ランキング取得({category}): {count}件(うち日本人{len(japan_list)}人)")
-    return rankings, japan_rankings
+    return rankings, japan_rankings, by_category
 
 
 def _find_wr_rank(name, wr_rankings):
@@ -1171,9 +1255,9 @@ def _find_wr_rank(name, wr_rankings):
 
 
 def annotate_player_with_wr(name, wr_rankings):
-    """選手名に世界ランキング [WR◯] を付与する(見つからなければそのまま)。"""
+    """選手名に世界ランキング(世界◯位)を付与する(見つからなければそのまま)。"""
     rank = _find_wr_rank(name, wr_rankings)
-    return f"{name}[WR{rank}]" if rank else name
+    return f"{name}（世界{rank}位）" if rank else name
 
 
 def annotate_side_with_wr(side, wr_rankings):
@@ -1189,7 +1273,7 @@ def annotate_side_with_wr(side, wr_rankings):
             continue
         rank = _find_wr_rank(n, wr_rankings)
         if rank:
-            return f"{side} [WR{rank}]"
+            return f"{side}（世界{rank}位）"
     return side
 
 
@@ -1427,6 +1511,8 @@ def _parse_nba_match_item(item, wr_rankings):
         "games": games,  # (左スコア, 右スコア)のリスト。視点を変えた再フォーマット用(2026-09-06追加)
         "left_team": left_team,
         "right_team": right_team,
+        "left_teams": left_teams,     # ダブルスの両選手分(2026-10-08追加。従来キーは据え置き)
+        "right_teams": right_teams,
         "left_win": left_win,
         "right_win": right_win,
         "score_text": score_text,
@@ -1435,7 +1521,7 @@ def _parse_nba_match_item(item, wr_rankings):
     }
 
 
-def fetch_nba_result_detail(result_id, wr_rankings=None):
+def fetch_nba_result_detail(result_id, wr_rankings=None, wr_by_category=None):
     """個別の大会結果ページを取得し、大会名・更新日・日本選手が関与する
     試合の概要(japan_matches)と、全試合の生データ(all_matches、決勝結果
     ダイジェスト用、2026-09-06追加)の両方を返す。取得失敗・S/Jリーグ
@@ -1473,6 +1559,7 @@ def fetch_nba_result_detail(result_id, wr_rankings=None):
         if not (any(is_japanese_name(n) for n in pm["left_names"]) or any(is_japanese_name(n) for n in pm["right_names"])):
             continue  # 日本選手が関与しない試合は対象外
         japan_matches.append({
+            "view": build_match_view(pm, wr_by_category),   # 大会結果の表示用(2026-10-08追加)。旧データには無い
             "round_event": pm["round_event"],
             "left": pm["left"],
             "right": pm["right"],
@@ -1491,25 +1578,186 @@ def fetch_nba_result_detail(result_id, wr_rankings=None):
     }
 
 
+# ------------------------------------------------------------
+# 大会結果の表示(2026-10-08): 選手名を主役にし、種目ごとのセクション・1試合ごとの余白・
+# 世界ランキング(自分・相手)を日本語で見せる。ランキングは元データ(バドナビの種目別ランキング表)に
+# 無ければ推測せず「—」にする。
+# ------------------------------------------------------------
+WR_CATEGORY_BY_EVENT = {
+    "男子シングルス": "male_singles", "女子シングルス": "female_singles",
+    "男子ダブルス": "male_doubles", "女子ダブルス": "female_doubles", "混合ダブルス": "mixed_doubles",
+}
+# NBA公式の国・地域欄が英語/略号で入っていた場合だけ日本語にする(日本語表記ならそのまま使う)
+COUNTRY_JA = {
+    "JPN": "日本", "CHN": "中国", "KOR": "韓国", "TPE": "チャイニーズ・タイペイ", "HKG": "香港", "INA": "インドネシア",
+    "MAS": "マレーシア", "THA": "タイ", "IND": "インド", "SGP": "シンガポール", "VIE": "ベトナム", "PHI": "フィリピン",
+    "DEN": "デンマーク", "FRA": "フランス", "GER": "ドイツ", "ESP": "スペイン", "NED": "オランダ", "ENG": "イングランド",
+    "SCO": "スコットランド", "USA": "アメリカ", "CAN": "カナダ", "AUS": "オーストラリア", "NZL": "ニュージーランド",
+    "BRA": "ブラジル", "SUI": "スイス", "SWE": "スウェーデン", "NOR": "ノルウェー", "FIN": "フィンランド", "POL": "ポーランド",
+    "ITA": "イタリア", "BEL": "ベルギー", "BUL": "ブルガリア", "CZE": "チェコ", "HUN": "ハンガリー", "IRL": "アイルランド",
+    "TUR": "トルコ", "UKR": "ウクライナ", "EGY": "エジプト", "RSA": "南アフリカ",
+    "JAPAN": "日本", "CHINA": "中国", "KOREA": "韓国", "FRANCE": "フランス", "CANADA": "カナダ", "DENMARK": "デンマーク",
+    "INDIA": "インド", "INDONESIA": "インドネシア", "MALAYSIA": "マレーシア", "THAILAND": "タイ", "GERMANY": "ドイツ",
+}
+RESULT_SEP = "-# ──────────"
+EMBED_BODY_BUDGET = 3500   # 1 Embedの本文の目安(上限4096・1メッセージ合計6000に余裕を持たせる)
+
+
+def _clean_team(team):
+    return (team or "").strip().strip("()（）").strip()
+
+
+def country_ja(text):
+    t = _clean_team(text)
+    return COUNTRY_JA.get(t.upper(), t)
+
+
+def side_world_rank(names, event_label, wr_by_category):
+    """その種目の世界ランキング表から、片側(シングルスは1人・ダブルスはペア)の順位を返す。
+    ダブルスはペアの順位が各選手に同じ値で載る前提で、載っている順位が1つに定まる場合だけ採用する
+    (割れる・どちらも無い・種目が不明・ランキング表が無い場合は None=「—」)。推測はしない。"""
+    category = WR_CATEGORY_BY_EVENT.get(event_label)
+    index = (wr_by_category or {}).get(category) if category else None
+    if not index:
+        return None
+    ranks = {r for r in (lookup_category_rank(n, index) for n in names) if r}
+    return ranks.pop() if len(ranks) == 1 else None
+
+
+def build_match_view(pm, wr_by_category=None):
+    """_parse_nba_match_item の1試合を、表示用の構造(JSON化できる辞書)に変換する。
+    日本選手の側を「自分」、もう一方を「相手」とする(日本人同士は左を自分側)。"""
+    event_label, round_label = split_round_event(pm["round_event"])
+    left_jp = any(is_japanese_name(n) for n in pm["left_names"])
+    right_jp = any(is_japanese_name(n) for n in pm["right_names"])
+    own_is_left = left_jp or not right_jp
+    if own_is_left:
+        own, opp = ("left", "right")
+    else:
+        own, opp = ("right", "left")
+    own_names, opp_names = pm[f"{own}_names"], pm[f"{opp}_names"]
+    games = pm.get("games") or []
+    if own_is_left:
+        mine = [(l, r) for l, r in games]
+    else:
+        mine = [(r, l) for l, r in games]
+    own_win, opp_win = pm[f"{own}_win"], pm[f"{opp}_win"]
+    def uniq(items):
+        out = []
+        for x in items:
+            if x and x not in out:
+                out.append(x)
+        return out
+    own_teams = pm.get(f"{own}_teams") or ([pm[f"{own}_team"]] if pm.get(f"{own}_team") else [])
+    opp_teams = pm.get(f"{opp}_teams") or ([pm[f"{opp}_team"]] if pm.get(f"{opp}_team") else [])
+    affil = uniq(_clean_team(t) for t in own_teams)
+    countries = uniq(player_nationality_display([n], t) for n, t in zip(opp_names, opp_teams or [""] * len(opp_names)))
+    return {
+        "event": event_label,
+        "round": round_label,
+        "own": {"names": list(own_names), "rank": side_world_rank(own_names, event_label, wr_by_category), "affil": affil},
+        "opp": {"names": list(opp_names), "rank": side_world_rank(opp_names, event_label, wr_by_category),
+                "country": "／".join(countries) or player_nationality_display(opp_names, pm[f"{opp}_team"])},
+        "result": "win" if own_win else ("loss" if opp_win else "unknown"),
+        "own_sets": sum(1 for a, b in mine if a > b) if mine else None,
+        "opp_sets": sum(1 for a, b in mine if b > a) if mine else None,
+        "games": [f"{a}-{b}" for a, b in mine],
+    }
+
+
+def _rank_text(rank):
+    return f"世界{rank}位" if rank else "世界—位"
+
+
+def render_match_view(v):
+    """1試合を、余白と階層のある複数行にする(主役=選手名・勝敗・スコア、補足=ラウンド/所属/ゲーム/相手の順位と国)。"""
+    result_label = {"win": "**勝利**", "loss": "敗戦", "unknown": "—"}[v["result"]]
+    own = "・".join(v["own"]["names"])
+    sub = [x for x in (v.get("round"), "・".join(v["own"].get("affil") or [])) if x]
+    if v["own_sets"] is None:
+        score, games = "スコアなし", ""
+    else:
+        score, games = f"{v['own_sets']} – {v['opp_sets']}", " / ".join(v["games"])
+    opp_sub = _rank_text(v["opp"]["rank"]) + (f"・{'／'.join(country_ja(c) for c in v['opp']['country'].split('／'))}" if v["opp"].get("country") else "")
+    lines = [f"**{own}**　{_rank_text(v['own']['rank'])}　{result_label}"]
+    if sub:
+        lines.append("-# " + "　・　".join(sub))
+    lines += ["", f"**{score}**"]
+    if games:
+        lines.append(f"-# {games}")
+    lines += ["", "・".join(v["opp"]["names"]), f"-# {opp_sub}"]
+    return "\n".join(lines)
+
+
+def _legacy_match_line(m):
+    score = f" {m['score_text']}" if m.get("score_text") else ""
+    if m["left_win"]:
+        return f"◯ **{m['left']}**{score} {m['right']} ({m['round_event']})"
+    if m["right_win"]:
+        return f"{m['left']}{score} **{m['right']}** ◯ ({m['round_event']})"
+    return f"{m['left']}{score} {m['right']} ({m['round_event']})"
+
+
+def build_result_sections(matches):
+    """日本選手が関与する試合を種目ごとのセクションにする。戻り値: [(見出し, [試合の本文, ...]), ...]
+    旧形式(view無し)のデータは「その他」にまとめて従来の1行表示のまま出す(情報を落とさない)。"""
+    order = [*CATEGORY_EVENT_LABELS]
+    grouped, others = {}, []
+    for m in matches:
+        v = m.get("view")
+        if not v:
+            others.append(_legacy_match_line(m))
+            continue
+        label = v["event"] if v["event"] in order else None
+        if label:
+            grouped.setdefault(label, []).append(render_match_view(v))
+        else:
+            others.append(render_match_view(v))
+    sections = [(label, grouped[label]) for label in order if label in grouped]
+    if others:
+        sections.append(("その他", others))
+    return sections
+
+
+def pack_result_embed_bodies(sections, budget=EMBED_BODY_BUDGET):
+    """セクションを Embed 本文に詰める。長い場合は試合の区切りで分け、続きの先頭に見出しを繰り返す。"""
+    bodies, cur, cur_len = [], [], 0
+    for heading_text, blocks in sections:
+        in_section = False
+        for block in blocks:
+            tail = f"{block}\n\n{RESULT_SEP}\n"
+            head = f"**{heading_text}**" if not in_section else f"**{heading_text}（続き）**"
+            if cur and cur_len + len(tail) + len(head) + 4 > budget:
+                bodies.append("\n".join(cur).strip())
+                cur, cur_len = [], 0
+                in_section = in_section          # 次のEmbedの先頭では見出しを付け直す
+                head = f"**{heading_text}**" if not in_section else f"**{heading_text}（続き）**"
+                need_head = True
+            else:
+                need_head = not in_section or not cur
+            piece = (("\n" if cur and not in_section else "") + head + "\n\n" if need_head else "") + tail
+            cur.append(piece)
+            cur_len += len(piece)
+            in_section = True
+    if cur:
+        bodies.append("\n".join(cur).strip())
+    return bodies
+
+
 def build_nba_result_embeds(results):
     embeds = []
     for r in results:
-        lines = []
-        for m in r["japan_matches"][:15]:  # Discord Embed description上限対策
-            score = f" {m['score_text']}" if m["score_text"] else ""
-            if m["left_win"]:
-                lines.append(f"◯ **{m['left']}**{score} {m['right']} ({m['round_event']})")
-            elif m["right_win"]:
-                lines.append(f"{m['left']}{score} **{m['right']}** ◯ ({m['round_event']})")
-            else:
-                lines.append(f"{m['left']}{score} {m['right']} ({m['round_event']})")
-        if not lines:
-            lines = ["(日本選手が関与する試合結果はまだ掲載されていません)"]
-        embeds.append({
-            "title": f"🏸 【{r['tournament']}】大会結果(NBA公式・{r['update_date']}更新)"[:256],
-            "description": "\n".join(lines) + f"\n[詳細を見る](<{r['url']}>)",
-            "color": COLOR_NBA,
-        })
+        sections = build_result_sections(r["japan_matches"])
+        bodies = pack_result_embed_bodies(sections) or ["(日本選手が関与する試合結果はまだ掲載されていません)"]
+        footer = f"\n-# 日本バドミントン協会（NBA公式）　{r['update_date']}更新\n[詳細を見る](<{r['url']}>)"
+        for i, body in enumerate(bodies):
+            last = i == len(bodies) - 1
+            suffix = "" if i == 0 else "（続き）"
+            embeds.append({
+                "title": f"🏸 {r['tournament']}　大会結果{suffix}"[:256],
+                "description": (body + (footer if last else ""))[:4096],
+                "color": COLOR_NBA,
+            })
     return embeds
 
 
@@ -1579,7 +1827,7 @@ def format_final_side(names, team, wr_rankings):
     parts = []
     for n in names:
         rank = wr_rankings.get(_normalize_player_key(n))
-        rank_text = f"WR {rank}位" if rank else "WR未掲載"
+        rank_text = f"世界{rank}位" if rank else "世界—位"
         parts.append(f"{n}（{nationality} / {rank_text}）")
     return "・".join(parts)
 
@@ -1664,7 +1912,7 @@ def format_favorite_match_line(match, wr_rankings, favorite_names):
     opp_ranked = []
     for n in opp_names:
         rank = wr_rankings.get(_normalize_player_key(n))
-        opp_ranked.append(f"{n}(WR{rank})" if rank else n)
+        opp_ranked.append(f"{n}（世界{rank}位）" if rank else n)
     opp_display = "／".join(opp_ranked)
 
     result_text = "勝利" if won else "敗退"
@@ -1687,6 +1935,8 @@ def split_round_event(round_event):
         if round_event.endswith(label):
             round_part = round_event[: -len(label)].strip()
             return label, (round_part or round_event)
+        if round_event.startswith(label):            # 実データは「混合ダブルス 1回戦」の並び(2026-10-08対応)
+            return label, round_event[len(label):].strip()
     return round_event, ""
 
 
@@ -1731,7 +1981,7 @@ def format_favorite_match_block(match, wr_rankings, favorite_names):
     opp_parts = []
     for n in opp_names:
         rank = wr_rankings.get(_normalize_player_key(n))
-        opp_parts.append(f"{n}（WR {rank}位）" if rank else f"{n}（WR未掲載）")
+        opp_parts.append(f"{n}（世界{rank}位）" if rank else f"{n}（世界—位）")
     opp_display = "／".join(opp_parts) + f"（{opp_nationality}）"
 
     header = "／".join(own_names)
@@ -1815,13 +2065,32 @@ def build_finals_digest_embed(result, wr_rankings):
     }
 
 
+def _embed_chars(e):
+    return len(e.get("title", "")) + len(e.get("description", "")) + sum(
+        len(f.get("name", "")) + len(f.get("value", "")) for f in e.get("fields", []))
+
+
+def split_embed_batches(embeds, batch_size=10, max_chars=5500):
+    """Discordは1メッセージにつきEmbed10件・合計6000文字までのため、件数と合計文字数の両方で分ける。"""
+    batches, cur, cur_chars = [], [], 0
+    for e in embeds:
+        n = _embed_chars(e)
+        if cur and (len(cur) >= batch_size or cur_chars + n > max_chars):
+            batches.append(cur)
+            cur, cur_chars = [], 0
+        cur.append(e)
+        cur_chars += n
+    if cur:
+        batches.append(cur)
+    return batches
+
+
 def send_embeds_to_discord(webhook_url, embeds, batch_size=10):
     if not webhook_url:
         print("[ERROR] DISCORD_WEBHOOK_OSHI が設定されていないため送信をスキップします。")
         return False
     ok = True
-    for i in range(0, len(embeds), batch_size):
-        batch = embeds[i:i + batch_size]
+    for batch in split_embed_batches(embeds, batch_size):
         try:
             resp = requests.post(webhook_url, json={"embeds": batch}, timeout=REQUEST_TIMEOUT)
             if resp.status_code >= 300:
@@ -2012,17 +2281,23 @@ def main():
         except ValueError:
             wr_stale = True
     japan_rankings = {}
-    if wr_stale or weekly_check_time or not wr_cache.get("data"):
+    wr_by_category = wr_cache.get("by_category") or {}
+    if wr_stale or weekly_check_time or not wr_cache.get("data") or not wr_by_category:
         reason = "火曜定期更新チェック" if weekly_check_time else "キャッシュが無い/古い"
         print(f"[INFO] 世界ランキングを再取得します({reason})。")
-        wr_rankings, japan_rankings = fetch_wr_rankings()
+        wr_rankings, japan_rankings, fetched_by_category = fetch_wr_rankings_detailed()
         if wr_rankings:
-            state["wr_rankings"] = {"updated_at": now.isoformat(), "data": wr_rankings}
+            wr_by_category = fetched_by_category
+            state["wr_rankings"] = {"updated_at": now.isoformat(), "data": wr_rankings, "by_category": wr_by_category}
         else:
             wr_rankings = wr_cache.get("data", {})  # 取得失敗時は古いキャッシュをそのまま使う
     else:
         wr_rankings = wr_cache.get("data", {})
         print(f"[INFO] 世界ランキングのキャッシュを使用します(更新: {wr_updated_at})。")
+
+    # 大会マスター(BWF公式から補完。同じ大会・年は再利用し、必要なときだけ公式を再検証する)
+    meta_service = tournament_master.TournamentMaster(now=now)
+    set_tournament_meta(meta_service)
 
     if weekly_check_time:
         state["last_weekly_ranking_check_date"] = now.strftime("%Y-%m-%d")  # 同じ週に2回走らないよう先に記録
@@ -2062,7 +2337,7 @@ def main():
         if not (need_japan_check or need_finals_check):
             continue
 
-        detail = fetch_nba_result_detail(result_id, wr_rankings)
+        detail = fetch_nba_result_detail(result_id, wr_rankings, wr_by_category)
         if need_japan_check:
             seen_nba[result_id] = now.isoformat()  # 除外・結果無しでも再取得しないよう既読化
         if detail is None:
@@ -2130,6 +2405,10 @@ def main():
         else:
             print("[INFO] 配信対象の新着はありませんでした。")
 
+    if meta_service.dirty:
+        tournament_master.save_master(meta_service.master)
+    for msg in meta_service.errors:
+        print(f"[WARN] 大会マスター: {msg}")
     save_seen_state(state)
 
     if had_error:

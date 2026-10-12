@@ -30,14 +30,17 @@ NPB/Jリーグは順位・勝敗数が試合消化ごとに変わるため、プ
   DISCORD_WEBHOOK_SPORTS_CULTURE (必須)
 """
 import datetime
+import urllib.parse
 import hashlib
 import json
 import os
+import re
 import sys
 
 import requests
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
+import atomic_io
 
 REQUEST_TIMEOUT = 20
 USER_AGENT = (
@@ -140,10 +143,133 @@ def fetch_jleague_standings():
 
     rows = []
     for tr in table.find_all("tr")[1:]:
-        cells = [td.get_text(strip=True) for td in tr.find_all("td")]
+        tds = tr.find_all("td")
+        cells = [club_name_from_cell(td) if "o-table__cell--club" in " ".join(td.get("class", [])) else td.get_text(strip=True)
+                 for td in tds]
         if len(cells) >= 7:
             rows.append(cells)
     return rows
+
+
+def club_name_from_cell(td):
+    """順位表のクラブ欄から正式名だけを取る(2026-10-12 改修)。
+    1) data-media="pc"(PC用の正式名)があればそれ。
+    2) 無ければ data-media="sp"(SP用の略称)以外の span。
+    3) それも無ければ td 全体のテキスト。
+    どの経路でも、同じ文字列の連続(「チーム名チーム名」)は1つに正規化する。空文字は返さない。"""
+    pc = td.select_one('span[data-media="pc"]')
+    if pc and pc.get_text(strip=True):
+        return _collapse_doubled(pc.get_text(strip=True))
+    spans = [sp for sp in td.find_all("span") if sp.get("data-media") != "sp" and sp.get_text(strip=True)]
+    if spans:
+        return _collapse_doubled(spans[0].get_text(strip=True))
+    return _collapse_doubled(td.get_text(" ", strip=True))
+
+
+_DOUBLED_RE = re.compile(r"^(.+?)\1+$")
+
+
+def _collapse_doubled(text):
+    """「柏レイソル柏レイソル」のような同一文字列の連続を1つにする。単独の文字列はそのまま返す。"""
+    text = re.sub(r"\s+", "", text or "")
+    m = _DOUBLED_RE.match(text)
+    return m.group(1) if m else text
+
+
+# ============================================================
+# 2b. J1 直近の試合結果(2026-10-12追加): 前日〜当日に終了した試合の対戦カード・スコア
+# ============================================================
+JLEAGUE_BASE = "https://www.jleague.jp"
+JLEAGUE_RESULT_MAX = 12          # 1回の配信で詳細ページを読む試合数の上限(取得量の抑制)
+JLEAGUE_RESULTS_SEEN_KEY = "jleague_results_seen"   # 配信済みの試合URL → 配信日時(14日で掃除)
+_DATE_RE = re.compile(r"(\d{4})/(\d{1,2})/(\d{1,2})")
+_ROUND_RE = re.compile(r"第\d+節")
+
+
+def jleague_result_targets(html, dates):
+    """日程一覧HTML → dates(date の集合)に当たる『終了済み』試合の {href, date, round} のリスト。"""
+    soup = BeautifulSoup(html, "html.parser")
+    out = []
+    for group in soup.select(".p-game-schedule__group"):
+        head = group.get_text(" ", strip=True)[:80]
+        m = _DATE_RE.search(head)
+        if not m:
+            continue
+        day = datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        if day not in dates:
+            continue
+        rnd = _ROUND_RE.search(head)
+        for ms in group.select(".m-schedule"):
+            if "m-schedule--game-over" not in " ".join(ms.get("class", [])):
+                continue
+            link = ms.select_one('a[href*="/match/"]')
+            if not link or not link.get("href"):
+                continue
+            out.append({"href": urllib.parse.urljoin(JLEAGUE_BASE, link["href"]), "date": day,
+                        "round": rnd.group(0) if rnd else ""})
+    return out
+
+
+def parse_jleague_match_detail(html):
+    """試合詳細HTML → {home, away, home_score, away_score}。読めなければ None(推測で埋めない)。"""
+    soup = BeautifulSoup(html, "html.parser")
+    block = soup.select_one(".o-team-comparison")
+    if not block:
+        return None
+    names = [c.get_text(strip=True) for c in block.select(".o-team-comparison__club-name")]
+    scores = [x.get_text(strip=True) for x in block.select(".o-team-comparison__score")]
+    if len(names) != 2 or len(scores) != 2 or not all(names):
+        return None
+    if not all(sc.isdigit() for sc in scores):
+        return None                       # 中止・未確定などスコアが数値でない試合は載せない
+    return {"home": names[0], "away": names[1],
+            "home_score": int(scores[0]), "away_score": int(scores[1])}
+
+
+def fetch_jleague_results(now, seen=None):
+    """前日・当日に終了したJ1試合の結果を取得する。戻り値: 結果リスト(0件も含む)/ 取得失敗は None。
+    seen(配信済みURLの辞書)に載っている試合は再取得・再配信しない。"""
+    jst_today = now.astimezone(datetime.timezone(datetime.timedelta(hours=9))).date()
+    dates = {jst_today, jst_today - datetime.timedelta(days=1)}
+    url = f"{JLEAGUE_BASE}/match/j1/{current_year(now)}/"
+    try:
+        resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+    except Exception as err:  # noqa: BLE001
+        print(f"[ERROR] Jリーグ日程の取得に失敗しました: {err}")
+        return None
+    seen = seen or {}
+    targets = [t for t in jleague_result_targets(resp.text, dates) if t["href"] not in seen]
+    results = []
+    for t in targets[:JLEAGUE_RESULT_MAX]:
+        try:
+            r = requests.get(t["href"], headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
+            r.raise_for_status()
+        except Exception as err:  # noqa: BLE001
+            print(f"[WARN] Jリーグ試合詳細の取得に失敗しました({t['href']}): {err}")
+            continue
+        detail = parse_jleague_match_detail(r.text)
+        if detail:
+            results.append({**t, **detail})
+    return results
+
+
+def build_jleague_results_embed(results, now):
+    if not results:
+        return None
+    lines = []
+    for day in sorted({r["date"] for r in results}):
+        lines.append(f"**{day:%m/%d}**")
+        for r in [x for x in results if x["date"] == day]:
+            rnd = f"（{r['round']}）" if r["round"] else ""
+            lines.append(f"{r['home']} **{r['home_score']}** - **{r['away_score']}** {r['away']}{rnd}")
+        lines.append("")
+    return {
+        "title": "⚽ J1 試合結果（前日〜当日）",
+        "description": "\n".join(lines).rstrip()[:4000],
+        "color": COLOR_JLEAGUE,
+        "footer": {"text": f"Jリーグ公式 / {now:%Y-%m-%d} 時点"},
+    }
 
 
 def build_jleague_embed(rows, now):
@@ -269,8 +395,7 @@ def load_state():
 
 def save_state(state):
     os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
-    with open(STATE_PATH, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2)
+    atomic_io.write_json_atomic(STATE_PATH, state, ensure_ascii=False, indent=2)
 
 
 def content_hash(data):
@@ -335,6 +460,21 @@ def main():
         if embed:
             embeds.append(embed)
 
+    seen = state.setdefault(JLEAGUE_RESULTS_SEEN_KEY, {})
+    cutoff = (now - datetime.timedelta(days=14)).isoformat()
+    for key in [k for k, v in seen.items() if v < cutoff]:
+        seen.pop(key, None)
+    jl_results = fetch_jleague_results(now, seen)
+    pending_result_keys = []
+    if jl_results is None:
+        print("[WARN] Jリーグ試合結果は取得できませんでした(順位表の配信には影響しません)。")
+    elif jl_results:
+        any_fetch_ok = True
+        embeds.append(build_jleague_results_embed(jl_results, now))
+        pending_result_keys = [r["href"] for r in jl_results]
+    else:
+        print("[INFO] 前日〜当日に終了したJ1試合はありません(試合結果のEmbedはスキップ)。")
+
     f1_top3 = fetch_f1_top3(now)
     if f1_top3:
         any_fetch_ok = True
@@ -356,6 +496,11 @@ def main():
         print(f"=== 配信内容: {len(embeds)}件のEmbed(前回から更新があったソースのみ) ===")
         if not send_embeds_to_discord(webhook, embeds):
             had_error = True
+        elif pending_result_keys:
+            # 試合結果は配信できたものだけ既送信にする(送信失敗なら次回再送)
+            for href in pending_result_keys:
+                seen[href] = now.isoformat()
+            save_state(state)
     elif any_fetch_ok:
         print("[INFO] 全ソースとも前回配信時から変化なし(試合/レースが無かったとみられるため)、今回は配信をスキップします。")
     else:

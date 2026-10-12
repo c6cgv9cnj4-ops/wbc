@@ -20,7 +20,7 @@ on:
         default: false
 
 permissions:
-  contents: write  # state/badminton_alerts_seen.json(既送信記録)のコミット用
+  contents: write  # state/badminton_alerts_seen.json(既送信記録)・state/badminton_tournament_master.json(大会マスター)のコミット用
 
 jobs:
   fetch-badminton-alerts:
@@ -51,6 +51,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add state/badminton_alerts_seen.json
+          if [ -f state/badminton_tournament_master.json ]; then git add state/badminton_tournament_master.json; fi
           git diff --cached --quiet || git commit -m "バドミントン速報既送信記録を更新"
           git pull --rebase origin main
           git push

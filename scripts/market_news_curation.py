@@ -210,7 +210,7 @@ def _validate(parsed, n):
     return groups, ungrouped, warnings
 
 
-def curate(items, client, model_name):
+def curate(items, client, model_name, caller=None):
     """新着記事をグループ化・分類する。失敗時は None(呼び出し側で従来表示に戻す)。
 
     戻り値: {"groups": [...], "ungrouped": [item, ...], "warnings": [...], "raw": str}
@@ -228,7 +228,10 @@ def curate(items, client, model_name):
         return None
 
     try:
-        resp = client.models.generate_content(model=model_name, contents=_build_prompt(items))
+        prompt = _build_prompt(items)
+        # caller: Gemini呼び出しの再試行・待機ラッパー(gemini_guard.Guard.call)。無ければ従来どおり直接呼ぶ
+        generate = lambda: client.models.generate_content(model=model_name, contents=prompt)  # noqa: E731
+        resp = caller(generate) if caller else generate()
         raw = resp.text or ""
         groups_idx, ungrouped_idx, warnings = _validate(_parse_json(raw), len(items))
     except Exception as err:  # noqa: BLE001

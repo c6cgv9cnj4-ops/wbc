@@ -1,0 +1,25 @@
+{
+ "schema_version": 1,
+ "spots": {
+  "30": {
+   "entries": [
+    {
+     "bloom_note": "公式案内: バラの花期は年2回。春は5月中旬の頃が盛りで、秋は10月中旬からです。",
+     "bloom_status": "",
+     "checked_at": "2026-10-08",
+     "event_end": "2026-11-23",
+     "event_name": "秋のバラフェスタ",
+     "event_start": "2026-10-06",
+     "retrieved_at": "2026-10-09T08:26:31.545343+09:00",
+     "source_kind": "official",
+     "source_url": "https://www.tokyo-park.or.jp/park/jindai/news/2026/2025_2.html",
+     "subject_keywords": [
+      "バラ",
+      "ばら"
+     ]
+    }
+   ],
+   "name": "神代植物公園"
+  }
+ }
+}

@@ -48,6 +48,18 @@ def _text(content):
     return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", content or ""))).strip()
 
 
+# 報告の種別(発生・鎮火・更新など)。同じ日時・場所でも種別が違えば別の情報なので、重複判定に含める(2026-10-12)
+REPORT_STATUS_WORDS = ("鎮火", "更新", "続報", "発生")
+
+
+def detect_report_status(text):
+    """本文から報告の種別を取り出す。見つからなければ空文字。鎮火・更新を優先して判定する。"""
+    for word in REPORT_STATUS_WORDS:
+        if word in (text or ""):
+            return word
+    return ""
+
+
 def parse_post(status):
     """県央3市の災害発生情報なら、Mac経路(build_anzn_alert_embed)と同じ形の dict を返す。それ以外は None。"""
     raw = status.get("content", "")
@@ -68,6 +80,7 @@ def parse_post(status):
         _, area, art = key.split(":")
         url = f"https://anzn.net/sp/?{area}&i={art}"
     return {"key": key, "datetime": when, "city": city, "summary": summary, "url": url,
+            "status": detect_report_status(text),
             "status_id": status["id"], "created_at": status.get("created_at")}
 
 

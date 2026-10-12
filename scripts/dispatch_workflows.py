@@ -26,16 +26,31 @@ import os
 import shutil
 import subprocess
 import sys
+import atomic_io
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 REPO = "c6cgv9cnj4-ops/wbc"
 REF = "main"
 # (ワークフロー, 最小間隔[分])。cron の設定値に合わせる。
+JST = datetime.timezone(datetime.timedelta(hours=9))
+NIKKEI_BUSY_INTERVAL_MIN = 60     # 平日 08:00〜16:59 JST(マーケット時間帯)
+NIKKEI_QUIET_INTERVAL_MIN = 240   # それ以外(夜間・週末)
+
+
+def nikkei_min_interval(now):
+    """日経CNBCの最小起動間隔(分)。平日の日本時間8〜16時台だけ60分、それ以外は240分。
+    1日の起動上限: 平日 9回(8〜16時台)+ 夜間 4回 = 最大13回、週末 6回。cron は停止中のため、起動係だけが起動する。"""
+    local = now.astimezone(JST)
+    if local.weekday() < 5 and 8 <= local.hour < 17:
+        return NIKKEI_BUSY_INTERVAL_MIN
+    return NIKKEI_QUIET_INTERVAL_MIN
+
+
 WORKFLOWS = [
     ("jma_alerts.yml", 10),
-    ("news.yml", 30),
-    ("nikkei_cnbc_digest.yml", 60),
+    ("news.yml", 120),   # 2026-10-11: 30分→120分(Gemini無料枠の削減。news.ymlのcronも2時間ごと)
+    ("nikkei_cnbc_digest.yml", nikkei_min_interval),   # 2026-10-12: 時間帯で可変(平日日中60分 / それ以外240分)
 ]
 BUSY_STATUSES = {"queued", "in_progress", "waiting", "requested", "pending"}
 
@@ -119,8 +134,7 @@ def check_anzn_liveness(now, dry_run=False):
             print("  [ERROR] 通知用の DISCORD_WEBHOOK_LOCAL が見つかりません。")
     if not dry_run:
         os.makedirs(SUPPORT_DIR, exist_ok=True)
-        with open(DISPATCHER_STATE_PATH, "w", encoding="utf-8") as f:
-            json.dump(dstate, f, ensure_ascii=False, indent=1)
+        atomic_io.write_json_atomic(DISPATCHER_STATE_PATH, dstate, ensure_ascii=False, indent=1)
     return is_stale
 
 
@@ -134,7 +148,8 @@ def main(argv=None):
     exit_code = 0
     for workflow, min_interval in WORKFLOWS:
         try:
-            go, reason = decide(latest_run(workflow), min_interval, now)
+            interval = min_interval(now) if callable(min_interval) else min_interval
+            go, reason = decide(latest_run(workflow), interval, now)
             if go and not args.dry_run:
                 code, _out, err = gh("workflow", "run", workflow, "-R", REPO, "--ref", REF)
                 if code != 0:

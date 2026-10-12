@@ -54,20 +54,34 @@ def short_error(err, limit=120):
     return f"HTTP {m.group(1)}: {text}" if m and f"HTTP {m.group(1)}" not in text else text
 
 
-def record(kind, channel, target, detail, delivery):
+def record(kind, channel, target, detail, delivery, extra=None):
     """異常を記録する。同じkindは1件にまとめ、回数だけ数える。
     channel: 影響を受けた配信先("local"/"news"/"market")
     target: 対象(例: 「あんぜんねっと(北本市安全安心情報)」)
     detail: 内容(short_error()済みの文字列を推奨)
     delivery: 通常配信への影響(例: 「継続」「一部スキップ」)
+    extra: 任意の補足(2026-10-09)。通知本文に「・」箇条書きで足す行のリスト(例: HTTPステータス・保留した記事数・再試行方針・次回再試行の見込み)。
+           確定していない情報は呼び出し側で入れない(時刻などを推測で表示しない)。
+    kind: 同じ種類の通知をまとめる/12時間抑止する単位。エラーの種類が変わったとき通知を埋もれさせないよう、
+          必要なら "gemini_national:quota" のように原因別の接尾辞を付ける。
     """
     if kind in _issues:
         _issues[kind]["count"] += 1
         return
     _issues[kind] = {
         "kind": kind, "channel": channel, "target": target,
-        "detail": detail, "delivery": delivery, "count": 1,
+        "detail": detail, "delivery": delivery, "count": 1, "extra": list(extra or []),
     }
+
+
+def clear(state, base_kind):
+    """復旧したとき、その種類(base_kind と base_kind:○○)の12時間抑止を解除する。
+    復旧後に同じ異常が再発したら、すぐ通知できるようにするため。解除した件数を返す。"""
+    keys = [k for k in state if k.startswith(ALERT_STATE_PREFIX) and (k[len(ALERT_STATE_PREFIX):] == base_kind
+                                                                       or k[len(ALERT_STATE_PREFIX):].startswith(base_kind + ":"))]
+    for k in keys:
+        state.pop(k, None)
+    return len(keys)
 
 
 def issues():
@@ -174,6 +188,7 @@ def _compose(state, now):
             blocks.append("\n".join([
                 f"{discord_style.heading(it['target'])}{count}",
                 cause,
+                *[f"・{x}" for x in it.get("extra", [])],
                 f"影響: {humanize_delivery(it['delivery'])}",
             ]))
         # 技術コードは異常が1種類のときだけ短く添える(複数だとどの異常のものか曖昧になるため。全文はログ側)

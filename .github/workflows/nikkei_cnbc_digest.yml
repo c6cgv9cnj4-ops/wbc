@@ -1,8 +1,11 @@
 name: 日経CNBC動画ダイジェスト (#webhook_market)
 
 on:
-  schedule:
-    - cron: "20 * * * *"  # 毎時20分(JST随時)。新着があれば都度、無ければ何もしない
+  # 2026-10-11 緊急停止: 自動実行(毎時20分のcron)は停止中。GitHub Actions のIPがYouTube字幕でブロックされ、
+  # RSS取得の404・Gemini 402/429が多発して無駄な失敗実行になっていたため(運用監査 2026-10-11)。
+  # 再開する場合は下の schedule を戻す(字幕・RSS・Geminiの問題を解消してから)。
+  # schedule:
+  #   - cron: "20 * * * *"  # 毎時20分(JST随時)。新着があれば都度、無ければ何もしない
   workflow_dispatch: {}  # 手動実行用ボタン(Actionsタブから即時テスト可能)
 
 permissions:

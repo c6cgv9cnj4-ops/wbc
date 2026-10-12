@@ -46,6 +46,7 @@ import time
 import unicodedata
 
 import requests
+import atomic_io
 
 STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "state", "gourmet_shops_seen.json")
 REQUEST_TIMEOUT = 15
@@ -160,8 +161,7 @@ def load_seen_state():
 
 def save_seen_state(state):
     os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
-    with open(STATE_PATH, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2)
+    atomic_io.write_json_atomic(STATE_PATH, state, ensure_ascii=False, indent=2)
 
 
 def is_chain(name):
