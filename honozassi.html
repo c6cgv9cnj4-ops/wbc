@@ -472,6 +472,9 @@
     .card { padding: 14px; }
     .link-btn, .chip { min-height: 44px; }
 }
+
+/* 映像除外・あらすじ・読む順番 v6 */
+.order-line { font-size: 0.8rem; color: var(--text-muted); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -939,8 +942,6 @@
         { id:"b91", genre:"otherlit", awardLabel:"第1回 山田風太郎賞", score:null,
           title:"悪の教典", author:"貴志祐介", wikipediaExists:true,
           synopsis:"私立高校で絶大な人気を誇る英語教師が、実は反社会性人格障害を抱えた殺人鬼だったという衝撃のサイコサスペンス。" },
-        { id:"rel-b91-1", parentId:"b91", relationType:"spinoff", relationText:"【映像スピンオフ】", title:"悪の教典 序章", author:"貴志祐介", date:null, pubDate:"2012-10-15", pubStatus:"確認済み", pubSource:"WebSearch: 映像作品の配信開始日 2012年10月15日（dマーケットVIDEOストア/BeeTV）",
-          synopsis:"『悪の教典』の【映像スピンオフ】。", genre:"otherlit", awardLabel:"【映像スピンオフ】", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b92", genre:"otherlit", awardLabel:"第2回 山田風太郎賞", score:null,
           title:"ジェノサイド", author:"高野和明", wikipediaExists:true,
           synopsis:"製薬会社の研究者と傭兵が、進化した新人類の存在を巡る国際的な陰謀に巻き込まれていく大型冒険サスペンス。" },
@@ -1845,7 +1846,8 @@
                 <div class="title">${book.title}</div>
                 <div class="meta">著者: ${authorHtml}${ageText}</div>
                 <div class="pub-line" title="${book.pubSource || ''}">刊行: ${pubText}</div>
-                <div class="synopsis">${book.synopsis}</div>
+                <div class="order-line">${book.parentId ? `${book.relationText}（順番未確認）` : '元の本'}</div>
+                <div class="synopsis">${book.synopsisStatus === '確認済み' ? book.synopsis : 'あらすじ未確認'}</div>
                 <div class="want-row">
                     <button class="want-toggle ${wanted ? 'on' : ''}" aria-pressed="${wanted}" onclick="toggleWant('${book.id}')">
                         ${wanted ? '📌 読みたい（チェック済み）' : '📌 読みたい'}
