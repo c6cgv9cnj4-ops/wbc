@@ -44,21 +44,28 @@ class ThresholdTest(unittest.TestCase):
 
 
 class UpdateKeywordTest(unittest.TestCase):
+    """2026-10-13改修: 続報・死亡などの語が「ある」だけではバイパスしない。配信済みと比べて新しい更新語が加わった場合のみ残す。"""
     CONT = "北本市で火災 続報 住宅が全焼 - 埼玉新聞"
 
-    def test_followup_is_not_removed_when_same_as_recent(self):
-        state = {fn.LOCAL_TITLE_KEY_PREFIX + fn.local_title_key(self.CONT)[:120]: (NOW - dt.timedelta(hours=1)).isoformat()}
+    def test_same_followup_already_sent_is_suppressed(self):
+        state = {fn.LOCAL_TITLE_KEY_PREFIX + fn.local_title_key(self.CONT): (NOW - dt.timedelta(hours=1)).isoformat()}
         kept, dropped = fn.dedupe_local_items([{"title": self.CONT, "url": "u", "published": ""}], state, NOW)
+        self.assertEqual((len(kept), dropped), (0, 1))
+
+    def test_followup_with_new_update_word_is_kept(self):
+        base = "北本市で火災 住宅が全焼 - 埼玉新聞"
+        state = {fn.LOCAL_TITLE_KEY_PREFIX + fn.local_title_key(base): (NOW - dt.timedelta(hours=1)).isoformat()}
+        kept, dropped = fn.dedupe_local_items([{"title": "北本市で火災 住宅が全焼 続報 鎮火 - 埼玉新聞", "url": "u", "published": ""}], state, NOW)
         self.assertEqual((len(kept), dropped), (1, 0))
 
-    def test_followup_pair_in_same_batch_both_kept(self):
+    def test_same_batch_identical_followups_collapse(self):
         items = [{"title": self.CONT, "url": "u1", "published": ""}, {"title": self.CONT + " ", "url": "u2", "published": ""}]
         kept, dropped = fn.dedupe_local_items(items, {}, NOW)
-        self.assertEqual((len(kept), dropped), (2, 0))
+        self.assertEqual((len(kept), dropped), (1, 1))
 
-    def test_each_keyword_bypasses(self):
+    def test_each_keyword_is_recognised_as_update_word(self):
         for w in fn.LOCAL_UPDATE_KEYWORDS:
-            self.assertTrue(fn.has_local_update_keyword(f"北本市で{w}の知らせ - 埼玉新聞"), w)
+            self.assertIn(w, fn._update_words(fn.local_title_key(f"北本市で{w}の知らせ - 埼玉新聞")), w)
         self.assertFalse(fn.has_local_update_keyword("北本市の小学校で運動会 - 埼玉新聞"))
 
 

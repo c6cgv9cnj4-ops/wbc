@@ -1060,10 +1060,27 @@ LOCAL_TITLE_MIN_LEN = 8
 _LOCAL_TITLE_STRIP_RE = re.compile(r"[\s【】\[\]「」『』（）()・、。,.!！?？:：;；\"'“”‘’\-‐―－〜~…]+")
 
 
+_PUBLISH_DATE_RE = re.compile(r"[（(]\s*\d{4}年\d{1,2}月\d{1,2}日\s*掲載\s*[）)]")
+
+
 def local_title_key(title):
-    """比較用の正規化見出し(媒体名・記号・空白を除き、全角半角と大小文字をそろえる)。"""
+    """比較用の正規化見出し(媒体名・記号・空白を除き、全角半角と大小文字をそろえる)。
+    2026-10-13: 「|」「｜」以降は媒体名として除く(「…地震詳細|ibcnニュース」のような表記の差を消す)。"""
     body = local_news_filter.split_source(title)[0]
-    return _LOCAL_TITLE_STRIP_RE.sub("", unicodedata.normalize("NFKC", body).lower())
+    body = unicodedata.normalize("NFKC", body).lower().split("|")[0]
+    body = _PUBLISH_DATE_RE.sub("", body)              # 「（2026年10月11日掲載）」等の媒体の掲載日は出来事ではないので除く
+    return _LOCAL_TITLE_STRIP_RE.sub("", body)
+
+
+def _update_words(key):
+    """正規化見出しに含まれる更新・結末の語(続報・鎮火・死亡 など)。"""
+    return {w for w in LOCAL_UPDATE_KEYWORDS if w in key}
+
+
+def is_duplicate_local_story(key, other):
+    """同じ出来事の再掲か。同一と判定され、かつ新しい更新語(続報・鎮火・死亡 等)が加わっていないときだけ重複とする。
+    2026-10-13: 「死亡」「負傷」という語が存在するだけではバイパスしない。配信済みと比べて新しい情報が追加された場合に限り残す。"""
+    return is_same_local_story(key, other) and not (_update_words(key) - _update_words(other))
 
 
 def is_same_local_story(a, b):
@@ -1093,10 +1110,7 @@ def dedupe_local_items(items, state, now):
     kept, kept_keys, dropped = [], [], 0
     for item in items:
         key = local_title_key(item["title"])
-        if has_local_update_keyword(item["title"]):
-            kept.append(item)                      # 続報・結末などは重複排除しない(誤って落とさない)
-            continue
-        if any(is_same_local_story(key, r) for r in recent) or any(is_same_local_story(key, k) for k in kept_keys):
+        if any(is_duplicate_local_story(key, r) for r in recent) or any(is_duplicate_local_story(key, k) for k in kept_keys):
             dropped += 1
             continue
         kept.append(item)
@@ -1106,7 +1120,7 @@ def dedupe_local_items(items, state, now):
 
 def mark_local_titles_sent(items, state, now):
     for item in items:
-        key = local_title_key(item["title"])[:120]
+        key = local_title_key(item["title"])
         if key:
             state.setdefault(LOCAL_TITLE_KEY_PREFIX + key, now.isoformat())
 
