@@ -1,0 +1,45 @@
+name: 市場朝夕サマリー (#webhook_market)
+
+on:
+  # 自動実行(cron)は未設定。手動実行(Actionsタブ・gh workflow run)のみ。
+  # 本番化する際は平日の朝夕スケジュールを追加する(Gemini無料枠: 1日2回想定)。
+  workflow_dispatch: {}
+
+permissions:
+  contents: write  # state/market_intelligence_state.json(既読記録)のコミット用
+
+jobs:
+  market-intelligence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: market-intelligence
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: |
+          pip install -r requirements.txt
+          pip install yfinance
+
+      - name: 市場朝夕サマリーを生成してDiscordへ配信
+        env:
+          DISCORD_WEBHOOK_MARKET: ${{ secrets.WEBHOOK_MARKET }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scripts/fetch_market_intelligence.py
+
+      - name: 既読記録をコミット
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state/market_intelligence_state.json
+          git diff --cached --quiet || git commit -m "市場朝夕サマリーの既読記録を更新"
+          git push origin HEAD:${{ github.ref_name }} || true
