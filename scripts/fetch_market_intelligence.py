@@ -55,10 +55,13 @@ EMBED_FIELD_LIMIT = 1000  # Discord の field value 上限(1024)に余裕を持�
 # 市場数値: (Yahoo!Finance シンボル, 表示名)
 TICKERS = [
     ("^N225", "日経平均"),
-    ("1306.T", "TOPIX(1306)"),
+    ("1306.T", "TOPIX ETF (1306)"),   # 1306 は TOPIX連動ETF。指数そのものではないため表記を明示する
     ("JPY=X", "ドル円"),
     ("^TNX", "米10年債利回り"),
 ]
+# ^TNX は現行データでは既にパーセント値(例: 5.244 = 5.244%)。旧来の指数表記(利回り×10。例: 42.5 = 4.25%)が
+# 届いた場合に備え、この値を超えるものだけ 10 で割る。通常の利回りは 0〜20% の範囲に収まる前提。
+TNX_SCALE_THRESHOLD = 20.0
 
 # 一次資料RSS: (表示名, URL)。URLが None の資料は未接続(=取得対象外として明示する)
 FEED_SOURCES = [
@@ -68,10 +71,13 @@ FEED_SOURCES = [
     ("財務省", None),  # 公式RSSのURLを確認できていない(2026-10-12時点)。確認後にここへ追加する
 ]
 
+# 「重要(Gemini分析対象)」とする真の政策イベント。単語の単純部分一致はしない(「金利」単独は統計にも当たるため採用しない)
 IMPORTANT_KEYWORDS = [
-    "金融政策", "金利", "為替", "介入", "総裁", "臨時", "政策決定", "決定会合",
-    "利上げ", "利下げ", "金融緩和", "金融引き締め", "市場介入",
+    "金融政策", "政策金利", "臨時会合", "決定会合", "総裁", "為替介入", "市場介入",
+    "利上げ", "利下げ", "金融緩和", "金融引き締め",
 ]
+# 定例の統計・日程・資料。含まれたら政策キーワードがあっても「重要」から除外し、Gemini を呼ばない(通常配信扱い)
+EXCLUDE_KEYWORDS = ["貸出約定", "統計", "残高", "公表日程", "定例"]
 # 新着とみなす発表の経過時間上限。初回実行で数日前の資料が一斉に流れるのを防ぐ
 NEW_ITEM_MAX_AGE_HOURS = 48
 
@@ -119,11 +125,20 @@ def prune_seen(state, now):
 # ─────────────────────────────────────────────────────────────
 #  市場数値
 # ─────────────────────────────────────────────────────────────
+def normalize_yield_pct(value):
+    """利回りをパーセント表記に揃える。TNX_SCALE_THRESHOLD を超える値は旧来の指数表記(利回り×10)とみなして 10 で割る。
+    例: 42.5 → 4.25、5.244 → 5.244(現行データはそのままパーセント)。"""
+    return value / 10.0 if value > TNX_SCALE_THRESHOLD else value
+
+
 def compute_quote(name, symbol, closes):
-    """終値の列(古い→新しい)から最新終値と前日比を作る。2本未満は取得失敗扱い。"""
+    """終値の列(古い→新しい)から最新終値と前日比を作る。2本未満は取得失敗扱い(値は入れない)。"""
     values = [float(c) for c in closes if c is not None and not math.isnan(float(c))]
+    if symbol == "^TNX":
+        values = [normalize_yield_pct(v) for v in values]
     if len(values) < 2:
-        return {"name": name, "symbol": symbol, "error": "終値が不足"}
+        return {"name": name, "symbol": symbol, "close": None, "prev_close": None,
+                "change": None, "change_pct": None, "error": "終値が不足"}
     last, prev = values[-1], values[-2]
     change = last - prev
     pct = change / prev * 100 if prev else 0.0
@@ -143,19 +158,31 @@ def fetch_quotes(history_fn=None):
         try:
             out.append(compute_quote(name, symbol, history_fn(symbol)))
         except Exception as err:  # noqa: BLE001
-            out.append({"name": name, "symbol": symbol, "error": str(err)[:80]})
+            out.append({"name": name, "symbol": symbol, "close": None, "prev_close": None,
+                        "change": None, "change_pct": None, "error": str(err)[:80]})
     return out
 
 
+def fx_direction(change):
+    """ドル円(JPY=X)の前日比の向き。値上がり=ドル高・円安、値下がり=円高。"""
+    if change > 0:
+        return "円安"
+    if change < 0:
+        return "円高"
+    return "横ばい"
+
+
 def format_quote_line(q):
-    if q.get("error"):
-        return f"**{q['name']}**: 取得失敗（{q['error']}）"
+    """表示行。取得失敗時はダミー値を入れず「取得失敗 / -」と明記する。"""
+    if q.get("error") or q.get("close") is None:
+        return f"**{q['name']}**: 取得失敗 / -（{q.get('error') or '終値なし'}）"
     sign = "+" if q["change"] >= 0 else ""
     if q["symbol"] == "^TNX":
-        # ^TNX は利回り(%)で返る
-        return f"**{q['name']}**: {q['close']:.3f}%（前日比 {sign}{q['change']:.3f}pt）"
+        # 利回りは%で表示し、前日比は bp(0.01%)で表す
+        return f"**{q['name']}**: {q['close']:.2f}%（前日比 {sign}{q['change'] * 100:.1f}bp）"
     if q["symbol"] == "JPY=X":
-        return f"**{q['name']}**: {q['close']:.2f}円（前日比 {sign}{q['change']:.2f}円、{sign}{q['change_pct']:.2f}%）"
+        return (f"**{q['name']}**: {q['close']:.2f}円（前日比 {sign}{q['change']:.2f}円・{q['change_pct']:+.2f}%、"
+                f"{fx_direction(q['change'])}）")
     return f"**{q['name']}**: {q['close']:,.2f}（前日比 {sign}{q['change']:,.2f}、{sign}{q['change_pct']:.2f}%）"
 
 
@@ -226,6 +253,9 @@ def fetch_all_feeds(sources=FEED_SOURCES, fetch=fetch_feed_bytes):
 
 
 def is_important(title):
+    """真の政策イベントを含み、かつ定例統計・日程・資料ではないものだけ重要とする(除外ルールを優先)。"""
+    if any(kw in title for kw in EXCLUDE_KEYWORDS):
+        return False
     return any(kw in title for kw in IMPORTANT_KEYWORDS)
 
 

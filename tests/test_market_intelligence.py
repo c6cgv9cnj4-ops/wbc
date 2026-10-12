@@ -54,9 +54,38 @@ class QuoteTest(unittest.TestCase):
         self.assertIn("69,030.92", mi.format_quote_line(n225))
         self.assertIn("-11.19", mi.format_quote_line(n225))
         tnx = mi.compute_quote("米10年債利回り", "^TNX", [5.231, 5.244])
-        self.assertIn("5.244%", mi.format_quote_line(tnx))
+        self.assertIn("5.24%", mi.format_quote_line(tnx))
+        self.assertIn("+1.3bp", mi.format_quote_line(tnx))
         fx = mi.compute_quote("ドル円", "JPY=X", [158.063, 158.435])
         self.assertIn("158.44円", mi.format_quote_line(fx))
+        self.assertIn("円安", mi.format_quote_line(fx))
+
+    def test_tnx_index_scale_42_5_becomes_4_25_percent(self):
+        # 旧来の指数表記(利回り×10)の 42.5 は 4.25% に換算される
+        q = mi.compute_quote("米10年債利回り", "^TNX", [42.0, 42.5])
+        self.assertAlmostEqual(q["close"], 4.25)
+        self.assertIn("4.25%", mi.format_quote_line(q))
+
+    def test_tnx_percent_scale_is_not_divided_again(self):
+        # 現行データ(既にパーセント: 5.244)は10で割らない
+        q = mi.compute_quote("米10年債利回り", "^TNX", [5.231, 5.244])
+        self.assertAlmostEqual(q["close"], 5.244)
+
+    def test_fx_direction_wording_matches_sign(self):
+        up = mi.compute_quote("ドル円", "JPY=X", [158.0, 158.5])
+        down = mi.compute_quote("ドル円", "JPY=X", [158.5, 158.0])
+        self.assertIn("+0.50円", mi.format_quote_line(up))
+        self.assertIn("円安", mi.format_quote_line(up))
+        self.assertIn("-0.50円", mi.format_quote_line(down))
+        self.assertIn("円高", mi.format_quote_line(down))
+
+    def test_failure_shows_dash_not_dummy_value(self):
+        q = mi.compute_quote("日経平均", "^N225", [])
+        self.assertIsNone(q["close"])
+        self.assertIsNone(q["change"])
+        line = mi.format_quote_line(q)
+        self.assertIn("取得失敗 / -", line)
+        self.assertNotIn("0.00", line)
 
     def test_one_symbol_failure_does_not_stop_others(self):
         def hist(symbol):
@@ -101,10 +130,24 @@ class FeedTest(unittest.TestCase):
         self.assertTrue(mi.is_important("外国為替市場介入について"))
         self.assertFalse(mi.is_important("国債銘柄別残高"))
 
+    def test_routine_statistics_are_not_important(self):
+        # 定例の統計・日程・資料は「金利」を含んでいても重要にしない
+        for title in ["貸出約定平均金利（8月）", "国内銀行の貸出金利統計", "金利の残高推移",
+                      "金融政策関連の公表日程", "金融政策の定例記者会見", "国債銘柄別残高"]:
+            self.assertFalse(mi.is_important(title), title)
+
+    def test_bare_interest_rate_word_is_not_important(self):
+        self.assertFalse(mi.is_important("金利の見通し"))
+
+    def test_real_policy_events_are_important(self):
+        for title in ["政策金利の引き上げについて", "金融政策決定会合の開催", "臨時会合の開催について",
+                      "植田総裁の挨拶", "為替介入の実施について", "金融政策決定会合における主な意見"]:
+            self.assertTrue(mi.is_important(title), title)
+
     def test_split_excludes_seen_and_old_items(self):
         items = [
             item("総裁の挨拶", "https://a", hours_ago=1),
-            item("金利の資料", "https://b", hours_ago=1),
+            item("政策金利の見通し", "https://b", hours_ago=1),
             item("総裁の挨拶(古い)", "https://c", hours_ago=100),   # 48時間超は新着扱いしない
             item("為替介入", "https://d", hours_ago=1),
         ]
@@ -138,7 +181,7 @@ class RunTest(unittest.TestCase):
 
     def test_no_important_material_means_no_gemini_call(self):
         items = [item("国債銘柄別残高", "https://b", hours_ago=2)]
-        state, calls, sent = self.run_once(MON_EVENING, items, llm=lambda: "{}")
+        state, calls, sent = self.run_once(MON_EVENING, items, llm=None)   # llm=None: 呼ばれたら AssertionError
         self.assertEqual(len(calls), 0)                       # Gemini 0回
         self.assertEqual(len(sent), 1)                        # 軽量Embedは送信
         embed = sent[0]
@@ -146,6 +189,13 @@ class RunTest(unittest.TestCase):
         self.assertIn("市場数値（終値・前日比）", [f["name"] for f in embed["fields"]])
         self.assertIn("https://b", str(embed))
         self.assertIn("https://b", state["seen"])            # 既読記録
+
+    def test_routine_rate_statistic_sends_without_gemini(self):
+        items = [item("貸出約定平均金利（8月）", "https://kin", hours_ago=2)]
+        state, calls, sent = self.run_once(MON_EVENING, items, llm=None)
+        self.assertEqual(len(calls), 0)                       # 定例統計は重要扱いされず Gemini 0回
+        self.assertEqual(len(sent), 1)
+        self.assertIn("https://kin", str(sent[0]))
 
     def test_gemini_success_builds_analysis_embed(self):
         items = [item("金融政策決定会合の結果", "https://a", hours_ago=1)]
