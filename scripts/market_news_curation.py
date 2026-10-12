@@ -37,6 +37,27 @@ LAST_ERROR = None
 CONTINUATION_PREFIX = "　└ "
 LINKS_PER_LINE = 4
 
+# ── 配信の便(2026-10-12 B案で確定: 朝・昼・夜の1日3回) ──
+# (便の名前, この時刻(JST)以降の最初の実行で送る)。朝6時・昼12時・夜20時で確定(2026-10-12 細川さん指定)。
+MARKET_SLOTS = (("朝", 6), ("昼", 12), ("夜", 20))
+SLOT_KEY_PREFIX = "mkt-slot:"          # 送信済みの便。"_"で始めない(Discord送信失敗時に取り消して次回再送させるため)
+SCREENED_KEY_PREFIX = "mkt-screened:"  # 便の合間に急変判定だけ済ませた記事(同じ記事でGeminiを何度も呼ばないため)
+CRITICAL_ICON = "🚨"
+
+
+def slot_key(now, name):
+    return f"{SLOT_KEY_PREFIX}{now:%Y-%m-%d}:{name}"
+
+
+def due_slot(now, state):
+    """いま送るべき便の名前。無ければ None(=便の合間)。
+    その日の『時刻を過ぎた最新の便』が未送信なら送る。cron遅延で昼の便の時刻を過ぎてから朝の分が
+    初めて動いた場合は昼の便として1回だけ送る(古い便をさかのぼって連投しない)。"""
+    passed = [name for name, hour in MARKET_SLOTS if now.hour >= hour]
+    if not passed:
+        return None
+    return None if slot_key(now, passed[-1]) in state else passed[-1]
+
 # Google News RSSのタイトル末尾「 - 媒体名」を短い表示名に揃える。
 # 未登録の媒体名はそのまま表示する(勝手に変えない)。
 SOURCE_SHORT_NAMES = {
@@ -149,12 +170,19 @@ def _build_prompt(items):
   - コラム・解説・論評
   - 通常の市況概況(「3日続落」「まちまち」「続伸」など、重大なイベントを伴わない日々の値動き)
 
-【4. 代表見出し】各グループについて、グループ内の記事のうち材料の内容が最もよく
+【4. 市場急変フラグ(critical_alert)】各グループに true / false を付けてください。
+- true にするのは、市場全体に直ちに影響する『確定した急変』だけです:
+  主要株価指数の歴史的な急落・急騰、サーキットブレーカー発動・取引停止、為替介入の実施、
+  中央銀行の緊急(臨時)の政策変更、大手金融機関の破綻など金融システム不安の表面化
+- 見通し・観測・解説、通常の値動き(続落・反発など)、個別企業のニュースは false です。
+- 迷う場合は false にしてください。true は importance が high のグループに限ります。
+
+【5. 代表見出し】各グループについて、グループ内の記事のうち材料の内容が最もよく
 分かる見出しの番号を representative として選んでください(見出しを新しく作らないこと)。
 
 出力は次のJSON配列のみ(説明文・コードフェンス不要):
 [{{"indices": [0, 3], "representative": 0, "category": "米国市場", "importance": "high",
-   "reason": "判定理由を20字程度で"}}]"""
+   "critical_alert": false, "reason": "判定理由を20字程度で"}}]"""
 
 
 def _parse_json(text):
@@ -199,11 +227,19 @@ def _validate(parsed, n):
         if importance not in IMPORTANCE_ORDER:
             warnings.append(f"未定義の重要度 {importance!r} を low に補正")
             importance = "low"
+        critical = entry.get("critical_alert", False)
+        if not isinstance(critical, bool):
+            warnings.append(f"critical_alert が真偽値でないため false に補正: {critical!r}")
+            critical = False
+        if critical and importance != "high":
+            warnings.append("重要度が high でない critical_alert を false に補正")
+            critical = False
         groups.append({
             "indices": indices,
             "representative": rep,
             "category": category,
             "importance": importance,
+            "critical_alert": critical,
             "reason": str(entry.get("reason") or ""),
         })
     ungrouped = [i for i in range(n) if i not in assigned]
@@ -252,24 +288,32 @@ def curate(items, client, model_name, caller=None):
             "headline": headline,
             "category": g["category"],
             "importance": g["importance"],
+            "critical_alert": g["critical_alert"],
             "reason": g["reason"],
         })
-    # 重要度 → 記事数の多い順(多くの媒体が報じた材料を上に) → 元の取得順
-    groups.sort(key=lambda g: (IMPORTANCE_ORDER[g["importance"]], -len(g["items"]), items.index(g["items"][0])))
+    # 市場急変 → 重要度 → 記事数の多い順(多くの媒体が報じた材料を上に) → 元の取得順
+    groups.sort(key=lambda g: (not g["critical_alert"], IMPORTANCE_ORDER[g["importance"]], -len(g["items"]),
+                               items.index(g["items"][0])))
     return {
         "groups": groups,
+        "critical_alert": any(g["critical_alert"] for g in groups),
         "ungrouped": [items[i] for i in ungrouped_idx],
         "warnings": warnings,
         "raw": raw,
     }
 
 
-def render_groups(result):
-    """整理結果をDiscord向けの行リストにする。1グループ = 見出し行 + 媒体リンク行。"""
-    lines = []
+def render_groups(result, low_one_line=False):
+    """整理結果をDiscord向けの行リストにする。1グループ = 見出し行 + 媒体リンク行。
+    low_one_line=True(#webhook_market の定時便。2026-10-12 A案)のとき、⚪ は「⚪ その他」の下にタイトル1行ずつ
+    まとめる(リンクは代表記事のみ・同じ材料の他媒体は本数だけ表示)。既定は従来表示(週末まとめ等は変えない)。"""
+    lines, low = [], []
     for g in result["groups"]:
-        icon = IMPORTANCE_ICON[g["importance"]]
         count = f"（{len(g['items'])}本）" if len(g["items"]) > 1 else ""
+        if low_one_line and g["importance"] == "low" and not g.get("critical_alert"):
+            low.append(f"- [{g['headline']}](<{g['items'][0]['url']}>){count}")
+            continue
+        icon = f"{CRITICAL_ICON}【市場急変】" if g.get("critical_alert") else IMPORTANCE_ICON[g["importance"]]
         latest = max((it.get("published") or "" for it in g["items"]), default="")
         time_part = f" `{latest}`" if latest else ""
         lines.append(f"{icon}【{g['category']}】{g['headline']}{count}{time_part}")
@@ -278,6 +322,9 @@ def render_groups(result):
         # 1行がDiscordの2000字上限を超えないようにする(超えると投稿自体が拒否される)。
         for i in range(0, len(links), LINKS_PER_LINE):
             lines.append(CONTINUATION_PREFIX + " / ".join(links[i:i + LINKS_PER_LINE]))
+    if low:
+        lines.append(f"{IMPORTANCE_ICON['low']} その他（{len(low)}件・タイトルのみ）")
+        lines.extend(low)
     if result["ungrouped"]:
         lines.append("▼ 未分類（AI判定の対象外・従来表示）")
         lines.extend(render_flat(result["ungrouped"]))

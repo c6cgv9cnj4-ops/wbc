@@ -1511,16 +1511,53 @@ def _market_signature(nikkei, usdjpy, jgb):
     return json.dumps(parts, ensure_ascii=False, sort_keys=True)
 
 
+def _build_market_critical_only(state, now, gemini_client, guard):
+    """便の合間の実行。未送信の経済ニュースのうち、まだ急変判定をしていない記事だけをGeminiに渡し、
+    critical_alert のグループがあればそれだけを臨時配信する。無ければ何も送らない(記事は既送信にしないので、
+    次の便でまとめて配信される)。戻り値は build_market_message と同じ (本文, 送信しないか)。"""
+    prefix = market_news_curation.SCREENED_KEY_PREFIX
+    unsent = [it for it in fetch_economy_news_candidates() if normalize_url(it["url"]) not in state]
+    fresh = [it for it in unsent if prefix + normalize_url(it["url"]) not in state]
+    if not fresh:
+        return "[INFO] マーケット: 便の合間で、急変判定が未実施の新着はありません(次の便で配信)。", True
+    guard = guard or gemini_guard.Guard(state)
+    curated = market_news_curation.curate(fresh, gemini_client, GEMINI_MODEL_NAME, caller=guard.call)
+    if curated is None:
+        if market_news_curation.LAST_ERROR:
+            record_gemini_failure("gemini_market", "market", "経済ニュースの急変判定(Gemini)", market_news_curation.LAST_ERROR,
+                                  "継続(次の便で通常配信)")
+        return "[INFO] マーケット: 便の合間の急変判定ができなかったため送信しません(次の便で配信)。", True
+    news_alerts.clear(state, "gemini_market")
+    for it in fresh:  # 判定済みの印。同じ記事でGeminiを繰り返し呼ばない
+        state[prefix + normalize_url(it["url"])] = now.isoformat()
+    critical = [g for g in curated["groups"] if g["critical_alert"]]
+    if not critical:
+        return f"[INFO] マーケット: 便の合間。急変なし(新着{len(fresh)}件は次の便で配信)。", True
+    for g in critical:  # 臨時配信した記事だけ既送信にする
+        dedupe_new_items(g["items"], "url", state, now)
+    lines = [f"# 🚨 市場急変アラート ({now.strftime('%Y-%m-%d %H:%M')} JST時点・臨時配信)"]
+    lines.extend(market_news_curation.render_groups({"groups": critical, "ungrouped": []}))
+    lines.append("-# 株価・その他のニュースは次の定時便（朝・昼・夜）でまとめて配信します")
+    return "\n".join(lines), False
+
+
 def build_market_message(state, now, gemini_client=None, guard=None):
-    """株価は常に送る。経済ニュースは新着があるときだけ追記する。
+    """朝・昼・夜の便で、株価と新着の経済ニュースを送る(便の合間は市場急変だけ臨時配信。2026-10-12 B案)。
+    便の中では株価は常に送り、経済ニュースは新着があるときだけ追記する。
     2026-08-28、細川さんの指定により、日経の取引時間中か否かで表示する
     指数・先物のセットを切り替える。
     """
+    # 2026-10-12(B案): 配信は朝・昼・夜の1日3回。便の合間は市場急変(critical_alert)の記事だけを臨時で送る。
+    slot = market_news_curation.due_slot(now, state)
+    if slot is None:
+        return _build_market_critical_only(state, now, gemini_client, guard)
+    state[market_news_curation.slot_key(now, slot)] = now.isoformat()
+
     lines = []
     now_jst = now.strftime("%Y-%m-%d %H:%M")
     nikkei_hours = is_nikkei_trading_hours(now)
     session_label = "日経取引中" if nikkei_hours else "日経取引終了後"
-    lines.append(f"# 💹 マーケット情報 ({now_jst} JST時点・{session_label})")
+    lines.append(f"# 💹 マーケット情報 ({now_jst} JST時点・{session_label}・{slot}の便)")
 
     lines.append("\n## 📈 株価")
     nikkei, nikkei_is_fallback = fetch_index_with_fallback("日経平均株価", fetch_nikkei225)
@@ -1613,7 +1650,7 @@ def build_market_message(state, now, gemini_client=None, guard=None):
         elif curated is not None:
             news_alerts.clear(state, "gemini_market")
         if curated:
-            lines.extend(market_news_curation.render_groups(curated))
+            lines.extend(market_news_curation.render_groups(curated, low_one_line=True))
         else:
             lines.extend(market_news_curation.render_flat(biz_new))
     else:
@@ -1953,7 +1990,7 @@ def main():
         print("=== マーケットメッセージ ===")
         print(market_message)
         if skip_as_duplicate:
-            print("[INFO] 土日の重複配信のためDiscordへの送信はスキップしました(ログには残しています)。")
+            print("[INFO] 便の合間(急変なし)または土日の重複配信のため、Discordへの送信はスキップしました(ログには残しています)。")
         elif not send_to_discord(market_webhook, market_message):
             _rollback_new_keys(state, keys_before_market)
             news_alerts.record("discord_send_market_message", "market", "Discord送信(マーケット情報)", "送信失敗(ログにHTTPステータスあり)", "スキップ(既送信にせず次回再送)")
