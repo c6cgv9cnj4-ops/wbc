@@ -64,7 +64,7 @@ RSS_RETRY_BASE_DELAY = 3.0
 REQUEST_TIMEOUT = 20
 TRANSCRIPT_MAX_CHARS = 6000
 GEMINI_MODEL_NAME = "gemini-3.6-flash"
-MAX_VIDEOS_PER_RUN = 8  # 1回の実行で処理する新着動画の上限(初回運用時の大量消化・API負荷対策)
+MAX_BATCH_ITEMS = 5  # 1回のGemini呼び出し・1回の実行で扱う動画の合計上限(新着+要約待ちの再試行)。残りは次回へ繰り越し
 COLOR_CNBC = 0xC0392B
 
 USER_AGENT = (
@@ -123,8 +123,14 @@ def prune_state(state, now):
 # ─────────────────────────────────────────────────────────────
 #  チャンネル監視
 # ─────────────────────────────────────────────────────────────
+class FeedError(RuntimeError):
+    """RSS取得の失敗(通信エラー・HTTPエラー・中身が空)。「新着0件」とは区別するための例外。"""
+
+
 def fetch_channel_videos(limit=15, retries=RSS_FETCH_RETRIES):
-    """RSSから直近の通常動画(ショート除く)を新しい順で返す。取得失敗時は空リスト。"""
+    """RSSから直近の通常動画(ショート除く)を新しい順で返す。
+    新着が0件の正常応答は [] を返す。取得失敗(全試行失敗・entriesが空の異常応答)は FeedError を送出し、
+    呼び出し側でエラー終了させる(2026-10-12: 失敗を「新着0件」と混同しないため)。"""
     last_err = None
     for attempt in range(retries):
         try:
@@ -132,8 +138,7 @@ def fetch_channel_videos(limit=15, retries=RSS_FETCH_RETRIES):
             resp.raise_for_status()
             feed = feedparser.parse(resp.content)
             if not feed.entries:
-                print("[WARN] 日経CNBC RSSの新着が0件でした(構造変化の可能性)。")
-                return []
+                raise ValueError("RSSにentryがありません(構造変化・壊れた応答の可能性)")
             out = []
             for e in feed.entries[:limit]:
                 link = e.get("link", "")
@@ -151,8 +156,7 @@ def fetch_channel_videos(limit=15, retries=RSS_FETCH_RETRIES):
             last_err = err
             print(f"[WARN] 日経CNBC RSS取得に失敗(試行{attempt + 1}/{retries}): {err}")
             time.sleep(RSS_RETRY_BASE_DELAY * (attempt + 1))
-    print(f"[ERROR] 日経CNBC RSS取得に失敗しました(全{retries}回試行): {last_err}")
-    return []
+    raise FeedError(f"日経CNBC RSS取得に失敗しました(全{retries}回試行): {last_err}")
 
 
 def format_published_jst(parsed):
@@ -342,15 +346,22 @@ def main():
     state = prune_state(load_state(), now)
     notified = state["notified"]
 
-    videos = fetch_channel_videos()
+    try:
+        videos = fetch_channel_videos()
+    except FeedError as err:
+        # 取得失敗はエラーとして終了する(「新着0件」の正常終了とは別扱い。既読記録は触らない)
+        print(f"[ERROR] {err}")
+        return 1
     new_videos = [v for v in videos if v["video_id"] not in notified]
-    # 古い順に処理する(Discord上での投稿順を時系列に揃えるため)
-    new_videos = list(reversed(new_videos))[:MAX_VIDEOS_PER_RUN]
+    # 古い順に処理する(Discord上での投稿順を時系列に揃えるため)。上限超過分は未既読のまま次回へ繰り越し
+    new_videos = list(reversed(new_videos))[:MAX_BATCH_ITEMS]
     pending = state.get("pending_summary", {})
-    retry_videos = [v for v in reversed(videos) if v["video_id"] in pending][:MAX_RETRIES_PER_RUN]
+    # 要約待ちの再試行は、新着と合わせて1回のバッチ(MAX_BATCH_ITEMS件)に収まる範囲だけ
+    retry_budget = min(MAX_RETRIES_PER_RUN, MAX_BATCH_ITEMS - len(new_videos))
+    retry_videos = [v for v in reversed(videos) if v["video_id"] in pending][:retry_budget]
 
     print(f"[INFO] RSS取得 {len(videos)}件 / 新着 {len(new_videos)}件"
-          + (f"（{len(new_videos)}件に制限。残りは次回実行で処理）" if len(new_videos) == MAX_VIDEOS_PER_RUN else ""))
+          + (f"（{MAX_BATCH_ITEMS}件に制限。残りは次回実行で処理）" if len(new_videos) == MAX_BATCH_ITEMS else ""))
 
     # 2026-10-12: 未処理の新着が0件なら、要約待ち(pending)の再試行があってもGeminiを一切呼ばず即終了する
     # (無料枠の空振り消費を防ぐ。要約待ちは次に新着がある回で再試行し、PENDING_SUMMARY_MAX_HOURS を過ぎたら掃除される)

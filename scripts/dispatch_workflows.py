@@ -34,23 +34,40 @@ REPO = "c6cgv9cnj4-ops/wbc"
 REF = "main"
 # (ワークフロー, 最小間隔[分])。cron の設定値に合わせる。
 JST = datetime.timezone(datetime.timedelta(hours=9))
-NIKKEI_BUSY_INTERVAL_MIN = 60     # 平日 08:00〜16:59 JST(マーケット時間帯)
-NIKKEI_QUIET_INTERVAL_MIN = 240   # それ以外(夜間・週末)
+# 日経CNBC: 平日の市場に合わせた1日4回の固定スロット(JST)。毎時の起動は廃止(2026-10-12)。
+NIKKEI_SLOTS = [(8, 30), (12, 30), (16, 30), (20, 30)]
+# スロット時刻を過ぎても、この時間内なら未実行のスロットを拾う(起動係のスリープ・遅延の救済)。
+# 上限を設けないと、夜中にMacが復帰した際に前日の枠を遅れて起動してしまう。
+NIKKEI_SLOT_WINDOW = datetime.timedelta(hours=3)
 
 
-def nikkei_min_interval(now):
-    """日経CNBCの最小起動間隔(分)。平日の日本時間8〜16時台だけ60分、それ以外は240分。
-    1日の起動上限: 平日 9回(8〜16時台)+ 夜間 4回 = 最大13回、週末 6回。cron は停止中のため、起動係だけが起動する。"""
+def nikkei_slot_due(run, now):
+    """日経CNBCを起動すべきか (go, reason) を返す。平日の NIKKEI_SLOTS のうち、
+    直近の到来済みスロットに対して未実行(最新runがスロット以降に作られていない)なら起動する。
+    1日の起動上限は平日4回・週末0回。Gemini は1回の実行で最大 gemini_guard の再試行分まで。"""
     local = now.astimezone(JST)
-    if local.weekday() < 5 and 8 <= local.hour < 17:
-        return NIKKEI_BUSY_INTERVAL_MIN
-    return NIKKEI_QUIET_INTERVAL_MIN
+    if local.weekday() >= 5:
+        return False, "週末は停止(平日のみ運用)"
+    due = None
+    for hour, minute in NIKKEI_SLOTS:
+        slot = local.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        if slot <= local < slot + NIKKEI_SLOT_WINDOW:
+            due = slot
+    if due is None:
+        return False, "スロット外"
+    if run is not None and run.get("status") in BUSY_STATUSES:
+        return False, f"実行中/待機中({run['status']})"
+    if run is not None:
+        created = datetime.datetime.fromisoformat(run["createdAt"].replace("Z", "+00:00"))
+        if created >= due.astimezone(datetime.timezone.utc):
+            return False, f"{due:%H:%M}スロットは実行済み"
+    return True, f"{due:%H:%M}スロット"
 
 
 WORKFLOWS = [
     ("jma_alerts.yml", 10),
     ("news.yml", 120),   # 2026-10-11: 30分→120分(Gemini無料枠の削減。news.ymlのcronも2時間ごと)
-    ("nikkei_cnbc_digest.yml", nikkei_min_interval),   # 2026-10-12: 時間帯で可変(平日日中60分 / それ以外240分)
+    ("nikkei_cnbc_digest.yml", nikkei_slot_due),   # 2026-10-12: 平日4スロット(8:30/12:30/16:30/20:30 JST)のみ
 ]
 BUSY_STATUSES = {"queued", "in_progress", "waiting", "requested", "pending"}
 
@@ -146,10 +163,11 @@ def main(argv=None):
     stamp = now.astimezone(datetime.timezone(datetime.timedelta(hours=9))).strftime("%Y-%m-%d %H:%M")
 
     exit_code = 0
-    for workflow, min_interval in WORKFLOWS:
+    for workflow, rule in WORKFLOWS:
         try:
-            interval = min_interval(now) if callable(min_interval) else min_interval
-            go, reason = decide(latest_run(workflow), interval, now)
+            run = latest_run(workflow)
+            # rule は最小間隔(分)か、(run, now) を受けて (起動するか, 理由) を返す判定関数
+            go, reason = rule(run, now) if callable(rule) else decide(run, rule, now)
             if go and not args.dry_run:
                 code, _out, err = gh("workflow", "run", workflow, "-R", REPO, "--ref", REF)
                 if code != 0:
