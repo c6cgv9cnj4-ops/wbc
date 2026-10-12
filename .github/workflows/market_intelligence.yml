@@ -2,9 +2,9 @@ name: 市場朝夕サマリー (#webhook_market)
 
 on:
   # 平日の朝夕に自動実行(Gemini無料枠: 1日2回想定)。cron は UTC 表記。
-  # 平日朝 JST 08:15 = UTC 前日 23:15 (日〜木) / 平日夕 JST 16:15 = UTC 07:15 (月〜金)
+  # 平日朝 JST 05:45 = UTC 前日 20:45 (日〜木) / 平日夕 JST 16:15 = UTC 07:15 (月〜金)
   schedule:
-    - cron: "15 23 * * 0-4"
+    - cron: "45 20 * * 0-4"
     - cron: "15 7 * * 1-5"
   workflow_dispatch: {}   # 手動実行(Actionsタブ・gh workflow run)は従来どおり
 
