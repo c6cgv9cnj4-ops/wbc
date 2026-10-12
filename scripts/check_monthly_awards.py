@@ -22,7 +22,8 @@ from bs4 import BeautifulSoup
 
 UA = "Mozilla/5.0 (honozassi-monthly-awards-check)"
 TIMEOUT = 10
-EXIT_ANOMALY = 2
+EXIT_PARSE_ERROR = 2   # 取得失敗・構造不一致（PARSE_ERROR）は異常終了
+EXIT_ANOMALY = EXIT_PARSE_ERROR
 AWARDS = [
     {"key": "honya", "name": "本屋大賞", "wiki": "本屋大賞", "genre": "honya-taisho"},
     {"key": "naoki", "name": "直木賞", "wiki": "直木三十五賞", "genre": "naoki"},
@@ -68,108 +69,112 @@ def cells_of(tr):
     return [c.get_text(" ", strip=True) for c in tr.find_all(["th", "td"])]
 
 
-def parse_naoki(soup):
-    out = []
-    seen = False
+def col(head, name, exact=False):
+    """ヘッダーから列位置を返す（見つからなければ None）。exact=True は完全一致のみ。"""
+    for i, h in enumerate(head):
+        if (h == name) if exact else (name in h):
+            return i
+    return None
+
+
+def winner_tables(soup, is_candidate, required):
+    """候補表（受賞表）を列挙する。候補表なのに必須列が欠ける場合は PARSE_ERROR。
+    返り値: [(head, rows, table), ...]。候補表が1つもなければ PARSE_ERROR（構造変更の可能性）。"""
+    found = []
     for t in soup.find_all("table"):
         rows = t.find_all("tr")
         if not rows:
             continue
-        seen = True
         head = cells_of(rows[0])
-        if len(head) < 4 or head[0] != "回" or "受賞作" not in head[3]:
+        if not is_candidate(head):
             continue
-        for tr in rows[1:]:
+        missing = [name for name, exact in required if col(head, name, exact) is None]
+        if missing:
+            raise Anomaly(f"PARSE_ERROR: 受賞表の必須列が欠落: {missing} / 検出ヘッダー={head}")
+        found.append((head, rows[1:], t))
+    if not found:
+        raise Anomaly("PARSE_ERROR: 受賞作の表が見つかりません（構造変更の可能性）")
+    return found
+
+
+def parse_naoki(soup):
+    out = []
+    req = [("回", False), ("受賞者", False), ("受賞作", False)]
+    for head, rows, tbl in winner_tables(soup, lambda h: bool(h) and (h[0] == "回" or "受賞作" in h), req):
+        ci, ai, ti, yi = col(head, "回"), col(head, "受賞者"), col(head, "受賞作"), col(head, "対象期間")
+        for tr in rows:
             c = cells_of(tr)
-            m = re.search(r"第(\d+)回", c[0]) if c else None
-            if not m or len(c) < 4:
+            m = re.search(r"第(\d+)回", c[ci]) if len(c) > max(ci, ai, ti) else None
+            if not m:
                 continue
-            years = re.findall(r"(\d{4})年", c[1])
+            years = re.findall(r"(\d{4})年", c[yi]) if yi is not None and len(c) > yi else []
+            none = "該当" in c[ti] or "該当" in c[ai]          # 公式に受賞作なし
             out.append({"kai": int(m.group(1)), "year": int(years[0]) if years else None,
-                        "title": clean_title(c[3]), "author": clean_author(c[2])})
-    if not seen:
-        raise Anomaly("parse_naoki: 受賞作の表が見つかりません（構造変更の可能性）")
+                        "title": "" if none else clean_title(c[ti]),
+                        "author": "" if none else clean_author(c[ai]), "none": none})
     return out
 
 
 def parse_yamamoto(soup):
+    """山本周五郎賞・吉川英治文学新人賞: 回（年）/賞/受賞・候補者/受賞・候補作"""
     out = []
-    seen = False
-    for t in soup.find_all("table"):
-        rows = t.find_all("tr")
-        if not rows:
-            continue
-        seen = True
-        head = cells_of(rows[0])
-        if len(head) < 4 or not head[0].startswith("回") or "受賞・候補作" not in head[3]:
-            continue
-        for tr in rows[1:]:
+    req = [("回", False), ("賞", True), ("受賞・候補者", False), ("受賞・候補作", False)]
+    for head, rows, tbl in winner_tables(soup, lambda h: bool(h) and (h[0].startswith("回") or "受賞・候補作" in h), req):
+        ki, si, ai, ti = col(head, "回"), col(head, "賞", exact=True), col(head, "受賞・候補者"), col(head, "受賞・候補作")
+        for tr in rows:
             c = cells_of(tr)
-            m = re.search(r"第(\d+)回", c[0]) if len(c) >= 4 else None
-            if not m or c[1] != "受賞":
+            if len(c) <= max(ki, si, ai, ti):
                 continue
-            years = re.findall(r"(\d{4})年", c[0])
+            m = re.search(r"第(\d+)回", c[ki])
+            if not m or c[si] != "受賞":
+                continue
+            years = re.findall(r"(\d{4})年", c[ki])
             out.append({"kai": int(m.group(1)), "year": int(years[0]) if years else None,
-                        "title": clean_title(c[3]), "author": clean_author(c[2])})
-    if not seen:
-        raise Anomaly("parse_yamamoto: 受賞作の表が見つかりません（構造変更の可能性）")
+                        "title": clean_title(c[ti]), "author": clean_author(c[ai])})
     return out
 
 
 def parse_oyabu(soup):
+    """大藪春彦賞: 回（年）/（賞欄）/受賞・候補作/著者"""
     out = []
-    seen = False
-    for t in soup.find_all("table"):
-        rows = t.find_all("tr")
-        if not rows:
-            continue
-        seen = True
-        head = cells_of(rows[0])
-        if len(head) < 4 or not head[0].startswith("回") or "受賞・候補作" not in head[2]:
-            continue
-        for tr in rows[1:]:
+    req = [("回", False), ("受賞・候補作", False), ("著者", False)]
+    for head, rows, tbl in winner_tables(soup, lambda h: bool(h) and h[0].startswith("回"), req):
+        ki, ti, ai = col(head, "回"), col(head, "受賞・候補作"), col(head, "著者")
+        for tr in rows:
             c = cells_of(tr)
-            m = re.search(r"第(\d+)回", c[0]) if len(c) >= 4 else None
+            if len(c) <= max(ki, ti, ai, 1):
+                continue
+            m = re.search(r"第(\d+)回", c[ki])
             if not m or c[1] != "受賞":
                 continue
-            years = re.findall(r"(\d{4})年", c[0])
+            years = re.findall(r"(\d{4})年", c[ki])
             out.append({"kai": int(m.group(1)), "year": int(years[0]) if years else None,
-                        "title": clean_title(c[2]), "author": clean_author(c[3])})
-    if not seen:
-        raise Anomaly("parse_oyabu: 受賞作の表が見つかりません（構造変更の可能性）")
+                        "title": clean_title(c[ti]), "author": clean_author(c[ai])})
     return out
 
 
 def parse_honya(soup):
     """本屋大賞: 「部門」が本屋大賞で順位1の行を受賞作とし、直前の見出しから年を取得する。"""
     out = []
-    seen = False
-    for t in soup.find_all("table"):
-        rows = t.find_all("tr")
-        if not rows:
-            continue
-        seen = True
-        head = cells_of(rows[0])
-        if "受賞作" not in head or "順位" not in head or "部門" not in head:
-            continue
+    req = [("順位", False), ("受賞作", False), ("著者", False)]
+    for head, rows, tbl in winner_tables(soup, lambda h: "順位" in h, req):
+        # 年は表の直前の見出しから取得（見出しがなければ抽出対象外）
         year = None
-        for h in t.find_all_previous(["h2", "h3", "h4"]):
+        for h in tbl.find_all_previous(["h2", "h3", "h4"]):
             m = re.search(r"(\d{4})年", h.get_text(" ", strip=True))
             if m:
                 year = int(m.group(1))
                 break
-        idx, aidx, ridx = head.index("受賞作"), head.index("著者"), head.index("順位")
-        for tr in rows[1:]:
+        ri, ti, ai, di = col(head, "順位"), col(head, "受賞作"), col(head, "著者"), col(head, "部門")
+        for tr in rows:
             c = cells_of(tr)
-            if len(c) != len(head) or c[0] != "本屋大賞":   # 翻訳・発掘など別部門と、rowspanで欠けた行は除外
+            if len(c) != len(head):                  # rowspanで欠けた行は除外
                 continue
-            if c[ridx] == "1" and year:
-                out.append({"kai": None, "year": year, "title": clean_title(c[idx]),
-                            "author": clean_author(c[aidx])})
-    if not seen:
-        raise Anomaly("parse_honya: 受賞作の表が見つかりません（構造変更の可能性）")
+            if di is not None and c[di] != "本屋大賞":   # 翻訳・発掘など別部門は除外
+                continue
+            if c[ri] == "1" and year:
+                out.append({"kai": None, "year": year, "title": clean_title(c[ti]), "author": clean_author(c[ai])})
     return out
-
 
 
 def parse_jsa(soup):
@@ -180,10 +185,8 @@ def parse_jsa(soup):
     text = re.sub(r"\[\s*\d+\s*\]", "", text)
     marks = list(re.finditer(r"第(\d+)回\s*（\s*(\d{4})年[^）]*）", text))
     if not marks:
-        raise Anomaly("日本推理作家協会賞: 回の見出しを1件も抽出できませんでした")
+        raise Anomaly("PARSE_ERROR: 日本推理作家協会賞: 回の見出しを1件も抽出できませんでした")
     out = []
-    label_pat = re.compile(r"(長編および連作短編集部門|長編部門|短編部門|評論・研究部門|翻訳部門（試行）|翻訳部門|"
-                           r"奨励賞|新人賞|長編賞|短編賞|評論その他)\s*-")
     for i, m in enumerate(marks):
         if int(m.group(1)) != max(int(x.group(1)) for x in marks):
             continue
@@ -192,13 +195,23 @@ def parse_jsa(soup):
         for cut in ("脚注", "注釈", "出典"):
             if cut in seg:
                 seg = seg[:seg.index(cut)]
-        labels = list(label_pat.finditer(seg))
-        for j, lb in enumerate(labels):
-            if lb.group(1) not in JSA_ALLOW:
+        # 部門ラベル = 各「 - 」の直前の語句（直前の『』「」より後）を、丸括弧注記を含む全文のまま取得する。
+        # 注記を除去せず stripped 文字列で Allowlist と完全一致比較する（「長編部門（試行）」「長編部門A」等は拒否）。
+        hy = list(re.finditer(r"\s-\s", seg))
+
+        def label_at(k):
+            before = seg[:hy[k].start()]
+            cut_pos = max(before.rfind("』"), before.rfind("」")) + 1
+            return re.sub(r"^[\s、]+", "", before[cut_pos:]).strip(), cut_pos
+
+        for k in range(len(hy)):
+            label, _ = label_at(k)
+            if label not in JSA_ALLOW:     # 完全一致のみ採用（未知・括弧注記付き・類似名称は全て拒否）
                 continue
-            stop = labels[j + 1].start() if j + 1 < len(labels) else len(seg)
-            for am in re.finditer(r"([^、『「]+?)\s*『\s*([^』]+?)\s*』", seg[lb.end():stop]):
-                out.append({"kai": int(m.group(1)), "year": int(m.group(2)), "dept": lb.group(1),
+            start = hy[k].end()
+            stop = label_at(k + 1)[1] if k + 1 < len(hy) else len(seg)
+            for am in re.finditer(r"([^、『「]+?)\s*『\s*([^』]+?)\s*』", seg[start:stop]):
+                out.append({"kai": int(m.group(1)), "year": int(m.group(2)), "dept": label,
                             "title": am.group(2).strip(), "author": clean_author(am.group(1))})
     return out
 
@@ -208,12 +221,12 @@ PARSERS = {"honya": parse_honya, "naoki": parse_naoki, "yamamoto": parse_yamamot
 
 
 def latest_winners(winners):
-    """最新回の受賞作を返す。0件は『受賞なし』（呼び出し側で異常と区別する）。"""
+    """最新回の受賞作を返す。最新回が『該当作品なし』の場合は空リスト（受賞なし）。"""
     if not winners:
         return []
     key = lambda w: (w["kai"] or 0, w["year"] or 0)
     top = max(key(w) for w in winners)
-    return [w for w in winners if key(w) == top]
+    return [w for w in winners if key(w) == top and not w.get("none")]
 
 
 def label_for(award, w):
@@ -336,6 +349,19 @@ def atomic_replace(path, text):
         raise
 
 
+def merge_new_items(new_items):
+    """同一作品（正規化した書名・著者が一致）の複数受賞を1レコードにまとめる。
+    賞ラベルは「／」ではなく " / " で連結し、同一ラベルは重ねない（再実行でも二重連結しない）。"""
+    merged = {}
+    for a, w in new_items:
+        key = (norm(w["title"]), norm(w["author"]))
+        g = merged.setdefault(key, {"award": a, "w": w, "labels": []})
+        label = label_for(a, w)
+        if label not in g["labels"]:
+            g["labels"].append(label)
+    return list(merged.values())
+
+
 def write_step_summary(lines):
     path = os.environ.get("GITHUB_STEP_SUMMARY")
     if path:
@@ -400,12 +426,7 @@ def main(argv=None):
     if args.dry_run:
         return 0
 
-    # 同一作品が複数の賞を同時に受賞した場合は1レコードにまとめる（賞ラベルを「／」で連結）
-    merged = {}
-    for a, w in new_items:
-        key = (norm(w["title"]), norm(w["author"]))
-        merged.setdefault(key, {"award": a, "w": w, "labels": []})["labels"].append(label_for(a, w))
-    groups = list(merged.values())
+    groups = merge_new_items(new_items)
     ids = next_ids(html, len(groups))
     plan = [(g["award"], make_entry(bid, g["award"], g["w"], " / ".join(g["labels"])))
             for bid, g in zip(ids, groups)]
