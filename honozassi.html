@@ -1184,6 +1184,11 @@
         if (book.date) {
             const t = parseExplicitDate(book.date);
             if (t !== null) return t;
+            // 月まで・年までの指定（例: "2020-11", "1999"）は月初・年初として扱う
+            const s = String(book.date).trim();
+            const ym = s.match(/^(\d{4})-(\d{1,2})$/);
+            if (ym) { const t2 = makeDate(+ym[1], +ym[2], 1); if (t2 !== null) return t2; }
+            if (/^\d{4}$/.test(s)) return makeDate(+s, 1, 1);
         }
         return dateFromAwardLabel(book.awardLabel);
     }
@@ -1216,21 +1221,32 @@
         if (am < bm || (am === bm && adt < bd)) age -= 1;
         return age >= 0 ? age : null;
     }
-    // 日付ソート後も、関連作を親の直後に元の順序で並べ直す
+    // 元の本ごとにグループ化し、グループ（元の本＋関連作）を元の本の日付降順で並べる。
+    // 日付不明のグループは最後尾。グループ先頭は必ず元の本、関連作は日付降順（日付不明は後ろ）。
     function attachRelations(books) {
         const relOf = {};
         books.filter(b => b.parentId).forEach(r => {
             (relOf[r.parentId] = relOf[r.parentId] || []).push(r);
         });
+        const byDateDesc = (items) => items
+            .map((item, index) => ({ item, index, time: getBookDate(item) }))
+            .sort((a, b) => {
+                if (a.time === null && b.time === null) return a.index - b.index;
+                if (a.time === null) return 1;
+                if (b.time === null) return -1;
+                return (b.time - a.time) || (a.index - b.index);
+            })
+            .map(x => x.item);
+
+        const heads = books.filter(b => !b.parentId);
         const result = [];
-        books.forEach(b => {
-            if (!b.parentId) {
-                result.push(b);
-                (relOf[b.id] || []).forEach(r => result.push(r));
-            }
+        byDateDesc(heads).forEach(head => {
+            result.push(head);
+            byDateDesc(relOf[head.id] || []).forEach(r => result.push(r));
         });
+        // 親が存在しない関連作は末尾に残す（データ不整合の保険）
         books.forEach(b => {
-            if (b.parentId && !books.some(p => p.id === b.parentId)) result.push(b);
+            if (b.parentId && !heads.some(p => p.id === b.parentId)) result.push(b);
         });
         books.splice(0, books.length, ...result);
     }
