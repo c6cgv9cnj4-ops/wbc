@@ -352,8 +352,11 @@ def main():
     print(f"[INFO] RSS取得 {len(videos)}件 / 新着 {len(new_videos)}件"
           + (f"（{len(new_videos)}件に制限。残りは次回実行で処理）" if len(new_videos) == MAX_VIDEOS_PER_RUN else ""))
 
-    if not new_videos and not retry_videos:
-        print("[INFO] 新着動画はありませんでした。")
+    # 2026-10-12: 未処理の新着が0件なら、要約待ち(pending)の再試行があってもGeminiを一切呼ばず即終了する
+    # (無料枠の空振り消費を防ぐ。要約待ちは次に新着がある回で再試行し、PENDING_SUMMARY_MAX_HOURS を過ぎたら掃除される)
+    if not new_videos:
+        retry_videos = []
+        print("[INFO] 新着動画はありませんでした(Geminiは呼びません)。")
         return 0
 
     embeds = []
