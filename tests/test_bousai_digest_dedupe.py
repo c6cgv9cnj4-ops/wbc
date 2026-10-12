@@ -126,5 +126,45 @@ class IsolationTest(unittest.TestCase):
         self.assertEqual(fn._bousai_item_id({"datetime": "d", "city": "c", "summary": "s"}), "d|c|s")
 
 
+class WindowAndIdentityTest(unittest.TestCase):
+    """2026-10-12: 直近24時間以内に送信済みの同一事案(本文一致 / 発生日時・場所一致)を再送しない。"""
+
+    def filt(self, state, items, now=NOW):
+        return fn.filter_bousai_already_shown(items, state, now)
+
+    def test_same_body_different_id_within_window_is_skipped(self):
+        state = {}
+        fn.mark_bousai_shown([FIRE_A], state, NOW)
+        copy = dict(FIRE_A, key="anzn:OTHER:999", url="https://other/x")       # 別の記事IDでも本文が同じ
+        self.assertEqual(self.filt(state, [copy])[0], [])
+
+    def test_same_datetime_and_city_different_body_is_skipped(self):
+        state = {}
+        fn.mark_bousai_shown([FIRE_A], state, NOW)
+        same_event = dict(FIRE_A, key="anzn:X:1", summary="火災 北本市 別表現")  # 日時と市が同じ
+        self.assertEqual(self.filt(state, [same_event])[0], [])
+
+    def test_sent_more_than_24h_ago_is_sent_again(self):
+        state = {}
+        fn.mark_bousai_shown([FIRE_A], state, NOW - dt.timedelta(hours=25))
+        self.assertEqual(len(self.filt(state, [FIRE_A])[0]), 1)
+
+    def test_within_24h_is_still_skipped(self):
+        state = {}
+        fn.mark_bousai_shown([FIRE_A], state, NOW - dt.timedelta(hours=23))
+        self.assertEqual(self.filt(state, [FIRE_A])[0], [])
+
+    def test_different_event_is_not_skipped(self):
+        state = {}
+        fn.mark_bousai_shown([FIRE_A], state, NOW)
+        self.assertEqual(len(self.filt(state, [FIRE_B, FIRE_C])[0]), 2)
+
+    def test_full_width_and_spaces_ignored_for_body_match(self):
+        state = {}
+        fn.mark_bousai_shown([FIRE_A], state, NOW)
+        spaced = dict(FIRE_A, key="anzn:Z:2", summary="火災　北本市荒井")          # 全角空白の違いだけ
+        self.assertEqual(self.filt(state, [spaced])[0], [])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -945,15 +945,40 @@ def _bousai_line(item):
 BOUSAI_SHOWN_PREFIX = "bousai-shown:"
 
 
+BOUSAI_WINDOW_HOURS = 24                       # 送信済みとみなす期間(直近N時間)
+BOUSAI_BODY_PREFIX = "bousai-body:"            # 本文が一致する事案の記録
+BOUSAI_EVENT_PREFIX = "bousai-event:"          # 発生日時・場所が一致する事案の記録
+
+
 def _bousai_item_id(item):
     return item.get("key") or item.get("url") or f"{item.get('datetime', '')}|{item.get('city', '')}|{item.get('summary', '')}"
 
 
-def filter_bousai_already_shown(items, state):
-    """既に防災まとめに掲載したものを除く。戻り値: (今回新たに掲載する項目, 既掲載で省いた件数)。state は変更しない。"""
+def _norm_text(text):
+    return re.sub(r"\s+", "", unicodedata.normalize("NFKC", text or "")).lower()
+
+
+def _bousai_fingerprints(item):
+    """同一事案の判定キー一覧: 記事ID・本文(空白と全半角を除いて完全一致)・発生日時と場所の組。"""
+    keys = [BOUSAI_SHOWN_PREFIX + _bousai_item_id(item)]
+    body = _norm_text(item.get("summary"))
+    if body:
+        keys.append(BOUSAI_BODY_PREFIX + body)
+    when, city = _norm_text(item.get("datetime")), _norm_text(item.get("city"))
+    if when and city:
+        keys.append(BOUSAI_EVENT_PREFIX + f"{when}|{city}")
+    return keys
+
+
+def filter_bousai_already_shown(items, state, now=None, window_hours=None):
+    """直近window_hours時間以内に送信済みの同一事案を除く。戻り値: (今回新たに掲載する項目, 除いた件数)。state は変更しない。
+    同一事案 = 記事IDが一致 / 本文(空白・全半角を除く)が一致 / 発生日時と場所が一致 のいずれか。"""
+    window_hours = BOUSAI_WINDOW_HOURS if window_hours is None else window_hours
+    cutoff = (now - datetime.timedelta(hours=window_hours)).isoformat() if now else ""
     new_items, hidden = [], 0
     for item in items:
-        if BOUSAI_SHOWN_PREFIX + _bousai_item_id(item) in state:
+        sent = [state.get(k) for k in _bousai_fingerprints(item) if state.get(k)]
+        if any((not cutoff) or v >= cutoff for v in sent):
             hidden += 1
         else:
             new_items.append(item)
@@ -961,9 +986,11 @@ def filter_bousai_already_shown(items, state):
 
 
 def mark_bousai_shown(items, state, now):
-    """実際に掲載した防災項目を既掲載として記録する(メッセージを組み立てた後に呼ぶ)。"""
+    """実際に掲載した防災項目を、本文・発生日時場所の判定キー付きで記録する(メッセージを組み立てた後に呼ぶ)。
+    値は送信日時(ISO)。記録は既存の14日掃除で消える。"""
     for item in items:
-        state.setdefault(BOUSAI_SHOWN_PREFIX + _bousai_item_id(item), now.isoformat())
+        for key in _bousai_fingerprints(item):
+            state[key] = now.isoformat()
 
 
 def build_bousai_section(bousai_items, status="ok", hidden=0):
@@ -1170,7 +1197,7 @@ def build_local_news_message(state, now):
         bousai_status = "ok" if ANZN_LAST_FETCH_OK else "failed"
     # 2026-10-11: 直近24時間の防災情報は、既に掲載したものを除いて載せる(同一内容の多重配信を防ぐ)
     bousai_total = len(bousai_items)
-    bousai_items, bousai_hidden = filter_bousai_already_shown(bousai_items, state)
+    bousai_items, bousai_hidden = filter_bousai_already_shown(bousai_items, state, now)
     if not anzn_via_mac():
         # 新着ローカルニュースも、新しい防災アクティブ情報も無ければ送信しない
         # (防災セクションが「異常なし」だけの空更新を毎回送るのは避ける)。
