@@ -109,6 +109,7 @@ import feedparser
 import requests
 from bs4 import BeautifulSoup
 
+JST = datetime.timezone(datetime.timedelta(hours=9))
 STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "state", "badminton_alerts_seen.json")
 STATE_RETENTION_DAYS = 30
 REQUEST_TIMEOUT = 15

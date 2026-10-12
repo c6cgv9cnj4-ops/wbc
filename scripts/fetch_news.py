@@ -78,6 +78,10 @@ import requests
 from bs4 import BeautifulSoup
 
 import market_news_curation
+import discord_style
+import kitamoto_origin
+import local_news_filter
+import mastodon_anzn
 import news_alerts
 
 USER_AGENT = (
@@ -96,7 +100,10 @@ ANZN_URL = "https://anzn.net/sp/?11217F&r1=1"
 # 巻き込まれた事故・事件、ドラマのロケ地情報等のノイズが多かったため、
 # 北本市を中心とした生活圏(県央エリア)の市区町村名だけをOR検索する
 # クエリに変更した(2026-08-26)。
-SAITAMA_LOCAL_AREAS = ["北本市", "桶川市", "鴻巣市", "上尾市", "大宮区"]
+# 2026-10-06: #webhook_local は「北本・鴻巣・桶川周辺で地元の会話材料になるニュース」にする。
+# 検索は中心3市と生活圏(周辺市)を分け、さいたま市(大宮区)は外した。選別は local_news_filter.py。
+SAITAMA_LOCAL_AREAS = ["北本市", "桶川市", "鴻巣市"]
+SAITAMA_NEARBY_AREAS = ["上尾市", "久喜市", "伊奈町", "蓮田市", "加須市", "白岡市"]
 
 # 2026-09-06追加: Google News検索の補完として、一次情報源・地域専門メディアの
 # RSSを直接購読する。北本市公式noteは自治体の一次情報(広報・イベント)、
@@ -115,13 +122,22 @@ LOCAL_DIRECT_RSS_FEEDS = [
 ]
 
 
-def _build_saitama_local_rss_url():
-    query = "(" + " OR ".join(SAITAMA_LOCAL_AREAS) + ") when:1d"
+def _build_saitama_local_rss_url(areas=None):
+    query = "(" + " OR ".join(areas or SAITAMA_LOCAL_AREAS) + ") when:1d"
     q = urllib.parse.quote(query)
     return f"https://news.google.com/rss/search?q={q}&hl=ja&gl=JP&ceid=JP:ja"
 
 
 GOOGLE_NEWS_SAITAMA_RSS = _build_saitama_local_rss_url()
+GOOGLE_NEWS_NEARBY_RSS = _build_saitama_local_rss_url(SAITAMA_NEARBY_AREAS)
+# 2026-10-06: 北本ゆかり型(台帳の人物名で検索。台帳が空ならNone)。判定は kitamoto_origin.py
+GOOGLE_NEWS_ORIGIN_RSS = kitamoto_origin.search_url()
+# 2026-10-07: 北本市行政の問題(不祥事・事務ミス・返還・謝罪等)。報道タイトルに「北本市」が無いこともあるため
+# 『北本市』×問題語の検索でも拾う(判定は local_news_filter.is_admin_issue。検索に出ただけでは採用しない)
+ADMIN_ISSUE_TERMS = ["懲戒処分", "不祥事", "不適切", "ミス", "誤り", "誤通知", "返還", "謝罪", "再発防止", "過大", "未徴収", "情報漏えい",
+                     "公印", "公文書"]
+GOOGLE_NEWS_ADMIN_RSS = ("https://news.google.com/rss/search?q=" + urllib.parse.quote(
+    '"北本市" (' + " OR ".join(ADMIN_ISSUE_TERMS) + ") when:3d") + "&hl=ja&gl=JP&ceid=JP:ja")
 
 # 上記のOR検索だけでは除外しきれない広域政治・予算ニュースや、地域名の
 # 偶然の一致(例: 「北本市の男性が(他県)で事故」のような他県発の事件・事故に
@@ -379,6 +395,10 @@ def format_yf_line(label, symbol):
 # 30分間隔のポーリングで新着を取りこぼしにくくする。
 ANZN_ITEM_LIMIT = 10
 RSS_ITEM_LIMIT = 10
+# 2026-10-07: 地域ニュース(Google News検索: core/nearby/ゆかり型/行政問題)の候補取得数。
+# 1日窓でも core 13件・nearby 34件ほどあり、10件では11件目以降がフィルター前に落ちていた。
+# 経済・全国ニュース・直接フィードは従来の RSS_ITEM_LIMIT のまま(配信内容を変えないため分けている)。
+LOCAL_RSS_ITEM_LIMIT = 30
 
 STATE_PATH = "state/news_seen.json"
 STATE_RETENTION_DAYS = 14  # 古い記録は掃除して肥大化を防ぐ
@@ -896,22 +916,52 @@ def fetch_bousai_summary_items(now, hours=BOUSAI_SUMMARY_HOURS):
     return recent
 
 
+BOUSAI_SUMMARY_MAX_ITEMS = 10  # まとめ欄に並べる上限(超えた分は「ほかN件」。同じ記事は取得時に1件へまとめ済み)
+
+
+def fetch_bousai_summary_items_mastodon(now, hours=BOUSAI_SUMMARY_HOURS):
+    """ANZN_SOURCE=mac のとき(あんぜんねっと本体はActionsから403で読めない)の定期まとめ用。
+    公式Mastodon経由で、直近hours時間の県央3市の災害発生情報を読み取り専用で集める
+    (カーソル・既送信キーには触れない。即時通知側とは独立)。戻り値は (items, status)。
+    status は "mastodon"(取得成功。該当なしも含む) / "mastodon_failed"(取得失敗)。2026-10-02。"""
+    try:
+        return mastodon_anzn.fetch_recent_items(now, hours), "mastodon"
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] 定期まとめ用の公式Mastodon取得に失敗しました: {news_alerts.short_error(err)}")
+        return [], "mastodon_failed"
+
+
+def _bousai_line(item):
+    when = f"{item['datetime']} " if item.get("datetime") else ""
+    return f"- {when}［{item['city']}］{item['summary']}"
+
+
 def build_bousai_section(bousai_items, status="ok"):
     """ローカルニュースメッセージの最上部に必ず入れる「防災・緊急情報」
     セクション。該当情報が無くても省略せず、その旨を明記する
     (2026-08-28、細川さんの指定によるフォーマット)。
+    status: "ok"/"failed" = あんぜんねっと本体を直接取得した場合 /
+            "mastodon"/"mastodon_failed" = 公式Mastodon経由(ANZN_SOURCE=mac。2026-10-02)。
     """
     lines = ["## 🚨 防災・緊急情報"]
     # 2026-09-26: 取得していない/できなかった場合に「情報はありません」と誤表示しない。
-    if status == "mac":
-        lines.append("- あんぜんねっとの速報は自宅Macから配信中（このまとめ欄では取得していません）")
-    elif status == "failed":
+    if status == "failed":
         lines.append("- あんぜんねっとを取得できませんでした（防災・緊急情報の有無は確認できていません）")
+    elif status == "mastodon_failed":
+        lines.append("- 公式Mastodon(あんぜんねっと)を取得できませんでした（災害発生情報の有無は確認できていません）")
     elif not bousai_items:
-        lines.append("- 現在、北本市・県央エリアに発表されている警報・火災等の情報はありません")
+        if status == "mastodon":
+            lines.append("- 直近24時間に確認された北本市・鴻巣市・桶川市の災害発生情報はありません（公式Mastodon経由）")
+        else:
+            lines.append("- 現在、北本市・県央エリアに発表されている警報・火災等の情報はありません")
     else:
-        for item in bousai_items:
-            lines.append(f"- {item['datetime']}［{item['city']}］{item['summary']}")
+        for item in bousai_items[:BOUSAI_SUMMARY_MAX_ITEMS]:
+            lines.append(_bousai_line(item))
+        extra = len(bousai_items) - BOUSAI_SUMMARY_MAX_ITEMS
+        if extra > 0:
+            lines.append(f"- ほか{extra}件（速報は同チャンネルの赤枠通知を参照）")
+        if status == "mastodon":
+            lines.append("（直近24時間・公式Mastodon経由）")
     return "\n".join(lines)
 
 
@@ -932,8 +982,16 @@ def build_local_news_message(state, now):
     # 2026-09-13: Google News検索と直接RSS(号外NET等)の両方に同一記事が
     # 混ざるケースがあるため、生URLではなくnormalize_url()した値でバッチ内
     # 重複判定する(パラメータ違いのURLでも同一記事として1回にまとめる)。
-    saitama_all = fetch_rss_items(GOOGLE_NEWS_SAITAMA_RSS)
-    seen_in_batch = {normalize_url(item["url"]) for item in saitama_all}
+    saitama_all, seen_in_batch = [], set()
+    origin_feed = fetch_rss_items(GOOGLE_NEWS_ORIGIN_RSS, LOCAL_RSS_ITEM_LIMIT) if GOOGLE_NEWS_ORIGIN_RSS else []
+    # 行政問題の検索結果は先頭に置く(同じ記事が他の検索にも出た場合に、この由来の印を残すため)
+    admin_feed = [{**it, "admin_query": True} for it in fetch_rss_items(GOOGLE_NEWS_ADMIN_RSS, LOCAL_RSS_ITEM_LIMIT)]
+    for item in (admin_feed + fetch_rss_items(GOOGLE_NEWS_SAITAMA_RSS, LOCAL_RSS_ITEM_LIMIT)
+                 + fetch_rss_items(GOOGLE_NEWS_NEARBY_RSS, LOCAL_RSS_ITEM_LIMIT) + origin_feed):
+        key = normalize_url(item["url"])
+        if key not in seen_in_batch:
+            seen_in_batch.add(key)
+            saitama_all.append(item)
     for feed_url in LOCAL_DIRECT_RSS_FEEDS:
         for item in fetch_direct_rss_items(feed_url):
             key = normalize_url(item["url"])
@@ -943,8 +1001,39 @@ def build_local_news_message(state, now):
             saitama_all.append(item)
 
     saitama_new = dedupe_new_items(saitama_all, "url", state, now)
-    saitama_general = []
+    saitama_general, curation_dropped, ranked = [], [], []
+    origin_items, origin_counts, origin_headlines, origin_dups = [], {}, set(), 0
+    admin_headlines = set()
     for item in saitama_new:
+        # 2026-10-06: 北本ゆかり型(台帳の人物の重要な記事)は、スポーツ記事でも地域ニュースを優先する。
+        # 地域ニュースへ入れた記事はスポーツ側へ送らない(二重配信防止)。人物ごとの件数上限を超えた分は送らない。
+        person = kitamoto_origin.match(item["title"])
+        if person:
+            # 同一見出しの媒体違い(転載)は1件にまとめ、人物別の件数上限を消費させない
+            hkey = (person["name"], kitamoto_origin.headline_key(item["title"]))
+            if hkey in origin_headlines:
+                origin_dups += 1
+                continue
+            origin_headlines.add(hkey)
+            n = origin_counts.get(person["name"], 0)
+            if n < kitamoto_origin.MAX_PER_PERSON:
+                origin_counts[person["name"]] = n + 1
+                # 読者向けに、氏名の直後へ台帳の「北本との関係」を付ける(例: 樋口正修（北本・東小／東中）)
+                item = {**item, "title": kitamoto_origin.label_title(item["title"], person)}
+                origin_items.append(item)
+                print(f"[INFO] 北本ゆかり型として採用({person['name']}): {item['title'][:80]}")
+            continue
+        # 2026-10-07: 北本市行政の問題は最優先。ノイズ語・スポーツ振り分けより前に判定し、他の経路へ流さない
+        keep, reason, region = local_news_filter.classify(item["title"], item["url"],
+                                                          via_admin_query=item.get("admin_query", False))
+        if keep and reason.startswith("keep:kitamoto_admin_issue"):
+            hkey = kitamoto_origin.headline_key(item["title"])     # 同一見出しの媒体違い・URL違いは1件にまとめる
+            if hkey in admin_headlines:
+                continue
+            admin_headlines.add(hkey)
+            ranked.append((local_news_filter.LEVEL_ADMIN_ISSUE, item))
+            print(f"[INFO] 北本市行政の問題として最優先で採用({reason}): {item['title'][:80]}")
+            continue
         if is_saitama_local_noise(item["title"]):
             continue
         if is_mlb_related(item["title"]):
@@ -952,19 +1041,38 @@ def build_local_news_message(state, now):
             continue
         if is_sports_related(item["title"]):
             sports_items.append(item)
+            continue
+        # 2026-10-06: 北本周辺の会話材料になるものだけ残す(さいたま市・全国向けPR・中古車・全国チェーン等は除外)
+        if keep:
+            ranked.append((local_news_filter.priority_level(item["title"], reason, region), item))
         else:
-            saitama_general.append(item)
+            curation_dropped.append((reason, item["title"]))
+    # 表示順: 北本市行政の問題 → 北本ゆかり型 → 北本の重要 → 北本の通常 → 鴻巣・桶川・上尾 → 周辺の重大(救済)。同順位は取得順
+    ranked.sort(key=lambda r: r[0])
+    admin_items = [it for lv, it in ranked if lv == local_news_filter.LEVEL_ADMIN_ISSUE]
+    saitama_general = admin_items + origin_items + [it for lv, it in ranked if lv != local_news_filter.LEVEL_ADMIN_ISSUE]
+    if origin_dups:
+        print(f"[INFO] 北本ゆかり型: 同一見出し(媒体違い)を1件にまとめました: {origin_dups}件")
+    if curation_dropped:
+        print(f"[INFO] ローカルニュース選別: 北本周辺の話題でないため除外 {len(curation_dropped)}件(採用{len(saitama_general)}件)")
+        for reason, title in curation_dropped[:20]:
+            print(f"  - {reason}: {title[:80]}")
 
     if anzn_via_mac():
-        bousai_items, bousai_status = [], "mac"
+        # 2026-10-02: あんぜんねっと本体はActionsから読めないため、公式Mastodon経由の災害発生情報を
+        # 防災欄に載せる(旧・取得していない旨の固定文言は廃止)。防災情報だけでは定期まとめを出さない
+        # (cronは30分おきで、同じ記事を毎回繰り返さないため。速報は即時の赤枠通知で届いている)。
+        # 新着ローカルニュースがあってまとめを出す回に、直近24時間分を併記する。
+        if not saitama_general:
+            return None, sports_items
+        bousai_items, bousai_status = fetch_bousai_summary_items_mastodon(now)
     else:
         bousai_items = fetch_bousai_summary_items(now)
         bousai_status = "ok" if ANZN_LAST_FETCH_OK else "failed"
-
-    # 新着ローカルニュースも、直近の防災アクティブ情報も無ければ送信しない
-    # (防災セクションが「異常なし」だけの空更新を毎回送るのは避ける)。
-    if not saitama_general and not bousai_items:
-        return None, sports_items
+        # 新着ローカルニュースも、直近の防災アクティブ情報も無ければ送信しない
+        # (防災セクションが「異常なし」だけの空更新を毎回送るのは避ける)。
+        if not saitama_general and not bousai_items:
+            return None, sports_items
 
     now_jst = now.strftime("%Y-%m-%d %H:%M")
     lines = [f"# 🗾 埼玉・県央ローカルニュース ({now_jst} JST時点)", ""]
@@ -1287,15 +1395,68 @@ def build_sports_leak_message(sports_items, now):
     """
     if not sports_items:
         return None
-    now_jst = now.strftime("%Y-%m-%d %H:%M")
-    lines = [f"# ⚾ 一般ニュースフィードで検知したスポーツ記事 ({now_jst} JST時点)"]
+    # 2026-10-06: 巨大な「#」見出し+絵文字をやめ、太字1行+小さな補足に整理(共通原則は discord_style.py)。
+    lines = [discord_style.heading("スポーツ記事"),
+             discord_style.subtext(f"一般ニュースフィードで検知 ・ {now.strftime('%m/%d %H:%M')} JST")]
     for item in sports_items:
-        lines.append(f"- [{item['title']}](<{item['url']}>)")
+        lines.append(discord_style.bullet_link(item["title"], item["url"]))
     return "\n".join(lines)
 
 
 ANZN_EMBED_COLOR = 0xE53E3E  # 赤枠(Discord Embedの左側カラーバー)
 ANZN_EMBED_FIELD_LIMIT = 25  # Discord Embedのfields上限
+
+
+MAC_SENT_PATH = "state/anzn_mac_sent.json"  # 自宅Mac(anzn_local.py)が送った記事キー。Macが GitHub API で更新する
+
+
+def load_mac_sent_keys(path=None):
+    path = path or MAC_SENT_PATH
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        return set(data) if isinstance(data, dict) else set()
+    except (OSError, ValueError):
+        return set()
+
+
+def run_mastodon_anzn(state, now, webhook):
+    """2026-10-02: Macが止まっていても県央の災害発生情報を届けるクラウド側の主経路(mastodon_anzn.py)。
+    取得失敗は異常通知だけで、他の配信は止めない。送信に失敗した回は記事キー・カーソルとも確定しない。
+    戻り値は had_error(Discord送信失敗のみ True)。"""
+    cursor = mastodon_anzn.get_cursor(state)
+    try:
+        posts, truncated = mastodon_anzn.fetch_since(cursor)
+    except Exception as err:  # noqa: BLE001
+        print(f"[ERROR] あんぜんねっとMastodonの取得に失敗しました: {news_alerts.short_error(err)}")
+        news_alerts.record("mastodon_anzn_fetch", "local", "あんぜんねっと(公式Mastodon経由)",
+                           f"取得失敗 {news_alerts.short_error(err)}", "継続(自宅Mac経路のみで配信)")
+        return False
+    if cursor is None:
+        # 初回: 過去分を大量に送らないよう、カーソルを最新に合わせるだけにする
+        if posts:
+            mastodon_anzn.set_cursor(state, posts[0]["id"], now)
+        print(f"[INFO] あんぜんねっとMastodon: 初回のためカーソルを最新に設定しました({len(posts)}件は送信しません)。")
+        return False
+    if truncated:
+        news_alerts.record("mastodon_anzn_truncated", "local", "あんぜんねっと(公式Mastodon経由)",
+                           f"ページ送りの上限({mastodon_anzn.MAX_PAGES}ページ)に達しました",
+                           "継続(それより古い分は自宅Mac経路の履歴で補完)")
+    send, cursor_to, waiting = mastodon_anzn.select_to_send(posts, state, load_mac_sent_keys(), now)
+    print(f"[INFO] あんぜんねっとMastodon: 新着投稿{len(posts)}件 / 県央の災害発生情報で未配信{len(send)}件 / 猶予中{waiting}件")
+    if send:
+        embed = build_anzn_alert_embed(send, now)
+        embed["embeds"][0]["footer"]["text"] = embed["embeds"][0]["footer"]["text"].replace(
+            "あんぜんねっと(埼玉県央)", "あんぜんねっと(埼玉県央)・公式Mastodon経由")
+        if not send_embed_to_discord(webhook, embed):
+            news_alerts.record("discord_send_mastodon_anzn", "local", "Discord送信(あんぜんねっと・Mastodon経由)",
+                               "送信失敗(ログにHTTPステータスあり)", "スキップ(既送信にせず次回再送)")
+            return True
+        for item in send:
+            state[item["key"]] = now.isoformat()
+    if cursor_to:
+        mastodon_anzn.set_cursor(state, cursor_to, now)
+    return False
 
 
 def build_anzn_alert_embed(anzn_new, now):
@@ -1430,6 +1591,13 @@ def _handle_sports_leak(sports_items, sports_webhook, now, source_label):
     """
     if not sports_items:
         return False
+    # 2026-10-06: 北本ゆかり型(台帳の人物の重要な記事)は地域ニュース側で配信するため、スポーツ側へは送らない
+    origin_dup = [i for i in sports_items if kitamoto_origin.match(i["title"])]
+    if origin_dup:
+        print(f"[INFO] 北本ゆかり型のため地域ニュース側を優先し、スポーツ側へは送りません: {len(origin_dup)}件")
+        sports_items = [i for i in sports_items if i not in origin_dup]
+        if not sports_items:
+            return False
     print(f"=== {source_label}からスポーツ記事を検知: {len(sports_items)}件 ===")
     for item in sports_items:
         print(f"  {item['title']}")
@@ -1474,7 +1642,9 @@ def main():
     # 全国ニュースとは完全に別メッセージ・別Webhookで送信し、混在させない。
     if local_webhook:
         if anzn_via_mac():
-            print("[INFO] ANZN_SOURCE=mac のため、あんぜんねっとの取得・新着Embed送信はスキップします(自宅Macから配信)。")
+            print("[INFO] ANZN_SOURCE=mac のため、あんぜんねっと本体は自宅Macから配信します(ここでは公式Mastodon経由の分だけ扱う)。")
+            if run_mastodon_anzn(state, now, local_webhook):
+                had_error = True
         else:
             keys_before_anzn = set(state)
             anzn_new = fetch_anzn_new_items(state, now)
@@ -1542,7 +1712,7 @@ def main():
     # 2026-09-26追加: 実行中に記録した重要な異常を、最後にまとめてDiscordへ通知する
     # (news_alerts.py。通知の成否は終了コードに影響させない)。
     news_alerts.flush({"local": local_webhook, "news": news_webhook, "market": market_webhook},
-                      send_to_discord, state, now)
+                      send_to_discord, state, now, embed_fn=send_embed_to_discord)
 
     save_seen_state(state)
 

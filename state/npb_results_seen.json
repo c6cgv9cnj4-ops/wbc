@@ -1,47 +1,4 @@
 {
-  "2026-09-03": {
-    "finals": 2,
-    "hash": "464441ce6429a198338f5f2e9732c1d89e3509149bb6edc290199dce32c094b0"
-  },
-  "2026-09-07": {
-    "kind": "no_games"
-  },
-  "2026-09-08": {
-    "finals": 5,
-    "hash": "b91579c5d8b19e4e17a563bb520575199b3176f711240c433cc38adefecdeb79"
-  },
-  "2026-09-09": {
-    "finals": 6,
-    "hash": "5953d687ee1b1892952ec620e027852a1aa12358b2cb6ae348bf1c42c63014c0"
-  },
-  "2026-09-14": {
-    "finals": 3,
-    "hash": "c367b311997dbfee2f7b78c7041537da41874ec0bdacca85e7b394818ed58eb7"
-  },
-  "2026-09-15": {
-    "finals": 6,
-    "hash": "8414127dc560ab5241eab5477c96d436600392e31d30147076971f3d6908ee1f"
-  },
-  "2026-09-16": {
-    "finals": 2,
-    "hash": "e2ddd56261567ec8ea3c68046686f9add18111e3eb08bd6d554a35b4d746f00e"
-  },
-  "2026-09-17": {
-    "finals": 5,
-    "hash": "9eda9ca6e0d2faac3b2764610f1ec85c50b09dc84244d79a16820b5c4dd4df81"
-  },
-  "2026-09-21": {
-    "finals": 3,
-    "hash": "42d4536b50123e881ca0d56856ac377fc219621f03f381d8d88d78d212a467e4"
-  },
-  "2026-09-22": {
-    "finals": 6,
-    "hash": "d57f04e985644a65f278d268b54865bd60b2eca3aee1d8ddf7cefd2e1390243b"
-  },
-  "2026-09-23": {
-    "finals": 6,
-    "hash": "39e091027b41b87e27ccbecd172e3a14cf9f83862840615fdf457ee69b8da1f0"
-  },
   "2026-09-24": {
     "finals": 2,
     "hash": "066e288a3fd4cc021a0b26981a954b101673575e7ffd7dc5990a28ebdff0a02c"
@@ -53,5 +10,49 @@
   "2026-09-26": {
     "finals": 5,
     "hash": "09f2968cc7c119b85b9299711724437ea49c59dbe507b07c40226e5c42d21431"
+  },
+  "2026-09-27": {
+    "finals": 5,
+    "hash": "ab84baeffabf2f24c12b15134a3eb5cbdf60737d700796ad626e43b026f694db"
+  },
+  "2026-09-28": {
+    "finals": 3,
+    "hash": "c3860b3ac14de13caf6b615d5f4a9943adda197b8c605b15211d525fe8859bad"
+  },
+  "2026-09-29": {
+    "finals": 3,
+    "hash": "18f77083774dacae548a9a55de1a9aa6c6bf7d2c5405c642146458086a502c11"
+  },
+  "2026-09-30": {
+    "finals": 2,
+    "hash": "cdb0b4945963466455bb29dad1bb66e68bbe80f1f6a857cbdb52a006284a1e7c"
+  },
+  "2026-10-01": {
+    "finals": 3,
+    "hash": "bde07ed827788edd57b1dc3ef5b83246374dce03989d781b42cb768551cde309"
+  },
+  "2026-10-02": {
+    "finals": 2,
+    "hash": "e6d58481de82bc1f3d3bcd3d5517bd70d4ad185b7eec0786b466862d4b9aaf8a"
+  },
+  "2026-10-03": {
+    "finals": 5,
+    "hash": "900ef463e70e7db0fec64097aea8434ad5a215e19dc5086ee79c4106e57b3371"
+  },
+  "2026-10-04": {
+    "finals": 3,
+    "hash": "ce3eecf86c4ebaebe7838650746a50191ca8f518215405fa683d3fec0cacd09a"
+  },
+  "2026-10-06": {
+    "finals": 2,
+    "hash": "514e28b82f0a9b794f61407dfaaa644228e4e30eb3ff0802c07b15e504c72bd1"
+  },
+  "2026-10-07": {
+    "finals": 1,
+    "hash": "32dad11ae130e1e48ebc60c7aeb45965fbdf0e1669014761cad906826dedb3f8"
+  },
+  "2026-10-08": {
+    "finals": 1,
+    "hash": "a16805cc88de90410a5c5fda8ac864fb5d2d3e7f616c8703d9a2377d9a7b846c"
   }
 }

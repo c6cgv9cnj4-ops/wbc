@@ -426,7 +426,35 @@
         @media (prefers-reduced-motion: reduce) {
             .card, .btn, .chip, .pick-toggle, .toast, .link-btn, .author-sheet, .sheet-overlay { transition: none; }
         }
-    </style>
+    
+/* 関連作UI v3 */
+.card { min-width: 0 !important; }
+.badge, .badge-award, .badge-genre {
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    max-width: 100% !important;
+}
+.card.is-relation {
+    margin-left: 1.5rem !important;
+    border-left: 4px solid var(--rel-color, #e07a5f) !important;
+    background: #faf8f5 !important;
+}
+@media (max-width: 600px) {
+    .card.is-relation { margin-left: 0.5rem !important; }
+}
+.badge-relation {
+    display: inline-block;
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+}
+</style>
 </head>
 <body>
 
@@ -438,7 +466,7 @@
 
     <div class="filter-bar" id="filterBar"></div>
     <div class="sub-filter-bar" id="readFilterBar"></div>
-    <div class="result-count"><b id="resultCount">0</b> 件表示中</div>
+    <div class="result-count"><b id="resultCount">-</b> 件表示中</div>
 
     <div class="grid" id="book-grid"></div>
 </div>
@@ -471,6 +499,8 @@
       score: 本屋大賞の公式得点(number)。非公開・対象外はnull
       age: 受賞・選出当時の年齢。生年月日まで裏取りできたもののみ数値、それ以外はnull
       wikipediaExists: falseの場合は著者名をリンクにしない
+      date: 任意。"YYYY-MM-DD"等で指定すると並び順の基準になる（省略時はawardLabelから発表年月を導出）
+      並び順: 配列の順序は気にしなくてよい。下の sortBooksByDateDesc で日付の新しい順に自動整列する
       出典: 本屋大賞公式サイト／各出版社プレスリリース／日本文学振興会／Wikipediaで個別に裏取り済み
             （ユーザー提示リストのうち『火花』は芥川賞、『赤めだか』は講談社エッセイ賞、
              『孤狼の血』は日本推理作家協会賞、『機龍警察』『震える牛』『ヤクザと原発』は
@@ -492,9 +522,15 @@
         { id:"b04", genre:"honya-taisho", awardLabel:"2024年 本屋大賞", score:null,
           title:"成瀬は天下を取りにいく", author:"宮島未奈", age:40, wikipediaExists:true,
           synopsis:"滋賀県大津市を舞台に、「この夏を西武に捧げる」と宣言した破天荒な女子高生・成瀬あかり。誰の目も気にせず突き進む姿が痛快な、連作短編形式の青春小説。" },
+        { id:"rel-b04-1", parentId:"b04", relationType:"sequel", relationText:"続編", title:"成瀬は信じた道をいく", author:"宮島未奈", date:"2024-01",
+          synopsis:"『成瀬は天下を取りにいく』の続編。", genre:"honya-taisho", awardLabel:"続編", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b04-2", parentId:"b04", relationType:"sequel", relationText:"完結編", title:"成瀬は都を駆け抜ける", author:"宮島未奈", date:"2025-12",
+          synopsis:"『成瀬は天下を取りにいく』の完結編。", genre:"honya-taisho", awardLabel:"完結編", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b05", genre:"honya-taisho", awardLabel:"2023年 本屋大賞", score:443.5,
           title:"汝、星のごとく", author:"凪良ゆう", age:50, wikipediaExists:true,
           synopsis:"瀬戸内の島で出会った男女が、それぞれの家庭の事情や生きづらさに翻弄されながら、長い年月をかけて育んでいく複雑な愛の形。著者は史上最速で2度目の大賞受賞。" },
+        { id:"rel-b05-1", parentId:"b05", relationType:"spinoff", relationText:"公式スピンオフ", title:"星を編む", author:"凪良ゆう", date:"2023-11",
+          synopsis:"『汝、星のごとく』の公式スピンオフ。", genre:"honya-taisho", awardLabel:"公式スピンオフ", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b06", genre:"honya-taisho", awardLabel:"2022年 本屋大賞", score:463.5,
           title:"同志少女よ、敵を撃て", author:"逢坂冬馬", age:36, wikipediaExists:true,
           synopsis:"独ソ戦下、家族と故郷を奪われた少女が女性狙撃兵として戦場に身を投じる。仲間との訓練と過酷な実戦を通じ、戦争の意味を問い直していくデビュー作歴史小説。" },
@@ -510,6 +546,8 @@
         { id:"b10", genre:"honya-taisho", awardLabel:"2017年 本屋大賞（第156回直木賞とW受賞）", score:null,
           title:"蜜蜂と遠雷", author:"恩田陸", age:52, wikipediaExists:true,
           synopsis:"国際ピアノコンクールの舞台に集った若きピアニストたちの葛藤と才能の開花を、圧倒的な熱量で描き切る音楽小説。史上初となる直木賞との同時受賞を果たした話題作。" },
+        { id:"rel-b10-1", parentId:"b10", relationType:"spinoff", relationText:"スピンオフ短編集", title:"祝祭と予感", author:"恩田陸", date:"2019-10",
+          synopsis:"『蜜蜂と遠雷』のスピンオフ短編集。", genre:"honya-taisho", awardLabel:"スピンオフ短編集", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b11", genre:"naoki", awardLabel:"第163回 直木賞", score:null,
           title:"少年と犬", author:"馳星周", age:55, wikipediaExists:true,
           synopsis:"東日本大震災で飼い主を失った犬「多聞」。各地でこの犬と関わることになった人々それぞれの人生を、犬の視点も交えながら静かに描き出す連作短編集。" },
@@ -528,6 +566,14 @@
         { id:"b16", genre:"mystery", awardLabel:"第15回 大藪春彦賞", score:null,
           title:"検事の本懐", author:"柚月裕子", age:44, wikipediaExists:true,
           synopsis:"正義感が強く一癖ある検事・佐方貞人が、担当する事件の裏に隠された真実と人間模様を丹念にあぶり出していく。骨太な人間ドラマとして評価の高い連作ミステリ。" },
+        { id:"rel-b16-1", parentId:"b16", relationType:"prequel", relationText:"佐方貞人シリーズ 第1作", title:"最後の証人", author:"柚月裕子", date:"2010-05",
+          synopsis:"『検事の本懐』の佐方貞人シリーズ 第1作。", genre:"mystery", awardLabel:"佐方貞人シリーズ 第1作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b16-2", parentId:"b16", relationType:"sequel", relationText:"佐方貞人シリーズ 第3作", title:"検事の死命", author:"柚月裕子", date:"2013-09",
+          synopsis:"『検事の本懐』の佐方貞人シリーズ 第3作。", genre:"mystery", awardLabel:"佐方貞人シリーズ 第3作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b16-3", parentId:"b16", relationType:"sequel", relationText:"佐方貞人シリーズ 第4作", title:"検事の信義", author:"柚月裕子", date:"2019-04",
+          synopsis:"『検事の本懐』の佐方貞人シリーズ 第4作。", genre:"mystery", awardLabel:"佐方貞人シリーズ 第4作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b16-4", parentId:"b16", relationType:"sequel", relationText:"佐方貞人シリーズ 第5作", title:"誓いの証言", author:"柚月裕子", date:"2024-03",
+          synopsis:"『検事の本懐』の佐方貞人シリーズ 第5作。", genre:"mystery", awardLabel:"佐方貞人シリーズ 第5作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b17", genre:"mystery", awardLabel:"第17回 大藪春彦賞", score:null,
           title:"コルトM1851残月", author:"月村了衛", age:51, wikipediaExists:true,
           synopsis:"幕末の日本を舞台に、西洋渡来の回転式拳銃を操ることになった者たちの生き様を描く。時代小説とガンアクションを融合させた、著者ならではの異色の連作。" },
@@ -537,6 +583,10 @@
         { id:"b19", genre:"mystery", awardLabel:"第69回 日本推理作家協会賞", score:null,
           title:"孤狼の血", author:"柚月裕子", age:47, wikipediaExists:true,
           synopsis:"昭和の広島を舞台に、暴力団と癒着する一癖ある刑事とその新人相方が、県警内部の闇にも切り込んでいく。任侠映画的な熱量と警察小説の緻密さを併せ持つ話題作。" },
+        { id:"rel-b19-1", parentId:"b19", relationType:"sequel", relationText:"続編・第2部", title:"凶犬の眼", author:"柚月裕子", date:"2018-03",
+          synopsis:"『孤狼の血』の続編・第2部。", genre:"mystery", awardLabel:"続編・第2部", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b19-2", parentId:"b19", relationType:"sequel", relationText:"完結編・第3部", title:"暴虎の牙", author:"柚月裕子", date:"2020-03",
+          synopsis:"『孤狼の血』の完結編・第3部。", genre:"mystery", awardLabel:"完結編・第3部", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b20", genre:"mystery", awardLabel:"第19回 大藪春彦賞", score:null,
           title:"リボルバー・リリー", author:"長浦京", age:49, wikipediaExists:true,
           synopsis:"昭和初期の日本を舞台に、拳銃を操る謎多き女性が、命を狙われる少年を守るため陸軍を敵に回して駆け抜ける。史実を織り込んだアクション時代小説。" },
@@ -591,6 +641,8 @@
         { id:"b38", genre:"bestseller", awardLabel:"2023年 日販年間ベストセラー文庫部門1位", score:null,
           title:"クスノキの番人", author:"東野圭吾", age:65, wikipediaExists:true,
           synopsis:"罪を犯し身を寄せた叔父の家業は、祈れば願いが叶うとされる不思議なクスノキの番人だった。訪れる人々それぞれの秘密と再生を描くハートウォーミングな長編小説。" },
+        { id:"rel-b38-1", parentId:"b38", relationType:"sequel", relationText:"正統続編", title:"クスノキの女神", author:"東野圭吾", date:"2024-05",
+          synopsis:"『クスノキの番人』の正統続編。", genre:"bestseller", awardLabel:"正統続編", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b39", genre:"bestseller", awardLabel:"2025年 日販年間ベストセラー文庫部門1位（オリコン年間文庫でも上下巻1・2位独占）", score:null,
           title:"国宝", author:"吉田修一", age:57, wikipediaExists:true,
           synopsis:"任侠の家に生まれた少年が女形の歌舞伎役者として芸の道を究めていく波乱の人生を、戦後から現代までの時代とともに描いた大河小説。2025年の実写映画化でも話題を呼んだ。" },
@@ -618,6 +670,8 @@
         { id:"b47", genre:"nonfiction", awardLabel:"第35回 講談社ノンフィクション賞", score:null,
           title:"謎の独立国家ソマリランド", author:"高野秀行", age:null, wikipediaExists:true,
           synopsis:"内戦が続くソマリアの中で平和を保つ「独立国家」ソマリランドへ潜入した著者が、氏族社会の掟や政治の仕組みを体当たりで探る、辺境ノンフィクションの傑作長編ルポ。" },
+        { id:"rel-b47-1", parentId:"b47", relationType:"series", relationText:"関連ノンフィクション", title:"恋するソマリア", author:"高野秀行", date:"2015-01",
+          synopsis:"『謎の独立国家ソマリランド』の関連ノンフィクション。", genre:"nonfiction", awardLabel:"関連ノンフィクション", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b48", genre:"nonfiction", awardLabel:"第36回 講談社ノンフィクション賞", score:null,
           title:"しんがり 山一證券 最後の12人", author:"清武英利", age:null, wikipediaExists:true,
           synopsis:"1997年、自主廃業に追い込まれた山一證券。最後まで会社に残り、破綻の真相究明と顧客対応に奔走した現場社員たちの闘いを、元記者の著者が丹念な取材で描いた組織人間の記録。" },
@@ -630,6 +684,8 @@
         { id:"b36", genre:"bestseller", awardLabel:"2024年 オリコン年間BOOKランキング1位", score:null,
           title:"変な家2 〜11の間取り図〜", author:"雨穴", age:null, wikipediaExists:true,
           synopsis:"不動産ミステリーとして大ヒットした前作の続編。読者から寄せられた奇妙な間取り図をきっかけに、その裏に隠された不穏な事情を紐解いていくホラーミステリー。" },
+        { id:"rel-b36-1", parentId:"b36", relationType:"prequel", relationText:"シリーズ第1作", title:"変な家", author:"雨穴", date:"2021-07",
+          synopsis:"『変な家2 〜11の間取り図〜』のシリーズ第1作。", genre:"bestseller", awardLabel:"シリーズ第1作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b51", genre:"otherlit", awardLabel:"第31回 吉川英治文学新人賞", score:null,
           title:"鉄の骨", author:"池井戸潤", age:null, wikipediaExists:true,
           synopsis:"大手ゼネコンの若手社員が、上司の指示で談合の実務を担うことになる。組織の理不尽と自らの良心の間で葛藤する姿を描いた企業小説。" },
@@ -639,6 +695,8 @@
         { id:"b53", genre:"otherlit", awardLabel:"第32回 吉川英治文学新人賞", score:null,
           title:"ツナグ", author:"辻村深月", age:null, wikipediaExists:true,
           synopsis:"一生に一度だけ、死者との再会を仲介する「使者」の青年を巡る連作短編集。依頼者それぞれの人生と後悔が静かに浮かび上がる。" },
+        { id:"rel-b53-1", parentId:"b53", relationType:"sequel", relationText:"正統続編", title:"ツナグ 想い人の心得", author:"辻村深月", date:"2019-10",
+          synopsis:"『ツナグ』の正統続編。", genre:"otherlit", awardLabel:"正統続編", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b54", genre:"otherlit", awardLabel:"第33回 吉川英治文学新人賞", score:null,
           title:"地の底のヤマ", author:"西村健", age:null, wikipediaExists:true,
           synopsis:"戦後の三池炭鉱で起きた警官殺害事件の謎を、被害者の息子である刑事が追う。炭鉱の歴史と一人の刑事の生涯を描いた大河警察小説。" },
@@ -648,12 +706,24 @@
         { id:"b56", genre:"otherlit", awardLabel:"第34回 吉川英治文学新人賞", score:null,
           title:"機龍警察 暗黒市場", author:"月村了衛", age:null, wikipediaExists:true,
           synopsis:"装甲兵器で武装した特捜部を描く近未来警察小説シリーズ第2弾。国際的な武器密売組織との攻防を通じ、警察内部の対立も描く。" },
+        { id:"rel-b56-1", parentId:"b56", relationType:"prequel", relationText:"シリーズ第1作", title:"機龍警察", author:"月村了衛", date:"2010-03",
+          synopsis:"『機龍警察 暗黒市場』のシリーズ第1作。", genre:"otherlit", awardLabel:"シリーズ第1作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b56-2", parentId:"b56", relationType:"sequel", relationText:"シリーズ第2作", title:"機龍警察 自爆条項", author:"月村了衛", date:"2011-09",
+          synopsis:"『機龍警察 暗黒市場』のシリーズ第2作。", genre:"otherlit", awardLabel:"シリーズ第2作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b56-3", parentId:"b56", relationType:"sequel", relationText:"シリーズ第4作", title:"機龍警察 未亡旅団", author:"月村了衛", date:"2014-04",
+          synopsis:"『機龍警察 暗黒市場』のシリーズ第4作。", genre:"otherlit", awardLabel:"シリーズ第4作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b56-4", parentId:"b56", relationType:"series", relationText:"短編集", title:"機龍警察 狼眼殺手", author:"月村了衛", date:"2017-09",
+          synopsis:"『機龍警察 暗黒市場』の短編集。", genre:"otherlit", awardLabel:"短編集", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b56-5", parentId:"b56", relationType:"sequel", relationText:"シリーズ第5作", title:"機龍警察 白骨街道", author:"月村了衛", date:"2021-08",
+          synopsis:"『機龍警察 暗黒市場』のシリーズ第5作。", genre:"otherlit", awardLabel:"シリーズ第5作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b57", genre:"otherlit", awardLabel:"第35回 吉川英治文学新人賞", score:null,
           title:"村上海賊の娘", author:"和田竜", age:null, wikipediaExists:true,
           synopsis:"戦国時代の瀬戸内海を舞台に、村上水軍の頭領の娘・景が大坂本願寺救援のため戦いに身を投じる痛快な歴史活劇。本屋大賞も受賞。" },
         { id:"b58", genre:"otherlit", awardLabel:"第36回 吉川英治文学新人賞", score:null,
           title:"まるまるの毬", author:"西條奈加", age:null, wikipediaExists:true,
           synopsis:"江戸の菓子屋を営む姉妹と、養子に迎えられた少年の絆を描く連作時代小説。人情と商いの機微を丁寧に描いた一冊。" },
+        { id:"rel-b58-1", parentId:"b58", relationType:"sequel", relationText:"続編", title:"亥子ころころ", author:"西條奈加", date:"2018-09",
+          synopsis:"『まるまるの毬』の続編。", genre:"otherlit", awardLabel:"続編", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b59", genre:"otherlit", awardLabel:"第37回 吉川英治文学新人賞", score:null,
           title:"Aではない君と", author:"薬丸岳", age:null, wikipediaExists:true,
           synopsis:"少年犯罪の加害者となった息子を持つ父親の視点から、贖罪と社会の断罪、家族の再生を問う社会派小説。" },
@@ -702,9 +772,15 @@
         { id:"b74", genre:"otherlit", awardLabel:"第23回 柴田錬三郎賞", score:null,
           title:"横道世之介", author:"吉田修一", age:null, wikipediaExists:true,
           synopsis:"長崎から上京した青年・横道世之介の大学生活と、彼と関わった人々のその後を描く。飄々とした主人公が周囲に残した確かな輝きを見つめる青春小説。" },
+        { id:"rel-b74-1", parentId:"b74", relationType:"sequel", relationText:"続編", title:"続 横道世之介（おかえり横道世之介）", author:"吉田修一", date:"2019-02",
+          synopsis:"『横道世之介』の続編。", genre:"otherlit", awardLabel:"続編", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b74-2", parentId:"b74", relationType:"sequel", relationText:"完結作", title:"永遠と横道世之介", author:"吉田修一", date:"2022-07",
+          synopsis:"『横道世之介』の完結作。", genre:"otherlit", awardLabel:"完結作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b75", genre:"otherlit", awardLabel:"第24回 柴田錬三郎賞", score:null,
           title:"西巷説百物語", author:"京極夏彦", age:null, wikipediaExists:true,
           synopsis:"幕末の大坂を舞台に、裏社会で人々の恨みを晴らす「仕掛け人」たちの暗躍を描く時代小説。人気シリーズ「巷説百物語」の一冊。" },
+        { id:"rel-b75-1", parentId:"b75", relationType:"series", relationText:"第1作『巷説百物語』〜『遠巷説百物語』(2021)", title:"巷説百物語シリーズ", author:"京極夏彦", date:null,
+          synopsis:"『西巷説百物語』の第1作『巷説百物語』〜『遠巷説百物語』(2021)。", genre:"otherlit", awardLabel:"第1作『巷説百物語』〜『遠巷説百物語』(2021)", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b76", genre:"otherlit", awardLabel:"第25回 柴田錬三郎賞", score:null,
           title:"紙の月", author:"角田光代", age:null, wikipediaExists:true,
           synopsis:"平凡な専業主婦が銀行の契約社員として働くうち、顧客の預金に手を付け横領を重ねていく。バブル期の女性が抱えた孤独と欲望を描く心理サスペンス。" },
@@ -744,6 +820,8 @@
         { id:"b88", genre:"otherlit", awardLabel:"第36回 柴田錬三郎賞", score:null,
           title:"ハヤブサ消防団", author:"池井戸潤", age:null, wikipediaExists:true,
           synopsis:"作家である主人公が父の故郷の消防団に加わり、山あいの集落で相次ぐ不穏な事件の謎に挑んでいくミステリー。" },
+        { id:"rel-b88-1", parentId:"b88", relationType:"series", relationText:"関連作", title:"ハヤブサ消防団 森へつづく道", author:"池井戸潤", date:null,
+          synopsis:"『ハヤブサ消防団』の関連作。", genre:"otherlit", awardLabel:"関連作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b89", genre:"otherlit", awardLabel:"第37回 柴田錬三郎賞", score:null,
           title:"幽玄F", author:"佐藤究", age:null, wikipediaExists:true,
           synopsis:"戦闘機パイロットを目指す青年の生と、能楽の幽玄美が交錯する長編小説。暴力と美、生と死をめぐる著者渾身の一作。" },
@@ -753,6 +831,8 @@
         { id:"b91", genre:"otherlit", awardLabel:"第1回 山田風太郎賞", score:null,
           title:"悪の教典", author:"貴志祐介", age:null, wikipediaExists:true,
           synopsis:"私立高校で絶大な人気を誇る英語教師が、実は反社会性人格障害を抱えた殺人鬼だったという衝撃のサイコサスペンス。" },
+        { id:"rel-b91-1", parentId:"b91", relationType:"spinoff", relationText:"【映像スピンオフ】", title:"悪の教典 序章", author:"貴志祐介", date:null,
+          synopsis:"『悪の教典』の【映像スピンオフ】。", genre:"otherlit", awardLabel:"【映像スピンオフ】", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b92", genre:"otherlit", awardLabel:"第2回 山田風太郎賞", score:null,
           title:"ジェノサイド", author:"高野和明", age:null, wikipediaExists:true,
           synopsis:"製薬会社の研究者と傭兵が、進化した新人類の存在を巡る国際的な陰謀に巻き込まれていく大型冒険サスペンス。" },
@@ -819,6 +899,8 @@
         { id:"b113", genre:"otherlit", awardLabel:"第11回 中央公論文芸賞", score:null,
           title:"罪の終わり", author:"東山彰良", age:null, wikipediaExists:true,
           synopsis:"秩序が崩壊した世界で、価値観を破壊し人々を救済する圧倒的な力を持つ男の生涯を描く。『ブラックライダー』の前日譚となる物語。" },
+        { id:"rel-b113-1", parentId:"b113", relationType:"series", relationText:"世界観共有作", title:"ブラックライダー", author:"東山彰良", date:"2013-09",
+          synopsis:"『罪の終わり』の世界観共有作。", genre:"otherlit", awardLabel:"世界観共有作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b114", genre:"otherlit", awardLabel:"第12回 中央公論文芸賞", score:null,
           title:"みかづき", author:"森絵都", age:null, wikipediaExists:true,
           synopsis:"戦後から平成にかけて学習塾を営み続けた家族三代の奮闘を描いた大河小説。教育に人生を捧げた人々の情熱と葛藤を見つめる。" },
@@ -846,30 +928,66 @@
         { id:"b122", genre:"otherlit", awardLabel:"このミステリーがすごい！2010年版 国内編1位", score:null,
           title:"新参者", author:"東野圭吾", age:null, wikipediaExists:true,
           synopsis:"日本橋人形町で一人暮らしの女性が絞殺される。刑事・加賀恭一郎が周辺の商店街を丹念に聞き込むうち、住人それぞれの秘密が明らかになっていく連作ミステリー。" },
+        { id:"rel-b122-1", parentId:"b122", relationType:"prequel", relationText:"前作", title:"赤い指", author:"東野圭吾", date:"2006-07",
+          synopsis:"『新参者』の前作。", genre:"otherlit", awardLabel:"前作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b122-2", parentId:"b122", relationType:"sequel", relationText:"続編", title:"麒麟の翼", author:"東野圭吾", date:"2011-03",
+          synopsis:"『新参者』の続編。", genre:"otherlit", awardLabel:"続編", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b122-3", parentId:"b122", relationType:"sequel", relationText:"完結編", title:"祈りの幕が下りる時", author:"東野圭吾", date:"2013-09",
+          synopsis:"『新参者』の完結編。", genre:"otherlit", awardLabel:"完結編", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b122-4", parentId:"b122", relationType:"series", relationText:"関連作", title:"希望の糸", author:"東野圭吾", date:"2019-07",
+          synopsis:"『新参者』の関連作。", genre:"otherlit", awardLabel:"関連作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b123", genre:"otherlit", awardLabel:"このミステリーがすごい！2013年版 国内編1位", score:null,
           title:"64", author:"横山秀夫", age:null, wikipediaExists:true,
           synopsis:"昭和64年に発生し時効寸前となった未解決の誘拐殺人事件「64」。県警広報官がマスコミ対策と組織の壁に翻弄されながら、事件の再捜査に挑む警察小説の金字塔。" },
+        { id:"rel-b123-1", parentId:"b123", relationType:"series", relationText:"D県警シリーズ", title:"陰の季節", author:"横山秀夫", date:"1998-10",
+          synopsis:"『64』のD県警シリーズ。", genre:"otherlit", awardLabel:"D県警シリーズ", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b123-2", parentId:"b123", relationType:"series", relationText:"D県警シリーズ", title:"顔 FACE", author:"横山秀夫", date:"2002-12",
+          synopsis:"『64』のD県警シリーズ。", genre:"otherlit", awardLabel:"D県警シリーズ", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b124", genre:"otherlit", awardLabel:"このミステリーがすごい！2014年版 国内編1位", score:null,
           title:"ノックス・マシン", author:"法月綸太郎", age:null, wikipediaExists:true,
           synopsis:"推理小説の鉄則「ノックスの十戒」とタイムトラベルを掛け合わせた、奇想天外なSFミステリー短編集。" },
         { id:"b125", genre:"otherlit", awardLabel:"このミステリーがすごい！2016年版 国内編1位", score:null,
           title:"王とサーカス", author:"米澤穂信", age:null, wikipediaExists:true,
           synopsis:"ジャーナリストの太刀洗万智が、ネパールで起きた王族殺害事件の取材中、思いがけない別の殺人事件に巻き込まれていく国際ミステリー。" },
+        { id:"rel-b125-1", parentId:"b125", relationType:"prequel", relationText:"太刀洗万智 前日譚", title:"さよなら妖精", author:"米澤穂信", date:"2004-02",
+          synopsis:"『王とサーカス』の太刀洗万智 前日譚。", genre:"otherlit", awardLabel:"太刀洗万智 前日譚", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b125-2", parentId:"b125", relationType:"series", relationText:"太刀洗万智 短編集", title:"真実の10メートル手前", author:"米澤穂信", date:"2015-12",
+          synopsis:"『王とサーカス』の太刀洗万智 短編集。", genre:"otherlit", awardLabel:"太刀洗万智 短編集", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b126", genre:"otherlit", awardLabel:"このミステリーがすごい！2017年版 国内編1位", score:null,
           title:"涙香迷宮", author:"竹本健治", age:null, wikipediaExists:true,
           synopsis:"明治の文豪・黒岩涙香が遺した最高難度の暗号「いろは歌」の謎に、天才棋士が挑む本格暗号ミステリーの傑作。" },
         { id:"b127", genre:"otherlit", awardLabel:"このミステリーがすごい！2018年版 国内編1位", score:null,
           title:"屍人荘の殺人", author:"今村昌弘", age:null, wikipediaExists:true,
           synopsis:"山荘に集った大学生たちが、あるアクシデントによって外界から完全に隔絶される。前代未聞の設定を武器にした衝撃の本格ミステリー。" },
+        { id:"rel-b127-1", parentId:"b127", relationType:"sequel", relationText:"続編", title:"魔眼の匣の殺人", author:"今村昌弘", date:"2019-02",
+          synopsis:"『屍人荘の殺人』の続編。", genre:"otherlit", awardLabel:"続編", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b127-2", parentId:"b127", relationType:"sequel", relationText:"続編", title:"兇人邸の殺人", author:"今村昌弘", date:"2021-07",
+          synopsis:"『屍人荘の殺人』の続編。", genre:"otherlit", awardLabel:"続編", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b128", genre:"otherlit", awardLabel:"このミステリーがすごい！2019年版 国内編1位", score:null,
           title:"それまでの明日", author:"原尞", age:null, wikipediaExists:true,
           synopsis:"私立探偵・沢崎が、老いた元俳優の遺言をきっかけに、彼の隠された過去と現在が交錯する事件に巻き込まれるハードボイルド。" },
+        { id:"rel-b128-1", parentId:"b128", relationType:"prequel", relationText:"探偵・沢崎シリーズ 第1作", title:"そして夜は甦る", author:"原尞", date:"1988-04",
+          synopsis:"『それまでの明日』の探偵・沢崎シリーズ 第1作。", genre:"otherlit", awardLabel:"探偵・沢崎シリーズ 第1作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b128-2", parentId:"b128", relationType:"prequel", relationText:"探偵・沢崎シリーズ 第2作", title:"私が殺した少女", author:"原尞", date:"1989-10",
+          synopsis:"『それまでの明日』の探偵・沢崎シリーズ 第2作。", genre:"otherlit", awardLabel:"探偵・沢崎シリーズ 第2作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b128-3", parentId:"b128", relationType:"prequel", relationText:"探偵・沢崎シリーズ 第3作", title:"さらば長き眠り", author:"原尞", date:"1995-02",
+          synopsis:"『それまでの明日』の探偵・沢崎シリーズ 第3作。", genre:"otherlit", awardLabel:"探偵・沢崎シリーズ 第3作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b128-4", parentId:"b128", relationType:"prequel", relationText:"探偵・沢崎シリーズ 第4作", title:"愚か者死すべし", author:"原尞", date:"2004-11",
+          synopsis:"『それまでの明日』の探偵・沢崎シリーズ 第4作。", genre:"otherlit", awardLabel:"探偵・沢崎シリーズ 第4作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b129", genre:"otherlit", awardLabel:"このミステリーがすごい！2020年版 国内編1位", score:null,
           title:"medium 霊媒探偵城塚翡翠", author:"相沢沙呼", age:null, wikipediaExists:true,
           synopsis:"霊媒師を名乗る美しい女性と推理作家のコンビが、超常現象と本格推理を組み合わせて難事件に挑む。驚愕の仕掛けで話題を呼んだ本格ミステリー。" },
+        { id:"rel-b129-1", parentId:"b129", relationType:"sequel", relationText:"城塚翡翠シリーズ 第2作", title:"invert 城塚翡翠倒叙集", author:"相沢沙呼", date:"2021-07",
+          synopsis:"『medium 霊媒探偵城塚翡翠』の城塚翡翠シリーズ 第2作。", genre:"otherlit", awardLabel:"城塚翡翠シリーズ 第2作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b129-2", parentId:"b129", relationType:"sequel", relationText:"城塚翡翠シリーズ 第3作", title:"invert II 覗き窓の死角", author:"相沢沙呼", date:"2022-09",
+          synopsis:"『medium 霊媒探偵城塚翡翠』の城塚翡翠シリーズ 第3作。", genre:"otherlit", awardLabel:"城塚翡翠シリーズ 第3作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b130", genre:"otherlit", awardLabel:"このミステリーがすごい！2021年版 国内編1位", score:null,
           title:"たかが殺人じゃないか", author:"辻真先", age:null, wikipediaExists:true,
           synopsis:"昭和24年、旧制中学から新制高校へ変わる学校を舞台に、放送部の生徒たちが級友の死の真相を追っていく青春本格ミステリー。" },
+        { id:"rel-b130-1", parentId:"b130", relationType:"prequel", relationText:"昭和ミステリシリーズ 第1作", title:"深夜の博覧会", author:"辻真先", date:"2018-05",
+          synopsis:"『たかが殺人じゃないか』の昭和ミステリシリーズ 第1作。", genre:"otherlit", awardLabel:"昭和ミステリシリーズ 第1作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b130-2", parentId:"b130", relationType:"sequel", relationText:"昭和ミステリシリーズ 第3作", title:"馬鹿みたいな話！", author:"辻真先", date:"2022-09",
+          synopsis:"『たかが殺人じゃないか』の昭和ミステリシリーズ 第3作。", genre:"otherlit", awardLabel:"昭和ミステリシリーズ 第3作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b131", genre:"otherlit", awardLabel:"このミステリーがすごい！2023年版 国内編1位", score:null,
           title:"爆弾", author:"呉勝浩", age:null, wikipediaExists:true,
           synopsis:"取調室に突然現れた要領を得ない男が語り出す「爆弾」の存在。警視庁のベテラン刑事との緊迫の心理戦を描くサスペンス。" },
@@ -882,6 +1000,10 @@
         { id:"b134", genre:"otherlit", awardLabel:"このミステリーがすごい！2026年版 国内編1位", score:null,
           title:"失われた貌", author:"櫻田智也", age:null, wikipediaExists:true,
           synopsis:"山中で顔を潰され身元不明となった死体が発見される。ある小学生が「自分の父親かもしれない」と名乗り出たことから、隠された過去が明らかになっていく。" },
+        { id:"rel-b134-1", parentId:"b134", relationType:"prequel", relationText:"魞沢泉シリーズ 第1作", title:"サーチライトと誘蛾灯", author:"櫻田智也", date:"2020-11",
+          synopsis:"『失われた貌』の魞沢泉シリーズ 第1作。", genre:"otherlit", awardLabel:"魞沢泉シリーズ 第1作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b134-2", parentId:"b134", relationType:"spinoff", relationText:"【WEB短編】", title:"断指 J県警媛上署捜査係", author:"櫻田智也", date:null,
+          synopsis:"『失われた貌』の【WEB短編】。", genre:"otherlit", awardLabel:"【WEB短編】", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b135", genre:"yamamoto", awardLabel:"第28回 山本周五郎賞", score:null,
           title:"ナイルパーチの女子会", author:"柚木麻子", age:null, wikipediaExists:true,
           synopsis:"大手商社に勤める女性と専業主婦ブロガーが意気投合するも、互いへの執着とすれ違いから関係が思わぬ方向へ転がっていく。女同士の関係の深淵を描く長編。" },
@@ -903,6 +1025,10 @@
         { id:"b141", genre:"yamamoto", awardLabel:"第35回 山本周五郎賞", score:null,
           title:"黛家の兄弟", author:"砂原浩太朗", age:null, wikipediaExists:true,
           synopsis:"小藩の筆頭家老を務める黛家の三男が、婚姻や政変に翻弄されながら、兄弟それぞれの生き方と家の未来を模索していく時代小説。" },
+        { id:"rel-b141-1", parentId:"b141", relationType:"prequel", relationText:"神山藩シリーズ 第1作", title:"高瀬庄左衛門御留書", author:"砂原浩太朗", date:"2021-01",
+          synopsis:"『黛家の兄弟』の神山藩シリーズ 第1作。", genre:"yamamoto", awardLabel:"神山藩シリーズ 第1作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b141-2", parentId:"b141", relationType:"sequel", relationText:"神山藩シリーズ 第3作", title:"霜月記", author:"砂原浩太朗", date:"2024-04",
+          synopsis:"『黛家の兄弟』の神山藩シリーズ 第3作。", genre:"yamamoto", awardLabel:"神山藩シリーズ 第3作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b142", genre:"yamamoto", awardLabel:"第38回 山本周五郎賞", score:null,
           title:"女の国会", author:"新川帆立", age:null, wikipediaExists:true,
           synopsis:"国会のマドンナと呼ばれた議員の突然の自殺の真相を、敵対する野党議員が追う政治ミステリー。女性の声の扱われ方を問う社会派エンタメ。" },
@@ -910,6 +1036,101 @@
           title:"見えるか保己一", author:"蝉谷めぐ実", age:null, wikipediaExists:true,
           synopsis:"7歳で失明しながら日本最大級の叢書を編纂した学者・塙保己一の生涯を描いた一代記。「見える者」と「見えない者」の断絶と葛藤を見つめる。" }
     ];
+
+    // ===== 日付降順ソート（新しい → 古い） =====
+    // booksData自体をここで並べ替えるので、表示・コピー・共有すべてが同じ順序になる。
+    // 作品は配列に追加するだけでよい（並び位置は気にしなくてよい）。
+    // 日付の決め方（上から優先）:
+    //   1) 明示の date フィールド（"2026-04-09" / "2026/9/30" / "2026年9月30日"）… 実在日付として検証
+    //   2) awardLabel から導出（賞ごとの「第1回の年」と「例年の発表月」で換算。日は1日扱い）
+    //   3) どちらも取れない作品は削除せず最後尾にまとめる
+    // 同じ日付の作品は元の配列順を維持する（元インデックスで明示的に担保）。
+    const AWARD_SCHEDULE = {
+        // 賞名: [第1回の年, 例年の発表月]
+        "山本周五郎賞":               [1988, 5],
+        "大藪春彦賞":                 [1999, 1],
+        "日本推理作家協会賞":         [1948, 4],
+        "講談社ノンフィクション賞":   [1979, 7],
+        "講談社本田靖春ノンフィクション賞": [1979, 7],
+        "大宅壮一ノンフィクション賞": [1970, 5],
+        "中央公論文芸賞":             [2006, 9],
+        "山田風太郎賞":               [2010, 10],
+        "柴田錬三郎賞":               [1988, 10],
+        "吉川英治文学新人賞":         [1980, 3]
+    };
+
+    function makeDate(y, m, d) {
+        const t = Date.UTC(y, m - 1, d);
+        const dt = new Date(t);
+        // 2026/2/30 のような実在しない日付は不採用
+        return (dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d) ? t : null;
+    }
+
+    function parseExplicitDate(s) {
+        const m = String(s).trim().match(/^(\d{4})\s*[-\/.年]\s*(\d{1,2})\s*[-\/.月]\s*(\d{1,2})\s*日?$/);
+        return m ? makeDate(+m[1], +m[2], +m[3]) : null;
+    }
+
+    function dateFromAwardLabel(label) {
+        if (!label) return null;
+        let m;
+        // このミステリーがすごい！YYYY年版 → 前年12月刊行
+        if ((m = label.match(/(\d{4})年版/))) return makeDate(+m[1] - 1, 12, 1);
+        // 第N回 ○○賞（…） → 先頭の賞で換算（括弧内のW受賞表記は無視）
+        if ((m = label.match(/^第(\d+)回\s*([^（(]+)/))) {
+            const n = +m[1], name = m[2].trim();
+            // 直木賞は年2回：奇数回=その年の7月、偶数回=翌年1月（第160回=2019年1月、第175回=2026年7月）
+            if (name === "直木賞") return n % 2 ? makeDate((n + 3877) / 2, 7, 1) : makeDate((n + 3878) / 2, 1, 1);
+            const sch = AWARD_SCHEDULE[name];
+            return sch ? makeDate(sch[0] + n - 1, sch[1], 1) : null;
+        }
+        // YYYY年 ○○ → 本屋大賞は4月、年間ランキング系は12月、その他は1月扱い
+        if ((m = label.match(/^(\d{4})年\s*(.*)/))) {
+            const month = /本屋大賞/.test(m[2]) ? 4 : /年間|BOOK OF THE YEAR/.test(m[2]) ? 12 : 1;
+            return makeDate(+m[1], month, 1);
+        }
+        return null;
+    }
+
+    function getBookDate(book) {
+        if (book.date) {
+            const t = parseExplicitDate(book.date);
+            if (t !== null) return t;
+        }
+        return dateFromAwardLabel(book.awardLabel);
+    }
+
+    function sortBooksByDateDesc(books) {
+        const keyed = books.map((book, index) => ({ book, index, time: getBookDate(book) }));
+        keyed.sort((a, b) => {
+            if (a.time === null && b.time === null) return a.index - b.index;
+            if (a.time === null) return 1;   // 日付不明は最後尾
+            if (b.time === null) return -1;
+            return (b.time - a.time) || (a.index - b.index);
+        });
+        books.splice(0, books.length, ...keyed.map(k => k.book));
+    }
+    sortBooksByDateDesc(booksData);
+
+    // 日付ソート後も、関連作を親の直後に元の順序で並べ直す
+    function attachRelations(books) {
+        const relOf = {};
+        books.filter(b => b.parentId).forEach(r => {
+            (relOf[r.parentId] = relOf[r.parentId] || []).push(r);
+        });
+        const result = [];
+        books.forEach(b => {
+            if (!b.parentId) {
+                result.push(b);
+                (relOf[b.id] || []).forEach(r => result.push(r));
+            }
+        });
+        books.forEach(b => {
+            if (b.parentId && !books.some(p => p.id === b.parentId)) result.push(b);
+        });
+        books.splice(0, books.length, ...result);
+    }
+    attachRelations(booksData);
 
     const GENRE_ORDER = ["honya-taisho", "naoki", "yamamoto", "mystery", "nonfiction", "bestseller", "otherlit"];
     const GENRE_LABELS = {
@@ -1375,6 +1596,11 @@
 
         container.innerHTML = list.map(book => {
             const isSelected = selectedBooks.has(book.id);
+            const parentBook = book.parentId ? booksData.find(p => p.id === book.parentId) : null;
+            const REL_COLORS = { sequel: '#2a9d8f', prequel: '#457b9d', spinoff: '#e07a5f', series: '#6d6875' };
+            const relColor = REL_COLORS[book.relationType] || '#6d6875';
+            const relStyle = book.parentId ? ` style="--rel-color:${relColor}"` : '';
+            const relBadge = parentBook ? `<span class="badge badge-relation" style="background:${relColor}">└ 『${parentBook.title}』の${book.relationText}</span>` : '';
             const readRec = getReadRecord(book.id);
             const genreBadge = `<span class="badge badge-genre" style="background:${GENRE_COLORS[book.genre] || '#64748b'}">${GENRE_LABELS[book.genre] || book.genre}</span>`;
             const awardBadge = `<span class="badge badge-award">${book.awardLabel}</span>`;
@@ -1399,7 +1625,7 @@
                 </div>` : '';
 
             return `
-            <div class="card ${isSelected ? 'selected' : ''}" id="card-${book.id}">
+            <div class="card ${isSelected ? 'selected' : ''} ${book.parentId ? 'is-relation' : ''}" id="card-${book.id}"${relStyle}>${relBadge}
                 <div class="card-top">
                     <div class="badge-row">
                         ${genreBadge}

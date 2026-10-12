@@ -1,0 +1,66 @@
+name: 週末マーケットニュース(#webhook_market)
+
+on:
+  schedule:
+    - cron: "0 23 * * 5"   # 土曜 08:00 JST（土曜版）
+    - cron: "0 11 * * 0"   # 日曜 20:00 JST（日曜版）
+  workflow_dispatch:
+    inputs:
+      edition:
+        description: "版（sat=土曜版 / sun=日曜版）"
+        type: choice
+        options: [sat, sun]
+        default: sun
+      dry_run:
+        description: "確認モード（Discordへ送信せず、stateも保存しない）"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write  # state/weekend_digest_seen.json（週末版専用の既送信記録）のコミット用
+
+jobs:
+  weekend-market-digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: weekend-market-digest
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      - name: 週末マーケットニュースを作成してDiscordへ配信
+        env:
+          DISCORD_WEBHOOK_MARKET: ${{ secrets.WEBHOOK_MARKET }}
+          DISCORD_WEBHOOK_NEWS: ${{ secrets.WEBHOOK_NEWS }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # cron の遅延で日付をまたいでも版を取り違えないよう、どの cron で起動したかで版を決める
+          EDITION: ${{ github.event.schedule == '0 23 * * 5' && 'sat' || (github.event.schedule == '0 11 * * 0' && 'sun' || inputs.edition) }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            python scripts/weekend_market_digest.py --edition "$EDITION" --dry-run
+          else
+            python scripts/weekend_market_digest.py --edition "$EDITION"
+          fi
+
+      - name: 既送信記録をコミット
+        # 確認モード(手動実行の dry_run)のときは state をコミットしない
+        if: always() && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          [ -f state/weekend_digest_seen.json ] || exit 0
+          git add state/weekend_digest_seen.json
+          git diff --cached --quiet || git commit -m "週末マーケットニュースの既送信記録を更新"
+          git pull --rebase origin main
+          git push

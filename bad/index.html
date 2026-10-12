@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="robots" content="noindex, nofollow, noarchive">
   <title>バドミントン管理 (リアルタイム同期版)</title>
 
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -96,6 +97,11 @@
     button.btn-save { width: 100%; padding: 14px; background-color: var(--success-color); color: white; font-size: 1rem; margin-top: 8px; }
     button.btn-cancel-save { width: 100%; padding: 12px; background-color: var(--danger-color); color: white; font-size: 0.9rem; margin-top: 8px; }
     button.btn-adjust { width: 100%; padding: 14px; background-color: var(--warning-color); color: white; font-size: 0.95rem; margin-top: 8px; }
+    .adjust-balance-ref { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; background: #fff7e6; border: 1px solid #ffe7ba; border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 12px; font-size: 0.8rem; color: var(--text-sub); }
+    .adjust-balance-ref strong { font-size: 1.05rem; color: var(--text-main); }
+    .adjust-preview { font-size: 0.8rem; line-height: 1.7; margin-top: 6px; color: var(--text-sub); }
+    .adjust-preview strong { font-size: 0.95rem; }
+    .adjust-detail { margin-top: 4px; font-size: 0.78rem; color: var(--text-sub); line-height: 1.6; }
     button.btn-csv { background-color: #efeff4; color: var(--text-main); padding: 6px 12px; font-size: 0.75rem; border: 1px solid var(--border-color); }
     button.btn-report-toggle { width: 100%; padding: 12px; background-color: var(--purple-color); color: white; font-size: 0.9rem; margin-top: 12px; }
     button.btn-back { background-color: #e5e5ea; color: var(--text-main); padding: 6px 14px; font-size: 0.85rem; }
@@ -113,8 +119,14 @@
       display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid transparent;
     }
 
-    .member-chip.selected-700 { background-color: var(--primary-color); color: #ffffff; }
-    .member-chip.selected-500 { background-color: var(--success-color); color: #ffffff; }
+    .member-chip.selected-500 { background-color: var(--primary-color); color: #ffffff; }
+    .member-chip.selected-400 { background-color: var(--success-color); color: #ffffff; }
+    .member-chip.selected-700 { background-color: var(--warning-color); color: #ffffff; } /* 旧記録(700円)の編集時のみ */
+    .member-chip.selected-transfer { background-color: #ffffff; color: #5b21b6; border: 1.5px dashed #7c3aed; } /* 前回分振替（色に加えて「振替」の文字と点線枠で明示） */
+    .grant-btn { border: 1px solid currentColor; background: transparent; color: inherit; border-radius: 10px; padding: 1px 7px; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
+    .grant-btn[hidden] { display: none; }
+    .transfer-warn { margin: 0 0 10px 0; padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--danger-color); background: #fff1f0; color: var(--danger-color); font-size: 0.8rem; line-height: 1.5; }
+    .transfer-credits { margin: 0 0 10px 0; padding: 8px 10px; border-radius: var(--radius-sm); border: 1px dashed #7c3aed; background: #faf5ff; color: #5b21b6; font-size: 0.8rem; line-height: 1.5; }
     .delete-btn { color: #8e8e93; font-weight: 700; cursor: pointer; font-size: 0.9rem; margin-left: 2px; }
 
     .form-row { margin-bottom: 12px; width: 100%; }
@@ -220,9 +232,81 @@
       width: 100%; padding: 16px; background-color: var(--success-color); color: #fff;
       font-size: 1rem; margin-top: 4px;
     }
+
+    /* ===== 会費・運営シミュレーション（追加分。既存セレクタは変更しない） ===== */
+    .sim-note { font-size: 0.75rem; color: var(--text-sub); margin: 0 0 12px 0; line-height: 1.6; }
+    .sim-hero {
+      background: linear-gradient(135deg, #faf5ff 0%, #f3f0ff 100%); border: 1px solid #e9d5ff;
+      border-radius: var(--radius-sm); padding: 14px; margin-bottom: 14px;
+    }
+    .sim-hero__head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-bottom: 6px; }
+    .sim-badge { font-weight: 700; font-size: 0.9rem; color: #6b21a8; }
+    .sim-chip { background: var(--purple-color); color: #fff; border-radius: 999px; padding: 2px 10px; font-size: 0.7rem; font-weight: 700; }
+    .sim-hero__params { font-size: 0.74rem; color: var(--text-sub); margin-bottom: 10px; line-height: 1.7; overflow-wrap: anywhere; }
+    .sim-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .sim-kpi-wide { grid-column: 1 / -1; }
+    .sim-kpi-grid .profit-card { background: #ffffff; border-color: #e9d5ff; min-width: 0; }
+    .sim-kpi-grid .profit-card-label { color: #6b21a8; }
+    .sim-kpi-grid .profit-card-value { font-size: 1.02rem; line-height: 1.35; overflow-wrap: anywhere; }
+    .sim-kpi-sub { font-size: 0.68rem; color: var(--text-sub); margin-top: 3px; line-height: 1.5; overflow-wrap: anywhere; }
+    .sim-trial-note { font-size: 0.78rem; margin-top: 10px; line-height: 1.7; }
+    .sim-block { margin-top: 18px; }
+    .sim-block__title {
+      font-weight: 600; font-size: 0.85rem; margin-bottom: 8px;
+      display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .sim-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--border-color); border-radius: var(--radius-sm); }
+    .sim-table { width: 100%; border-collapse: collapse; font-size: 0.74rem; min-width: 440px; }
+    .sim-table th, .sim-table td { padding: 8px 8px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--border-color); }
+    .sim-table th:first-child, .sim-table td:first-child { text-align: left; }
+    .sim-table thead th { background: #fafafa; color: var(--text-sub); font-weight: 600; }
+    .sim-table tbody tr:last-child td { border-bottom: none; }
+    .sim-table tr.sim-row-fav td { background: #faf5ff; font-weight: 700; }
+    .sim-neg { color: var(--danger-color); }
+    .sim-small { font-size: 0.7rem; color: var(--text-sub); line-height: 1.7; margin-top: 8px; overflow-wrap: anywhere; }
+    .sim-fav-caption { font-size: 0.78rem; font-weight: 700; color: #6b21a8; margin: 14px 0 6px 0; line-height: 1.5; overflow-wrap: anywhere; }
+    .sim-dist { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .sim-dist-chip { background: #f0f7ff; border: 1px solid #bae0ff; color: #0050b3; border-radius: 999px; padding: 2px 10px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+    .sim-dist-chip.sim-dist-cancel { background: #fff7e6; border-color: #ffd591; color: #ad6800; }
+    .sim-dist-chip.sim-dist-big { background: #f6ffed; border-color: #b7eb8f; color: #237804; }
+    .sim-select-sm { width: auto; padding: 4px 24px 4px 10px; font-size: 0.75rem; }
+    details.sim-settings {
+      margin: 16px 0 0 0; background: #fafafa; border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm); box-shadow: none;
+    }
+    details.sim-settings > summary { padding: 12px 14px; font-size: 0.85rem; }
+    .sim-settings__body { padding: 4px 14px 14px 14px; }
+    .sim-set-group { font-size: 0.75rem; font-weight: 700; color: var(--primary-color); margin: 14px 0 6px 0; }
+    .sim-set-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .sim-set-grid .form-row { margin-bottom: 0; min-width: 0; }
+    .sim-set-grid .form-row label { line-height: 1.4; }
+    button.sim-reset-btn { margin-top: 14px; padding: 8px 14px; font-size: 0.8rem; background: #e5e5ea; color: var(--text-main); }
+    /* ===== Admin出し分け・参加者連携・残高アコーディオン ===== */
+    body.locked #mainPage, body.locked #reportPage { display: none !important; }
+    .app-header { position: relative; }
+    .admin-btn { position: absolute; right: 0; top: 50%; transform: translateY(-50%); border: 0; background: transparent; color: var(--text-sub); font-size: 0.8rem; font-weight: 600; padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+    .admin-btn.on { color: var(--primary-color); }
+    .admin-btn.on::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--success-color); margin-right: 6px; vertical-align: middle; }
+    .admin-gate { max-width: 640px; margin: 40px auto; padding: 28px 20px; text-align: center; color: var(--text-sub); }
+    .admin-gate strong { display: block; font-size: 1.05rem; color: var(--text-main); margin-bottom: 8px; }
+    .admin-gate button { margin-top: 16px; }
+    .admin-ov { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .admin-box { background: #fff; border-radius: 16px; padding: 20px; width: 100%; max-width: 340px; }
+    .admin-box h3 { margin: 0 0 10px; font-size: 1.05rem; }
+    .admin-box input { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 1.1rem; margin-bottom: 12px; }
+    .admin-box .row { display: flex; gap: 8px; }
+    .admin-box .row button { flex: 1; }
+    .attend-banner { margin: 0 0 12px; padding: 10px 12px; border-radius: var(--radius-sm); background: #eef5ff; border: 1px solid #bae0ff; font-size: 0.85rem; color: var(--text-main); }
+    .attend-banner:empty { display: none; }
+    .attend-banner .ab-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .attend-banner .ab-row button { padding: 6px 12px; font-size: 0.8rem; border: 1px solid var(--primary-color); background: #fff; color: var(--primary-color); border-radius: 999px; font-weight: 600; cursor: pointer; }
+    .attend-banner .ab-note { margin-top: 6px; color: var(--text-sub); font-size: 0.78rem; }
+    details.pool-acc > summary { cursor: pointer; font-weight: 700; color: var(--text-sub); list-style: none; padding: 4px 0; }
+    details.pool-acc > summary::-webkit-details-marker { display: none; }
+    details.pool-acc[open] > summary { margin-bottom: 12px; }
   </style>
 </head>
-<body>
+<body class="locked">
 
   <div id="toastContainer"></div>
 
@@ -241,7 +325,9 @@
 
   <div class="app-header">
     <h1>🏸 バドミントン現場記録</h1>
+    <button type="button" class="admin-btn" id="adminBtn">Admin</button>
   </div>
+  <div id="adminGate" class="admin-gate"></div>
 
   <div id="mainPage">
     <!-- 1. 現場入力 -->
@@ -249,13 +335,14 @@
       <div class="today-guide-card">
         <div class="today-guide-title">⚖️ 本日の推奨黒字ライン</div>
         <div id="todayBreakEven" class="today-guide-value">
-          参加 0名 (700円:0名 / 500円:0名) ｜ 会費合計 0円
+          参加 0名 (500円:0名 / 400円:0名) ｜ 会費合計 0円
         </div>
       </div>
 
+      <div id="attendeeImport" class="attend-banner"></div>
       <div class="section-title">
         <span>👥 参加メンバー選択</span>
-        <span style="font-size:0.75rem; color:var(--text-sub);">(タップ: 700円青 ➔ 500円緑 ➔ 未選択)</span>
+        <span style="font-size:0.75rem; color:var(--text-sub);">(タップ: 500円青 ➔ 400円緑 ➔ 未選択)</span>
       </div>
       <div id="memberList" class="member-list"></div>
 
@@ -293,7 +380,7 @@
         <div class="grid-2 form-row">
           <div>
             <label>会費単価 (固定)</label>
-            <input type="text" value="700円 / 500円" readonly style="background:#f0f0f5; color:var(--text-sub); font-weight:600;">
+            <input type="text" value="500円 / 400円" readonly style="background:#f0f0f5; color:var(--text-sub); font-weight:600;">
           </div>
           <div>
             <label>事前予約コート代</label>
@@ -305,10 +392,6 @@
           <div class="profit-card">
             <div class="profit-card-label">💰 本日の純損益</div>
             <div id="todayNetProfitDisplay" class="profit-card-value">0 円</div>
-          </div>
-          <div class="profit-card" style="background:#f6ffed; border-color:#b7ebc6;">
-            <div class="profit-card-label" style="color:#274fee;">📈 8/7からの累計損益</div>
-            <div id="sinceAug7ProfitDisplay" class="profit-card-value" style="color:var(--success-color);">0 円</div>
           </div>
         </div>
 
@@ -370,36 +453,121 @@
       <button type="button" id="goToReportBtn" class="btn-report-toggle">📈 損益分岐グラフ & 参加率レポートを見る ➔</button>
     </div>
 
+    <!-- 3.5 会費・運営シミュレーション（判断材料の表示専用。DB書き込みなし） -->
+    <details class="container" id="simSection" style="border-left: 4px solid var(--purple-color);">
+      <summary>📊 会費・運営シミュレーション</summary>
+      <div class="accordion-content">
+        <p class="sim-note">判断材料としての試算です。開催履歴は読み取りのみで、データの保存・会費の自動変更は一切行いません。設定値はこの端末にだけ記憶されます。</p>
+
+        <div class="sim-hero">
+          <div class="sim-hero__head">
+            <span class="sim-badge">⭐ 現在のおすすめ試行案</span>
+            <span class="sim-chip" id="simHeroChip">500円会費・半年試行</span>
+          </div>
+          <div class="sim-hero__params" id="simHeroParams"></div>
+          <div class="sim-kpi-grid">
+            <div class="profit-card">
+              <div class="profit-card-label" id="simKpiReachLabel">5万円到達予測</div>
+              <div class="profit-card-value" id="simKpiReach">-</div>
+              <div class="sim-kpi-sub" id="simKpiReachSub"></div>
+            </div>
+            <div class="profit-card">
+              <div class="profit-card-label">3年後残高</div>
+              <div class="profit-card-value" id="simKpiThree">-</div>
+              <div class="sim-kpi-sub" id="simKpiThreeSub"></div>
+            </div>
+            <div class="profit-card sim-kpi-wide">
+              <div class="profit-card-label">半年後の予想残高</div>
+              <div class="profit-card-value" id="simKpiHalf">-</div>
+              <div class="sim-kpi-sub" id="simKpiHalfSub"></div>
+            </div>
+          </div>
+          <div class="sim-trial-note">📝 半年後に実績とシミュレーションを比較してください。残高のズレが大きければ、下の設定値（参加人数・シャトル消費量など）を実績に合わせて更新します。</div>
+        </div>
+
+        <div class="sim-block">
+          <div class="sim-block__title"><span>📈 実績の取り込み（開催履歴・読み取りのみ）</span></div>
+          <div id="simAttendanceInfo"></div>
+        </div>
+
+        <div class="sim-block">
+          <div class="sim-block__title">
+            <span>🗓 年次シミュレーション（おすすめ試行案）</span>
+            <select id="simTableYears" class="sim-select-sm" aria-label="表示年数">
+              <option value="3">3年間</option>
+              <option value="5">5年間</option>
+              <option value="10">10年間</option>
+            </select>
+          </div>
+          <div class="sim-table-wrap"><table class="sim-table" id="simYearTable"></table></div>
+          <div class="sim-small" id="simPriceLine"></div>
+          <div class="sim-small" id="simYearNote"></div>
+        </div>
+
+        <div class="sim-block">
+          <div class="sim-block__title"><span>⚖️ 会費設定の比較</span></div>
+          <div class="sim-table-wrap"><table class="sim-table" id="simCompareTable"></table></div>
+          <div class="sim-fav-caption" id="simFavCaption"></div>
+          <div class="sim-table-wrap"><table class="sim-table" id="simFavTable"></table></div>
+        </div>
+
+        <details class="sim-settings" id="simSettings">
+          <summary>⚙️ 前提条件・設定値を変更する</summary>
+          <div class="sim-settings__body">
+            <div id="simSettingsBody"></div>
+            <button type="button" id="simResetBtn" class="sim-reset-btn">↩︎ 初期値に戻す</button>
+          </div>
+        </details>
+
+        <div class="sim-small" id="simAssumptions"></div>
+      </div>
+    </details>
+
     <!-- 4. 履歴ログ -->
     <div class="container">
       <div class="section-title">
         <span>📜 会計・予約履歴 (ログ)</span>
         <button type="button" id="downloadCsvBtn" class="btn-csv">📥 CSV出力</button>
       </div>
+      <div id="transferInfo"></div>
       <div id="historyList">データを読み込み中...</div>
     </div>
 
-    <!-- 5. 残高直接調整 -->
+    <!-- 5. 通算残高・累計（Adminだけが開ける。非Adminはゲートで画面ごと非表示） -->
+    <details class="container pool-acc" id="poolAccordion" style="border-top: 4px solid var(--warning-color);">
+      <summary>💰 通算残高・累計（Adminのみ・タップで開く）</summary>
+      <div class="profit-summary-grid" style="margin-bottom:12px;">
+        <div class="profit-card" style="background:#f6ffed; border-color:#b7ebc6;">
+            <div class="profit-card-label" style="color:#274fee;">📈 8/7からの累計損益</div>
+            <div id="sinceAug7ProfitDisplay" class="profit-card-value" style="color:var(--success-color);">0 円</div>
+          </div>
+      </div>
     <div class="container" style="border-top: 4px solid var(--warning-color);">
       <div class="section-title" style="color: var(--warning-color);">
         <span>🔧 残高の直接調整</span>
       </div>
       <form id="adjustForm" action="#" style="margin-top: 10px;">
+        <div class="adjust-balance-ref">
+          <span>現在のシステム残高</span>
+          <strong id="adjustCurrentBalance">¥0</strong>
+        </div>
         <div class="form-row">
           <label>調整日付</label>
           <input type="date" id="adjustDate">
         </div>
         <div class="form-row">
           <label>調整後のピッタリ残高 (円)</label>
-          <input type="number" id="adjustTargetBalance" placeholder="例: 155130">
+          <input type="number" id="adjustTargetBalance" placeholder="例: 100000">
+          <div id="adjustPreview" class="adjust-preview">調整後の残高を入力すると、差額を表示します</div>
         </div>
         <div class="form-row">
-          <label>調整理由・メモ</label>
-          <input type="text" id="adjustReason" value="初期繰越金">
+          <label>調整理由・メモ（必須）</label>
+          <input type="text" id="adjustReason" value="" placeholder="例: 先週分参加費の記入漏れ">
         </div>
         <button type="button" id="saveAdjustBtn" class="btn-adjust">💾 残高をこの金額に調整する</button>
       </form>
     </div>
+    </details>
   </div>
 
   <!-- レポート画面 -->
@@ -409,10 +577,10 @@
         <button type="button" id="goToMainBtn" class="btn-back">← 戻る</button>
         <span>📊 詳細分析レポート</span>
       </div>
-      <div style="margin-top:16px;">
-        <div style="font-weight:600; font-size:0.85rem; margin-bottom:6px;">📊 月別 収支推移</div>
+      <details class="pool-acc" style="margin-top:16px;">
+        <summary>📊 月別 収支推移（Adminのみ・タップで開く）</summary>
         <canvas id="financeChart" width="400" height="180"></canvas>
-      </div>
+      </details>
       <div style="margin-top:24px;">
         <div style="font-weight:600; font-size:0.85rem; margin-bottom:4px;">⚖️ 各回の損益</div>
         <canvas id="breakEvenChart" width="400" height="200"></canvas>
@@ -553,15 +721,94 @@
     let editingDocId = null;
     let editingReserveDocId = null;
     let selectedMemberFees = new Map();
+    let transferGrantNames = new Set(); // 「次回分込み」で支払った人（振替権の発生元。支払者のみ）
     let currentCalculatedNetBalance = 0;
     let accumulatedProfitSinceAug7Base = 0;
 
     function parseJSONSafe(str, fallback) {
       try { return JSON.parse(str); } catch (e) { return fallback; }
     }
-    let rawMembersData = parseJSONSafe(safeGetLS("bad_members", "[]"), []);
-    let rawEventsData = parseJSONSafe(safeGetLS("bad_events", "[]"), []);
-    let rawReservesData = parseJSONSafe(safeGetLS("bad_reserves", "[]"), []);
+    // 会計・履歴・名簿は、Adminログイン成功後にはじめて読み込む（startAccounting）。非Adminの間は端末キャッシュも読まない
+    let rawMembersData = [];
+    let rawEventsData = [];
+    let rawReservesData = [];
+    // 会費・運営シミュレーション（別scriptブロック）が開催履歴を「読み取り専用」で参照するための窓口
+    window.badApp = { getEvents: () => rawEventsData };
+
+    // ===== 前回分振替（導出型）BEGIN =====
+    // 振替権の残数・使用済みは保存しない。開催記録の membersTransfer（振替で参加・会費0円）と
+    // transferGrants（次回分込みで支払い）から毎回導出する。会費収入は実際に受け取った金額だけで、振替権の発生・使用では増減しない。
+    const TRANSFER = "T"; // selectedMemberFees 上の振替コード（0 だと「未選択」判定と衝突するため文字列）
+    function tfArr(v) { return Array.isArray(v) ? v : []; }
+    function tfStamp(e) {
+      const c = e && e.createdAt;
+      if (c && typeof c.seconds === "number") return c.seconds * 1000 + Math.floor((c.nanoseconds || 0) / 1e6);
+      if (typeof c === "number") return c;
+      if (typeof c === "string") { const t = Date.parse(c); return isNaN(t) ? 0 : t; }
+      return 0;
+    }
+    function computeTransferCredits(events) {
+      const list = (events || []).filter(e => e && e.type === "practice" && e.date && !e.isCancelled).slice().sort((a, b) =>
+        (a.date < b.date ? -1 : a.date > b.date ? 1 : 0) || (tfStamp(a) - tfStamp(b)) || (String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0));
+      const queues = {}, uses = [], violations = [];
+      list.forEach(ev => {
+        const members = new Set(tfArr(ev.members));
+        const paid = new Set([...tfArr(ev.members700), ...tfArr(ev.members500), ...tfArr(ev.members400)]);
+        // 1) 先に「振替の使用」（日付が厳密に前の、最も古い未使用の権から消化＝FIFO。同一開催の発生分は使えない）
+        [...new Set(tfArr(ev.membersTransfer))].forEach(name => {
+          if (!members.has(name)) violations.push({ type: "transfer-not-member", name, date: ev.date, eventId: ev.id });
+          if (paid.has(name)) violations.push({ type: "transfer-and-paid", name, date: ev.date, eventId: ev.id });
+          const q = queues[name] || (queues[name] = []);
+          if (q.length && q[0].date < ev.date) {
+            const g = q.shift();
+            uses.push({ name, useDate: ev.date, useEventId: ev.id, grantDate: g.date, grantEventId: g.eventId });
+          } else {
+            violations.push({ type: "no-credit", name, date: ev.date, eventId: ev.id });
+          }
+        });
+        // 2) その後に「振替権の発生」（支払者のみ・1人1回分まで）
+        [...new Set(tfArr(ev.transferGrants))].forEach(name => {
+          if (!paid.has(name)) { violations.push({ type: "grant-not-paid", name, date: ev.date, eventId: ev.id }); return; }
+          (queues[name] || (queues[name] = [])).push({ date: ev.date, eventId: ev.id });
+        });
+      });
+      const balance = {}, unused = [];
+      Object.keys(queues).forEach(name => {
+        if (queues[name].length) balance[name] = queues[name].length;
+        queues[name].forEach(g => unused.push({ name, date: g.date, eventId: g.eventId }));
+      });
+      return { balance, unused, uses, violations };
+    }
+    function tfWithChange(events, change) {
+      let list = (events || []).filter(e => !(change && ((change.removeId !== undefined && change.removeId !== null && e.id === change.removeId) ||
+                                                        (change.replaceId !== undefined && change.replaceId !== null && e.id === change.replaceId))));
+      if (change && change.replacement) list = list.concat([change.replacement]);
+      return list;
+    }
+    // 変更の前後で比べ、「その変更によって新しく生じた」不整合だけを返す（既存の不整合で無関係な編集を止めない）
+    function tfNewViolations(events, change) {
+      const key = v => `${v.type}|${v.name}|${v.date}`;
+      const before = new Set(computeTransferCredits(events).violations.map(key));
+      return computeTransferCredits(tfWithChange(events, change)).violations.filter(v => !before.has(key(v)));
+    }
+    function tfMd(d) { const m = /^\d{4}-(\d{2})-(\d{2})/.exec(d || ""); return m ? `${Number(m[1])}/${Number(m[2])}` : (d || ""); }
+    function tfDescribe(v) {
+      if (v.type === "no-credit") return `${v.name}さん：${tfMd(v.date)}の振替に使える振替権がありません`;
+      if (v.type === "transfer-not-member") return `${v.name}さん：${tfMd(v.date)}の振替が参加者に含まれていません`;
+      if (v.type === "transfer-and-paid") return `${v.name}さん：${tfMd(v.date)}で振替と会費支払いが重複しています`;
+      return `${v.name}さん：${tfMd(v.date)}の「次回分込み」が会費の支払いなしに付いています`;
+    }
+    function tfCandidateEvent(sel, grants, date, id) {
+      const m700 = [], m500 = [], m400 = [], tr = [];
+      sel.forEach((fee, name) => {
+        if (fee === 700) m700.push(name); else if (fee === 500) m500.push(name);
+        else if (fee === 400) m400.push(name); else if (fee === TRANSFER) tr.push(name);
+      });
+      const paid = new Set([...m700, ...m500, ...m400]);
+      return { id, type: "practice", date, members: [...m700, ...m500, ...m400, ...tr], members700: m700, members500: m500, members400: m400,
+               membersTransfer: tr, transferGrants: [...grants].filter(n => paid.has(n)), isCancelled: false };
+    }
+    // ===== 前回分振替（導出型）END =====
     let reservedCourtsMap = {};
     let reservedDocIdsMap = {};
     let reservedCompletedMap = {};
@@ -636,6 +883,7 @@
     const memberListContainer = document.getElementById("memberList");
     new Sortable(memberListContainer, {
       animation: 150,
+      disabled: true, // 名簿は参加回数の順に自動で並べる。ドラッグで members.order を上書きしないよう無効化（コードは残す）
       onEnd: async () => {
         const chips = Array.from(memberListContainer.querySelectorAll(".member-chip"));
         if (isFirebaseReady && db) {
@@ -690,35 +938,81 @@
       document.getElementById("reserveCalcDate").value = `${py}年${pm}月${pd}日 (${pw})`;
     }
 
+    // 現在の入力内容（日付・選択）に、この人の「振替」を足しても振替権の整合性が保てるか
+    function tfCandidateId() {
+      if (editingDocId) return editingDocId;
+      const dupe = rawEventsData.find(e => e.type === "practice" && e.date === eventDateInput.value);
+      return dupe ? dupe.id : "__new__";
+    }
+    function canUseTransfer(name) {
+      const date = eventDateInput ? eventDateInput.value : "";
+      if (!date) return false;
+      const id = tfCandidateId();
+      const base = new Map(selectedMemberFees); base.delete(name);
+      const withIt = new Map(base); withIt.set(name, TRANSFER);
+      const events = tfWithChange(rawEventsData, { replaceId: id, replacement: tfCandidateEvent(base, transferGrantNames, date, id) });
+      return tfNewViolations(events, { replaceId: id, replacement: tfCandidateEvent(withIt, transferGrantNames, date, id) }).length === 0;
+    }
+    function isPaidFee(fee) { return fee === 500 || fee === 400 || fee === 700; }
+    function syncGrantBtn(chip, name) {
+      const btn = chip.querySelector(".grant-btn");
+      if (!btn) return;
+      const paid = isPaidFee(selectedMemberFees.get(name));
+      const on = paid && transferGrantNames.has(name);
+      btn.hidden = !paid;
+      btn.textContent = on ? "✓次回分込み" : "＋次回分";
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+
     function renderMembersUI(members) {
       memberListContainer.innerHTML = "";
-      members.forEach((data) => {
+      sortMembersByAttendance(members).forEach((data) => {
         const chip = document.createElement("div");
         const currentFee = selectedMemberFees.get(data.name);
         
-        chip.className = `member-chip ${currentFee === 700 ? 'selected-700' : currentFee === 500 ? 'selected-500' : ''}`;
+        chip.className = `member-chip ${currentFee === 500 ? 'selected-500' : currentFee === 400 ? 'selected-400' : currentFee === 700 ? 'selected-700' : currentFee === TRANSFER ? 'selected-transfer' : ''}`;
         chip.dataset.id = data.id || data.name;
         chip.dataset.name = data.name;
 
         let feeLabel = '';
-        if (currentFee === 700) feeLabel = '✓ 700円';
-        else if (currentFee === 500) feeLabel = '★ 500円';
+        if (currentFee === 500) feeLabel = '✓ 500円';
+        else if (currentFee === 400) feeLabel = '★ 400円';
+        else if (currentFee === 700) feeLabel = '旧700円';
+        else if (currentFee === TRANSFER) feeLabel = '🔁 振替';
 
         chip.innerHTML = `
           <span>${feeLabel ? feeLabel + ' ' : ''}${data.name}</span>
+          <button type="button" class="grant-btn" hidden>＋次回分</button>
           <span class="delete-btn">×</span>
         `;
+        syncGrantBtn(chip, data.name);
+
+        chip.querySelector(".grant-btn").addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (transferGrantNames.has(data.name)) transferGrantNames.delete(data.name); else transferGrantNames.add(data.name);
+          renderMemberSelection();
+          updateSummary();
+        });
 
         chip.addEventListener("click", (e) => {
           if (e.target.classList.contains("delete-btn")) return;
           const status = selectedMemberFees.get(data.name);
-          if (!status) {
-            selectedMemberFees.set(data.name, 700);
-          } else if (status === 700) {
+          // 500円 → 400円 → 振替 → なし（旧700円は500円へ）。振替権がない人は「振替」を飛ばして通知
+          if (!status || status === 700) {
             selectedMemberFees.set(data.name, 500);
+          } else if (status === 500) {
+            selectedMemberFees.set(data.name, 400);
+          } else if (status === 400) {
+            if (canUseTransfer(data.name)) {
+              selectedMemberFees.set(data.name, TRANSFER);
+            } else {
+              selectedMemberFees.delete(data.name);
+              showToast(`${data.name}さんには使える振替権がないため、「振替」は選べません（なしにしました）`, "info", 4500);
+            }
           } else {
             selectedMemberFees.delete(data.name);
           }
+          if (!isPaidFee(selectedMemberFees.get(data.name))) transferGrantNames.delete(data.name);
           renderMemberSelection();
           updateSummary();
         });
@@ -727,6 +1021,7 @@
           e.stopPropagation();
           if (confirm(`${data.name} さんを削除しますか？`)) {
             selectedMemberFees.delete(data.name);
+            transferGrantNames.delete(data.name);
             if (isFirebaseReady && db && data.id) {
               await deleteDoc(doc(db, "members", data.id));
             } else {
@@ -753,13 +1048,16 @@
         const name = chip.dataset.name;
         const currentFee = selectedMemberFees.get(name);
         
-        chip.className = `member-chip ${currentFee === 700 ? 'selected-700' : currentFee === 500 ? 'selected-500' : ''}`;
+        chip.className = `member-chip ${currentFee === 500 ? 'selected-500' : currentFee === 400 ? 'selected-400' : currentFee === 700 ? 'selected-700' : currentFee === TRANSFER ? 'selected-transfer' : ''}`;
         
         let feeLabel = '';
-        if (currentFee === 700) feeLabel = '✓ 700円';
-        else if (currentFee === 500) feeLabel = '★ 500円';
+        if (currentFee === 500) feeLabel = '✓ 500円';
+        else if (currentFee === 400) feeLabel = '★ 400円';
+        else if (currentFee === 700) feeLabel = '旧700円';
+        else if (currentFee === TRANSFER) feeLabel = '🔁 振替';
 
         chip.querySelector("span").textContent = `${feeLabel ? feeLabel + ' ' : ''}${name}`;
+        syncGrantBtn(chip, name);
       });
     }
 
@@ -769,7 +1067,7 @@
       const name = input.value.trim();
       if (!name) return;
       
-      selectedMemberFees.set(name, 700);
+      selectedMemberFees.set(name, 500);
       if (isFirebaseReady && db) {
         await addDoc(collection(db, "members"), { name, order: rawMembersData.length, createdAt: serverTimestamp() });
       } else {
@@ -796,17 +1094,23 @@
     }
 
     function updateSummary() {
-      let count700 = 0;
+      let count700 = 0; // 旧記録(700円)の編集時のみ
       let count500 = 0;
+      let count400 = 0;
+      let countTransfer = 0; // 前回分振替（会費0円・参加は1名として数える）
 
       selectedMemberFees.forEach((fee) => {
         if (fee === 700) count700++;
         else if (fee === 500) count500++;
+        else if (fee === 400) count400++;
+        else if (fee === TRANSFER) countTransfer++;
       });
+      let countGrant = 0; // 次回分込み（追加の会費収入は計上しない）
+      transferGrantNames.forEach((n) => { if (isPaidFee(selectedMemberFees.get(n))) countGrant++; });
 
-      const totalCount = count700 + count500;
+      const totalCount = count700 + count500 + count400 + countTransfer;
       const courtFee = parseInt(courtFeeInput ? courtFeeInput.value : 0, 10) || 0;
-      const totalIncome = (count700 * 700) + (count500 * 500);
+      const totalIncome = (count700 * 700) + (count500 * 500) + (count400 * 400);
       const todayNetProfit = totalIncome - courtFee;
 
       if (todayNetProfitDisplay) {
@@ -816,7 +1120,7 @@
 
       const targetElem = document.getElementById("todayBreakEven");
       if (targetElem) {
-        targetElem.innerHTML = `参加 <strong>${totalCount}名</strong> (700円:${count700}名 / 500円:${count500}名) ｜ 会費合計 <strong>${totalIncome.toLocaleString()}円</strong>`;
+        targetElem.innerHTML = `参加 <strong>${totalCount}名</strong> (500円:${count500}名 / 400円:${count400}名${count700 ? ` / 旧700円:${count700}名` : ''}${countTransfer ? ` / 振替:${countTransfer}名` : ''}${countGrant ? ` / 次回分込み:${countGrant}名` : ''}) ｜ 会費合計 <strong>${totalIncome.toLocaleString()}円</strong>`;
       }
 
       const currentSelectedDate = eventDateInput ? eventDateInput.value : "";
@@ -1110,25 +1414,32 @@
 
     document.getElementById("saveEventBtn").onclick = function() { executeSaveEvent(false); };
     document.getElementById("saveCancelEventBtn").onclick = function() {
-      selectedMemberFees.clear();
+      selectedMemberFees.clear(); transferGrantNames.clear();
       renderMemberSelection();
       executeSaveEvent(true);
     };
 
     async function executeSaveEvent(isCancelled) {
-      const members700 = [];
+      const members700 = []; // 旧記録(700円)の編集時のみ
       const members500 = [];
+      const members400 = [];
+      const membersTransfer = []; // 前回分振替で参加（会費0円）
 
       if (!isCancelled) {
         selectedMemberFees.forEach((fee, name) => {
           if (fee === 700) members700.push(name);
           else if (fee === 500) members500.push(name);
+          else if (fee === 400) members400.push(name);
+          else if (fee === TRANSFER) membersTransfer.push(name);
         });
       }
+      // 次回分込み（振替権の発生元）は支払者だけ。追加の会費収入は計上しない
+      const paidNames = new Set([...members700, ...members500, ...members400]);
+      const transferGrants = isCancelled ? [] : [...transferGrantNames].filter(n => paidNames.has(n));
 
-      const totalMembers = [...members700, ...members500];
+      const totalMembers = [...members700, ...members500, ...members400, ...membersTransfer];
       const courtFeeVal = parseInt(courtFeeInput.value, 10) || 0;
-      const calculatedIncome = (members700.length * 700) + (members500.length * 500);
+      const calculatedIncome = (members700.length * 700) + (members500.length * 500) + (members400.length * 400);
       const netProfit = calculatedIncome - courtFeeVal;
 
       const payload = {
@@ -1140,6 +1451,9 @@
         members: totalMembers,
         members700: members700,
         members500: members500,
+        members400: members400,
+        membersTransfer: membersTransfer,
+        transferGrants: transferGrants,
         totalIncome: calculatedIncome,
         courtFee: courtFeeVal,
         netProfit: netProfit,
@@ -1159,6 +1473,13 @@
           if (!proceed) return;
           editingDocId = dupe.id; // 以降は更新（上書き）パスで処理される
         }
+      }
+
+      // --- 振替権の整合性チェック（この保存によって新しく矛盾が生じる場合は保存しない） ---
+      const tfBad = tfNewViolations(rawEventsData, { replaceId: editingDocId, replacement: { ...payload, id: editingDocId || "__new__" } });
+      if (tfBad.length) {
+        alert("保存できません。振替権が合わなくなります。\n\n" + tfBad.map(tfDescribe).join("\n") + "\n\n先に関係する開催の振替・次回分込みを直してください。");
+        return;
       }
 
       const ok = await runSave(async () => {
@@ -1195,7 +1516,7 @@
         console.warn("予約の消化処理に失敗:", e);
       }
 
-      selectedMemberFees.clear();
+      selectedMemberFees.clear(); transferGrantNames.clear();
       renderMemberSelection();
       updateSummary();
       renderReserveCheckList();
@@ -1238,12 +1559,62 @@
       await setReservesCompletedForDate(dateStr, false);
     }
 
+    // ---- 直接調整エリアの表示補助（表示専用。残高計算・保存内容は変更しない） ----
+    function adjFmtYen(n) { return `${n < 0 ? "-" : ""}¥${Math.abs(Math.round(n)).toLocaleString("ja-JP")}`; }
+    function adjFmtSigned(n) { return n > 0 ? `+${adjFmtYen(n)}` : n < 0 ? adjFmtYen(n) : "±¥0"; }
+    function adjDiffColor(n) { return n > 0 ? "var(--primary-color)" : n < 0 ? "var(--danger-color)" : "var(--text-sub)"; }
+
+    // 現在のシステム残高と、入力中の「差額・調整後残高」プレビュー（保存時の差額計算と同じ式）
+    function updateAdjustBalanceUI() {
+      const balEl = document.getElementById("adjustCurrentBalance");
+      const prevEl = document.getElementById("adjustPreview");
+      const input = document.getElementById("adjustTargetBalance");
+      if (!balEl || !prevEl || !input) return;
+      balEl.textContent = adjFmtYen(currentCalculatedNetBalance);
+      const target = parseInt(input.value, 10);
+      if (input.value === "" || !Number.isFinite(target)) {
+        prevEl.textContent = "調整後の残高を入力すると、差額を表示します";
+        return;
+      }
+      const diff = target - currentCalculatedNetBalance;
+      prevEl.innerHTML = `差額：<strong style="color:${adjDiffColor(diff)};">${adjFmtSigned(diff)}</strong><br>調整後残高：<strong>${adjFmtYen(target)}</strong>`;
+    }
+
+    // 登録日時（Firestore Timestamp / {seconds} / 文字列 のいずれにも対応。無ければ空）
+    function adjCreatedAtText(v) {
+      let d = null;
+      if (v && typeof v.toDate === "function") d = v.toDate();
+      else if (v && typeof v.seconds === "number") d = new Date(v.seconds * 1000);
+      else if (typeof v === "string" || typeof v === "number") d = new Date(v);
+      if (!d || isNaN(d.getTime())) return "";
+      return d.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo", hour12: false, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    }
+
+    // 履歴カード用: 保存済みの targetBalance / diffAmount / createdAt から導出して表示（旧レコードも同様）
+    function adjustDetailHtml(d) {
+      const lines = [];
+      if (typeof d.diffAmount === "number") {
+        let text = `差額 <strong style="color:${adjDiffColor(d.diffAmount)};">${adjFmtSigned(d.diffAmount)}</strong>`;
+        if (typeof d.targetBalance === "number") {
+          text += `　調整前 ${adjFmtYen(d.targetBalance - d.diffAmount)} → 調整後 ${adjFmtYen(d.targetBalance)}`;
+        }
+        lines.push(text);
+      }
+      const at = adjCreatedAtText(d.createdAt);
+      if (at) lines.push(`登録日時: ${at}`);
+      return lines.length ? `<div class="adjust-detail">${lines.join("<br>")}</div>` : "";
+    }
+
+    document.getElementById("adjustTargetBalance").addEventListener("input", updateAdjustBalanceUI);
+    updateAdjustBalanceUI();
+
     document.getElementById("saveAdjustBtn").onclick = async function() {
       const targetBalStr = document.getElementById("adjustTargetBalance").value;
       if (targetBalStr === "") return alert("調整後のピッタリ残高を入力してください");
 
       const targetBal = parseInt(targetBalStr, 10);
-      const reason = document.getElementById("adjustReason").value.trim() || "残高直接調整";
+      const reason = document.getElementById("adjustReason").value.trim();
+      if (!reason) return alert("調整理由を入力してください（例: 先週分参加費の記入漏れ）");
       const diffAmount = targetBal - currentCalculatedNetBalance;
 
       const payload = {
@@ -1265,21 +1636,26 @@
           renderEventsUI(rawEventsData);
         }
       }, `残高を ${targetBal.toLocaleString()} 円へ調整しました`);
-      if (ok) document.getElementById("adjustTargetBalance").value = "";
+      if (ok) {
+        document.getElementById("adjustTargetBalance").value = "";
+        document.getElementById("adjustReason").value = "";
+        updateAdjustBalanceUI();
+      }
     };
 
     document.getElementById("downloadCsvBtn").addEventListener("click", () => {
       if (rawEventsData.length === 0) return alert("出力できる履歴データがありません");
 
-      let csvContent = "\uFEFF日付,種別,時間帯,参加人数,700円メンバー,500円メンバー,会費収入,コート代,純損益,備考\n";
+      let csvContent = "\uFEFF日付,種別,時間帯,参加人数,700円メンバー,500円メンバー,400円メンバー,会費収入,コート代,純損益,備考,振替メンバー,次回分込みメンバー\n";
       rawEventsData.forEach(item => {
         if (item.type === "practice") {
           const m700Str = item.members700 ? `"${item.members700.join(';')}"` : '""';
           const m500Str = item.members500 ? `"${item.members500.join(';')}"` : '""';
+          const m400Str = item.members400 ? `"${item.members400.join(';')}"` : '""';
           const netProfit = (item.totalIncome||0) - (item.courtFee||0);
-          csvContent += `${item.date},練習,${item.time||''},${item.memberCount||0},${m700Str},${m500Str},${item.totalIncome||0},${item.courtFee||0},${netProfit},""\n`;
+          csvContent += `${item.date},練習,${item.time||''},${item.memberCount||0},${m700Str},${m500Str},${m400Str},${item.totalIncome||0},${item.courtFee||0},${netProfit},"","${tfArr(item.membersTransfer).join(';')}","${tfArr(item.transferGrants).join(';')}"\n`;
         } else if (item.type === "balance_adjust") {
-          csvContent += `${item.date},残高調整,"",0,"","",${item.diffAmount||0},0,0,"${item.reason||''} (設定残高:${item.targetBalance||0}円)"\n`;
+          csvContent += `${item.date},残高調整,"",0,"","","",${item.diffAmount||0},0,0,"${item.reason||''} (設定残高:${item.targetBalance||0}円)","",""\n`;
         }
       });
 
@@ -1303,13 +1679,16 @@
       courtFeeInput.value = target.courtFee || 0;
       applyLocationToControls("eventLocation", "eventLocationCustom", target.location || "");
 
-      selectedMemberFees.clear();
-      if (target.members700 || target.members500) {
+      selectedMemberFees.clear(); transferGrantNames.clear();
+      if (target.members700 || target.members500 || target.members400) {
         (target.members700 || []).forEach(name => selectedMemberFees.set(name, 700));
         (target.members500 || []).forEach(name => selectedMemberFees.set(name, 500));
+        (target.members400 || []).forEach(name => selectedMemberFees.set(name, 400));
       } else if (target.members) {
         target.members.forEach(name => selectedMemberFees.set(name, 700));
       }
+      tfArr(target.membersTransfer).forEach(name => selectedMemberFees.set(name, TRANSFER));
+      tfArr(target.transferGrants).forEach(name => { if (isPaidFee(selectedMemberFees.get(name))) transferGrantNames.add(name); });
 
       renderMemberSelection();
       updateSummary();
@@ -1319,9 +1698,18 @@
     };
 
     window.deleteEvent = async function(id) {
-      if (!confirm("この履歴を削除しますか？")) return;
-
       const target = rawEventsData.find(e => e.id === id);
+      // 振替権の根拠になっている記録（後の振替が依存している次回分込み）は削除できない
+      const tfBad = tfNewViolations(rawEventsData, { removeId: id });
+      if (tfBad.length) {
+        alert("この履歴は削除できません。後の振替が使えなくなります。\n\n" + tfBad.map(tfDescribe).join("\n") + "\n\n先に、その振替の記録を変更してください。");
+        return;
+      }
+      let tfNote = "";
+      if (target && tfArr(target.membersTransfer).length) tfNote += `\n※振替で参加した${tfArr(target.membersTransfer).length}名の振替権は、未使用に戻ります。`;
+      if (target && tfArr(target.transferGrants).length) tfNote += `\n※この記録に含まれる「次回分込み」${tfArr(target.transferGrants).length}件の振替権も消えます。`;
+      if (!confirm("この履歴を削除しますか？" + tfNote)) return;
+
       const practiceDate = (target && target.type === "practice") ? target.date : null;
 
       if (isFirebaseReady && db) {
@@ -1347,6 +1735,8 @@
     let breakEvenChart = null;
 
     function renderEventsUI(events) {
+      // シミュレーションが履歴の更新に追従するための通知（リスナーの例外はここへ波及しない）
+      document.dispatchEvent(new CustomEvent("bad:events-rendered"));
       const historyList = document.getElementById("historyList");
       historyList.innerHTML = "";
 
@@ -1397,6 +1787,8 @@
               </span>
             </div>
             <div>👥 参加 (${d.memberCount||0}名): ${isCancel ? '<span style="color:var(--warning-color); font-weight:600;">なし(中止)</span>' : (d.members||[]).join(", ")}</div>
+            ${tfArr(d.membersTransfer).length ? `<div style="margin-top:2px; color:#5b21b6; font-weight:600;">🔁 前回分振替で参加（会費0円）: ${tfArr(d.membersTransfer).join(", ")}</div>` : ''}
+            ${tfArr(d.transferGrants).length ? `<div style="margin-top:2px; color:#5b21b6; font-weight:600;">🎟 次回分込みで支払い: ${tfArr(d.transferGrants).join(", ")}</div>` : ''}
             <div style="margin-top:2px;">💰 純損益: <strong style="color:${calculatedNetProfit >= 0 ? 'var(--primary-color)' : 'var(--danger-color)'};">${calculatedNetProfit >= 0 ? '+' : ''}${calculatedNetProfit.toLocaleString()}円</strong></div>
             <div class="action-btns">
               <button type="button" class="btn-edit" onclick="editEvent('${id}')">✏️ 編集</button>
@@ -1413,6 +1805,7 @@
               <span>設定残高: ${(d.targetBalance||0).toLocaleString()}円</span>
             </div>
             <div>メモ/理由: ${d.reason || 'なし'}</div>
+            ${adjustDetailHtml(d)}
             <div class="action-btns">
               <button type="button" class="btn-del" onclick="deleteEvent('${id}')">🗑️ 削除</button>
             </div>
@@ -1434,8 +1827,11 @@
         }
       });
 
+      renderTransferInfo(events);
+
       // 残高直接調整の差分計算に使う現在残高（会費収入 - コート代、残高調整分は上のループで加減済み）
       currentCalculatedNetBalance = totalIncome - totalCourt;
+      updateAdjustBalanceUI();
 
       updateMemberStatsTable(memberStats, totalPracticeCount);
       updateSummary();
@@ -1443,6 +1839,29 @@
       updateBreakEvenChart(practiceBreakEvenData.reverse());
       // 予約点検表は練習実績ログの有無に依存するため、ログ更新時に必ず再描画する
       renderReserveCheckList();
+    }
+
+    // 振替権の未使用リストと、整合性エラー・名簿との表記ゆれの警告（警告のみ。会員ID化はしない）
+    function renderTransferInfo(events) {
+      const box = document.getElementById("transferInfo");
+      if (!box) return;
+      const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+      const r = computeTransferCredits(events);
+      const roster = new Set((rawMembersData || []).map((m) => m.name));
+      const notInRoster = [...new Set([...r.unused.map((u) => u.name), ...r.violations.map((v) => v.name)])].filter((n) => roster.size && !roster.has(n));
+      let html = "";
+      if (r.violations.length) {
+        html += `<div class="transfer-warn">⚠️ 振替権の不整合があります（記録を確認してください）<br>${r.violations.slice(0, 6).map((v) => esc(tfDescribe(v))).join("<br>")}${r.violations.length > 6 ? `<br>ほか${r.violations.length - 6}件` : ""}</div>`;
+      }
+      if (r.unused.length) {
+        const byName = {};
+        r.unused.forEach((u) => { (byName[u.name] = byName[u.name] || []).push(tfMd(u.date)); });
+        html += `<div class="transfer-credits">🎟 未使用の振替権: ${Object.keys(byName).map((n) => `${esc(n)}さん ${byName[n].length}回（${byName[n].join("・")}分）`).join(" ／ ")}</div>`;
+      }
+      if (notInRoster.length) {
+        html += `<div class="transfer-warn">⚠️ 名簿にない名前の振替記録があります（表記ゆれの可能性）: ${notInRoster.map(esc).join("、")}</div>`;
+      }
+      box.innerHTML = html;
     }
 
     // 画面表示直後にローカルキャッシュで即描画する（詳細は renderMembersUI 呼び出し箇所のコメント参照）。
@@ -1515,12 +1934,164 @@
     /* ===== Firebase 匿名認証 → リアルタイム購読の起動 ===== */
     // Firestore セキュリティルールを request.auth != null に絞れるよう、
     // ページ表示時に自動で匿名サインインし、認証成立後に購読を開始する。
+    /* ===== Admin（乱数表と共通のPIN）。UIの出し分け＋会計データの遅延ロード ===== */
+    // 非Adminの間は、会計・履歴・名簿のリスナー／端末キャッシュ読み込みを一切開始しない（通信にもメモリにも載せない）。
+    // ※ PIN自体はクライアント側の簡易ロックで、Firestoreルールでは強制されない（bm_config/admin のハッシュは読める）。
+    const ADMIN_KEY = "bm_admin_ok";
+    let adminCfg = undefined; // undefined=読込中 / null=未設定
+    let isAdmin = false, accountingOn = false, authReady = false, rtStarted = false, cfgSubscribed = false;
+    const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
+    const ssDel = (k) => { try { sessionStorage.removeItem(k); } catch (e) {} };
+    async function hashPin(pin) {
+      const data = new TextEncoder().encode("bm-v1:" + pin);
+      if (crypto && crypto.subtle) return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", data))).map(b => b.toString(16).padStart(2, "0")).join("");
+      let x = 5381; for (const b of data) x = ((x << 5) + x + b) >>> 0; return "w" + x.toString(16);
+    }
+    function refreshAdminUI() {
+      isAdmin = !!adminCfg && !!adminCfg.pinHash && ssGet(ADMIN_KEY) === adminCfg.pinHash;
+      document.body.classList.toggle("locked", !isAdmin);
+      const btn = document.getElementById("adminBtn"), gate = document.getElementById("adminGate");
+      btn.classList.toggle("on", isAdmin);
+      gate.style.display = isAdmin ? "none" : "";
+      if (!isAdmin) {
+        gate.innerHTML = "";
+        const t = document.createElement("strong");
+        const d = document.createElement("div");
+        if (adminCfg === undefined) { t.textContent = "読み込み中…"; }
+        else if (!adminCfg || !adminCfg.pinHash) { t.textContent = "Adminのログインが必要です"; d.textContent = "Admin PINが未設定です。乱数表（バド対戦表）でPINを設定してください。"; }
+        else { t.textContent = "Adminのログインが必要です"; d.textContent = "このページは主催者（Admin）専用です。"; }
+        gate.append(t, d);
+        if (adminCfg && adminCfg.pinHash) { const b = document.createElement("button"); b.type = "button"; b.className = "btn-primary"; b.textContent = "Adminログイン"; b.addEventListener("click", openAdminLogin); gate.append(b); }
+      }
+      if (isAdmin) startAccounting();
+    }
+    function openAdminLogin() {
+      if (!adminCfg || !adminCfg.pinHash) return showToast("Admin PINが未設定です。乱数表で設定してください", "info");
+      const ov = document.createElement("div"); ov.className = "admin-ov";
+      ov.innerHTML = '<div class="admin-box"><h3>Adminログイン</h3><input type="password" inputmode="numeric" maxlength="8" placeholder="PIN（4〜8桁）" autocomplete="off"><div class="row"><button type="button" class="btn-cancel-save" data-x>キャンセル</button><button type="button" class="btn-primary" data-ok>ログイン</button></div></div>';
+      document.body.append(ov);
+      const inp = ov.querySelector("input"); inp.focus();
+      const close = () => ov.remove();
+      ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+      ov.querySelector("[data-x]").addEventListener("click", close);
+      const go = async () => {
+        const pin = inp.value.trim();
+        if (!/^\d{4,8}$/.test(pin)) return showToast("4〜8桁の数字で入力してください", "error");
+        if (Date.now() < (openAdminLogin.lockUntil || 0)) return showToast("しばらくしてから再試行してください", "error");
+        if (await hashPin(pin) === adminCfg.pinHash) { openAdminLogin.fails = 0; try { sessionStorage.setItem(ADMIN_KEY, adminCfg.pinHash); } catch (e) {} close(); refreshAdminUI(); }
+        else { if ((openAdminLogin.fails = (openAdminLogin.fails || 0) + 1) >= 5) { openAdminLogin.lockUntil = Date.now() + 30000; openAdminLogin.fails = 0; } showToast("PINが違います", "error"); inp.value = ""; }
+      };
+      ov.querySelector("[data-ok]").addEventListener("click", go);
+      inp.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+    }
+    document.getElementById("adminBtn").addEventListener("click", () => {
+      if (isAdmin) { if (confirm("Adminからログアウトしますか？")) { ssDel(ADMIN_KEY); location.reload(); } } // 再読み込みで、メモリ上の会計データも消す
+      else openAdminLogin();
+    });
+    function subscribeAdminConfig() {
+      if (cfgSubscribed) return; cfgSubscribed = true;
+      onSnapshot(doc(db, "bm_config", "admin"), (snap) => { adminCfg = snap.exists() ? snap.data() : null; refreshAdminUI(); },
+        (err) => { console.warn("bm_config 読み取り失敗:", err); adminCfg = null; refreshAdminUI(); });
+    }
+    // Admin確認後にだけ呼ぶ。端末キャッシュの読み込み → Firestoreリスナー開始
+    function startAccounting() {
+      if (accountingOn) return; accountingOn = true;
+      rawMembersData = parseJSONSafe(safeGetLS("bad_members", "[]"), []);
+      rawEventsData = parseJSONSafe(safeGetLS("bad_events", "[]"), []);
+      rawReservesData = parseJSONSafe(safeGetLS("bad_reserves", "[]"), []);
+      renderMembersUI(rawMembersData); renderReservesUI(rawReservesData); renderEventsUI(rawEventsData);
+      ensureRealtime();
+    }
+    function ensureRealtime() { if (accountingOn && authReady && !rtStarted) { rtStarted = true; subscribeRealtime(); } }
+
+    /* ===== 乱数表の当日参加者を読み込む（読み取り専用。bm_* には書き込まない） ===== */
+    let attendeeUnsub = null, attendeeState = { date: null, list: [], error: false }, membersLive = false, userTouched = false;
+    const autoApplied = new Set();
+    function attendeeEntries() { // 出席者 → 名簿(members)のID突き合わせ。名簿に無い人は unknown
+      const known = [], unknown = [];
+      attendeeState.list.forEach((a) => {
+        const m = rawMembersData.find((x) => x.id === a.id);
+        if (m) known.push(m.name); else unknown.push(a.name || "？");
+      });
+      return { known, unknown };
+    }
+    function applyAttendees(mode) {
+      const { known } = attendeeEntries();
+      if (mode === "replace") { selectedMemberFees.clear(); transferGrantNames.clear(); }
+      known.forEach((name) => { if (!selectedMemberFees.has(name)) selectedMemberFees.set(name, 500); });
+      renderMemberSelection(); updateSummary(); renderAttendeeBanner();
+    }
+    function renderAttendeeBanner() {
+      const box = document.getElementById("attendeeImport"); if (!box) return;
+      box.innerHTML = "";
+      if (editingDocId || !accountingOn) return;
+      const { known, unknown } = attendeeEntries();
+      const row = document.createElement("div"); row.className = "ab-row";
+      const label = document.createElement("span");
+      if (attendeeState.error) label.textContent = "🏸 乱数表の参加者を取得できませんでした";
+      else if (!attendeeState.list.length) label.textContent = "🏸 乱数表の参加者: この日はまだありません";
+      else label.textContent = `🏸 乱数表の参加者 ${attendeeState.list.length}人`;
+      row.append(label);
+      if (known.length) {
+        const add = document.createElement("button"); add.type = "button"; add.textContent = "追加で読み込む";
+        add.addEventListener("click", () => { userTouched = true; applyAttendees("add"); });
+        const rep = document.createElement("button"); rep.type = "button"; rep.textContent = "置き換えて読み込む";
+        rep.addEventListener("click", () => { if (selectedMemberFees.size && !confirm("現在の選択を、乱数表の参加者で置き換えますか？")) return; userTouched = true; applyAttendees("replace"); });
+        row.append(add, rep);
+      }
+      box.append(row);
+      if (unknown.length) { const n = document.createElement("div"); n.className = "ab-note"; n.textContent = `名簿にいない参加者: ${unknown.join("、")}（下の追加欄で名簿に登録すると選べます）`; box.append(n); }
+    }
+    function maybeAutoApply() { // 初期選択: 選択が空・編集中でない・当日に未記録・ユーザー未操作のときだけ、日付ごとに1回
+      renderAttendeeBanner();
+      const date = eventDateInput.value;
+      if (!membersLive || editingDocId || userTouched || autoApplied.has(date) || attendeeState.date !== date) return;
+      if (!attendeeState.list.length || selectedMemberFees.size) return;
+      if (rawEventsData.some((e) => e.type === "practice" && e.date === date)) return;
+      autoApplied.add(date); applyAttendees("add");
+    }
+    function watchAttendees() {
+      if (attendeeUnsub) { attendeeUnsub(); attendeeUnsub = null; }
+      const date = eventDateInput.value;
+      attendeeState = { date, list: [], error: false };
+      if (!(isFirebaseReady && db && authReady && date)) return renderAttendeeBanner();
+      attendeeUnsub = onSnapshot(collection(db, "bm_sessions", date, "attendees"), (snap) => {
+        attendeeState = { date, list: snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.present !== false), error: false };
+        maybeAutoApply();
+      }, (err) => { console.warn("attendees 読み取り失敗:", err); attendeeState = { date, list: [], error: true }; renderAttendeeBanner(); });
+    }
+    if (eventDateInput) eventDateInput.addEventListener("change", () => { userTouched = false; if (accountingOn) watchAttendees(); });
+    document.getElementById("memberList").addEventListener("click", () => { userTouched = true; }, true);
+
+    /* ===== 名簿の並び順: 参加回数（全期間）の多い順。表示だけで members.order は変更しない ===== */
+    function attendanceCounts() {
+      const c = {};
+      rawEventsData.forEach((e) => { if (e.type === "practice") tfArr(e.members).forEach((n) => { c[n] = (c[n] || 0) + 1; }); });
+      return c;
+    }
+    function sortMembersByAttendance(members) {
+      const c = attendanceCounts();
+      return members.map((m, i) => ({ m, i })).sort((a, b) => (c[b.m.name] || 0) - (c[a.m.name] || 0) || ((a.m.order ?? 1e9) - (b.m.order ?? 1e9)) || (a.i - b.i)).map((x) => x.m);
+    }
+    if (new URLSearchParams(location.search).has("test")) { // 検証用フック（?test=1 のときだけ。通常利用では露出しない）
+      window.badApp.__t = {
+        setAdminCfg: (c) => { adminCfg = c; refreshAdminUI(); },
+        setAttendees: (list) => { attendeeState = { date: eventDateInput.value, list, error: false }; membersLive = true; maybeAutoApply(); },
+        setMembers: (l) => { rawMembersData = l; membersLive = true; renderMembersUI(rawMembersData); },
+        setEvents: (l) => { rawEventsData = l; renderMembersUI(rawMembersData); },
+        state: () => ({ isAdmin, accountingOn, rtStarted, nMembers: rawMembersData.length, nEvents: rawEventsData.length, nReserves: rawReservesData.length, fees: [...selectedMemberFees.entries()], userTouched }),
+        order: () => [...document.querySelectorAll("#memberList .member-chip")].map((x) => x.dataset.name)
+      };
+    }
+
     function subscribeRealtime() {
+      watchAttendees();
       onSnapshot(query(collection(db, "members"), orderBy("order", "asc")), (snapshot) => {
         rawMembersData = [];
         snapshot.forEach((docSnap) => rawMembersData.push({ id: docSnap.id, ...docSnap.data() }));
         safeSetLS("bad_members", JSON.stringify(rawMembersData));
         renderMembersUI(rawMembersData);
+        membersLive = true; maybeAutoApply();
       });
       onSnapshot(query(collection(db, "reserves"), orderBy("targetDate", "asc")), (snapshot) => {
         rawReservesData = [];
@@ -1533,16 +2104,17 @@
         snapshot.forEach((docSnap) => rawEventsData.push({ id: docSnap.id, ...docSnap.data() }));
         safeSetLS("bad_events", JSON.stringify(rawEventsData));
         renderEventsUI(rawEventsData);
+        renderMembersUI(rawMembersData); maybeAutoApply(); // 参加回数の並び順を最新の履歴で更新
       });
     }
 
     if (isFirebaseReady && db && auth) {
-      let realtimeStarted = false;
       onAuthStateChanged(auth, (user) => {
-        if (user && !realtimeStarted) {
-          realtimeStarted = true;
+        if (user && !authReady) {
+          authReady = true;
           console.log("匿名認証OK uid:", user.uid);
-          subscribeRealtime();
+          subscribeAdminConfig(); // PIN照合用の設定だけは先に読む（会計データはAdmin確認後）
+          ensureRealtime();
         }
       });
       signInAnonymously(auth).catch((err) => {
@@ -1552,12 +2124,13 @@
           "error",
           6000
         );
-        // フォールバック: 端末に残っているローカルデータで表示だけは行う
-        renderMembersUI(rawMembersData);
-        renderReservesUI(rawReservesData);
-        renderEventsUI(rawEventsData);
+        // フォールバック: Admin確認後に限り、端末に残っているローカルデータで表示（startAccounting 済みなら描画済み）
+        if (accountingOn) { renderMembersUI(rawMembersData); renderReservesUI(rawReservesData); renderEventsUI(rawEventsData); }
       });
+    } else {
+      adminCfg = null; // Firebase未接続の環境ではAdmin確認ができないため、ロックのまま
     }
+    refreshAdminUI();
 
     /* ===== 日程コピペ用モーダル（本日以降・予約済みのみ抽出） ===== */
     (function initScheduleCopyModal() {
@@ -1761,6 +2334,492 @@
         if (e.key === "Escape" && overlay.classList.contains("show")) closeModal();
       });
     })();
+  </script>
+
+  <!-- 📊 会費・運営シミュレーション（判断材料の表示専用）
+       ・既存DB(Firebase / localStorage の bad_*)には一切書き込まない
+       ・開催履歴は window.badApp.getEvents() 経由の読み取りのみ
+       ・保存するのは設定値のみ（この端末の localStorage: bad_sim_settings_v1）
+       ・消費量は将来コスト計算用の仮定値 shuttlesPerSession として分離（管理・入力UIは持たない） -->
+  <script type="module">
+    const SIM_STORAGE_KEY = "bad_sim_settings_v1";
+    const SIM_SEARCH_YEARS = 20; // 目標残高への到達を探索する最大年数
+
+    // 既定値＝おすすめ試行案。
+    // shuttlesPerSession(6個/開催)は仮定値。半年後に実際の購入数などから消費量を見積もれたら、
+    // この値（または画面の設定欄）を更新すれば、以降の試算すべてに反映される。
+    const SIM_DEFAULTS = Object.freeze({
+      startBalance: 0, // 現在の資金は残高情報のためソースに持たない。シミュレーション設定欄から手入力する（端末内に保存）
+      targetBalance: 50000,
+      baseFee: 500,
+      womenFee: 400,
+      womenCount: 1,
+      elderlyFee: 400,
+      elderlyCount: 1,
+      elderlyStartYears: 2,
+      shuttlePricePerDozen: 3250,
+      shuttleGrowthPct: 8,
+      shuttlesPerSession: 6,
+      shuttlesPerDozen: 12,
+      sessionsPerYear: 52,
+      courtFeeNormal: 900,
+      courtFeeTwoCourts: 2100,
+      twoCourtsThreshold: 8,
+      attendanceMode: "history",
+      fixedHeadcount: 6,
+      tableYears: 3
+    });
+
+    // [min, max, 整数か]
+    const SIM_LIMITS = {
+      startBalance: [-100000000, 1000000000],
+      targetBalance: [-100000000, 1000000000],
+      baseFee: [0, 100000],
+      womenFee: [0, 100000],
+      womenCount: [1, 2, true],
+      elderlyFee: [0, 100000],
+      elderlyCount: [0, 100, true],
+      elderlyStartYears: [0, 50],
+      shuttlePricePerDozen: [0, 1000000],
+      shuttleGrowthPct: [-50, 300],
+      shuttlesPerSession: [0, 1000],
+      shuttlesPerDozen: [1, 1000, true],
+      sessionsPerYear: [1, 366, true],
+      courtFeeNormal: [0, 1000000],
+      courtFeeTwoCourts: [0, 1000000],
+      twoCourtsThreshold: [1, 100, true],
+      fixedHeadcount: [0, 100, true]
+    };
+
+    const SIM_FIELD_GROUPS = [
+      { title: "資金・目標", fields: [
+        { key: "startBalance", label: "現在の資金 (円)", step: 1000 },
+        { key: "targetBalance", label: "目標残高＝下限 (円)", step: 1000 }
+      ] },
+      { title: "会費", fields: [
+        { key: "baseFee", label: "基本会費 (円)", step: 50 },
+        { key: "womenFee", label: "女性料金 (円)", step: 50 },
+        { key: "womenCount", label: "女性人数 (1〜2人/開催)", step: 1 },
+        { key: "elderlyFee", label: "高齢者料金 (円)", step: 50 },
+        { key: "elderlyCount", label: "高齢者人数 (適用開始後・人/開催)", step: 1 },
+        { key: "elderlyStartYears", label: "高齢者料金の適用開始 (現在から何年後)", step: 0.5 }
+      ] },
+      { title: "シャトル（将来コストの仮定値）", fields: [
+        { key: "shuttlePricePerDozen", label: "シャトル価格 (円/ダース)", step: 50 },
+        { key: "shuttleGrowthPct", label: "価格上昇率 (%/年)", step: 0.5 },
+        { key: "shuttlesPerSession", label: "消費量 (個/開催)", step: 1 },
+        { key: "shuttlesPerDozen", label: "1ダースの個数 (個)", step: 1 }
+      ] },
+      { title: "コート・開催", fields: [
+        { key: "sessionsPerYear", label: "年間開催回数 (回)", step: 1 },
+        { key: "courtFeeNormal", label: "通常のコート代 (円/回・3時間1面)", step: 100 },
+        { key: "courtFeeTwoCourts", label: "2面開放時のコート代 (円/回)", step: 100 },
+        { key: "twoCourtsThreshold", label: "2面にする参加人数 (人以上)", step: 1 }
+      ], note: "※2面開放時はご指定の2,100円を採用しています（300円/時間で単純計算すると19〜20時1面＋20〜22時2面＝1,500円）。実際の料金に合わせて変更できます。" }
+    ];
+
+    /* ---------- 設定値の読み書き・正規化 ---------- */
+    function simParse(v) {
+      if (v === "" || v === null || v === undefined) return NaN;
+      return Number(v);
+    }
+
+    function simSanitize(raw) {
+      const out = {};
+      Object.keys(SIM_DEFAULTS).forEach((key) => {
+        const def = SIM_DEFAULTS[key];
+        const rv = raw ? raw[key] : undefined;
+        if (key === "attendanceMode") { out[key] = rv === "fixed" ? "fixed" : "history"; return; }
+        if (key === "tableYears") { const n = simParse(rv); out[key] = [3, 5, 10].includes(n) ? n : def; return; }
+        const lim = SIM_LIMITS[key];
+        let v = simParse(rv);
+        if (!Number.isFinite(v)) v = def;
+        v = Math.min(lim[1], Math.max(lim[0], v));
+        if (lim[2]) v = Math.round(v);
+        out[key] = v;
+      });
+      return out;
+    }
+
+    function simLoadSaved() {
+      try { const t = localStorage.getItem(SIM_STORAGE_KEY); return t ? JSON.parse(t) : null; } catch (e) { return null; }
+    }
+    function simSaveSettings(s) {
+      try { localStorage.setItem(SIM_STORAGE_KEY, JSON.stringify(s)); } catch (e) { /* 保存できなくても計算は続ける */ }
+    }
+
+    /* ---------- 開催履歴 → 参加人数の分布（読み取りのみ） ---------- */
+    function simGetEvents() {
+      try {
+        if (window.badApp && typeof window.badApp.getEvents === "function") return window.badApp.getEvents() || [];
+      } catch (e) { /* フォールバックへ */ }
+      try { return JSON.parse(localStorage.getItem("bad_events") || "[]"); } catch (e) { return []; }
+    }
+
+    // アプリは同一開催日を1件として扱う（新規保存時は上書き確認、予約の消化判定も日付単位）ため、
+    // 同日の重複は最初の1件だけを採用する（アプリ内の find() と同じ解釈）。
+    // 中止/コート代のみ(0名)は参加人数0の開催として数える。
+    function simBuildAttendance(events) {
+      const seen = new Set();
+      const counts = new Map();
+      let sessions = 0, cancelled = 0, duplicates = 0;
+      (events || []).forEach((e) => {
+        if (!e || e.type !== "practice" || !e.date) return;
+        if (seen.has(e.date)) { duplicates++; return; }
+        seen.add(e.date);
+        let n = typeof e.memberCount === "number" ? e.memberCount : (Array.isArray(e.members) ? e.members.length : 0);
+        if (!Number.isFinite(n) || n < 0) n = 0;
+        if (e.isCancelled) n = 0;
+        counts.set(n, (counts.get(n) || 0) + 1);
+        sessions++;
+        if (n === 0) cancelled++;
+      });
+      const dist = Array.from(counts.entries()).sort((a, b) => a[0] - b[0])
+        .map(([n, count]) => ({ n, count, p: count / sessions }));
+      const played = sessions - cancelled;
+      let sum = 0;
+      dist.forEach((d) => { if (d.n > 0) sum += d.n * d.count; });
+      return { sessions, cancelled, duplicates, dist, meanPlayers: played > 0 ? sum / played : 0 };
+    }
+
+    function simResolveDistribution(s, att) {
+      if (s.attendanceMode === "history" && att.sessions > 0) {
+        return { dist: att.dist.map((d) => ({ n: d.n, p: d.p })), source: "history" };
+      }
+      return { dist: [{ n: s.fixedHeadcount, p: 1 }], source: s.attendanceMode === "fixed" ? "fixed" : "no-history" };
+    }
+
+    /* ---------- 計算エンジン（DOM非依存・期待値ベース） ---------- */
+    // N年目のシャトル単価 = 現在価格 × (1+上昇率)^(N-1)。内部は複利のまま丸めない。
+    function simShuttlePriceAtYear(s, yearIdx) {
+      return s.shuttlePricePerDozen * Math.pow(1 + s.shuttleGrowthPct / 100, yearIdx);
+    }
+
+    // i回目（0始まり）の開催1回あたりの期待値
+    function simSessionExpectation(s, dist, i) {
+      const spy = s.sessionsPerYear;
+      const yearIdx = Math.floor(i / spy);
+      const elderlyOn = i >= Math.round(s.elderlyStartYears * spy);
+      const elderlyN = elderlyOn ? s.elderlyCount : 0;
+      const shuttleWhenPlayed = (s.shuttlesPerSession / s.shuttlesPerDozen) * simShuttlePriceAtYear(s, yearIdx);
+      let income = 0, court = 0, playProb = 0;
+      dist.forEach(({ n, p }) => {
+        if (n <= 0) { court += p * s.courtFeeNormal; return; } // 中止でもコート代は発生（「中止/コート代のみ」記録と同じ扱い）
+        playProb += p;
+        const women = Math.min(s.womenCount, n);
+        const elderly = Math.min(elderlyN, n - women);
+        const general = n - women - elderly;
+        income += p * (general * s.baseFee + women * s.womenFee + elderly * s.elderlyFee);
+        court += p * (n >= s.twoCourtsThreshold ? s.courtFeeTwoCourts : s.courtFeeNormal);
+      });
+      return { income, court, shuttle: playProb * shuttleWhenPlayed };
+    }
+
+    function simulate(s, dist) {
+      const spy = s.sessionsPerYear;
+      const total = SIM_SEARCH_YEARS * spy;
+      let bal = s.startBalance;
+      const balAfter = [bal];
+      const years = [];
+      let yi = 0, yc = 0, ys = 0;
+      let reachedAt = bal <= s.targetBalance ? 0 : null;
+      let minBalance = bal;
+      for (let i = 0; i < total; i++) {
+        const e = simSessionExpectation(s, dist, i);
+        bal += e.income - e.court - e.shuttle;
+        balAfter.push(bal);
+        if (bal < minBalance) minBalance = bal;
+        yi += e.income; yc += e.court; ys += e.shuttle;
+        if (reachedAt === null && bal <= s.targetBalance) reachedAt = i + 1;
+        if ((i + 1) % spy === 0) {
+          years.push({ year: (i + 1) / spy, income: yi, court: yc, shuttle: ys, net: yi - yc - ys, end: bal });
+          yi = 0; yc = 0; ys = 0;
+        }
+      }
+      return { years, balAfter, reachedAt, minBalance };
+    }
+
+    /* ---------- 表示ヘルパー ---------- */
+    function simEl(tag, className, text) {
+      const e = document.createElement(tag);
+      if (className) e.className = className;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+    const simYen = (n) => Math.round(n).toLocaleString("ja-JP");
+    const simNum = (n) => Number.isInteger(n) ? n.toLocaleString("ja-JP") : String(Math.round(n * 100) / 100);
+    function simTargetLabel(t) {
+      return t !== 0 && t % 10000 === 0 ? `${(t / 10000).toLocaleString("ja-JP")}万円` : `${simYen(t)}円`;
+    }
+    function simApproxDate(sessions, spy) {
+      const d = new Date(Date.now() + sessions * (365.25 / spy) * 86400000);
+      return `${d.getFullYear()}年${d.getMonth() + 1}月頃`;
+    }
+    function simReach(res, s) {
+      const label = simTargetLabel(s.targetBalance);
+      if (res.reachedAt === 0) {
+        return { value: "すでに目標以下", short: "すでに目標以下", sub: `現在の資金が${label}以下です` };
+      }
+      if (res.reachedAt === null) {
+        return {
+          value: `${SIM_SEARCH_YEARS}年間では${label}に到達しません`,
+          short: `${SIM_SEARCH_YEARS}年間到達せず`,
+          sub: `${SIM_SEARCH_YEARS}年間の最低残高 ${simYen(res.minBalance)}円`
+        };
+      }
+      const months = Math.max(1, Math.round(res.reachedAt / s.sessionsPerYear * 12));
+      const y = Math.floor(months / 12), m = months % 12;
+      const text = y > 0 ? (m > 0 ? `約${y}年${m}か月後` : `約${y}年後`) : `約${m}か月後`;
+      return { value: text, short: text, sub: `${res.reachedAt}回目の開催／${simApproxDate(res.reachedAt, s.sessionsPerYear)}` };
+    }
+    const simBalAt = (res, sessions) => res.balAfter[Math.min(sessions, res.balAfter.length - 1)];
+
+    function simFillTable(table, headers, rows, favRow) {
+      table.textContent = "";
+      const thead = document.createElement("thead");
+      const hr = document.createElement("tr");
+      headers.forEach((h) => hr.appendChild(simEl("th", "", h)));
+      thead.appendChild(hr);
+      const tbody = document.createElement("tbody");
+      rows.forEach((cells) => {
+        const tr = document.createElement("tr");
+        if (favRow) tr.className = "sim-row-fav";
+        cells.forEach((c) => {
+          const text = typeof c === "object" ? c.t : c;
+          const td = simEl("td", typeof c === "object" && c.neg ? "sim-neg" : "", text);
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(thead);
+      table.appendChild(tbody);
+    }
+    const simMoneyCell = (n) => ({ t: simYen(n), neg: Math.round(n) < 0 });
+    const simSignedCell = (n) => ({ t: `${Math.round(n) > 0 ? "+" : ""}${simYen(n)}`, neg: Math.round(n) < 0 });
+
+    /* ---------- 設定UI ---------- */
+    function simField(f, value) {
+      const wrap = simEl("div", "form-row");
+      const id = `simIn_${f.key}`;
+      const label = simEl("label", "", f.label);
+      label.htmlFor = id;
+      const input = document.createElement("input");
+      input.type = "number";
+      input.id = id;
+      input.step = String(f.step);
+      input.inputMode = "decimal";
+      input.value = String(value);
+      input.dataset.simKey = f.key;
+      wrap.appendChild(label);
+      wrap.appendChild(input);
+      return wrap;
+    }
+
+    function simBuildSettingsUI(values) {
+      const body = document.getElementById("simSettingsBody");
+      body.textContent = "";
+      SIM_FIELD_GROUPS.forEach((g) => {
+        body.appendChild(simEl("div", "sim-set-group", g.title));
+        const grid = simEl("div", "sim-set-grid");
+        g.fields.forEach((f) => grid.appendChild(simField(f, values[f.key])));
+        body.appendChild(grid);
+        if (g.note) body.appendChild(simEl("div", "sim-small", g.note));
+      });
+
+      body.appendChild(simEl("div", "sim-set-group", "参加人数の前提"));
+      const grid = simEl("div", "sim-set-grid");
+      const modeWrap = simEl("div", "form-row");
+      const modeLabel = simEl("label", "", "参加人数の出し方");
+      modeLabel.htmlFor = "simIn_attendanceMode";
+      const mode = document.createElement("select");
+      mode.id = "simIn_attendanceMode";
+      mode.dataset.simKey = "attendanceMode";
+      [["history", "開催実績の分布を使う"], ["fixed", "固定人数で計算"]].forEach(([v, t]) => {
+        const o = document.createElement("option");
+        o.value = v; o.textContent = t;
+        mode.appendChild(o);
+      });
+      mode.value = values.attendanceMode;
+      modeWrap.appendChild(modeLabel);
+      modeWrap.appendChild(mode);
+      grid.appendChild(modeWrap);
+      grid.appendChild(simField({ key: "fixedHeadcount", label: "固定人数 (人/開催)", step: 1 }, values.fixedHeadcount));
+      body.appendChild(grid);
+    }
+
+    function simReadInputs() {
+      const raw = {};
+      document.querySelectorAll("#simSettingsBody [data-sim-key]").forEach((el) => { raw[el.dataset.simKey] = el.value; });
+      const ty = document.getElementById("simTableYears");
+      if (ty) raw.tableYears = ty.value;
+      return simSanitize(raw);
+    }
+
+    /* ---------- 描画 ---------- */
+    function simRenderHero(s, fav) {
+      const spy = s.sessionsPerYear;
+      const label = simTargetLabel(s.targetBalance);
+      document.getElementById("simHeroChip").textContent = `${simNum(s.baseFee)}円会費・半年試行`;
+
+      const params = document.getElementById("simHeroParams");
+      params.textContent = "";
+      params.appendChild(simEl("div", "", `基本${simNum(s.baseFee)}円 ＋ 女性${simNum(s.womenFee)}円（${s.womenCount}人/開催） ＋ 高齢者${simNum(s.elderlyFee)}円（現在から${simNum(s.elderlyStartYears)}年後〜・${s.elderlyCount}人/開催）`));
+      params.appendChild(simEl("div", "", `シャトル${simNum(s.shuttlesPerSession)}個/開催（${simYen(s.shuttlePricePerDozen)}円/ダース・年${simNum(s.shuttleGrowthPct)}%上昇） ／ 目標残高${simYen(s.targetBalance)}円 ／ 現在の資金${simYen(s.startBalance)}円`));
+
+      const reach = simReach(fav, s);
+      document.getElementById("simKpiReachLabel").textContent = `${label}到達予測`;
+      document.getElementById("simKpiReach").textContent = reach.value;
+      document.getElementById("simKpiReachSub").textContent = reach.sub;
+
+      const three = simBalAt(fav, 3 * spy);
+      const diff3 = three - s.startBalance;
+      const threeEl = document.getElementById("simKpiThree");
+      threeEl.textContent = `${simYen(three)}円`;
+      threeEl.style.color = Math.round(three) < 0 ? "var(--danger-color)" : "";
+      document.getElementById("simKpiThreeSub").textContent = `現在比 ${diff3 >= 0 ? "+" : ""}${simYen(diff3)}円`;
+
+      const halfSessions = Math.round(spy / 2);
+      const half = simBalAt(fav, halfSessions);
+      const diffH = half - s.startBalance;
+      const halfEl = document.getElementById("simKpiHalf");
+      halfEl.textContent = `${simYen(half)}円`;
+      halfEl.style.color = Math.round(half) < 0 ? "var(--danger-color)" : "";
+      document.getElementById("simKpiHalfSub").textContent = `${halfSessions}回開催後の期待値（現在比 ${diffH >= 0 ? "+" : ""}${simYen(diffH)}円）`;
+    }
+
+    function simRenderAttendance(s, att, resolved) {
+      const box = document.getElementById("simAttendanceInfo");
+      box.textContent = "";
+      const th = s.twoCourtsThreshold;
+      const bigCount = att.dist.filter((d) => d.n >= th).reduce((a, d) => a + d.count, 0);
+
+      let status;
+      if (resolved.source === "history") {
+        const rate = Math.round(att.cancelled / att.sessions * 1000) / 10;
+        status = `開催実績 ${att.sessions}回を使用（中止 ${att.cancelled}回＝${rate}%／開催した回の平均 ${att.meanPlayers.toFixed(1)}人）`;
+        if (att.duplicates > 0) status += `／同日の重複記録${att.duplicates}件は1件として集計`;
+      } else if (resolved.source === "fixed") {
+        status = `設定により固定${s.fixedHeadcount}人/開催で計算しています（開催実績は${att.sessions}回・使用していません）`;
+      } else {
+        status = `開催実績がまだ無いため、固定${s.fixedHeadcount}人/開催（中止なし）で計算しています`;
+      }
+      box.appendChild(simEl("div", "sim-small", status));
+
+      if (att.sessions > 0) {
+        const chips = simEl("div", "sim-dist");
+        att.dist.forEach((d) => {
+          const pct = Math.round(d.p * 1000) / 10;
+          let cls = "sim-dist-chip";
+          let text = `${d.n}人 ${d.count}回（${pct}%）`;
+          if (d.n === 0) { cls += " sim-dist-cancel"; text = `中止 ${d.count}回（${pct}%）`; }
+          else if (d.n >= th) cls += " sim-dist-big";
+          chips.appendChild(simEl("span", cls, text));
+        });
+        box.appendChild(chips);
+      }
+
+      const courtLine = (resolved.source === "history" && bigCount > 0)
+        ? `${th}人以上の開催が${bigCount}回 → その回は2面開放のコート代${simYen(s.courtFeeTwoCourts)}円で計算（それ以外は${simYen(s.courtFeeNormal)}円）`
+        : (resolved.source !== "history" && s.fixedHeadcount >= th)
+          ? `固定${s.fixedHeadcount}人は${th}人以上のため、毎回2面開放のコート代${simYen(s.courtFeeTwoCourts)}円で計算します`
+          : `${th}人以上の開催は実績にありません（出た場合は2面開放のコート代${simYen(s.courtFeeTwoCourts)}円で計算します。通常は${simYen(s.courtFeeNormal)}円）`;
+      box.appendChild(simEl("div", "sim-small", courtLine));
+      if (resolved.source === "history" && att.sessions < 8) {
+        box.appendChild(simEl("div", "sim-small", "※実績が少ないため参考値です。開催が増えるほど精度が上がります。"));
+      }
+
+      const fixedRow = document.getElementById("simIn_fixedHeadcount");
+      if (fixedRow) fixedRow.closest(".form-row").style.display = s.attendanceMode === "fixed" ? "" : "none";
+    }
+
+    function simRenderYearTable(s, fav) {
+      const rows = fav.years.slice(0, s.tableYears).map((y) => [
+        `${y.year}年目`, simMoneyCell(y.income), simMoneyCell(y.court), simMoneyCell(y.shuttle), simSignedCell(y.net), simMoneyCell(y.end)
+      ]);
+      simFillTable(document.getElementById("simYearTable"),
+        ["年度", "参加費収入", "コート代", "推定シャトル費", "年間収支", "期末残高"], rows, false);
+
+      const labels = ["現在(1年目)", "1年後(2年目)", "2年後(3年目)", "3年後(4年目)"];
+      const prices = labels.map((l, k) => `${l} ${simYen(simShuttlePriceAtYear(s, k))}円`).join(" → ");
+      document.getElementById("simPriceLine").textContent =
+        `シャトル単価（円/ダース・年${simNum(s.shuttleGrowthPct)}%複利で上昇）: ${prices}`;
+
+      const start = s.elderlyStartYears;
+      document.getElementById("simYearNote").textContent = (s.elderlyCount > 0)
+        ? `高齢者料金（${simNum(s.elderlyFee)}円×${s.elderlyCount}人/開催）は現在から${simNum(start)}年後${Number.isInteger(start) ? `（${start + 1}年目）` : ""}から適用。表の金額は期待値（円未満四捨五入）です。`
+        : "表の金額は期待値（円未満四捨五入）です。";
+    }
+
+    function simRenderCompare(s, dist, fav) {
+      const spy = s.sessionsPerYear;
+      const label = simTargetLabel(s.targetBalance);
+      const marks = ["①", "②", "③", "④"];
+      const rows = [700, 600, 500, 400].map((fee, idx) => {
+        const r = simulate({ ...s, baseFee: fee, womenFee: fee, elderlyFee: fee }, dist);
+        return [`${marks[idx]} 全員${fee}円`, simMoneyCell(simBalAt(r, spy)), simMoneyCell(simBalAt(r, 2 * spy)), simMoneyCell(simBalAt(r, 3 * spy)), simReach(r, s).short];
+      });
+      simFillTable(document.getElementById("simCompareTable"),
+        ["会費設定", "1年後残高", "2年後残高", "3年後残高", `${label}到達予測`], rows, false);
+
+      document.getElementById("simFavCaption").textContent =
+        `★ 本命ケース：基本${simNum(s.baseFee)}円＋女性${simNum(s.womenFee)}円＋${simNum(s.elderlyStartYears)}年後から高齢者${simNum(s.elderlyFee)}円`;
+      simFillTable(document.getElementById("simFavTable"),
+        ["会費設定", "半年後", "1年後", "2年後", "3年後", `${label}到達予測`],
+        [["本命", simMoneyCell(simBalAt(fav, Math.round(spy / 2))), simMoneyCell(simBalAt(fav, spy)), simMoneyCell(simBalAt(fav, 2 * spy)), simMoneyCell(simBalAt(fav, 3 * spy)), simReach(fav, s).short]],
+        true);
+    }
+
+    function simRenderAssumptions(s) {
+      const box = document.getElementById("simAssumptions");
+      box.textContent = "";
+      [
+        "【前提メモ】",
+        "・開催実績の分布（人数ごとの回数・中止率）から期待値で試算しています。",
+        `・中止の回は参加費0円・シャトル0個、コート代は通常額（${simYen(s.courtFeeNormal)}円）を支払う前提です（「中止/コート代のみ」の記録と同じ扱い）。`,
+        "・会費を変えても参加人数は変わらない前提です。",
+        `・コート代は通常=3時間×1面。${s.twoCourtsThreshold}人以上の回は2面開放（${simYen(s.courtFeeTwoCourts)}円）。`,
+        `・シャトル消費量は仮定値（${simNum(s.shuttlesPerSession)}個/開催）。中止の回は消費0、それ以外は毎回同じ個数としています。`,
+        "・このシミュレーションは何も保存せず、会費を自動で変更することもありません。"
+      ].forEach((t) => box.appendChild(simEl("div", "", t)));
+    }
+
+    function simRender() {
+      const s = simReadInputs();
+      const att = simBuildAttendance(simGetEvents());
+      const resolved = simResolveDistribution(s, att);
+      const fav = simulate(s, resolved.dist);
+      simRenderHero(s, fav);
+      simRenderAttendance(s, att, resolved);
+      simRenderYearTable(s, fav);
+      simRenderCompare(s, resolved.dist, fav);
+      simRenderAssumptions(s);
+      return { settings: s, attendance: att, favorite: fav };
+    }
+
+    function simOnSettingsChanged() {
+      const out = simRender();
+      simSaveSettings(out.settings);
+    }
+
+    /* ---------- 初期化 ---------- */
+    const simInitial = simSanitize(simLoadSaved() || SIM_DEFAULTS);
+    simBuildSettingsUI(simInitial);
+    document.getElementById("simTableYears").value = String(simInitial.tableYears);
+
+    document.getElementById("simSettingsBody").addEventListener("input", simOnSettingsChanged);
+    document.getElementById("simSettingsBody").addEventListener("change", simOnSettingsChanged);
+    document.getElementById("simTableYears").addEventListener("change", simOnSettingsChanged);
+    document.getElementById("simResetBtn").addEventListener("click", () => {
+      simBuildSettingsUI(SIM_DEFAULTS);
+      document.getElementById("simTableYears").value = String(SIM_DEFAULTS.tableYears);
+      simOnSettingsChanged();
+    });
+    document.addEventListener("bad:events-rendered", simRender);
+
+    simRender();
+
+    // 検証・将来の消費量補正用（実測値で shuttlesPerSession を更新して再計算するときの入口）
+    window.badSim = { SIM_DEFAULTS, simulate, buildAttendance: simBuildAttendance, resolveDistribution: simResolveDistribution, getSettings: simReadInputs, render: simRender };
   </script>
 </body>
 </html>

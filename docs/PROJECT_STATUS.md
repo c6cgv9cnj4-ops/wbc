@@ -92,7 +92,7 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
 | `com.rickykogyo.anzn-local` | 15分 | `scripts/anzn_local.py` があんぜんねっとの新着Embedを #webhook_local へ送る。送信に成功したときだけ既送信を確定 | `~/Library/Application Support/anzn-local/anzn_seen.json` / `~/Library/Logs/anzn-local.log` |
 | `com.rickykogyo.actions-dispatcher` | 5分 | `scripts/dispatch_workflows.py` が jma（10分）/ news（30分）/ CNBC（60分）を `gh workflow run` で起動する。実行中・間隔の内側なら見送り | `~/Library/Logs/actions-dispatcher.log` |
 - Actions 側の設定
-  - `news.yml` の `ANZN_SOURCE: "mac"`: あんぜんねっとは取得しない。防災まとめ欄は「自宅Macから配信中」と表示する
+  - `news.yml` の `ANZN_SOURCE: "mac"`: あんぜんねっと本体は取得しない（自宅Mac＋公式Mastodonが即時通知）。定期まとめの防災欄は、新着ローカルニュースがあってまとめを出す回に、公式Mastodon経由の直近24時間の県央3市の災害発生情報を読み取り専用で併記する（無ければ「確認された災害発生情報はありません」。取得失敗時は「確認できていません」）
   - `MAC_DISPATCHER: "on"`: news の実行間隔が60分を超えたら異常通知する
 - 切り替え時の記録: Actions側の既送信キー11件を引き継ぎ、初回の新着は0件（配信済み10件の再送なし）
   - 即時の再実行も0件。Actions の news は `ANZN_SOURCE=mac` でスキップを確認、403は0件
