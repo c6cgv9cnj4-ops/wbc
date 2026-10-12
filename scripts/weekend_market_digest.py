@@ -189,12 +189,13 @@ def market_lines(edition):
 
 
 # ── 本文の組み立て ────────────────────────────────
-def build_message(edition, now, news_items, gemini_client, events, events_error):
+def build_message(edition, now, news_items, gemini_client, events, events_error, guard=None):
     title = "土曜版：金曜の市場と週末の材料" if edition == "sat" else "日曜版：週末の材料と来週の予定"
     lines = [f"# 🗓️ 週末マーケットニュース（{title}・{now:%Y-%m-%d %H:%M} JST）", ""]
     lines += market_lines(edition)
     lines.append("\n## 📰 " + ("金曜大引け以降の重要ニュース" if edition == "sat" else "週末の重要ニュース"))
-    curated = mnc.curate(news_items, gemini_client, fn.GEMINI_MODEL_NAME) if news_items else None
+    # 2026-10-12: 再試行・待機は gemini_guard(指数バックオフ・日次上限の待機)に任せる
+    curated = mnc.curate(news_items, gemini_client, fn.GEMINI_MODEL_NAME, caller=guard.call if guard else None) if news_items else None
     if news_items:
         if curated is None and mnc.LAST_ERROR:
             news_alerts.record("gemini_weekend", "market", "週末マーケットニュースの材料整理(Gemini)",
@@ -250,7 +251,8 @@ def main(argv=None):
             news_alerts.record("ff_calendar", "market", "来週の重要経済イベント(Forex Factory)",
                                f"取得失敗 {news_alerts.short_error(err)}", "継続(イベント欄は「取得できませんでした」と表示)")
 
-    message = build_message(args.edition, now, news_items, gemini_client, events, events_error)
+    import gemini_guard
+    message = build_message(args.edition, now, news_items, gemini_client, events, events_error, guard=gemini_guard.Guard(state))
     print(message)
     if args.dry_run:
         print(f"[DRY-RUN] 送信・state保存はしません（記事{len(news_items)}件・イベント{len(events or [])}件）")

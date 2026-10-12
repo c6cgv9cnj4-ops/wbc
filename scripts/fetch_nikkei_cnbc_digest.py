@@ -39,6 +39,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import re
 import os
 import sys
 import time
@@ -215,6 +216,73 @@ def summarize(title, source_text, is_transcript):
         return None
 
 
+BATCH_LABELS = {True: "字幕からの要約", False: "概要欄からの要約(字幕なし)"}
+
+
+def _batch_prompt(items):
+    blocks = []
+    for n, it in enumerate(items):
+        kind = "動画の字幕テキスト" if it["is_transcript"] else "動画タイトルと概要欄"
+        blocks.append(f"[{n}] ({kind}) タイトル: {it['title']}\n本文:\n{it['text']}")
+    return f"""以下は日経CNBC（日本の経済専門テレビ局）の複数の動画の内容です。各動画について、
+日経平均の動き・注目セクター・為替金利動向を軸に、相場の要点を3〜5行の箇条書きでまとめてください。
+本文に無い数値・銘柄名は書かないこと(推測で埋めない)。字幕は実際の発言内容なので優先して使う。
+
+{chr(10).join(blocks)}
+
+各動画の結果を次のJSON配列だけで出力してください(説明文・コードフェンス不要):
+[{{"index": 0, "lines": ["・1行目", "・2行目"]}}]"""
+
+
+def summarize_batch(items, state=None):
+    """複数動画の要約を1回のGemini呼び出しにまとめる(2026-10-12、リクエスト回数の削減)。
+    items: [{"title", "text", "is_transcript"}]。戻り値は items と同じ長さのリスト(要約行 or None)。
+    失敗(429・5xx・解析失敗など)は全件 None にし、呼び出し側で『要約なし(リンクのみ)』に倒す。
+    再試行は gemini_guard(指数バックオフ・日次上限の待機)に任せ、待機状態は state に保存される。"""
+    results = [None] * len(items)
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    targets = [i for i, it in enumerate(items) if it.get("text") and len(it["text"]) >= 40]
+    if not api_key or not targets:
+        return results
+    try:
+        from google import genai
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] google-genaiの読み込みに失敗しました: {err}")
+        return results
+    import gemini_guard
+    guard = gemini_guard.Guard(state if state is not None else {})
+    prompt = _batch_prompt([items[i] for i in targets])
+    try:
+        client = genai.Client(api_key=api_key)
+        resp = guard.call(lambda: client.models.generate_content(model=GEMINI_MODEL_NAME, contents=prompt))
+        text = re.sub(r"^```(json)?|```$", "", resp.text.strip(), flags=re.MULTILINE).strip()
+        parsed = json.loads(text)
+        if not isinstance(parsed, list):
+            raise ValueError("JSON配列ではありません")
+    except Exception as err:  # noqa: BLE001
+        import news_alerts
+        print(f"[WARN] 要約生成に失敗しました(全{len(targets)}件を要約なしで配信): {news_alerts.short_error(err)}")
+        return results
+    for entry in parsed:
+        if not isinstance(entry, dict) or not isinstance(entry.get("index"), int):
+            continue
+        if not (0 <= entry["index"] < len(targets)):
+            continue
+        lines = [str(x).strip() for x in (entry.get("lines") or []) if str(x).strip()]
+        lines = [ln if ln.startswith("・") else f"・{ln}" for ln in lines][:5]
+        if lines:
+            results[targets[entry["index"]]] = lines
+    return results
+
+
+def prepare_source(video):
+    """要約の入力を用意する(Gemini は呼ばない)。字幕があれば字幕、無ければ概要欄。戻り値: dict。"""
+    transcript = fetch_transcript(video["video_id"])
+    if transcript:
+        return {"title": video["title"], "text": transcript, "is_transcript": True}
+    return {"title": video["title"], "text": (video.get("description") or "").strip(), "is_transcript": False}
+
+
 def build_digest(video):
     """(要約行のリスト or None, 出典ラベル) を返す。"""
     transcript = fetch_transcript(video["video_id"])
@@ -290,20 +358,23 @@ def main():
 
     embeds = []
     failed_ids = []
-    for v in new_videos:
-        lines, source_label = build_digest(v)
-        embeds.append(build_embed(v, lines, source_label))
-        if not lines:
-            failed_ids.append(v["video_id"])
-        print(f"  - {v['published']} {v['title'][:50]} … " + ("要約OK" if lines else "要約なし(リンクのみ)"))
-
     recovered_ids = []
-    for v in retry_videos:
-        lines, source_label = build_digest(v)
-        if lines:
-            embeds.append(build_embed(v, lines, f"{source_label}・再要約"))
-            recovered_ids.append(v["video_id"])
-        print(f"  - [再要約] {v['title'][:50]} … " + ("要約OK" if lines else "要約なし(次回再試行)"))
+    # 2026-10-12: 新着と再要約の動画を、Geminiへ1回の呼び出しにまとめる(字幕取得はGeminiを使わない)
+    work = [("new", v) for v in new_videos] + [("retry", v) for v in retry_videos]
+    sources = [prepare_source(v) for _, v in work]
+    results = summarize_batch(sources, state)
+    for (kind, v), src, lines in zip(work, sources, results):
+        label = BATCH_LABELS[src["is_transcript"]] if lines else None
+        if kind == "new":
+            embeds.append(build_embed(v, lines, label))
+            if not lines:
+                failed_ids.append(v["video_id"])
+            print(f"  - {v['published']} {v['title'][:50]} … " + ("要約OK" if lines else "要約なし(リンクのみ)"))
+        else:
+            if lines:
+                embeds.append(build_embed(v, lines, f"{label}・再要約"))
+                recovered_ids.append(v["video_id"])
+            print(f"  - [再要約] {v['title'][:50]} … " + ("要約OK" if lines else "要約なし(次回再試行)"))
     if not embeds:
         print("[INFO] 再要約できた動画がありませんでした(次回再試行)。")
         return 0
