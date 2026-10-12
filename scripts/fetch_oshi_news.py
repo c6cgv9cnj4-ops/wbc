@@ -33,6 +33,7 @@ import urllib.parse
 
 import feedparser
 import requests
+import atomic_io
 
 JST = datetime.timezone(datetime.timedelta(hours=9))
 
@@ -146,8 +147,7 @@ def load_seen_state():
 
 def save_seen_state(state):
     os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
-    with open(STATE_PATH, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2)
+    atomic_io.write_json_atomic(STATE_PATH, state, ensure_ascii=False, indent=2)
 
 
 def _prune_map(m, cutoff):

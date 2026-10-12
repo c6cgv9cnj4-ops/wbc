@@ -30,6 +30,7 @@ import requests
 import fetch_news as fn
 import market_news_curation as mnc
 import news_alerts
+import atomic_io
 
 JST = datetime.timezone(datetime.timedelta(hours=9))
 STATE_PATH = "state/weekend_digest_seen.json"
@@ -85,8 +86,7 @@ def load_state(path=None):
 def save_state(state, path=None):
     path = path or STATE_PATH
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2, sort_keys=True)
+    atomic_io.write_json_atomic(path, state, ensure_ascii=False, indent=2, sort_keys=True)
 
 
 def prune_state(state, now):

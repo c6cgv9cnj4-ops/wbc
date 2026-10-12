@@ -67,6 +67,7 @@ state/news_seen.json に記録し、そのURL/IDと重複するものはスキ�
 """
 import datetime
 import difflib
+import hashlib
 import json
 import os
 import re
@@ -78,6 +79,7 @@ import urllib.parse
 import feedparser
 import requests
 from bs4 import BeautifulSoup
+import atomic_io
 
 import market_news_curation
 import discord_style
@@ -474,8 +476,7 @@ def load_seen_state():
 
 def save_seen_state(state):
     os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
-    with open(STATE_PATH, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2, sort_keys=True)
+    atomic_io.write_json_atomic(STATE_PATH, state, ensure_ascii=False, indent=2, sort_keys=True)
 
 
 def prune_old_entries(state, now):
@@ -959,14 +960,12 @@ def _norm_text(text):
 
 
 def _bousai_fingerprints(item):
-    """同一事案の判定キー一覧: 記事ID・本文(空白と全半角を除いて完全一致)・発生日時と場所の組。"""
+    """同一事案の判定キー: 記事ID(同一レコード)と、本文の SHA256(空白・全半角を除いた本文で完全一致のみ)。
+    2026-10-12: 類似度判定は使わない。発生日時・場所だけの一致では除外しない(別事案の取りこぼし防止)。"""
     keys = [BOUSAI_SHOWN_PREFIX + _bousai_item_id(item)]
     body = _norm_text(item.get("summary"))
     if body:
-        keys.append(BOUSAI_BODY_PREFIX + body)
-    when, city = _norm_text(item.get("datetime")), _norm_text(item.get("city"))
-    if when and city:
-        keys.append(BOUSAI_EVENT_PREFIX + f"{when}|{city}")
+        keys.append(BOUSAI_BODY_PREFIX + hashlib.sha256(body.encode("utf-8")).hexdigest())
     return keys
 
 
@@ -1034,7 +1033,9 @@ def build_bousai_section(bousai_items, status="ok", hidden=0):
 #    (例: 「上尾市・桶川市の大雨」と「鴻巣市・北本市の大雨」、「震度2 10/2」と「震度4 9/29」)
 # キーは "local-title:<正規化見出し>"。管理キー("_")ではないため、Discord送信失敗時は既存の rollback で取り消される。
 # ---------------------------------------------------------------------------
-LOCAL_TITLE_SIMILARITY = 0.6
+LOCAL_TITLE_SIMILARITY = 0.85          # 2026-10-12: 0.6→0.85(別の事故を同一扱いしないため。実質的な同報判定)
+# 続報・結末など、同じ出来事でも情報が更新されている見出しは重複排除をバイパスして配信する
+LOCAL_UPDATE_KEYWORDS = ("続報", "鎮火", "容疑者", "死亡", "負傷")
 LOCAL_RECENT_DAYS = 3
 LOCAL_TITLE_KEY_PREFIX = "local-title:"
 LOCAL_TITLE_MIN_LEN = 8
@@ -1061,6 +1062,11 @@ def is_same_local_story(a, b):
     return difflib.SequenceMatcher(None, a, b).ratio() >= LOCAL_TITLE_SIMILARITY
 
 
+def has_local_update_keyword(title):
+    body = local_news_filter.split_source(title)[0]
+    return any(w in body for w in LOCAL_UPDATE_KEYWORDS)
+
+
 def dedupe_local_items(items, state, now):
     """直近の配信済み見出しと、今回の一覧内の類似見出しを除く。戻り値: (残す項目, 除いた件数)。state は変更しない。"""
     cutoff = (now - datetime.timedelta(days=LOCAL_RECENT_DAYS)).isoformat()
@@ -1069,6 +1075,9 @@ def dedupe_local_items(items, state, now):
     kept, kept_keys, dropped = [], [], 0
     for item in items:
         key = local_title_key(item["title"])
+        if has_local_update_keyword(item["title"]):
+            kept.append(item)                      # 続報・結末などは重複排除しない(誤って落とさない)
+            continue
         if any(is_same_local_story(key, r) for r in recent) or any(is_same_local_story(key, k) for k in kept_keys):
             dropped += 1
             continue

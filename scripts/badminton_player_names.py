@@ -21,6 +21,7 @@ import json
 import os
 import re
 import unicodedata
+import atomic_io
 
 NAMES_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "badminton_player_names_ja.json")
 SCHEMA_VERSION = 1
@@ -89,8 +90,7 @@ def load_names(path=None):
 def save_names(data, path=None):
     path = path or NAMES_PATH
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=1, sort_keys=True)
+    atomic_io.write_json_atomic(path, data, ensure_ascii=False, indent=1, sort_keys=True)
 
 
 def add_player(data, ja, latin, gender, source_url, snapshot_url, now):

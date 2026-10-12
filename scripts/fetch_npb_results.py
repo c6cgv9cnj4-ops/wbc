@@ -59,6 +59,7 @@ import time
 
 import requests
 from bs4 import BeautifulSoup
+import atomic_io
 
 JST = datetime.timezone(datetime.timedelta(hours=9))
 REQUEST_TIMEOUT = 20
@@ -380,8 +381,7 @@ def save_state(state):
     for key in sorted(state.keys())[:-STATE_RETENTION]:
         del state[key]
     os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
-    with open(STATE_PATH, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2, sort_keys=True)
+    atomic_io.write_json_atomic(STATE_PATH, state, ensure_ascii=False, indent=2, sort_keys=True)
 
 
 def payload_hash(games, details):

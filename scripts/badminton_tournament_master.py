@@ -26,6 +26,7 @@ import re
 import unicodedata
 
 import badminton_player_names as player_names
+import atomic_io
 
 MASTER_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "state", "badminton_tournament_master.json")
 ALIASES_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "badminton_event_aliases.json")
@@ -334,8 +335,7 @@ def load_master(path=None):
 def save_master(master, path=None):
     path = path or MASTER_PATH
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(master, f, ensure_ascii=False, indent=1, sort_keys=True)
+    atomic_io.write_json_atomic(path, master, ensure_ascii=False, indent=1, sort_keys=True)
 
 
 class TournamentMaster:

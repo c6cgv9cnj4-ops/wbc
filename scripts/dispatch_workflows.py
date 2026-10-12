@@ -26,6 +26,7 @@ import os
 import shutil
 import subprocess
 import sys
+import atomic_io
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -133,8 +134,7 @@ def check_anzn_liveness(now, dry_run=False):
             print("  [ERROR] 通知用の DISCORD_WEBHOOK_LOCAL が見つかりません。")
     if not dry_run:
         os.makedirs(SUPPORT_DIR, exist_ok=True)
-        with open(DISPATCHER_STATE_PATH, "w", encoding="utf-8") as f:
-            json.dump(dstate, f, ensure_ascii=False, indent=1)
+        atomic_io.write_json_atomic(DISPATCHER_STATE_PATH, dstate, ensure_ascii=False, indent=1)
     return is_stale
 
 

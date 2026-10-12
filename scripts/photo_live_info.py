@@ -20,6 +20,7 @@ import os
 import re
 import unicodedata
 from urllib.parse import urljoin
+import atomic_io
 
 LIVE_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "photo_spot_live_info.json")
 SCHEMA_VERSION = 1
@@ -49,8 +50,7 @@ def load_live(path=None):
 def save_live(store, path=None):
     path = path or LIVE_PATH
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(store, f, ensure_ascii=False, indent=1, sort_keys=True)
+    atomic_io.write_json_atomic(path, store, ensure_ascii=False, indent=1, sort_keys=True)
 
 
 def entries_for(store, spot_id):

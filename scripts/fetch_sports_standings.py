@@ -40,6 +40,7 @@ import sys
 import requests
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
+import atomic_io
 
 REQUEST_TIMEOUT = 20
 USER_AGENT = (
@@ -151,16 +152,28 @@ def fetch_jleague_standings():
 
 
 def club_name_from_cell(td):
-    """順位表のクラブ欄から正式名だけを取る(2026-10-12)。
-    公式ページは PC用の正式名(data-media="pc")と SP用の略称(data-media="sp")を別の span に入れており、
-    get_text() で連結すると「柏レイソル柏」のような重複になる。PC用があればそれ、無ければ先頭の span。"""
+    """順位表のクラブ欄から正式名だけを取る(2026-10-12 改修)。
+    1) data-media="pc"(PC用の正式名)があればそれ。
+    2) 無ければ data-media="sp"(SP用の略称)以外の span。
+    3) それも無ければ td 全体のテキスト。
+    どの経路でも、同じ文字列の連続(「チーム名チーム名」)は1つに正規化する。空文字は返さない。"""
     pc = td.select_one('span[data-media="pc"]')
     if pc and pc.get_text(strip=True):
-        return pc.get_text(strip=True)
-    span = td.find("span")
-    if span and span.get_text(strip=True):
-        return span.get_text(strip=True)
-    return td.get_text(" ", strip=True)
+        return _collapse_doubled(pc.get_text(strip=True))
+    spans = [sp for sp in td.find_all("span") if sp.get("data-media") != "sp" and sp.get_text(strip=True)]
+    if spans:
+        return _collapse_doubled(spans[0].get_text(strip=True))
+    return _collapse_doubled(td.get_text(" ", strip=True))
+
+
+_DOUBLED_RE = re.compile(r"^(.+?)\1+$")
+
+
+def _collapse_doubled(text):
+    """「柏レイソル柏レイソル」のような同一文字列の連続を1つにする。単独の文字列はそのまま返す。"""
+    text = re.sub(r"\s+", "", text or "")
+    m = _DOUBLED_RE.match(text)
+    return m.group(1) if m else text
 
 
 # ============================================================
@@ -382,8 +395,7 @@ def load_state():
 
 def save_state(state):
     os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
-    with open(STATE_PATH, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2)
+    atomic_io.write_json_atomic(STATE_PATH, state, ensure_ascii=False, indent=2)
 
 
 def content_hash(data):

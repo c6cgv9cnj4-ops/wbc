@@ -138,11 +138,12 @@ class WindowAndIdentityTest(unittest.TestCase):
         copy = dict(FIRE_A, key="anzn:OTHER:999", url="https://other/x")       # 別の記事IDでも本文が同じ
         self.assertEqual(self.filt(state, [copy])[0], [])
 
-    def test_same_datetime_and_city_different_body_is_skipped(self):
+    def test_same_datetime_and_city_different_body_is_not_skipped(self):
+        # 2026-10-12: 判定は本文のSHA256のみ。発生日時・場所だけの一致では除外しない
         state = {}
         fn.mark_bousai_shown([FIRE_A], state, NOW)
-        same_event = dict(FIRE_A, key="anzn:X:1", summary="火災 北本市 別表現")  # 日時と市が同じ
-        self.assertEqual(self.filt(state, [same_event])[0], [])
+        same_event = dict(FIRE_A, key="anzn:X:1", summary="火災 北本市 別表現")
+        self.assertEqual(len(self.filt(state, [same_event])[0]), 1)
 
     def test_sent_more_than_24h_ago_is_sent_again(self):
         state = {}
