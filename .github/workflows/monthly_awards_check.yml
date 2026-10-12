@@ -1,0 +1,40 @@
+name: monthly-awards-check
+
+on:
+  schedule:
+    - cron: '0 0 1 * *'    # 毎月1日 JST 9:00（UTC 0:00）
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Check new award winners
+        run: python scripts/check_monthly_awards.py
+
+      - name: Create pull request if honozassi.html changed
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "自動検知: 新しい文学賞受賞作の追加"
+          title: "自動検知: 新しい文学賞受賞作の追加"
+          body: |
+            月次の文学賞チェック（本屋大賞・直木賞・山本周五郎賞・大藪春彦賞）で、未登録の最新受賞作を検知したため追加しました。
+            刊行日・あらすじは未確認のまま追加しています。内容を確認してからマージしてください。
+          branch: auto/monthly-awards-check
+          delete-branch: true
+          add-paths: honozassi.html
