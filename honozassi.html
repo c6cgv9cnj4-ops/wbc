@@ -460,6 +460,18 @@
 .card.is-relation.selected { background: var(--selected-bg) !important; border-left-color: var(--selected-border) !important; }
 .pub-line { font-size: 0.78rem; color: var(--text-muted); }
 .sort-note { font-size: 0.76rem; color: var(--text-muted); margin-bottom: 8px; line-height: 1.5; }
+
+/* 読みたい・検索・モバイル v5 */
+.search-box { width: 100%; box-sizing: border-box; margin: 0 0 10px; padding: 10px 12px; font-size: 1rem; border: 1px solid var(--border-color); border-radius: 10px; background: var(--card-bg); color: var(--text-main); }
+.want-row { display: flex; }
+.want-toggle { min-height: 44px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-muted); font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+.want-toggle.on { background: #eef6ff; border-color: #457b9d; color: #1d4e6e; }
+.read-toggle { min-height: 44px; }
+.title, .meta, .pub-line, .synopsis { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+    .card { padding: 14px; }
+    .link-btn, .chip { min-height: 44px; }
+}
 </style>
 </head>
 <body>
@@ -470,6 +482,7 @@
         <p>気になる作品を「ポチる」で選んで、図書館の検索や共有にすぐ使えます。</p>
     </header>
 
+    <input type="search" id="searchInput" class="search-box" placeholder="書名・著者で検索" aria-label="書名・著者で検索" oninput="renderCards()">
     <div class="filter-bar" id="filterBar"></div>
     <div class="sub-filter-bar" id="readFilterBar"></div>
     <div class="result-count"><b id="resultCount">-</b> 件表示中</div>
@@ -915,8 +928,8 @@
         { id:"b88", genre:"otherlit", awardLabel:"第36回 柴田錬三郎賞", score:null,
           title:"ハヤブサ消防団", author:"池井戸潤", wikipediaExists:true,
           synopsis:"作家である主人公が父の故郷の消防団に加わり、山あいの集落で相次ぐ不穏な事件の謎に挑んでいくミステリー。" },
-        { id:"rel-b88-1", parentId:"b88", relationType:"series", relationText:"関連作", title:"ハヤブサ消防団 森へつづく道", author:"池井戸潤", date:null, pubDate:"2026-08-05", pubStatus:"確認済み", pubSource:"WebSearch: 集英社プレスリリース「8月5日発売」（koubo.jp/article/72753）",
-          synopsis:"『ハヤブサ消防団』の関連作。", genre:"otherlit", awardLabel:"関連作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b88-1", parentId:"b88", relationType:"sequel", relationText:"続編", title:"ハヤブサ消防団 森へつづく道", author:"池井戸潤", date:null, pubDate:"2026-08-05",  relSource:"出典: 集英社プレスリリース・ddnavi書評（『ハヤブサ消防団』の続編と明記）", pubStatus:"確認済み", pubSource:"WebSearch: 集英社プレスリリース「8月5日発売」（koubo.jp/article/72753）",
+          synopsis:"『ハヤブサ消防団』の関連作。", genre:"otherlit", awardLabel:"続編", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b89", genre:"otherlit", awardLabel:"第37回 柴田錬三郎賞", score:null,
           title:"幽玄F", author:"佐藤究", wikipediaExists:true,
           synopsis:"戦闘機パイロットを目指す青年の生と、能楽の幽玄美が交錯する長編小説。暴力と美、生と死をめぐる著者渾身の一作。" },
@@ -994,8 +1007,8 @@
         { id:"b113", genre:"otherlit", awardLabel:"第11回 中央公論文芸賞", score:null,
           title:"罪の終わり", author:"東山彰良", wikipediaExists:true,
           synopsis:"秩序が崩壊した世界で、価値観を破壊し人々を救済する圧倒的な力を持つ男の生涯を描く。『ブラックライダー』の前日譚となる物語。" },
-        { id:"rel-b113-1", parentId:"b113", relationType:"series", relationText:"世界観共有作", title:"ブラックライダー", author:"東山彰良", date:"2013-09", pubDate:"2013", pubStatus:"部分確認", pubSource:"WebSearch: 単行本初出 2013年（月日は未確認）",
-          synopsis:"『罪の終わり』の世界観共有作。", genre:"otherlit", awardLabel:"世界観共有作", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
+        { id:"rel-b113-1", parentId:"b113", relationType:"sequel", relationText:"続編（物語上の続編・刊行は先）", title:"ブラックライダー", author:"東山彰良", date:"2013-09", pubDate:"2013",  relSource:"出典: 文春オンライン記事（『罪の終わり』は『ブラックライダー』の前日譚）。単一出典のため要再確認", pubStatus:"部分確認", pubSource:"WebSearch: 単行本初出 2013年（月日は未確認）",
+          synopsis:"『罪の終わり』の世界観共有作。", genre:"otherlit", awardLabel:"続編（物語上の続編・刊行は先）", score:null, age:null, wikipediaExists:false, needsCheck:true, read:false },
         { id:"b114", genre:"otherlit", awardLabel:"第12回 中央公論文芸賞", score:null,
           title:"みかづき", author:"森絵都", wikipediaExists:true,
           synopsis:"戦後から平成にかけて学習塾を営み続けた家族三代の奮闘を描いた大河小説。教育に人生を捧げた人々の情熱と葛藤を見つめる。" },
@@ -1664,6 +1677,35 @@
         saveReadRecords();
     }
 
+    // 読みたい本（チェック状態）。読了記録とは別キーで独立管理する。
+    const WANT_STORAGE_KEY = "honozassi-want-v1";
+    let wantIds = new Set();
+    function loadWant() {
+        try {
+            const v = JSON.parse(localStorage.getItem(WANT_STORAGE_KEY) || "[]");
+            wantIds = new Set(Array.isArray(v) ? v : []);
+        } catch (e) { wantIds = new Set(); }
+    }
+    function saveWant() {
+        try { localStorage.setItem(WANT_STORAGE_KEY, JSON.stringify([...wantIds])); }
+        catch (e) { /* 保存できない環境でも表示は継続 */ }
+    }
+    function toggleWant(id) {
+        if (wantIds.has(id)) wantIds.delete(id); else wantIds.add(id);
+        saveWant();
+        renderCards();
+    }
+    // 親と関連作を1グループにまとめる（表示順は入力順のまま）
+    function buildGroups(books) {
+        const groups = [];
+        books.forEach(book => {
+            const last = groups[groups.length - 1];
+            if (book.parentId && last && last[0].id === book.parentId) last.push(book);
+            else groups.push([book]);
+        });
+        return groups;
+    }
+
     function renderFilterBar() {
         const bar = document.getElementById('filterBar');
         const genresPresent = GENRE_ORDER.filter(g => booksData.some(b => b.genre === g));
@@ -1678,7 +1720,8 @@
         const readChips = [
             { key: "all", label: "すべて" },
             { key: "read", label: "📖 読了のみ" },
-            { key: "unread", label: "未読のみ" }
+            { key: "unread", label: "未読のみ" },
+            { key: "want", label: "📌 読みたい" }
         ];
         readBar.innerHTML = readChips.map(c => `
             <button class="chip" data-active="${readFilter === c.key}" onclick="setReadFilter('${c.key}')">${c.label}</button>
@@ -1733,9 +1776,17 @@
 
     function renderCards() {
         const container = document.getElementById('book-grid');
-        let list = booksData.filter(b => activeFilter === "all" || b.genre === activeFilter);
-        if (readFilter === "read") list = list.filter(b => getReadRecord(b.id).read);
-        else if (readFilter === "unread") list = list.filter(b => !getReadRecord(b.id).read);
+        const q = ((document.getElementById('searchInput') || {}).value || '').trim().toLowerCase();
+        const base = booksData.filter(b => (activeFilter === "all" || b.genre === activeFilter)
+            && (!q || (b.title + ' ' + b.author).toLowerCase().includes(q)));
+        let groups = buildGroups(base);
+        if (readFilter === "want") groups = groups.filter(g => g.some(b => wantIds.has(b.id)));
+        else if (readFilter === "read") groups = groups.map(g => g.filter(b => getReadRecord(b.id).read)).filter(g => g.length);
+        else if (readFilter === "unread") groups = groups.map(g => g.filter(b => !getReadRecord(b.id).read)).filter(g => g.length);
+        // 読みたい本を含むグループを上部へ（グループ単位で移動し、内部の順序は維持）
+        const hasWant = g => g.some(b => wantIds.has(b.id));
+        groups = [...groups.filter(hasWant), ...groups.filter(g => !hasWant(g))];
+        const list = groups.flat();
         document.getElementById('resultCount').textContent = list.length;
 
         if (list.length === 0) {
@@ -1745,6 +1796,7 @@
 
         const cardHtml = (book) => {
             const isSelected = selectedBooks.has(book.id);
+            const wanted = wantIds.has(book.id);
             const parentBook = book.parentId ? booksData.find(p => p.id === book.parentId) : null;
             const REL_COLORS = { sequel: '#2a9d8f', prequel: '#457b9d', spinoff: '#e07a5f', series: '#6d6875' };
             const relColor = REL_COLORS[book.relationType] || '#6d6875';
@@ -1794,6 +1846,11 @@
                 <div class="meta">著者: ${authorHtml}${ageText}</div>
                 <div class="pub-line" title="${book.pubSource || ''}">刊行: ${pubText}</div>
                 <div class="synopsis">${book.synopsis}</div>
+                <div class="want-row">
+                    <button class="want-toggle ${wanted ? 'on' : ''}" aria-pressed="${wanted}" onclick="toggleWant('${book.id}')">
+                        ${wanted ? '📌 読みたい（チェック済み）' : '📌 読みたい'}
+                    </button>
+                </div>
                 <div class="read-track">
                     <button class="read-toggle ${readRec.read ? 'on' : ''}" onclick="toggleRead('${book.id}')">
                         ${readRec.read ? '✅ 読了済み' : '📖 読んだ'}
@@ -1808,13 +1865,7 @@
             </div>`;
         };
 
-        // 親と関連作は同じ「グループ」として1つの表示単位にまとめ、PC 2列グリッドで分断しない
-        const groups = [];
-        list.forEach(book => {
-            const last = groups[groups.length - 1];
-            if (book.parentId && last && last[0].id === book.parentId) last.push(book);
-            else groups.push([book]);
-        });
+        // 親と関連作は1つの表示単位（.book-group）にして、PC 2列グリッドで分断しない
         container.innerHTML = groups.map(g => g.length === 1
             ? cardHtml(g[0])
             : `<div class="book-group">${g.map(cardHtml).join('')}</div>`).join('');
@@ -1973,6 +2024,7 @@
     }
 
     loadReadRecords();
+    loadWant();
     renderFilterBar();
     renderCards();
 </script>
