@@ -10,6 +10,13 @@
     "https://www.boj.or.jp/statistics/pi/cgpi_release/cgpi2609.pdf": "2026-10-14T00:02:05.834172+09:00",
     "https://www.jpx.co.jp/news/1023/20261013-11.html": "2026-10-14T00:02:05.834172+09:00",
     "https://www.jpx.co.jp/listing/stocks/transfers/index.html": "2026-10-14T00:02:05.834172+09:00",
-    "https://www.jpx.co.jp/news/1023/20261013-12.html": "2026-10-14T00:02:05.834172+09:00"
-  }
+    "https://www.jpx.co.jp/news/1023/20261013-12.html": "2026-10-14T00:02:05.834172+09:00",
+    "http://www.boj.or.jp/intl_finance/meeting/group/gro261013a.htm": "2026-10-14T08:56:46.317056+09:00",
+    "http://www.boj.or.jp/statistics/money/ms/ms2609.pdf": "2026-10-14T08:56:46.317056+09:00",
+    "http://www.boj.or.jp/intl_finance/meeting/group/gro261013c.htm": "2026-10-14T08:56:46.317056+09:00",
+    "http://www.boj.or.jp/statistics/set/bffail/sjgb2609.pdf": "2026-10-14T08:56:46.317056+09:00",
+    "http://www.boj.or.jp/research/o_survey/ishiki2610.htm": "2026-10-14T08:56:46.317056+09:00"
+  },
+  "_gemini_backoff:quota": "2026-10-14T08:59:59.812603+09:00",
+  "_gemini_backoff_basis:quota": "Googleの待ち時間(境界より前のため採用)"
 }
