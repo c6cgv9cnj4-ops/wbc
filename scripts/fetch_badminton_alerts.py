@@ -111,6 +111,7 @@ from bs4 import BeautifulSoup
 
 import badminton_tournament_master as tournament_master
 import atomic_io
+import gemini_guard
 
 JST = datetime.timezone(datetime.timedelta(hours=9))
 STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "state", "badminton_alerts_seen.json")
@@ -593,6 +594,11 @@ DETAIL_PROMPT = """あなたはバドミントン記事の事実抽出器です�
 """
 
 
+# 2026-10-13: 直叩きだった呼び出しを gemini_guard 経由に統一。503などの一時的失敗は 1.5秒→3.0秒 の指数バックオフで再試行し、
+# 429(日次上限)は再試行せず待機扱いにする。計測ログ [GEMINI_CALL] / [GEMINI_429] / [GEMINI_ERR] は Guard が出す。
+_GEMINI_GUARD = gemini_guard.Guard({}, base_delay=1.5, max_retries=2, retry_rate_limit=False)
+
+
 def _gemini():
     global _GEMINI_CLIENT
     if _GEMINI_CLIENT is None:
@@ -659,9 +665,9 @@ def _extract_details(title, text):
         return None
     from google.genai import types
     try:
-        resp = client.models.generate_content(
+        resp = _GEMINI_GUARD.call(lambda: client.models.generate_content(
             model=GEMINI_MODEL_NAME, contents=DETAIL_PROMPT.replace("{title}", title).replace("{text}", text),
-            config=types.GenerateContentConfig(response_mime_type="application/json"))
+            config=types.GenerateContentConfig(response_mime_type="application/json")), task="badminton_detail")
         d = json.loads(resp.text)
         return d if isinstance(d, dict) else None
     except Exception:  # noqa: BLE001
@@ -717,9 +723,10 @@ def _search_score_pages(team_a, team_b, headline_or_title, exclude_url):
     urls = []
     for q in queries:
         try:
-            resp = client.models.generate_content(
+            resp = _GEMINI_GUARD.call(lambda: client.models.generate_content(
                 model=GEMINI_MODEL_NAME, contents=f"次の試合の各対戦の選手名とゲームスコアが載っているページを検索: {q}",
-                config=types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())]))
+                config=types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())])),
+                task="badminton_score_search")
         except Exception:  # noqa: BLE001
             continue
         for cand in resp.candidates or []:

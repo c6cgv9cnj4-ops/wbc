@@ -1,6 +1,5 @@
 """Gemini 429 恒久対策(2026-10-13)のテスト。
   - gemini_guard: 呼び出しの計測ログ([GEMINI_CALL]/[GEMINI_429])、分あたり上限の即時失敗オプション
-  - fetch_local_badminton_tournaments: 初回429で以降のGemini呼び出しを省略し、正常終了する(Fast-Fail)
   - fetch_culture_news: guard経由・失敗時の箇条書きフォールバック・日次待機のstate持ち越し
 実際のGemini・Discord・公式サイトには接続しない。待機は sleep を差し替え、時刻は固定する。
 実行: .venv/bin/python -m unittest tests.test_gemini_429_hardening
@@ -19,7 +18,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
 from google.genai import errors  # noqa: E402
 
 import fetch_culture_news as fc  # noqa: E402
-import fetch_local_badminton_tournaments as lb  # noqa: E402
 import gemini_guard as gg  # noqa: E402
 
 JST = dt.timezone(dt.timedelta(hours=9))
@@ -120,62 +118,8 @@ class GuardLogTest(unittest.TestCase):
         self.assertEqual(len(calls), gg.MAX_RETRIES + 1)
 
 
-class LocalBadmintonFastFailTest(unittest.TestCase):
-    def setUp(self):
-        lb.reset_gemini_gate()
-
-    def tearDown(self):
-        lb.reset_gemini_gate()
-
-    def test_first_429_trips_gate_and_later_calls_are_skipped(self):
-        client = client_raising(quota_error())
-        with contextlib.redirect_stdout(io.StringIO()):
-            with self.assertRaises(gg.GeminiCallError):
-                lb.gemini_call("local_search", lambda: client.models.generate_content(model="m", contents="x"))
-            with self.assertRaises(lb.GeminiSkipped):
-                lb.gemini_call("local_search", lambda: client.models.generate_content(model="m", contents="y"))
-        self.assertEqual(client.models.generate_content.call_count, 1)
-        self.assertTrue(lb.GEMINI_GATE["reason"])
-
-    def test_search_loop_stops_after_429_and_does_not_raise(self):
-        client = client_raising(quota_error())
-        log = []
-        with contextlib.redirect_stdout(io.StringIO()):
-            urls = lb.gemini_search_urls(client, log)
-        self.assertEqual(urls, [])
-        self.assertEqual(client.models.generate_content.call_count, 1)
-        self.assertTrue(any("残りの検索を省略" in x for x in log))
-
-    def test_extract_is_skipped_after_429(self):
-        client = client_raising(quota_error())
-        doc = {"url": "https://example.test/a", "text": "大会", "links": [], "is_pdf": False, "source": "t"}
-        with contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(lb.extract_tournaments(client, doc), [])  # 1回目(429)
-            self.assertEqual(lb.extract_tournaments(client, doc), [])  # 2回目以降は省略
-        self.assertEqual(client.models.generate_content.call_count, 1)
-
-    def test_main_completes_normally_when_429_occurs(self):
-        client = client_raising(quota_error())
-        with tempfile.TemporaryDirectory() as tmp:
-            patches = [
-                mock.patch.object(lb, "gemini_client", return_value=client),
-                mock.patch.object(lb, "collect_seed_docs", lambda log: []),
-                mock.patch.object(lb, "collect_minton_docs", lambda log, today: []),
-                mock.patch.object(lb, "collect_saibad_docs", lambda log: []),
-                mock.patch.object(lb, "fetch_doc", return_value=None),  # 広報一覧は取得失敗扱い(通信しない)
-                mock.patch.object(lb, "LAST_RUN_PATH", Path(tmp) / "last_run.json"),
-                mock.patch.object(lb, "STATE_PATH", Path(tmp) / "seen.json"),
-                mock.patch.object(sys, "argv", ["fetch_local_badminton_tournaments.py", "--dry-run"]),
-            ]
-            buf = io.StringIO()
-            with contextlib.ExitStack() as stack:
-                for p in patches:
-                    stack.enter_context(p)
-                with contextlib.redirect_stdout(buf):
-                    rc = lb.main()
-        self.assertEqual(rc, 0)
-        self.assertEqual(client.models.generate_content.call_count, 1)
-        self.assertIn("以降のGemini呼び出しを省略", buf.getvalue())
+# 2026-10-13 大会通知の廃止に伴い、地方大会の Fast-Fail テスト(LocalBadmintonFastFailTest)を除去。
+# 共有の Gemini ガード(GuardLogTest)と文化ニュースのフォールバック(CultureFallbackTest)は残す。
 
 
 class CultureFallbackTest(unittest.TestCase):

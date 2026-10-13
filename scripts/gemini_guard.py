@@ -71,6 +71,10 @@ class GeminiBlocked(Exception):
         self.waited = 0.0
 
 
+class GeminiCancelled(Exception):
+    """呼び出し元が立てたキャンセル信号(Guard の cancel)により、再試行を打ち切った。"""
+
+
 class GeminiCallError(Exception):
     """再試行しても成功しなかった(または再試行しても無駄な)失敗。"""
 
@@ -244,7 +248,7 @@ class Guard:
     """stateに待機時刻を持つ呼び出しラッパー。state は fetch_news の既送信記録(ISO日時の辞書)を共有する。"""
 
     def __init__(self, state, clock=None, sleep=time.sleep, max_retries=MAX_RETRIES, wait_budget=WAIT_BUDGET_SECONDS,
-                 retry_rate_limit=True):
+                 retry_rate_limit=True, cancel=None, base_delay=BASE_DELAY_SECONDS):
         self.state = state
         self.clock = clock or (lambda: datetime.datetime.now(JST))
         self.sleep = sleep
@@ -252,8 +256,16 @@ class Guard:
         self.wait_budget = wait_budget
         # False の場合、分あたり上限(短い待ち時間の429)も再試行せず即座に失敗にする(Fast-Fail用途)
         self.retry_rate_limit = retry_rate_limit
+        # cancel は is_set() を持つ信号(threading.Event など)。立つと以降の試行・待機を行わず GeminiCancelled
+        # 並列実行で1スレッドが429を受けた時に、他スレッドの『実行中の再試行』も止めるために使う(2026-10-13)
+        self.cancel = cancel
+        # 一時的な失敗(503等)の指数バックオフの基準秒。base_delay × 2^(試行-1)
+        self.base_delay = base_delay
         self.waited_total = 0.0
         self.calls = 0
+
+    def _cancelled(self):
+        return self.cancel is not None and self.cancel.is_set()
 
     # ----- 待機状態 -----
     def blocked(self):
@@ -292,6 +304,8 @@ class Guard:
             raise GeminiBlocked(blocked[0], blocked[1], blocked[2])
         attempts, waited = 0, 0.0
         while True:
+            if self._cancelled():
+                raise GeminiCancelled(f"キャンセル済みのため呼び出しを打ち切り(task={task})")
             attempts += 1
             self.calls += 1
             try:
@@ -315,10 +329,12 @@ class Guard:
                     raise GeminiCallError(info, attempts, waited, err, backoff_until=until, basis=basis) from err
                 if attempts > self.max_retries:
                     raise GeminiCallError(info, attempts, waited, err) from err
-                wait = info.retry_after if info.retry_after is not None else BASE_DELAY_SECONDS * (2 ** (attempts - 1))
+                wait = info.retry_after if info.retry_after is not None else self.base_delay * (2 ** (attempts - 1))
                 wait = min(wait, MAX_SINGLE_WAIT_SECONDS)
                 if self.waited_total + wait > self.wait_budget:
                     raise GeminiCallError(info, attempts, waited, err) from err
+                if self._cancelled():  # 待機に入る直前にも確認する(他スレッドの429で打ち切られた場合)
+                    raise GeminiCancelled(f"キャンセル済みのため再試行を打ち切り(task={task})")
                 self.sleep(wait)
                 waited += wait
                 self.waited_total += wait

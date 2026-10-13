@@ -22,6 +22,7 @@ Mac の停止そのものは Actions 側(fetch_news.py の MAC_DISPATCHER=on)で
 import argparse
 import datetime
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -108,7 +109,9 @@ def decide(run, min_interval, now):
     created = datetime.datetime.fromisoformat(run["createdAt"].replace("Z", "+00:00"))
     elapsed = (now - created).total_seconds() / 60
     if elapsed < min_interval:
-        return False, f"前回から{elapsed:.0f}分(<{min_interval}分)"
+        # 次回実行までの残り分数。正の値を切り上げて表示する(残り0.4分でも『約0分』と出さない)
+        remaining = math.ceil(min_interval - elapsed)
+        return False, f"前回から{elapsed:.0f}分・次回実行まで約{remaining}分(最小間隔{min_interval}分)"
     return True, f"前回から{elapsed:.0f}分({run.get('event')})"
 
 
