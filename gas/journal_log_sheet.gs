@@ -7,7 +7,7 @@
  * Google スプレッドシートへ集約するための中継 Web App。
  *   - upsert: 週次同期(weekly-sheet-sync.yml)が1日ぶんのログを1行として書き込む/上書きする。
  *   - fetch : 月次マインドマップ生成(monthly-mindmap.yml)が当月分の全行を読み出す。
- * 価格トラッカー用の gas/create_price_tracker.gs / price_bot/gas/Code.gs とは無関係の、
+ * 価格トラッカー用の gas/create_price_tracker.gs とは無関係の、
  * 完全に独立した新規デプロイとして扱うこと(シークレットもスプレッドシートも別)。
  *
  * 【使い方】

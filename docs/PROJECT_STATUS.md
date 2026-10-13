@@ -116,7 +116,7 @@ GitHub Actions の定期実行で、ニュース・市況・地域情報・趣�
 | oshi_news.yml | `38 * * * *` | 毎時 | fetch_oshi_news.py |
 | badminton_alerts.yml | 15分〜毎時 | — | fetch_badminton_alerts.py |
 
-その他の日次・週次・月次ジョブ（deals / daily_summary / discord_logs / npb_results / sports_standings / weekly_mindmap / monthly-mindmap / price_check など）は、`.github/workflows/` の各ファイルを参照。
+その他の日次・週次・月次ジョブ（deals / daily_summary / discord_logs / npb_results / sports_standings / weekly_mindmap / monthly-mindmap など）は、`.github/workflows/` の各ファイルを参照。
 
 ## 現在確認されている問題（2026-09-26 確認）
 ※ いずれも Actions の実行結果は success のまま。ログの ERROR/WARN にしか出ないため、気付きにくい。
