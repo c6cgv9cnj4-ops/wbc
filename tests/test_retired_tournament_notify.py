@@ -73,7 +73,7 @@ class SharedFeaturesKeptTest(unittest.TestCase):
     def test_other_scripts_still_use_the_shared_guard(self):
         users = [p.name for p in (ROOT / "scripts").glob("*.py") if re.search(r"^\s*(import|from)\s+gemini_guard", p.read_text(encoding="utf-8"), re.M)]
         # 実際の利用箇所(import 行あり)。大会通知の廃止で変わらないことを確認する
-        for name in ("fetch_badminton_alerts.py", "fetch_news.py", "fetch_culture_news.py",
+        for name in ("fetch_news.py", "fetch_culture_news.py",
                      "fetch_market_intelligence.py", "weekend_market_digest.py"):
             self.assertIn(name, users)
 

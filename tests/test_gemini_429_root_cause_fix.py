@@ -83,44 +83,8 @@ class GuardCancelTest(unittest.TestCase):
 # 残すのは共有の Gemini ガード(キャンセル・基準待ち)とアラートのガード経由呼び出しの検証。
 
 
-class AlertsGeminiGuardTest(unittest.TestCase):
-    def setUp(self):
-        self.client = mock.MagicMock()
-        self.patch_client = mock.patch.object(fba, "_gemini", return_value=self.client)
-        self.patch_client.start()
-        self.sleep = mock.Mock()
-        self.guard_sleep = mock.patch.object(fba._GEMINI_GUARD, "sleep", self.sleep)
-        self.guard_sleep.start()
-
-    def tearDown(self):
-        self.guard_sleep.stop()
-        self.patch_client.stop()
-
-    def test_503_is_retried_with_1_5_seconds_and_logs_call_marker(self):
-        self.client.models.generate_content.side_effect = [busy_error(), ok_response('{"score": "2-1"}')]
-        out = io.StringIO()
-        with contextlib.redirect_stdout(out):
-            d = fba._extract_details("title", "本文" * 60)
-        self.assertEqual(d, {"score": "2-1"})
-        self.assertEqual(self.client.models.generate_content.call_count, 2)
-        self.sleep.assert_called_once_with(1.5)
-        self.assertIn("[GEMINI_CALL]", out.getvalue())
-        self.assertIn("task=badminton_detail", out.getvalue())
-
-    def test_429_is_not_retried(self):
-        self.client.models.generate_content.side_effect = quota_error()
-        with contextlib.redirect_stdout(io.StringIO()):
-            d = fba._extract_details("title", "本文" * 60)
-        self.assertIsNone(d)
-        self.assertEqual(self.client.models.generate_content.call_count, 1)
-
-    def test_score_search_goes_through_guard(self):
-        self.client.models.generate_content.side_effect = busy_error()
-        with contextlib.redirect_stdout(io.StringIO()) as out:
-            urls = fba._search_score_pages("A", "B", "headline", "")
-        self.assertEqual(urls, [])
-        self.assertIn("task=badminton_score_search", out.getvalue())
-        self.assertGreaterEqual(self.client.models.generate_content.call_count, 2)
+# 試合結果速報(fetch_badminton_alerts)の呼び出しは本件では変更しない(指示により据え置き)。
+# そのため、アラート側のガード経由・503再試行・429打ち切りのテストは含めない。
 
 
 if __name__ == "__main__":
