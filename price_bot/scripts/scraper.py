@@ -35,6 +35,8 @@ from PIL import Image
 from playwright.sync_api import sync_playwright
 
 sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "scripts"))
+import gemini_guard  # noqa: E402
 from master_data import (  # noqa: E402
     get_active_products,
     get_product_by_name,
@@ -278,7 +280,7 @@ def downscale_for_gemini(image_bytes, max_edge=GEMINI_IMAGE_MAX_EDGE_PX):
     return out.getvalue()
 
 
-def call_gemini(client, image_path, prompt):
+def call_gemini(client, image_path, prompt, guard=None):
     with open(image_path, "rb") as f:
         image_bytes = f.read()
     original_len = len(image_bytes)
@@ -287,24 +289,18 @@ def call_gemini(client, image_path, prompt):
         print(f"[gemini] 画像を縮小: {original_len // 1024}KB -> {len(image_bytes) // 1024}KB "
               f"(長辺{GEMINI_IMAGE_MAX_EDGE_PX}px上限)")
     image_part = genai_types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
-    for attempt in range(1, GEMINI_MAX_RETRIES + 1):
-        try:
-            response = client.models.generate_content(
-                model=GEMINI_MODEL_NAME,
-                contents=[prompt, image_part],
-                config=genai_types.GenerateContentConfig(temperature=0.1),
-            )
-            return extract_json_array(response.text)
-        except Exception as err:  # noqa: BLE001
-            # モデル名の廃止(404 NOT_FOUND)や認証エラー(401/403)は再試行しても
-            # 結果が変わらないため、即座に諦めて全画像分のリトライを無駄にしない
-            err_text = str(err)
-            is_permanent = any(code in err_text for code in ("404", "NOT_FOUND", "401", "403", "PERMISSION_DENIED"))
-            print(f"[WARN][gemini] 呼び出し失敗(試行{attempt}/{GEMINI_MAX_RETRIES}): {err}")
-            if is_permanent:
-                print("[WARN][gemini] 恒久的なエラーと判断し、この画像のリトライを打ち切ります。")
-                break
-            time.sleep(3 * attempt)
+    guard = guard or gemini_guard.Guard({})
+    try:
+        response = guard.call(lambda: client.models.generate_content(
+            model=GEMINI_MODEL_NAME,
+            contents=[prompt, image_part],
+            config=genai_types.GenerateContentConfig(temperature=0.1),
+        ), task="price_bot_ocr")
+        return extract_json_array(response.text)
+    except gemini_guard.GeminiBlocked as err:
+        print(f"[WARN][gemini] 待機中のため呼び出しを省略: {err}")
+    except gemini_guard.GeminiCallError as err:
+        print(f"[WARN][gemini] 呼び出し失敗(再試行後): {err}")
     return []
 
 
@@ -487,12 +483,13 @@ def main():
     print(f"=== 画像取得完了: 合計{len(image_records)}枚。Gemini APIで解析します ===")
 
     results = []
+    guard = gemini_guard.Guard({})
     for record in image_records:
         local_path = record["local_path"]
         if not os.path.exists(local_path):
             continue
         print(f"[OCR] {record['store']}: {os.path.basename(local_path)}")
-        items = call_gemini(client, local_path, prompt)
+        items = call_gemini(client, local_path, prompt, guard=guard)
         for item in items:
             item["store"] = record["store"]
             row = build_result_row(item)
