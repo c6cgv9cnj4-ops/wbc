@@ -1,128 +1,19 @@
-# 北本・桶川エリア 特売価格自動チェック bot (GCP不使用版)
+# price_bot（共用モジュール）
 
-トクバイ／ロヂャース公式Webビューアーから対象店舗のチラシを毎週水・土曜8:00(JST)に自動巡回し、
-Gemini APIで19品目の価格を抽出、Amazon基準単価と比較判定します。
-**GCPのサービスアカウント・JSON鍵は一切使わず**、Googleスプレッドシートへの書き込みと
-Google ToDoへの通知は、スプレッドシート自身に設置したGAS(Google Apps Script)の
-ウェブアプリ(`doGet`)にGitHub ActionsからHTTPリクエストすることで行います。
+価格チェック(旧 GitHub Actions「特売価格チェック」)は廃止済み。
+このディレクトリに残っているのは、底値トラッカー `scripts/fetch_deals.py`(`.github/workflows/deals.yml`)が利用する共用コードのみ。
 
 ## 構成
 
 ```
-.github/workflows/price_check.yml   GitHub Actions定期実行(水・土 8:00 JST)
-scripts/master_data.py              商品マスタ・店舗マスタ
-scripts/scraper.py                  トクバイ/ロヂャースからのチラシ取得 + Gemini APIでの価格解析
-                                     + 単位単価計算・判定 (→ downloads/results.json)
-scripts/push_to_sheets.py           results.json を GASウェブアプリへGETリクエストで送信
-gas/Code.gs                         スプレッドシート側に設置するGASスクリプト一式
-                                     (doGet受信・手動送信メニュー・ToDo自動通知)
-requirements.txt                    Python依存パッケージ
+price_bot/
+├── requirements.txt       依存パッケージ(deals.yml が pip install で使用)
+└── scripts/
+    └── scraper.py         チラシ取得・Gemini解析・規格数値化の共用関数(fetch_deals.py から import)
 ```
 
-前提として、以前作成した「北本桶川特売トラッカー」のスプレッドシート
-(ダッシュボード／商品マスタ／店舗マスタ／価格履歴（ログ）の4シート構成)が既に存在すること。
+## 依存関係
 
-## 全体の流れ
-
-```
-GitHub Actions(水・土 8:00 JST)
-  └ scraper.py
-      ├ トクバイ/ロヂャースからチラシ画像を取得(Playwright)
-      ├ Gemini APIで19品目の価格・規格・特売期限を抽出
-      └ 単位単価計算・Amazon基準単価との比較判定 → downloads/results.json
-  └ push_to_sheets.py
-      └ results.json を GASウェブアプリURLへGETリクエスト(secret付き、5件ずつバッチ分割)
-          └ Code.gs の doGet() が受信
-              ├ ダッシュボード・価格履歴（ログ）へ書き込み
-              └ 🟢(店舗買い推奨・底値圏)の行だけ、即座にGoogle ToDo「買い物」リストへ登録
-```
-
-GCPプロジェクトの作成、サービスアカウント、JSON鍵のダウンロードは一切発生しません。
-Googleへの書き込み・Tasks APIの利用は、すべて**あなた自身のGoogleアカウントで動くApps Script**
-が行います(Apps Scriptは実行者=デプロイした本人の権限で動くため、別途の認証情報が不要です)。
-
-## チラシ取得元(実際に動作確認済み)
-
-| 店舗 | 取得元 |
-|---|---|
-| マルサン桶川店・ベルク・ヤオコー・コープ(みらい)・業務スーパー・ドラッグストアコスモス(2店舗)・ドラッグストアセキ・スギ薬局・ウエルシア | トクバイ (tokubai.co.jp) |
-| ロヂャース北本店 | 公式サイト rogers.co.jp/chirashi/ 経由のWebビューアー(cms.mechao.tv)。タイル分割配信されている画像をPillowで1ページに結合 |
-
-## セットアップ手順
-
-### 1. Gemini APIキーの取得
-1. https://aistudio.google.com/apikey にアクセスし、Googleアカウントでログイン
-2. 「Create API Key」から新しいAPIキーを発行して控えておく
-
-GCPプロジェクトの明示的な作成は不要です(AI Studio側で自動的に紐づけられます)。
-利用量に応じて課金が発生する可能性があるため、AI Studioの利用量ダッシュボードで確認してください。
-
-### 2. スプレッドシートにGASウェブアプリを設置する
-「関数を選んで実行して権限承認する」手順は不要です。貼り付け→1行書き換え→デプロイのみで完結します。
-
-1. 対象のスプレッドシートを開き、「拡張機能」>「Apps Script」を開く
-2. 既存のコードを全て削除し、同梱の `gas/Code.gs` の内容を貼り付ける
-3. ファイル冒頭付近の1行
-   ```javascript
-   var SHARED_SECRET = 'CHANGE_ME_TO_A_RANDOM_STRING';
-   ```
-   の `'CHANGE_ME_TO_A_RANDOM_STRING'` を、自分で決めたランダムな文字列
-   (例: パスワード生成ツールで作った32文字程度の文字列)に書き換えて保存(Ctrl+S)する
-4. 左側「サービス」の＋ボタンから「Tasks API」を追加する
-5. 右上「デプロイ」>「新しいデプロイ」
-   - 種類の選択(歯車アイコン)で「ウェブアプリ」を選ぶ
-   - 実行するユーザー: **自分**
-   - アクセスできるユーザー: **全員**
-   - 「デプロイ」をクリックし、Googleアカウントの承認を求められたら承認する
-6. 発行された **ウェブアプリのURL** (`https://script.google.com/macros/s/.../exec`) を控えておく
-
-> ⚠️ 「アクセスできるユーザー: 全員」にするのは、GitHub Actions(あなたのGoogleアカウントに
-> ログインしていない外部サーバー)からアクセスできるようにするためです。認証の代わりに
-> 手順3で決めた `SHARED_SECRET` がパスワード代わりになります。**ウェブアプリのURLと
-> secretの値は、GitHubのリポジトリ設定以外の場所に書いたり、人に教えたりしないでください。**
->
-> なお、データ送信は**GET**(`doGet`)経由です。このApps Scriptのデプロイで
-> POSTリクエストのみが常にHTTP 405で拒否される(実行数ログには「完了」と記録される
-> のにHTTP応答だけ405になる)というGoogle側の既知の不具合に実際に遭遇したため、
-> 確実に動作するGET経由の方式に統一しています。
-
-### 3. GitHubリポジトリへのSecrets登録
-このリポジトリの Settings > Secrets and variables > Actions > New repository secret から、
-以下を登録してください。
-
-| Secret名 | 値 |
-|---|---|
-| `GEMINI_API_KEY` | 手順1で取得したAPIキー |
-| `GAS_WEB_APP_URL` | 手順2-6で発行されたウェブアプリURL |
-| `GAS_SHARED_SECRET` | 手順2-3で決めた文字列(Code.gs側と完全に同じ値) |
-
-### 4. 動作確認
-1. ブラウザで手順2-6のウェブアプリURLを直接開いてみる
-   → `{"ok":true,"message":"..."}` と表示されれば疎通OK
-2. GitHubリポジトリの「Actions」タブ >「特売価格チェック」>「Run workflow」で手動実行
-3. 実行ログで各店舗の取得状況、Gemini解析結果、GASからの応答を確認
-4. スプレッドシートの「ダッシュボード」「価格履歴（ログ）」に新しい行が
-   追加されているか確認する
-5. 🟢判定の行があれば、実行直後にGoogle ToDo「買い物」リストに追加されているはず
-
-## 正直な注意点
-
-- **「アクセスできるユーザー: 全員」のGASウェブアプリは、URLとsecretさえ知っていれば
-  誰でもアクセスできる**という性質上のトレードオフがあります。`SHARED_SECRET`の値が
-  漏れない限りは安全ですが、完全な認証(OAuth等)と同等ではないことをご理解のうえ
-  ご利用ください。より厳密にしたい場合は、GAS側でリクエスト元IPをGitHub Actionsの
-  IPレンジに制限する、secretを定期的に変更する、といった追加対策も可能です(必要であれば
-  ご相談ください)。
-- OCR抽出→単位単価計算は正規表現ベースのため、表記ゆれで解析に失敗することがあります。
-  失敗時は判定シグナルを `🔺 要確認` として書き込み、**誤った🟢判定でToDoに自動登録
-  してしまうことを避ける設計**にしています。
-- トイレットペーパーは「ロール数×長さ(m)」が両方チラシに明記されていないと自動計算できません。
-  「◯倍巻き」表記のみの場合は標準ロール長25mを仮定した推定値になり、信頼度は低くなります。
-- ロヂャースのタイル画像結合、トクバイの店舗ページ構造の両方とも、対象サイト側の実装に
-  依存しています。サイト側の変更で壊れる可能性があるので、Actionsの実行ログで
-  `[ERROR]` が出た場合はお知らせください。
-- Amazon基準単価・過去最安値は現時点では商品マスタの固定値です。
-- 本リポジトリのスクレイピング部分(トクバイ8/11店舗・ロヂャース北本店)は、この環境で
-  実際にPlaywrightを使って動作確認済みです。GAS側(doGet・Tasks連携)は、あなたが
-  実際にウェブアプリをデプロイして初めて通しで確認できる部分になるため、上記
-  「動作確認」の手順をひととおり実施することをお願いします。
+- `scripts/fetch_deals.py` → `price_bot/scripts/scraper.py`(`sys.path` で読み込み)
+- `scraper.py` → `scripts/gemini_guard.py`(リポジトリ直下 `scripts/` の共用モジュール)
+- 単独実行するエントリポイントはない。`scraper.py` の `main()` は廃止。
