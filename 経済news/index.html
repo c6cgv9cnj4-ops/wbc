@@ -297,8 +297,7 @@
     <h2>② 日経CNBC 深掘り（動画セレクト＆一括出力）</h2>
     
     <div class="api-key-section">
-      <label>🔑 Gemini API キーを設定してください（安全回路付き：未入力でも高品質レポートを生成します）</label>
-      <input type="password" id="api-key" placeholder="APIキーを入力（空欄でもOK）">
+      <label>⏸ AI要約は停止中です（Gemini API 利用過多の再発防止）。動画一覧の取得と、保存済みアーカイブの閲覧・テキスト出力は利用できます。</label>
     </div>
 
     <div class="control-panel">
@@ -308,7 +307,7 @@
       </div>
       <div class="control-row" id="select-row" style="display:none;">
         <select id="video-select"></select>
-        <button id="analyze-selected-btn" class="btn" style="background:var(--success);" onclick="analyzeSelectedVideo()">✨ 選択した動画を分析・要約</button>
+        <button id="analyze-selected-btn" class="btn" style="background:var(--success);" disabled>⏸ AI要約は停止中</button>
       </div>
     </div>
 
@@ -393,7 +392,6 @@
   }
 
   const STORAGE_KEY = 'economic_dashboard_deepdives_v14';
-  const API_KEY_STORAGE = 'gemini_api_key';
   let fetchedVideosCache = [];
 
   function loadDeepDives() {
@@ -402,10 +400,7 @@
       saved = JSON.stringify([]);
       localStorage.setItem(STORAGE_KEY, saved);
     }
-    const savedKey = localStorage.getItem(API_KEY_STORAGE);
-    if (savedKey) {
-      document.getElementById('api-key').value = savedKey;
-    }
+    try { localStorage.removeItem('gemini_api_key'); } catch (e) { /* 保存不可の環境では何もしない */ }
     renderDeepDives();
   }
 
@@ -518,91 +513,6 @@
     } finally {
       loadBtn.disabled = false;
     }
-  }
-
-  function generateProReport(title, text) {
-    return `
-      <details><summary>【夏相場の季節性アノマリーと市場動向】</summary><div class="details-content">
-        <p>足元の株式市場における商い閑散とした状況や、機関投資家のポジション調整背景について多角的に分析しています。</p>
-        <ul>
-          <li>夏枯れ相場特有の値動きに対するリスク管理</li>
-          <li>秋口のイベントに向けたポートフォリオの備え</li>
-        </ul>
-      </div></details>
-      <details><summary>【個別銘柄・セクターの注目ポイント】</summary><div class="details-content">
-        <p>ファンダメンタルズが健全な銘柄の選別方法と、ボラティリティを味方につけるエントリー戦略の解説。</p>
-        <ul>
-          <li>業績確度の高いセクターの絞り込み</li>
-          <li>下値支持線を意識した慎重な買いタイミング</li>
-        </ul>
-      </div></details>
-    `;
-  }
-
-  async function analyzeSelectedVideo() {
-    const selectEl = document.getElementById('video-select');
-    const selectedIdx = selectEl.value;
-    const video = fetchedVideosCache[selectedIdx];
-    if (!video) {
-      alert('動画が選択されていません。');
-      return;
-    }
-
-    const apiKey = document.getElementById('api-key').value.trim();
-    if (apiKey) localStorage.setItem(API_KEY_STORAGE, apiKey);
-
-    const statusEl = document.getElementById('feed-status');
-    const analyzeBtn = document.getElementById('analyze-selected-btn');
-    analyzeBtn.disabled = true;
-    statusEl.textContent = `「${video.title.substring(0, 15)}...」を分析中...`;
-    statusEl.style.color = 'var(--primary)';
-
-    let generatedHtml = '';
-
-    try {
-      if (apiKey) {
-        const prompt = `
-あなたはプロの金融アナリストです。以下の動画タイトルと概要を分析し、投資家向けの深い洞察レポートを作成してください。
-出力は純粋なHTML形式のみとし、各トピックを <details><summary>【見出し】</summary><div class="details-content"><p>解説</p><ul><li>ポイント1</li><li>ポイント2</li></ul></div></details> で囲んでください。
-タイトル: ${video.title}
-概要: ${video.description || ''}
-`;
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`;
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          generatedHtml = data.candidates[0].content.parts[0].text.replace(/```html/g, '').replace(/```/g, '').trim();
-        } else {
-          throw new Error('API制限');
-        }
-      } else {
-        throw new Error('APIキー未入力');
-      }
-    } catch (e) {
-      generatedHtml = generateProReport(video.title, video.description);
-    }
-
-    let savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    const newEntry = {
-      date: new Date().toLocaleDateString('ja-JP'),
-      title: video.title,
-      htmlContent: generatedHtml
-    };
-
-    savedData.unshift(newEntry);
-    if (savedData.length > 10) savedData = savedData.slice(0, 10);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
-
-    renderDeepDives();
-    statusEl.textContent = '分析とアーカイブへの追加が完了しました！';
-    statusEl.style.color = 'var(--success)';
-    analyzeBtn.disabled = false;
-    setTimeout(() => { statusEl.textContent = ''; }, 4000);
   }
 
   window.onload = () => {
