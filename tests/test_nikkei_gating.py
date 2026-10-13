@@ -153,18 +153,17 @@ class DispatchSlotTest(unittest.TestCase):
             now += dt.timedelta(minutes=5)
         self.assertEqual(launches, 4)
 
-    def test_main_dispatches_nikkei_only_via_slot_rule(self):
-        # 間隔ベースの旧判定(時間帯で可変)が残っていないこと: 日経は必ずスロット判定の結果だけで起動する
+    def test_main_does_not_dispatch_nikkei(self):
+        # 2026-10-13 停止: 旧 nikkei_cnbc_digest.yml は起動係(WORKFLOWS)から除外済み。
+        # 起動係が nikkei を一切起動しない(スロット時刻でも・gh workflow run も呼ばない)ことを固定する
         with mock.patch.object(dw, "latest_run", return_value=None), \
              mock.patch.object(dw, "check_anzn_liveness", return_value=None), \
              mock.patch.object(dw, "gh", return_value=(0, "", "")) as gh, \
              mock.patch("sys.stdout", new_callable=io.StringIO) as out:
             dw.main([])
-        nikkei_line = [ln for ln in out.getvalue().splitlines() if "nikkei_cnbc_digest.yml" in ln]
-        self.assertEqual(len(nikkei_line), 1)
-        # 判定理由はスロット判定由来の文言のみ(時間帯による60分・240分の旧判定は使わない)
-        self.assertRegex(nikkei_line[0], r"スロット|週末は停止")
-        self.assertNotIn("前回から", nikkei_line[0])
+        self.assertNotIn("nikkei_cnbc_digest.yml", out.getvalue())
+        for c in gh.call_args_list:
+            self.assertNotIn("nikkei_cnbc_digest.yml", c.args)
 
 
 if __name__ == "__main__":
