@@ -2334,7 +2334,208 @@
     "https://extranet.bwf.sport/docs/events/5188/docs/Draws - VICTOR Denmark Open 2026.pdf"
    ],
    "end_date": "2026-10-18",
-   "entries": null,
+   "entries": {
+    "players": [
+     {
+      "draw": "本戦",
+      "gender": "M",
+      "latin": "NARAOKA Kodai"
+     },
+     {
+      "draw": "本戦",
+      "gender": "M",
+      "latin": "WATANABE Koki"
+     },
+     {
+      "draw": "本戦",
+      "gender": "M",
+      "latin": "TANAKA Yushi"
+     },
+     {
+      "draw": "本戦",
+      "gender": "M",
+      "latin": "OKIMOTO Yudai"
+     },
+     {
+      "draw": "本戦",
+      "gender": "M",
+      "latin": "NISHIMOTO Kenta"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "YAMAGUCHI Akane"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "MIYAZAKI Tomoka"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "OKUHARA Nozomi"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "GUNJI Riko"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "AKECHI Hina"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "NIDAIRA Natsuki"
+     },
+     {
+      "draw": "本戦",
+      "gender": "M",
+      "latin": "HOKI Takuro"
+     },
+     {
+      "draw": "本戦",
+      "gender": "M",
+      "latin": "KOBAYASHI Yugo"
+     },
+     {
+      "draw": "本戦",
+      "gender": "M",
+      "latin": "KUMAGAI Kakeru"
+     },
+     {
+      "draw": "本戦",
+      "gender": "M",
+      "latin": "NISHI Hiroki"
+     },
+     {
+      "draw": "本戦",
+      "gender": "M",
+      "latin": "OKAMURA Hiroki"
+     },
+     {
+      "draw": "本戦",
+      "gender": "M",
+      "latin": "YAMASHITA Kyohei"
+     },
+     {
+      "draw": "本戦",
+      "gender": "M",
+      "latin": "SHIMOGAMI Yuichi"
+     },
+     {
+      "draw": "本戦",
+      "gender": "M",
+      "latin": "NOMURA Takumi"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "FUKUSHIMA Yuki"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "MATSUMOTO Mayu"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "NAKANISHI Kie"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "IWANAGA Rin"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "HOBARA Sayaka"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "HIROKAMI Rui"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "HIROTA Sayaka"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "SAKURAMOTO Ayako"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "TAKAHASHI Miyu"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "NAKADE Sumire"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "SUZUKI Hinata"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "YAMAKITA Nao"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "OSAWA Kaho"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "TANABE Mai"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "KAWAZOE Maiko"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "ISHIKAWA Kokona"
+     },
+     {
+      "draw": "本戦",
+      "gender": "M",
+      "latin": "WATANABE Yuta"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "TAGUCHI Maya"
+     },
+     {
+      "draw": "本戦",
+      "gender": "M",
+      "latin": "KOGA Akira"
+     },
+     {
+      "draw": "本戦",
+      "gender": "F",
+      "latin": "SAITO Natsu"
+     }
+    ],
+    "retrieved_at": "2026-10-19T06:55:24.215319+09:00",
+    "source_url": "https://extranet.bwf.sport/docs/events/5188/docs/M _ Q Report Version 1 - VICTOR Denmark Open 2026.pdf",
+    "verified_at": "2026-10-19T06:55:24.215319+09:00"
+   },
    "id": "5210",
    "last_changed_at": "2026-10-18T17:01:19.352692+09:00",
    "name_official": "VICTOR Denmark Open 2026",
