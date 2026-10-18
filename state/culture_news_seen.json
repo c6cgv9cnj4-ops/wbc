@@ -1,7 +1,5 @@
 {
   "seen_urls": {
-    "https://www.itmedia.co.jp/news/article/2610/03/2000001935/": "2026-10-03T23:18:21.508033+09:00",
-    "https://gigazine.net/news/20261003-apple-limit-mac-full-disk-access-ai-agents-risk/": "2026-10-03T23:18:21.508033+09:00",
     "https://www.itmedia.co.jp/news/article/2610/04/2000001986/": "2026-10-04T18:39:10.917394+09:00",
     "https://postcoffee.co/magazine/coffee/coffee-process-washed-natural-honey/": "2026-10-04T18:39:10.917394+09:00",
     "https://postcoffee.co/magazine/cffbns/stereoscope-california-coffee-culture/": "2026-10-04T18:39:10.917394+09:00",
@@ -124,6 +122,13 @@
     "https://news.google.com/rss/articles/CBMiTEFVX3lxTE1qUmJObDQwTWtHYjBGZmtZZ0FqVzVzQ19BSXYtWWR3RVZSQW5vYVBYTVNrYS1fSXlRZFlxOE1TY3FjUFFjNENXeWVnakc?oc=5": "2026-10-17T09:28:11.949902+09:00",
     "https://news.google.com/rss/articles/CBMiakFVX3lxTFAyc0lzR1Y4WjBmVVdjR0N1d3RDQ250aXFkZTM0TjNCZGV2MUhhMS1lNHV6QU5vZjFFdW9CLUhFWVBvV0ppRmpndnVDTnl3OE1WZ1RyUnBjN1hiNm1XemtibC13NG1kcHBqSEE?oc=5": "2026-10-17T09:28:11.949902+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE5idlhuSTlLU1Y1OGw5eGNiamVNZXpLc0swWGxQbmFZMTYxNEdLbEJjcXRia3V5WVJxc1RheFhDWXF4azNPUlpWLThrVHJ0empDcmc4VUc4M1hWanF1RS11OUFObHNGTXlj?oc=5": "2026-10-17T09:28:11.949902+09:00",
-    "https://news.google.com/rss/articles/CBMiWEFVX3lxTE9JMWdSbWtZd0xlWEJsV3VVdDM0ODUwWTM5OUpaVDBKVmlwdFpaZTJxaTh4dG1LYmJnMWhYN0xiUk91Rm11MFV3MGppeHdrT2haSGNMTnl1RTk?oc=5": "2026-10-17T21:57:53.870817+09:00"
-  }
+    "https://news.google.com/rss/articles/CBMiWEFVX3lxTE9JMWdSbWtZd0xlWEJsV3VVdDM0ODUwWTM5OUpaVDBKVmlwdFpaZTJxaTh4dG1LYmJnMWhYN0xiUk91Rm11MFV3MGppeHdrT2haSGNMTnl1RTk?oc=5": "2026-10-17T21:57:53.870817+09:00",
+    "https://news.google.com/rss/articles/CBMif0FVX3lxTE9jNlZ6ZmNpU2hlNW9fTngxVTdOMF9fbjFmUkRFODA2UENhaHh2cklIM293b2NoR0F6N18zeFRWREhNNjlvT25td2xCa2lpbUlTZ0dsX3o1djJZckUxZWVVSmFfMnBmeTA1VHQ0a0xwTS0zbkxxZnJuRzhRZEpHMXM?oc=5": "2026-10-18T09:01:46.352742+09:00",
+    "https://news.google.com/rss/articles/CBMiakFVX3lxTE9vakJwak9aeWV4UFY4S25wYnIwZ1pNdHdzaGlnZldIRktleFlzZkliT2hMVFhaTUpVZXVhRmdORFhmb21BOWtsZ1FkejlHdXhnc09ONUV4UkZ4Ym5JWjVvVzJuZzdJLUxCRUE?oc=5": "2026-10-18T09:01:46.352742+09:00",
+    "https://news.google.com/rss/articles/CBMiX0FVX3lxTE1HaV9RRTc2M2hjMm9nb2RnLWFuS0ZNSkdYUWgwTlVkZWJzNEF3YUtFVkIyQ09rNFUwV3dDSFc2Mi1wYkhReVFlYno2YVNBa3E5aHFrMXFYSWhDSUV2RE5N?oc=5": "2026-10-18T09:01:46.352742+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBmT2pfSy1XZjRUQk5YRnN6NTl5enRYNV9JbUdfX1NJTzJnM0FydEYyLTZNTWRpdEUxNURlcER0U2VxS0xOeXNnYVNoQ1hseUdxQ0RlMnV6Y2lFUGM3Zzd0ZlFNNmNWb1dB?oc=5": "2026-10-18T09:01:46.352742+09:00",
+    "https://news.google.com/rss/articles/CBMieEFVX3lxTE56RE5Xd252UER2MnRabi1RdW8wMkI2a1ZyRk91MHAxbENpYVVjdzhCbGZNLUVBQW1YY2dyWFdndDlmMHlJWWhrdHRJejRoZkNfT3pPM05tVmZTbUlLSG1DTUJ6bi1nWnMxcHNPWnF3M3lRNWpndThWTA?oc=5": "2026-10-18T09:01:46.352742+09:00"
+  },
+  "_gemini_backoff:quota": "2026-10-18T16:00:00+09:00",
+  "_gemini_backoff_basis:quota": "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)／日次境界(太平洋時間0時・推定)"
 }
