@@ -128,7 +128,5 @@
     "https://news.google.com/rss/articles/CBMiX0FVX3lxTE1HaV9RRTc2M2hjMm9nb2RnLWFuS0ZNSkdYUWgwTlVkZWJzNEF3YUtFVkIyQ09rNFUwV3dDSFc2Mi1wYkhReVFlYno2YVNBa3E5aHFrMXFYSWhDSUV2RE5N?oc=5": "2026-10-18T09:01:46.352742+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBmT2pfSy1XZjRUQk5YRnN6NTl5enRYNV9JbUdfX1NJTzJnM0FydEYyLTZNTWRpdEUxNURlcER0U2VxS0xOeXNnYVNoQ1hseUdxQ0RlMnV6Y2lFUGM3Zzd0ZlFNNmNWb1dB?oc=5": "2026-10-18T09:01:46.352742+09:00",
     "https://news.google.com/rss/articles/CBMieEFVX3lxTE56RE5Xd252UER2MnRabi1RdW8wMkI2a1ZyRk91MHAxbENpYVVjdzhCbGZNLUVBQW1YY2dyWFdndDlmMHlJWWhrdHRJejRoZkNfT3pPM05tVmZTbUlLSG1DTUJ6bi1nWnMxcHNPWnF3M3lRNWpndThWTA?oc=5": "2026-10-18T09:01:46.352742+09:00"
-  },
-  "_gemini_backoff:quota": "2026-10-18T16:00:00+09:00",
-  "_gemini_backoff_basis:quota": "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)／日次境界(太平洋時間0時・推定)"
+  }
 }
