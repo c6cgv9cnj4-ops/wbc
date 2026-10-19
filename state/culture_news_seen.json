@@ -125,6 +125,18 @@
     "https://news.google.com/rss/articles/CBMiX0FVX3lxTE1HaV9RRTc2M2hjMm9nb2RnLWFuS0ZNSkdYUWgwTlVkZWJzNEF3YUtFVkIyQ09rNFUwV3dDSFc2Mi1wYkhReVFlYno2YVNBa3E5aHFrMXFYSWhDSUV2RE5N?oc=5": "2026-10-18T09:01:46.352742+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBmT2pfSy1XZjRUQk5YRnN6NTl5enRYNV9JbUdfX1NJTzJnM0FydEYyLTZNTWRpdEUxNURlcER0U2VxS0xOeXNnYVNoQ1hseUdxQ0RlMnV6Y2lFUGM3Zzd0ZlFNNmNWb1dB?oc=5": "2026-10-18T09:01:46.352742+09:00",
     "https://news.google.com/rss/articles/CBMieEFVX3lxTE56RE5Xd252UER2MnRabi1RdW8wMkI2a1ZyRk91MHAxbENpYVVjdzhCbGZNLUVBQW1YY2dyWFdndDlmMHlJWWhrdHRJejRoZkNfT3pPM05tVmZTbUlLSG1DTUJ6bi1nWnMxcHNPWnF3M3lRNWpndThWTA?oc=5": "2026-10-18T09:01:46.352742+09:00",
-    "https://postcoffee.co/magazine/cffbns/stereoscope-california-coffee-culture/": "2026-10-18T22:15:29.503898+09:00"
-  }
+    "https://postcoffee.co/magazine/cffbns/stereoscope-california-coffee-culture/": "2026-10-18T22:15:29.503898+09:00",
+    "https://www.itmedia.co.jp/news/article/2610/19/2000002355/": "2026-10-19T09:12:19.063235+09:00",
+    "https://www.itmedia.co.jp/news/article/2610/19/2000002354/": "2026-10-19T09:12:19.063235+09:00",
+    "https://www.itmedia.co.jp/news/article/2610/19/2000002353/": "2026-10-19T09:12:19.063235+09:00",
+    "https://postcoffee.co/magazine/coffee/aeropress-how-to/": "2026-10-19T09:12:19.063235+09:00",
+    "https://postcoffee.co/magazine/coffee/coffee-process-washed-natural-honey/": "2026-10-19T09:12:19.063235+09:00",
+    "https://news.google.com/rss/articles/CBMijgFBVV95cUxNbDdSRWNfelhhX1lCeWhYZnlwWHlPMTdzSnlJMzE4Q0pfbVpfclRQWnVmRkhhTUY5c3VVd01rR0hEeWtqMnBiNzB2bi16ZEhJbjVwN0VjM2wzQVY5SVdGR19qY0lXSUc3UWsyV2NrSklIbnI3Uk5sMFY1Y00wTW9Ib2g3aHVxN1M1NGQtdDR3?oc=5": "2026-10-19T09:12:19.063235+09:00",
+    "https://news.google.com/rss/articles/CBMiW0FVX3lxTE9oZ2FnRFRBY0stT2xGQkRaT3UtYmpwS1R1ZmtNbXR4a29qSTBobXNxOC1fTlltM0F2b1NiRUN6bUhHTVQ1NzI2Smt4MDRLb1RGa2VVTmRIQnFwYTQ?oc=5": "2026-10-19T09:12:19.063235+09:00",
+    "https://news.google.com/rss/articles/CBMibkFVX3lxTE9NaG9LcWdxT1lGaG4tZi1kaHJtSmxocEtyMGZjRGV4eGpWN0s1c1JSeUd3WWlwY2FGcGxfN3ZLWVRnTGYtbmtTZG9FejFyS1lydldISDRrRWxRak9UWDNqaWprTW1pamRVZldlN2pR0gFqQVVfeXFMTWp3d0FzVGRqTjVxRl9ZaVh0WmlXdjU4Y2t2M2ZqWW9tMU9tZlBvNnl0aFE3bXhQOVNCdVBWbklzZmNERENsSlJXUk52bUxUZGdtY1IySlJBR2l0T1RKTFNIVGg3VkZkeHVpdw?oc=5": "2026-10-19T09:12:19.063235+09:00",
+    "https://news.google.com/rss/articles/CBMihAFBVV95cUxPQklwZ054QU56c1hNdlJCM25HOWpRS1R2bDJLdDdqemhpOU1teTRldDk4QVdvTmI0ckw1Xy0wUDdTWGVaY0dXbGk1RzBVLUkzT0xJQ2hCbFhGbFItRVNrVFZ6RnZiQ0Mwd2ROajJfTjVfLUEta203RHl6a1BmaGJUS0plVzA?oc=5": "2026-10-19T09:12:19.063235+09:00",
+    "https://news.google.com/rss/articles/CBMiY0FVX3lxTE5HQ0NERE1KSFh2UHpqNGxpRGM2bXByTGJzdk5UUFVTOHp5WFpPTVFvVTJLZUF5LTJxZGZub0pOWGNXYlAyR2d4R0FVNklIZjdXNjc1eENpS2JzRjk1UHhZYnVxWQ?oc=5": "2026-10-19T09:12:19.063235+09:00"
+  },
+  "_gemini_backoff:quota": "2026-10-19T16:00:00+09:00",
+  "_gemini_backoff_basis:quota": "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)／日次境界(太平洋時間0時・推定)"
 }
