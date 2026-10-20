@@ -1,8 +1,5 @@
 {
   "seen_urls": {
-    "https://nobi.com/jp/entry-1267.html": "2026-10-06T19:09:54.029779+09:00",
-    "https://nobi.com/jp/entry-1265.html": "2026-10-06T19:09:54.029779+09:00",
-    "https://nobi.com/jp/products_design/tech/entry-1264.html": "2026-10-06T19:09:54.029779+09:00",
     "https://gigazine.net/news/20261007-ai-terrifying-line/": "2026-10-07T19:09:57.615607+09:00",
     "https://gigazine.net/news/20261007-openai-mathematics/": "2026-10-07T19:09:57.615607+09:00",
     "https://gigazine.net/news/20261009-openais-math-solutions-human-ahm/": "2026-10-09T19:26:20.434893+09:00",
@@ -156,6 +153,19 @@
     "https://news.google.com/rss/articles/CBMijgFBVV95cUxQUHU3eVZfMDBTUVdZQXp5MGRxRl9leFFLeGdwR0dEaktXUmZKblJsM1RQMzhtVXFPalctYjhUdzVneVpJWUxlX3Jhc0M5RjkxWVo4MVc5aTRNYTRWLTY1RGRBQnpEU0ZwOFZ6X05FQVRaaVlZMkdWMU5JWEZMS1IxTmZ5aE5PMThLMzBDbzFn?oc=5": "2026-10-20T17:25:53.123141+09:00",
     "https://news.google.com/rss/articles/CBMia0FVX3lxTFBxRElDZE9ZWEpQbzZXMlJuT2RZaUVzaXBHOUZQREpUMWJIVTNlbktMNUIxMXJfSUVsSi1fN01nenBVdWthV29uQTdwWW9HSkViZVRYT0tSYUxxbkZhRHNnaFdKWW5WaVNjSERB?oc=5": "2026-10-20T17:25:53.123141+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1mYTNVT3FqdXRBTFVwU1lUWlkzcHZKQVh2NnBUVVJZWl9BUHdnMlV1THl4cUR1TVpmX2dZS0ZQQjYtbDJqVVRzWlpkN3Mya1RhVFJrTHVzcURwYWxDWGlNOUgzdEprOEVN?oc=5": "2026-10-20T17:25:53.123141+09:00",
-    "https://news.google.com/rss/articles/CBMie0FVX3lxTE1WcURiOGM1eTFCSnI5QUFTTjZTNDNHaGhSNkNMTk1kRUNmR1BMTE02SjBvR3IyX1RMNTJodnlvVW9MSTk4WUdFd1VtWXVYWTlHTTRFWmg1ampScUNiMEhrbXVkRlJuNDNzaEd0d1pTQ2VWNWpiaVZrelMtSQ?oc=5": "2026-10-20T17:25:53.123141+09:00"
-  }
+    "https://news.google.com/rss/articles/CBMie0FVX3lxTE1WcURiOGM1eTFCSnI5QUFTTjZTNDNHaGhSNkNMTk1kRUNmR1BMTE02SjBvR3IyX1RMNTJodnlvVW9MSTk4WUdFd1VtWXVYWTlHTTRFWmg1ampScUNiMEhrbXVkRlJuNDNzaEd0d1pTQ2VWNWpiaVZrelMtSQ?oc=5": "2026-10-20T17:25:53.123141+09:00",
+    "https://nobi.com/jp/entry-1267.html": "2026-10-20T23:17:32.446917+09:00",
+    "https://nobi.com/jp/entry-1265.html": "2026-10-20T23:17:32.446917+09:00",
+    "https://nobi.com/jp/products_design/tech/entry-1264.html": "2026-10-20T23:17:32.446917+09:00",
+    "https://www.itmedia.co.jp/news/article/2610/20/2000002434/": "2026-10-20T23:17:32.446917+09:00",
+    "https://www.itmedia.co.jp/news/article/2610/20/2000002435/": "2026-10-20T23:17:32.446917+09:00",
+    "https://www.itmedia.co.jp/news/article/2610/20/2000002433/": "2026-10-20T23:17:32.446917+09:00",
+    "https://news.google.com/rss/articles/CBMidEFVX3lxTE12b3FKcnVKV1Y4emF5VzZyUkhvSXcxWXhaTW8xc3lycUs4R0lBZlVCOTY4aGp4cWsxZXZCeWFyVDNIdFJpY3VNNXE4TFF6TDNSUzU0R1JKX05SbEdSR21PeW5rWnJULVFHTXMtWjZwWm5uRDA50gF6QVVfeXFMTmF0WEZuRjRtcGdZZE90M09zd2VOaW84S28tQ0FnR21kWWVwbVdJYXBlaFdDcjZOS3h0Ujk4WmFRVTdXUWJHUHhXa0RQZXBWNWpUdTZzZjJySl9mbzRKY1pKazZfNEh5SlprMm1wX2VXQXRUNjlIOGlzcmc?oc=5": "2026-10-20T23:17:32.446917+09:00",
+    "https://news.google.com/rss/articles/CBMif0FVX3lxTE1POUpUTXdvaTFZS05UVGo3ZjR1Z1pVSnZEaUZPV3paMFFKS25sczYxM21mOFFGN3F1MnVKbGxZNVF2VDRTakVybU5fcHROeERHX0ptbG5ScWFUdEhTRlhBUDN6UnBreTdHTkJzZmpRUzhPUWZCMlZ4V1JadmJuTGM?oc=5": "2026-10-20T23:17:32.446917+09:00",
+    "https://news.google.com/rss/articles/CBMilAFBVV95cUxQVjYydGtPS21HT1BqOUxPRW02bFlUeVpHSlBsVHNTYkQxM0FpcGFSa3RhcVdZQjViYVJMT09Yc2hhMDBTR0Y5aERUTmo5aGlmS19kMm1raUdIcXlBd2dpd05wQXd5TE9xbjlmeVZDUEtLTlpQcl9iTndpdjFkcm9zMHVtbWFaWGl2RTFiTGZEMGVIbUhx?oc=5": "2026-10-20T23:17:32.446917+09:00",
+    "https://news.google.com/rss/articles/CBMidkFVX3lxTE5QUkVzbUxzZDYtYnBvNkRTSVF4ZWxiWFM4Rk1qQ2tSQ3dUVjRQR1pmRmlXanhrQmxZdmtVaFp2R1doVTNKZWlqVGZ5TmsxV015U2lOYjk2a1A3NlVqbkZBNGlUbHVwbDg3cWtZeHlGOU1udjFONUE?oc=5": "2026-10-20T23:17:32.446917+09:00",
+    "https://news.google.com/rss/articles/CBMiUEFVX3lxTE9uWmZVMzN0MGhWVVlsWVVObDY3Z05BTmdjN29lRjJUUDk0ZVRkOERxanlOWFh1X1hUaFp0YUxDNTB0VDJuVExCUnU1eFV4ZnFo?oc=5": "2026-10-20T23:17:32.446917+09:00"
+  },
+  "_gemini_backoff:quota": "2026-10-21T15:59:59.680227+09:00",
+  "_gemini_backoff_basis:quota": "Googleの待ち時間(境界より前のため採用)"
 }
