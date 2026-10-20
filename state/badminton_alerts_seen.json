@@ -254,7 +254,9 @@
     "https://news.google.com/rss/articles/CBMijgFBVV95cUxPTXRrVmFpVlMzNkhDYWExRG1jSmc0bHR5OEMxSkpEZzVIVjVTckdtTnE4aWpMZUJLUEhJOG5ndkxqTHZjNElmYTl6c0N4MlFqQlBRVWdrX3F2MkNLT1VUUk05VldzR0ZRekZjMzE3SFBXU2pjRHVhSlJNRFQtMzlfOVFFanJ0RVJfODVaOVNn?oc=5": "2026-10-20T01:29:04.585133+09:00",
     "https://news.google.com/rss/articles/CBMiXEFVX3lxTFBFWWIwQ0RvYW1JWDg3Tml6dlBDV0hNa19mcG1CYWh2dnh0V3NpNE1rSGRnNmNNaUZNaGNVMmZfVUh4ZHRGa19KbnhNVlJQZ3FCdnRuTFNwR3JhNXlp?oc=5": "2026-10-20T08:56:13.455433+09:00",
     "https://news.google.com/rss/articles/CBMiR0FVX3lxTE5wOXFSZ2lIM21DcUtiTTNrTUktdGQ3N281YnFGX0RUc3d3ODB6ajdLQUNqQWg4UkRfMWt6Qm9YNXhDMzd4Skp3?oc=5": "2026-10-20T17:50:38.127614+09:00",
-    "https://news.google.com/rss/articles/CBMif0FVX3lxTFBHQXptMlF3UW5lOE1SUVctVlVURVBZMXhQaDltU0lSNDg2bFNub19TakxPcm5ncUF5cldNX0tocGNiVDNneDA1V3BITTlUNkNhb1hzWi1kMGV6eUswXzlJOTZUQzV1NGZNQXR1ZGRVbk9HM0p0ZkF1ejRRU3F6Mjg?oc=5": "2026-10-20T17:50:38.127614+09:00"
+    "https://news.google.com/rss/articles/CBMif0FVX3lxTFBHQXptMlF3UW5lOE1SUVctVlVURVBZMXhQaDltU0lSNDg2bFNub19TakxPcm5ncUF5cldNX0tocGNiVDNneDA1V3BITTlUNkNhb1hzWi1kMGV6eUswXzlJOTZUQzV1NGZNQXR1ZGRVbk9HM0p0ZkF1ejRRU3F6Mjg?oc=5": "2026-10-20T17:50:38.127614+09:00",
+    "https://news.google.com/rss/articles/CBMiXEFVX3lxTE9RQXJpXzk2dTl6NnZnX3A4d0dnT1I0ekpSelhTT0VrcGJKVzNJTGdfdHdqQ21HdzB2N2FqU2xlV0N6bnc3TkQxUGNNaU9SNW1xUy13YXpNb2diaFZT?oc=5": "2026-10-21T03:45:13.574078+09:00",
+    "https://news.google.com/rss/articles/CBMif0FVX3lxTE9CeV9PUFNSNlRzSE1LSGgzUENOeXZMWHNEbnMwRkxfamluQktRVzhPX19tcGNqMjBaalcxeGMwLTFPWTE2clF1anMycWpmR1JyQWZ1SjhuWlcyNml4Ukw5dUdpaVpDR0djbG9udG41S2UzYkhRN0dCMUVUTl9ZWDA?oc=5": "2026-10-21T03:45:13.574078+09:00"
   },
   "seen_nba_result_ids": {
     "853": "2026-10-06T20:55:36.454281+09:00",
@@ -292,7 +294,16 @@
     "matches": [],
     "summaries": [],
     "badspi": [],
-    "gnews": [],
+    "gnews": [
+      {
+        "title": "フランスオープン2026女子バドミントン特集！山口茜・日本代表の注目選手と大会情報を徹底解説！",
+        "url": "https://news.google.com/rss/articles/CBMiXEFVX3lxTE9RQXJpXzk2dTl6NnZnX3A4d0dnT1I0ekpSelhTT0VrcGJKVzNJTGdfdHdqQ21HdzB2N2FqU2xlV0N6bnc3TkQxUGNNaU9SNW1xUy13YXpNb2diaFZT?oc=5"
+      },
+      {
+        "title": "バドミントン日本代表の勝負服がガラリ！ 19歳女子が着た爽やかノースリーブイエローに好感「シーブリーズのCMきそう」",
+        "url": "https://news.google.com/rss/articles/CBMif0FVX3lxTE9CeV9PUFNSNlRzSE1LSGgzUENOeXZMWHNEbnMwRkxfamluQktRVzhPX19tcGNqMjBaalcxeGMwLTFPWTE2clF1anMycWpmR1JyQWZ1SjhuWlcyNml4Ukw5dUdpaVpDR0djbG9udG41S2UzYkhRN0dCMUVUTl9ZWDA?oc=5"
+      }
+    ],
     "nba": []
   },
   "wr_rankings": {
