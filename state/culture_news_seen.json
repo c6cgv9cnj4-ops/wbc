@@ -1,7 +1,5 @@
 {
   "seen_urls": {
-    "https://gigazine.net/news/20261007-ai-terrifying-line/": "2026-10-07T19:09:57.615607+09:00",
-    "https://gigazine.net/news/20261007-openai-mathematics/": "2026-10-07T19:09:57.615607+09:00",
     "https://gigazine.net/news/20261009-openais-math-solutions-human-ahm/": "2026-10-09T19:26:20.434893+09:00",
     "https://postcoffee.co/magazine/coffee/howtobrew/hoop-how-to-brew/": "2026-10-09T19:26:20.434893+09:00",
     "https://www.itmedia.co.jp/news/article/2610/10/2000002189/": "2026-10-12T00:38:42.672034+09:00",
@@ -180,6 +178,14 @@
     "https://news.google.com/rss/articles/CBMiTEFVX3lxTE9xXzNKNTZzY05SNW9pX1BaWHdDeDc4UmRVTE1mRElhM3ptYjZIRGxROEliVkRQelRCOUZnVW16WXhZWUNJY2dMSV9NM2c?oc=5": "2026-10-21T17:28:52.056175+09:00",
     "https://news.google.com/rss/articles/CBMiUkFVX3lxTE4wSlBpMkFHUzBFTEN4aVRvbXVtREZ6VGRyS0F6alZfemdGaU5sVzloV1lFcUdscXhTREM2Z0Y0SlFLMG11anRWa3VkeEQ3S1Npb1E?oc=5": "2026-10-21T17:28:52.056175+09:00",
     "https://news.google.com/rss/articles/CBMiogFBVV95cUxQU3RTYV84Sm41Y3l0RlhIeFRISzl6QUZjeGkzR3hqeEh0N1J5UDF5clJkR2g1NWM2d1JWSkZCTkNXUHg5QUN2UUZhaUdTUl9ZcEpKT1VKLTFtMFFrWURaenNoWW9wOEVPdFpNdk9kWFpNTFMxbjRqeG9hVndMbHh4V1gwTDVUWTl5bklOS1Y1dURCVTM0Z05md19qdmxFT2dhMUE?oc=5": "2026-10-21T17:28:52.056175+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1YS014TUU0TTdSd0ZmVVF6TG5UZmtscjlBaUNpNjJxQmVFcTRyd05OZUJKaWctTXpZX2JMQnNMSWVGY2FjX0R0NHFFN1lMTzVjQUVwMnFkaUVtWmFPZXF4M25IR0czd1Rf?oc=5": "2026-10-21T17:28:52.056175+09:00"
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1YS014TUU0TTdSd0ZmVVF6TG5UZmtscjlBaUNpNjJxQmVFcTRyd05OZUJKaWctTXpZX2JMQnNMSWVGY2FjX0R0NHFFN1lMTzVjQUVwMnFkaUVtWmFPZXF4M25IR0czd1Rf?oc=5": "2026-10-21T17:28:52.056175+09:00",
+    "https://www.itmedia.co.jp/news/article/2610/21/2000002462/": "2026-10-21T23:28:45.942384+09:00",
+    "https://www.itmedia.co.jp/news/article/2610/21/2000002472/": "2026-10-21T23:28:45.942384+09:00",
+    "https://www.itmedia.co.jp/news/article/2610/21/2000002469/": "2026-10-21T23:28:45.942384+09:00",
+    "https://news.google.com/rss/articles/CBMikgFBVV95cUxNLWVNNURxbnZ1NXFvRGhHZDZ6U1RQR1FuVTZKUDhfa2oxbU5rdFRzVWI3dU9QZWR3T1ZLX1h4ODlyNFkzeTA1SWZycFRObHVNODdIM2pzWF9wUjBYQzBraFRadl90anVoYnRYUG5wbXBwdUoybjJOZzFtOGJCdWlKcll3bDVhT2k5M0prcTlaZ3NxUQ?oc=5": "2026-10-21T23:28:45.942384+09:00",
+    "https://news.google.com/rss/articles/CBMinwFBVV95cUxPN1hZeWdmbWNNOVpzb1VoRFh0bjZxZmFnZW1makFENEFRY1UzbEhWT05sUmZRekRLRXQ2NV8tRmMyZVVXNDlDT0w3TTRFZWRiNEVGaWZZdm8yc3JCMTFWU0tLNHJlSnBRSWFuVFZ5TzlORS04SmxSVzFacWVFQV80VEFGX3hQMWxtOFU0S0MtS2FFdGZpOEVrcEhpX1hETHM?oc=5": "2026-10-21T23:28:45.942384+09:00",
+    "https://news.google.com/rss/articles/CBMihwFBVV95cUxQbG5zb0VNWTNiS1dnS3hYa2VYdjBJa2ZmcUZ6ZmcydllkYnVpdmxubFhKYUJNYzVVY2ZBdlhaLXFHMS1MUGdJMk5xelFKT01hbVRxOEF5Rk9OeFJlMjQzZUotbTRGcGI0N0RHWGprckxnZGJoZ1BmaVFfbzBsTmdvZlhZZVBBZ2c?oc=5": "2026-10-21T23:28:45.942384+09:00",
+    "https://news.google.com/rss/articles/CBMihgFBVV95cUxQajZKMDk4VkNiNDNhSFhWWlpXVkhJMXRsNWpsRW8yWUJaZS10ZGJnSVNsMDNmTEZqWjVKLWpsU2xTTnI2cjBYMmFYNXptbHhjX3JZUW9FaVJUeXhnZ0MtS2otSnpVOUQ4b2ZSTUsxUEUwcHR3Rm1BaEkxVUlUZEtxZFhCRFJBUQ?oc=5": "2026-10-21T23:28:45.942384+09:00",
+    "https://news.google.com/rss/articles/CBMiakFVX3lxTE9iZXdUOFprVkY5Q0U4UnY2SGp1RWtTVVlHMDJKZ0JvM1pQNGYwVEdFZTlUWWJ1YzdIcWZ5SXl6U1JvNkdOZF9PbUg4VXFMVks5OEJ4bGJHakFuNHRIV05KeEpZd0pKcUVxNEE?oc=5": "2026-10-21T23:28:45.942384+09:00"
   }
 }
