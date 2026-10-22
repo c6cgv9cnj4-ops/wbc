@@ -14,7 +14,6 @@
     "https://www.sposoku.com/malaysiaopen/::×緑川・松山　1－2　〇CHENG・ZHANG(中国)": "2026-09-24T22:47:44.014486+09:00"
   },
   "seen_badspi_urls": {
-    "https://www.badspi.jp/202609230606/?utm_source=rss&utm_medium=rss&utm_campaign=202609230606": "2026-09-23T06:40:09.251789+09:00",
     "https://www.badspi.jp/201609231038/?utm_source=rss&utm_medium=rss&utm_campaign=201609231038": "2026-09-23T12:25:55.270555+09:00",
     "https://www.badspi.jp/202609232109/?utm_source=rss&utm_medium=rss&utm_campaign=202609232109": "2026-09-23T17:46:24.079093+09:00",
     "https://www.badspi.jp/202609231519/?utm_source=rss&utm_medium=rss&utm_campaign=202609231519": "2026-09-23T17:46:24.079093+09:00",
@@ -284,16 +283,7 @@
   "digest_pool": {
     "matches": [],
     "summaries": [],
-    "badspi": [
-      {
-        "title": "【インカレ2026】持ち味のねばり強さを発揮した小林優花が、2年ぶり2度目の頂点到達！＜女子シングルス決勝戦結果＞",
-        "url": "https://www.badspi.jp/202610222107/?utm_source=rss&utm_medium=rss&utm_campaign=202610222107"
-      },
-      {
-        "title": "【インカレ2026】藤原睦月が3年ぶりにインカレ王者へ返り咲き！＜男子シングルス決勝戦結果＞",
-        "url": "https://www.badspi.jp/202610220956/?utm_source=rss&utm_medium=rss&utm_campaign=202610220956"
-      }
-    ],
+    "badspi": [],
     "gnews": [],
     "nba": []
   },
