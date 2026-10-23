@@ -87,7 +87,11 @@
     "https://www.badspi.jp/202610222107/?utm_source=rss&utm_medium=rss&utm_campaign=202610222107": "2026-10-22T23:21:38.612586+09:00",
     "https://www.badspi.jp/202610220956/?utm_source=rss&utm_medium=rss&utm_campaign=202610220956": "2026-10-22T23:21:38.612586+09:00",
     "https://www.badspi.jp/202610230904/?utm_source=rss&utm_medium=rss&utm_campaign=202610230904": "2026-10-23T09:57:01.034250+09:00",
-    "https://www.badspi.jp/202610231730/?utm_source=rss&utm_medium=rss&utm_campaign=202610231730": "2026-10-23T17:47:39.996407+09:00"
+    "https://www.badspi.jp/202610231730/?utm_source=rss&utm_medium=rss&utm_campaign=202610231730": "2026-10-23T17:47:39.996407+09:00",
+    "https://www.badspi.jp/202610232023/?utm_source=rss&utm_medium=rss&utm_campaign=202610232023": "2026-10-23T23:04:08.416052+09:00",
+    "https://www.badspi.jp/202610232010/?utm_source=rss&utm_medium=rss&utm_campaign=202610232010": "2026-10-23T23:04:08.416052+09:00",
+    "https://www.badspi.jp/202610231945/?utm_source=rss&utm_medium=rss&utm_campaign=202610231945": "2026-10-23T23:04:08.416052+09:00",
+    "https://www.badspi.jp/202610231847/?utm_source=rss&utm_medium=rss&utm_campaign=202610231847": "2026-10-23T23:04:08.416052+09:00"
   },
   "seen_national_summaries": {
     "https://www.sposoku.com/wakabacup-badminton/::優勝：岡垣ジュニア(福岡県)準優勝：Selfish(神奈川県)第三位：shinshin(石川県)、F.Flash(埼玉県)": "2026-10-06T04:48:47.421266+09:00",
@@ -269,7 +273,24 @@
   "digest_pool": {
     "matches": [],
     "summaries": [],
-    "badspi": [],
+    "badspi": [
+      {
+        "title": "【世界ランキング】徐承宰＆金ウォンホ、譚寧＆劉聖書は首位を譲らず！＜ダブルス＞",
+        "url": "https://www.badspi.jp/202610232023/?utm_source=rss&utm_medium=rss&utm_campaign=202610232023"
+      },
+      {
+        "title": "【世界ランキング】アン・セヨン、クンラビット・ビティサランが首位をキープ！＜シングルス＞",
+        "url": "https://www.badspi.jp/202610232010/?utm_source=rss&utm_medium=rss&utm_campaign=202610232010"
+      },
+      {
+        "title": "【インカレ2026】南本和哉＆上野凛が混戦の戦いを制し優勝！南本は2冠達成！＜混合ダブルス決勝戦結果＞",
+        "url": "https://www.badspi.jp/202610231945/?utm_source=rss&utm_medium=rss&utm_campaign=202610231945"
+      },
+      {
+        "title": "【インカレ2026】玉木亜弥＆長廻優茉が昨年の悔しさを晴らし優勝！2年生女王に輝く！＜女子ダブルス決勝戦結果＞",
+        "url": "https://www.badspi.jp/202610231847/?utm_source=rss&utm_medium=rss&utm_campaign=202610231847"
+      }
+    ],
     "gnews": [],
     "nba": []
   },
