@@ -1079,10 +1079,17 @@ LOCAL_TITLE_MIN_LEN = 8
 _LOCAL_TITLE_STRIP_RE = re.compile(r"[\s【】\[\]「」『』（）()・、。,.!！?？:：;；\"'“”‘’\-‐―－〜~…]+")
 
 
+_LOCAL_TITLE_LEAD_TAG_RE = re.compile(r"^\s*【(画像|動画|写真|事故|速報|独自)】\s*")
+_LOCAL_TITLE_DATE_RE = re.compile(r"\d{4}年\d{1,2}月\d{1,2}日掲載")
+
+
 def local_title_key(title):
-    """比較用の正規化見出し(媒体名・記号・空白を除き、全角半角と大小文字をそろえる)。"""
+    """比較用の正規化見出し(媒体名・記号・空白を除き、全角半角と大小文字をそろえる)。
+    2026-10-13: 先頭の【画像】【事故】等の種別タグと「○年○月○日掲載」は表記違いなので除く。"""
     body = local_news_filter.split_source(title)[0]
-    return _LOCAL_TITLE_STRIP_RE.sub("", unicodedata.normalize("NFKC", body).lower())
+    body = _LOCAL_TITLE_LEAD_TAG_RE.sub("", unicodedata.normalize("NFKC", body))
+    body = _LOCAL_TITLE_DATE_RE.sub("", body)
+    return _LOCAL_TITLE_STRIP_RE.sub("", body.lower())
 
 
 def is_same_local_story(a, b):
@@ -1104,22 +1111,44 @@ def has_local_update_keyword(title):
     return any(w in body for w in LOCAL_UPDATE_KEYWORDS)
 
 
+LOCAL_NEW_INFO_CHARS = 4   # 既出見出しより増えた文字数の下限(重複は0〜2、追加情報は6以上)
+
+
+def _added_chars(new_key, old_key):
+    """new_key が old_key より増やした文字数(difflib の挿入・置換の合計)。"""
+    sm = difflib.SequenceMatcher(None, old_key, new_key, autojunk=False)
+    return sum(j2 - j1 for tag, _i1, _i2, j1, j2 in sm.get_opcodes() if tag in ("insert", "replace"))
+
+
 def dedupe_local_items(items, state, now):
-    """直近の配信済み見出しと、今回の一覧内の類似見出しを除く。戻り値: (残す項目, 除いた件数)。state は変更しない。"""
+    """直近の配信済み見出しと、今回の一覧内の類似見出しを除く。戻り値: (残す項目, 除いた件数)。state は変更しない。
+    2026-10-13: 「死亡」「負傷」などを含むだけで通していたため、同じ事故の表記違いが繰り返し配信されていた。
+    続報(「続報」)は常に通す。それ以外は、同じ出来事の既出見出しに無い新しい情報語(容疑者・鎮火など)が増えた場合だけ通す。"""
     cutoff = (now - datetime.timedelta(days=LOCAL_RECENT_DAYS)).isoformat()
     recent = [k[len(LOCAL_TITLE_KEY_PREFIX):] for k, v in state.items()
               if k.startswith(LOCAL_TITLE_KEY_PREFIX) and v >= cutoff]
     kept, kept_keys, dropped = [], [], 0
     for item in items:
         key = local_title_key(item["title"])
-        if has_local_update_keyword(item["title"]):
-            kept.append(item)                      # 続報・結末などは重複排除しない(誤って落とさない)
+        body = local_news_filter.split_source(item["title"])[0]
+        if "続報" in body:
+            kept.append(item)                      # 続報は重複排除しない(誤って落とさない)
+            kept_keys.append(key)
             continue
-        if any(is_same_local_story(key, r) for r in recent) or any(is_same_local_story(key, k) for k in kept_keys):
-            dropped += 1
+        matches = [r for r in recent + kept_keys if is_same_local_story(key, r)]
+        if not matches:
+            kept.append(item)
+            kept_keys.append(key)
             continue
-        kept.append(item)
-        kept_keys.append(key)
+        new_info = any(w in key and not any(w in m for m in matches) for w in LOCAL_UPDATE_KEYWORDS)
+        # 語彙に無い追加情報(「原因は○○」など)も、既出の全候補より4文字以上増えていれば新情報として通す。
+        # 実データの重複は追加 0〜2 文字、追加情報は 6 文字以上で分かれた(2026-10-13 測定)。
+        new_info = new_info or all(_added_chars(key, m) >= LOCAL_NEW_INFO_CHARS for m in matches)
+        if new_info:
+            kept.append(item)                      # 既出の出来事に、新しい情報(容疑者・鎮火など)が加わった
+            kept_keys.append(key)
+            continue
+        dropped += 1
     return kept, dropped
 
 
