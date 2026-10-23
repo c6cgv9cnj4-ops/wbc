@@ -458,9 +458,26 @@ def normalize_url(url):
         return url
     try:
         parts = urllib.parse.urlsplit(url)
-        return urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
+        # 2026-10-13: http/https・ホスト名の大文字小文字・末尾スラッシュの違いを同一記事とみなす
+        scheme = "https" if parts.scheme in ("http", "https") else parts.scheme
+        path = parts.path.rstrip("/") if parts.path not in ("", "/") else parts.path
+        return urllib.parse.urlunsplit((scheme, parts.netloc.lower(), path, "", ""))
     except ValueError:
         return url
+
+
+class StateCorruptError(Exception):
+    """既送信記録(news_seen.json)が壊れている。空として扱うと全件を再送するため、送信せず停止する。"""
+
+
+def migrate_url_keys(state):
+    """http:// で保存された既送信キーを normalize_url() の形へ移す(既存のhttps記録があれば残す)。"""
+    for key in [k for k in state if k.startswith("http://")]:
+        canon = normalize_url(key)
+        if canon not in state:
+            state[canon] = state[key]
+        del state[key]
+    return state
 
 
 def load_seen_state():
@@ -468,10 +485,12 @@ def load_seen_state():
         return {}
     try:
         with open(STATE_PATH, encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
     except (json.JSONDecodeError, OSError) as err:
-        print(f"[WARN] {STATE_PATH} の読み込みに失敗したため、空の状態から開始します: {err}")
-        return {}
+        raise StateCorruptError(f"{STATE_PATH} を読み込めません: {err}") from err
+    if not isinstance(data, dict):
+        raise StateCorruptError(f"{STATE_PATH} の形式が想定外です(dictではありません)")
+    return migrate_url_keys(data)
 
 
 def save_seen_state(state):
@@ -1920,7 +1939,12 @@ def main():
         gemini_client = genai.Client(api_key=gemini_api_key)
 
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
-    state = load_seen_state()
+    try:
+        state = load_seen_state()
+    except StateCorruptError as err:
+        # 2026-10-13: 壊れた状態を空として扱うと既送信記録が消え、全件を再送する。送信せず停止し、ファイルはそのまま残す。
+        print(f"[ERROR] {err}。配信を中止します(既送信記録は変更していません)。")
+        sys.exit(1)
     state = prune_old_entries(state, now)
     check_dispatcher_gap(state, now)
     gemini_guard_obj = gemini_guard.Guard(state)     # 2026-10-09: 全国ニュース要約・経済ニュース整理で共有(待機状態はstateに保存)
