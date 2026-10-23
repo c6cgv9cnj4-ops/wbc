@@ -150,5 +150,30 @@ class PipeCaptionRegressionTest(unittest.TestCase):
         self.assertEqual((len(kept), dropped), (1, 0))
 
 
+NNN_TITLE = "バイクと衝突…軽自動車が横転・炎上 車の“運転手”か1人死亡 埼玉・上尾市（2026年10月11日掲載） - 日テレNEWS NNN"
+LIVE_TITLE = "バイクと衝突…軽自動車が横転・炎上 車の“運転手”か1人死亡 埼玉・上尾市 - ライブドアニュース"
+INFOSEEK_TITLE = "バイクと衝突…軽自動車が横転・炎上 車の“運転手”か1人死亡 埼玉・上尾市｜Infoseekニュース - Infoseek"
+
+
+class KnownMediaSuffixTest(unittest.TestCase):
+    """既知の媒体名（Infoseek・10文字超）を末尾から除く回帰テスト（2026-10-23）。"""
+
+    def test_infoseek_suffix_matches_other_media_key(self):
+        self.assertEqual(fn.local_title_key(INFOSEEK_TITLE), fn.local_title_key(NNN_TITLE))
+        self.assertEqual(fn.local_title_key(INFOSEEK_TITLE), fn.local_title_key(LIVE_TITLE))
+
+    def test_infoseek_repeat_of_sent_article_is_dropped(self):
+        kept, dropped = fn.dedupe_local_items([item(INFOSEEK_TITLE, "u")], recent_state(NNN_TITLE), NOW)
+        self.assertEqual((len(kept), dropped), (0, 1))
+
+    def test_live_repeat_of_sent_article_is_dropped(self):
+        kept, dropped = fn.dedupe_local_items([item(LIVE_TITLE, "u")], recent_state(NNN_TITLE), NOW)
+        self.assertEqual((len(kept), dropped), (0, 1))
+
+    def test_long_unknown_tail_is_still_kept(self):
+        self.assertNotEqual(
+            fn.local_title_key("北本市で火災 住宅が全焼|ABCDEFGHIJKL"), fn.local_title_key("北本市で火災 住宅が全焼"))
+
+
 if __name__ == "__main__":
     unittest.main()

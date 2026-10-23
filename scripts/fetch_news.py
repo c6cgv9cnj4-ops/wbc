@@ -1084,11 +1084,14 @@ _LOCAL_TITLE_DATE_RE = re.compile(r"\d{4}年\d{1,2}月\d{1,2}日掲載")
 _LOCAL_TITLE_CAPTION_RE = re.compile(r"(?:写真|画像|動画)+[0-9]*(?:/[0-9]+)?$")  # 末尾の写真・画像キャプション
 
 
+_KNOWN_MEDIA_NAMES = {"infoseekニュース", "infoseek"}  # 10文字を超えても媒体名として除く（NFKC後の小文字比較）
+
+
 def _strip_trailing_site_name(body):
     """末尾の「|媒体名」だけを外す。途中の「|」は別の出来事の区切りなので残す（誤抑制を防ぐ）。
-    末尾の区切り以降が10文字を超える場合も、媒体名ではないとみなして残す。"""
+    末尾の区切り以降が10文字を超える場合は、既知の媒体名（_KNOWN_MEDIA_NAMES）のときだけ外す。"""
     head, sep, tail = body.rpartition("|")
-    if sep and 0 < len(tail.strip()) <= 10:
+    if sep and (tail.strip().lower() in _KNOWN_MEDIA_NAMES or 0 < len(tail.strip()) <= 10):
         return head
     return body
 
