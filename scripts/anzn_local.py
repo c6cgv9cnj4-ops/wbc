@@ -125,7 +125,12 @@ def import_state(src_path, state):
 def run(args):
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
     fetch_news.STATE_PATH = args.state  # 既存の load/save_seen_state をMac専用stateに向ける
-    state = fetch_news.prune_old_entries(fetch_news.load_seen_state(), now)
+    try:
+        state = fetch_news.prune_old_entries(fetch_news.load_seen_state(), now)
+    except fetch_news.StateCorruptError as err:
+        # 壊れた状態を空として扱うと全件を再送するため、送信も保存もせず終了する(ファイルは変更しない)
+        print(f"[ERROR] 既送信記録が読めないため中止しました(送信・保存なし。ファイルはそのまま): {err}")
+        return 1
 
     if args.import_state:
         added = import_state(args.import_state, state)
