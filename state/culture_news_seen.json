@@ -206,8 +206,9 @@
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBzY2Q1eEFuZTFIYW4tTnZsazBYX1daRzVmczJTRFFScElNd0dNUWJ5UEtwTXBGRWVsN3N6Q3ZFWVNVa2xzTm9BOEpQdlQyTWFGc2d6OGdQYUhFamo0OG1yajJ3X2pJRXR0?oc=5": "2026-10-23T09:39:19.378456+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1WbnBwb1puZVAybmJwUUJYMFlRMVVnUFJnTkI5a1Rta3JQbE5XdkN1V3NPUXVMMUdXZ0w5d3o1RWt1LVo3Z2hxYXY2c05yRDVXTm5ManphWC1WMVcyMGl3alF0VVdGRmZP?oc=5": "2026-10-23T09:39:19.378456+09:00",
     "https://news.google.com/rss/articles/CBMie0FVX3lxTE5zamNyNWl0MDFwSXpsOGU1bFlfekFTeU5NSjZXeXBIbW5VbENFdFI0Y1NZTnctdmtLUFVoUFdBTUVPQUNtNmxpaW9oSncyX2tkOExfRkZLQzJMcTF2RjZyWU1odDYwWFQyajNTUGMwa1lfcjF6LVVZcFZxTQ?oc=5": "2026-10-23T09:39:19.378456+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1FX1VkdUdyUnd1ekhDX21NTEVFUl9zejR2NGlkWWM1MDY3N1o1cHNDTUZTQWlwX195TVB2SGJBMUo2NDZhV0ZHOUhqSHBfT0lDS3U4STNuUnUyRzdWemlsbDFwYm5sQ2l2?oc=5": "2026-10-23T09:39:19.378456+09:00"
-  },
-  "_gemini_backoff:quota": "2026-10-23T16:00:00+09:00",
-  "_gemini_backoff_basis:quota": "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)／日次境界(太平洋時間0時・推定)"
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1FX1VkdUdyUnd1ekhDX21NTEVFUl9zejR2NGlkWWM1MDY3N1o1cHNDTUZTQWlwX195TVB2SGJBMUo2NDZhV0ZHOUhqSHBfT0lDS3U4STNuUnUyRzdWemlsbDFwYm5sQ2l2?oc=5": "2026-10-23T09:39:19.378456+09:00",
+    "https://gigazine.net/news/20261023-anthropic-formal-verification/": "2026-10-23T17:27:38.867899+09:00",
+    "https://gigazine.net/news/20261023-micron-4fsquare-shift/": "2026-10-23T17:27:38.867899+09:00",
+    "https://news.google.com/rss/articles/CBMiR0FVX3lxTFBwRkpsTEMyY3Y4MWxHbUJYaFpFWWVzU0FSd3dMT005OE4xVVlfRXJCbHVlMUtDQkpLS2I0MkJhc19uWlRYNU1J?oc=5": "2026-10-23T17:27:38.867899+09:00"
+  }
 }
