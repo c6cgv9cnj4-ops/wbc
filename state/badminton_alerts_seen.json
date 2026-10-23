@@ -14,7 +14,6 @@
     "https://www.sposoku.com/malaysiaopen/::×緑川・松山　1－2　〇CHENG・ZHANG(中国)": "2026-09-24T22:47:44.014486+09:00"
   },
   "seen_badspi_urls": {
-    "https://www.badspi.jp/202609240614/?utm_source=rss&utm_medium=rss&utm_campaign=202609240614": "2026-09-24T06:48:20.108847+09:00",
     "https://www.badspi.jp/202609242143/?utm_source=rss&utm_medium=rss&utm_campaign=202609242143": "2026-09-24T22:47:44.014486+09:00",
     "https://www.badspi.jp/202609241724/?utm_source=rss&utm_medium=rss&utm_campaign=202609241724": "2026-09-24T22:47:44.014486+09:00",
     "https://www.badspi.jp/202609241643/?utm_source=rss&utm_medium=rss&utm_campaign=202609241643": "2026-09-24T22:47:44.014486+09:00",
@@ -115,7 +114,6 @@
     "https://www.sposoku.com/kokuspo-badminton-026/::優勝：青森県準優勝：山口県第三位：埼玉県第四位：大阪府": "2026-10-14T18:01:59.543009+09:00"
   },
   "seen_gnews_urls": {
-    "https://news.google.com/rss/articles/CBMiX0FVX3lxTE1KM1JfaFBTNnpjR0oxaTU5RTZxWGdGbzk3aVI5Mlo2X1U0cFJPeXQ3bjlHQmVFek8tdmxCdXloUThQTVBPM1lfMW1uc3RLcEVKSjZxd0daLVQtX1JQNm93?oc=5": "2026-09-24T06:48:20.108847+09:00",
     "https://news.google.com/rss/articles/CBMi6wFBVV95cUxONXVfb3RETFROUHNTZWttYW5IVC1oeEdRMDNsVnY3aDlGbFFjSUdHNVlpZlBLZVpBWm1TNkxkRF8zT3ZpSk5tTzZ6UnNSR3N2QmpqZXpnU3NMZXhVaV9PMXhxRVpaUXZxQkVObXAwQXJhd3VXNEdSR25hLTg1NFluYl9XM1RyblVOY2k2WHBzcUFnX0o4ZG9hUS15aHBZaHd5ellQcllSNmtaWHFGWThfRmk4X2dBeDByTnZmMmNxc2g4cWRsRWxTMHVLQUlFQUZCNjNCZHZ2ZGJuQnk3cF9CcUg2SE9MazVqLWRr0gGbAUFVX3lxTE10SXZUU0tZMFpZWVZBdEFncEhFRGFId1RCYjlJQjhJRDU5OWpiVHJDS0xqQVZRVlYzZDBoWDVTZmlvbEVwWVU5bG9sVVM1N3VzbGdYRnFQX09OUEdaMXJwb1gtUE5pMFA1RVVzZ21SbFhrX2hnWFdjWTFOMG0yV2tESG9nMFJ3S1RGSGJhTnV3UzRyNjBtRDlzdDNz?oc=5": "2026-09-24T09:53:11.714052+09:00",
     "https://news.google.com/rss/articles/CBMiygFBVV95cUxPNTFBMU50VTRXWkVkN3cxVjcwRHRKMl8zV0hmRFlkem9IbFRHVTVZWUM4ZmdscGtBM1B0SF9VdjNYMEJTMEpGRDZlTm1sRHpJQzJ6Mmo1ZWNISUY0UmZoMktQbDYwMVZWWVRjU3l6ck1IVUZ6ZE81S3pwOWk0SXQwdUF5TExoX0dPTXIxVXVGX2NmWWM1SGlBdGJ3ZG92UVA5MWdmdHVLY1hoU3ZoR3A2YjJLaVY0dWljOC1NV2xTQnM5dktCcWNSMWVB?oc=5": "2026-09-24T09:53:11.714052+09:00",
     "https://news.google.com/rss/articles/CBMif0FVX3lxTFBvd0J1Tk5oRElrZVE0bll2TDlraE8zWGRFS2FBWVNrSE5iQ0xnZWJTQXRfckRPNkRpSk14c1ZzeElRSmdGRzJwdXVYc3BjdDZUY3dlVEpjNHlHV2EwbXZ4MVdVZFQzUS1Bc2s4by01eVpfTlNrOUxZbC1BZWFpVkk?oc=5": "2026-09-24T12:15:01.152271+09:00",
@@ -265,24 +263,7 @@
   "digest_pool": {
     "matches": [],
     "summaries": [],
-    "badspi": [
-      {
-        "title": "【世界ランキング】徐承宰＆金ウォンホ、譚寧＆劉聖書は首位を譲らず！＜ダブルス＞",
-        "url": "https://www.badspi.jp/202610232023/?utm_source=rss&utm_medium=rss&utm_campaign=202610232023"
-      },
-      {
-        "title": "【世界ランキング】アン・セヨン、クンラビット・ビティサランが首位をキープ！＜シングルス＞",
-        "url": "https://www.badspi.jp/202610232010/?utm_source=rss&utm_medium=rss&utm_campaign=202610232010"
-      },
-      {
-        "title": "【インカレ2026】南本和哉＆上野凛が混戦の戦いを制し優勝！南本は2冠達成！＜混合ダブルス決勝戦結果＞",
-        "url": "https://www.badspi.jp/202610231945/?utm_source=rss&utm_medium=rss&utm_campaign=202610231945"
-      },
-      {
-        "title": "【インカレ2026】玉木亜弥＆長廻優茉が昨年の悔しさを晴らし優勝！2年生女王に輝く！＜女子ダブルス決勝戦結果＞",
-        "url": "https://www.badspi.jp/202610231847/?utm_source=rss&utm_medium=rss&utm_campaign=202610231847"
-      }
-    ],
+    "badspi": [],
     "gnews": [],
     "nba": []
   },
