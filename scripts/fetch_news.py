@@ -458,9 +458,26 @@ def normalize_url(url):
         return url
     try:
         parts = urllib.parse.urlsplit(url)
-        return urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
+        # 2026-10-13: http/https・ホスト名の大文字小文字・末尾スラッシュの違いを同一記事とみなす
+        scheme = "https" if parts.scheme in ("http", "https") else parts.scheme
+        path = parts.path.rstrip("/") if parts.path not in ("", "/") else parts.path
+        return urllib.parse.urlunsplit((scheme, parts.netloc.lower(), path, "", ""))
     except ValueError:
         return url
+
+
+class StateCorruptError(Exception):
+    """既送信記録(news_seen.json)が壊れている。空として扱うと全件を再送するため、送信せず停止する。"""
+
+
+def migrate_url_keys(state):
+    """http:// で保存された既送信キーを normalize_url() の形へ移す(既存のhttps記録があれば残す)。"""
+    for key in [k for k in state if k.startswith("http://")]:
+        canon = normalize_url(key)
+        if canon not in state:
+            state[canon] = state[key]
+        del state[key]
+    return state
 
 
 def load_seen_state():
@@ -468,10 +485,12 @@ def load_seen_state():
         return {}
     try:
         with open(STATE_PATH, encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
     except (json.JSONDecodeError, OSError) as err:
-        print(f"[WARN] {STATE_PATH} の読み込みに失敗したため、空の状態から開始します: {err}")
-        return {}
+        raise StateCorruptError(f"{STATE_PATH} を読み込めません: {err}") from err
+    if not isinstance(data, dict):
+        raise StateCorruptError(f"{STATE_PATH} の形式が想定外です(dictではありません)")
+    return migrate_url_keys(data)
 
 
 def save_seen_state(state):
@@ -1060,10 +1079,33 @@ LOCAL_TITLE_MIN_LEN = 8
 _LOCAL_TITLE_STRIP_RE = re.compile(r"[\s【】\[\]「」『』（）()・、。,.!！?？:：;；\"'“”‘’\-‐―－〜~…]+")
 
 
+_LOCAL_TITLE_LEAD_TAG_RE = re.compile(r"^\s*【(画像|動画|写真|事故|速報|独自)】\s*")
+_LOCAL_TITLE_DATE_RE = re.compile(r"\d{4}年\d{1,2}月\d{1,2}日掲載")
+_LOCAL_TITLE_CAPTION_RE = re.compile(r"(?:写真|画像|動画)+[0-9]*(?:/[0-9]+)?$")  # 末尾の写真・画像キャプション
+
+
+_KNOWN_MEDIA_NAMES = {"infoseekニュース", "infoseek"}  # 10文字を超えても媒体名として除く（NFKC後の小文字比較）
+
+
+def _strip_trailing_site_name(body):
+    """末尾の「|媒体名」だけを外す。途中の「|」は別の出来事の区切りなので残す（誤抑制を防ぐ）。
+    末尾の区切り以降が10文字を超える場合は、既知の媒体名（_KNOWN_MEDIA_NAMES）のときだけ外す。"""
+    head, sep, tail = body.rpartition("|")
+    if sep and (tail.strip().lower() in _KNOWN_MEDIA_NAMES or 0 < len(tail.strip()) <= 10):
+        return head
+    return body
+
+
 def local_title_key(title):
-    """比較用の正規化見出し(媒体名・記号・空白を除き、全角半角と大小文字をそろえる)。"""
+    """比較用の正規化見出し(媒体名・記号・空白を除き、全角半角と大小文字をそろえる)。
+    2026-10-13: 先頭の【画像】【事故】等の種別タグと「○年○月○日掲載」は表記違いなので除く。
+    末尾の「|媒体名」（Google News 以外の表記）と、末尾の写真・画像のキャプション（「写真画像1/1」等）も表記違いとして除く。"""
     body = local_news_filter.split_source(title)[0]
-    return _LOCAL_TITLE_STRIP_RE.sub("", unicodedata.normalize("NFKC", body).lower())
+    body = _strip_trailing_site_name(unicodedata.normalize("NFKC", body))
+    body = _LOCAL_TITLE_LEAD_TAG_RE.sub("", body)
+    body = _LOCAL_TITLE_DATE_RE.sub("", body)
+    body = _LOCAL_TITLE_CAPTION_RE.sub("", body)
+    return _LOCAL_TITLE_STRIP_RE.sub("", body.lower())
 
 
 def is_same_local_story(a, b):
@@ -1085,22 +1127,44 @@ def has_local_update_keyword(title):
     return any(w in body for w in LOCAL_UPDATE_KEYWORDS)
 
 
+LOCAL_NEW_INFO_CHARS = 4   # 既出見出しより増えた文字数の下限(重複は0〜2、追加情報は6以上)
+
+
+def _added_chars(new_key, old_key):
+    """new_key が old_key より増やした文字数(difflib の挿入・置換の合計)。"""
+    sm = difflib.SequenceMatcher(None, old_key, new_key, autojunk=False)
+    return sum(j2 - j1 for tag, _i1, _i2, j1, j2 in sm.get_opcodes() if tag in ("insert", "replace"))
+
+
 def dedupe_local_items(items, state, now):
-    """直近の配信済み見出しと、今回の一覧内の類似見出しを除く。戻り値: (残す項目, 除いた件数)。state は変更しない。"""
+    """直近の配信済み見出しと、今回の一覧内の類似見出しを除く。戻り値: (残す項目, 除いた件数)。state は変更しない。
+    2026-10-13: 「死亡」「負傷」などを含むだけで通していたため、同じ事故の表記違いが繰り返し配信されていた。
+    続報(「続報」)は常に通す。それ以外は、同じ出来事の既出見出しに無い新しい情報語(容疑者・鎮火など)が増えた場合だけ通す。"""
     cutoff = (now - datetime.timedelta(days=LOCAL_RECENT_DAYS)).isoformat()
     recent = [k[len(LOCAL_TITLE_KEY_PREFIX):] for k, v in state.items()
               if k.startswith(LOCAL_TITLE_KEY_PREFIX) and v >= cutoff]
     kept, kept_keys, dropped = [], [], 0
     for item in items:
         key = local_title_key(item["title"])
-        if has_local_update_keyword(item["title"]):
-            kept.append(item)                      # 続報・結末などは重複排除しない(誤って落とさない)
+        body = local_news_filter.split_source(item["title"])[0]
+        if "続報" in body:
+            kept.append(item)                      # 続報は重複排除しない(誤って落とさない)。既存の要件として維持
+            kept_keys.append(key)
             continue
-        if any(is_same_local_story(key, r) for r in recent) or any(is_same_local_story(key, k) for k in kept_keys):
-            dropped += 1
+        matches = [r for r in recent + kept_keys if is_same_local_story(key, r)]
+        if not matches:
+            kept.append(item)
+            kept_keys.append(key)
             continue
-        kept.append(item)
-        kept_keys.append(key)
+        new_info = any(w in key and not any(w in m for m in matches) for w in LOCAL_UPDATE_KEYWORDS)
+        # 語彙に無い追加情報(「原因は○○」など)も、既出の全候補より4文字以上増えていれば新情報として通す。
+        # 実データの重複は追加 0〜2 文字、追加情報は 6 文字以上で分かれた(2026-10-13 測定)。
+        new_info = new_info or all(_added_chars(key, m) >= LOCAL_NEW_INFO_CHARS for m in matches)
+        if new_info:
+            kept.append(item)                      # 既出の出来事に、新しい情報(容疑者・鎮火など)が加わった
+            kept_keys.append(key)
+            continue
+        dropped += 1
     return kept, dropped
 
 
@@ -1920,7 +1984,12 @@ def main():
         gemini_client = genai.Client(api_key=gemini_api_key)
 
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
-    state = load_seen_state()
+    try:
+        state = load_seen_state()
+    except StateCorruptError as err:
+        # 2026-10-13: 壊れた状態を空として扱うと既送信記録が消え、全件を再送する。送信せず停止し、ファイルはそのまま残す。
+        print(f"[ERROR] {err}。配信を中止します(既送信記録は変更していません)。")
+        sys.exit(1)
     state = prune_old_entries(state, now)
     check_dispatcher_gap(state, now)
     gemini_guard_obj = gemini_guard.Guard(state)     # 2026-10-09: 全国ニュース要約・経済ニュース整理で共有(待機状態はstateに保存)
