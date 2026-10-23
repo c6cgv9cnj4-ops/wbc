@@ -124,5 +124,31 @@ class SendFailureTest(unittest.TestCase):
         self.assertIn("_alert:x", state)
 
 
+class PipeCaptionRegressionTest(unittest.TestCase):
+    """「|」区切りの誤抑制防止、媒体名・写真キャプション・続報の回帰テスト（2026-10-13 誤抑制修正）。"""
+
+    def test_different_events_split_by_mid_title_pipe_are_both_kept(self):
+        old = "埼玉県北本市の住宅地で火災が発生|鴻巣市の店舗で窃盗事件"
+        new = "埼玉県北本市の住宅地で火災が発生|桶川市の工場で爆発事故"
+        kept, dropped = fn.dedupe_local_items([item(new, "u")], recent_state(old), NOW)
+        self.assertEqual((len(kept), dropped), (1, 0))
+
+    def test_short_trailing_media_name_is_ignored(self):
+        kept, dropped = fn.dedupe_local_items(
+            [item("北本市で火災 住宅が全焼|宮城のニュース", "u")], recent_state("北本市で火災 住宅が全焼|ibcnニュース"), NOW)
+        self.assertEqual((len(kept), dropped), (0, 1))
+
+    def test_photo_caption_suffix_is_same_article(self):
+        kept, dropped = fn.dedupe_local_items(
+            [item("北本市で火災 住宅が全焼 写真画像1/1 - 埼玉新聞", "u")], recent_state("北本市で火災 住宅が全焼 - 埼玉新聞"), NOW)
+        self.assertEqual((len(kept), dropped), (0, 1))
+
+    def test_followup_with_new_information_is_kept(self):
+        base = "北本市で軽乗用車とバイクが衝突し1人死亡 埼玉県警が捜査 - 埼玉新聞"
+        follow = "続報 北本市で軽乗用車とバイクが衝突し1人死亡 運転していた男を逮捕 - 埼玉新聞"
+        kept, dropped = fn.dedupe_local_items([item(follow, "u")], recent_state(base), NOW)
+        self.assertEqual((len(kept), dropped), (1, 0))
+
+
 if __name__ == "__main__":
     unittest.main()

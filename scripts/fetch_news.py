@@ -1081,14 +1081,27 @@ _LOCAL_TITLE_STRIP_RE = re.compile(r"[\s【】\[\]「」『』（）()・、。,
 
 _LOCAL_TITLE_LEAD_TAG_RE = re.compile(r"^\s*【(画像|動画|写真|事故|速報|独自)】\s*")
 _LOCAL_TITLE_DATE_RE = re.compile(r"\d{4}年\d{1,2}月\d{1,2}日掲載")
+_LOCAL_TITLE_CAPTION_RE = re.compile(r"(?:写真|画像|動画)+[0-9]*(?:/[0-9]+)?$")  # 末尾の写真・画像キャプション
+
+
+def _strip_trailing_site_name(body):
+    """末尾の「|媒体名」だけを外す。途中の「|」は別の出来事の区切りなので残す（誤抑制を防ぐ）。
+    末尾の区切り以降が10文字を超える場合も、媒体名ではないとみなして残す。"""
+    head, sep, tail = body.rpartition("|")
+    if sep and 0 < len(tail.strip()) <= 10:
+        return head
+    return body
 
 
 def local_title_key(title):
     """比較用の正規化見出し(媒体名・記号・空白を除き、全角半角と大小文字をそろえる)。
-    2026-10-13: 先頭の【画像】【事故】等の種別タグと「○年○月○日掲載」は表記違いなので除く。"""
+    2026-10-13: 先頭の【画像】【事故】等の種別タグと「○年○月○日掲載」は表記違いなので除く。
+    末尾の「|媒体名」（Google News 以外の表記）と、末尾の写真・画像のキャプション（「写真画像1/1」等）も表記違いとして除く。"""
     body = local_news_filter.split_source(title)[0]
-    body = _LOCAL_TITLE_LEAD_TAG_RE.sub("", unicodedata.normalize("NFKC", body))
+    body = _strip_trailing_site_name(unicodedata.normalize("NFKC", body))
+    body = _LOCAL_TITLE_LEAD_TAG_RE.sub("", body)
     body = _LOCAL_TITLE_DATE_RE.sub("", body)
+    body = _LOCAL_TITLE_CAPTION_RE.sub("", body)
     return _LOCAL_TITLE_STRIP_RE.sub("", body.lower())
 
 
@@ -1132,7 +1145,7 @@ def dedupe_local_items(items, state, now):
         key = local_title_key(item["title"])
         body = local_news_filter.split_source(item["title"])[0]
         if "続報" in body:
-            kept.append(item)                      # 続報は重複排除しない(誤って落とさない)
+            kept.append(item)                      # 続報は重複排除しない(誤って落とさない)。既存の要件として維持
             kept_keys.append(key)
             continue
         matches = [r for r in recent + kept_keys if is_same_local_story(key, r)]
