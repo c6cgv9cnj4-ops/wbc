@@ -224,8 +224,9 @@
     "https://news.google.com/rss/articles/CBMiTEFVX3lxTFBwZXE3Zm0wdndHQ2I5TjZzdksyVXNXZDh2SHdRS1oyM0ZUZFhQR2JTOFdVbWhzTDRrZ0owRWZyazl6UHFBa2hCSUNMU18?oc=5": "2026-10-26T09:22:30.182545+09:00",
     "https://news.google.com/rss/articles/CBMiTEFVX3lxTE5mVHJCN214RFVDYmFSclVsd2M5RnRWb3U5bHlpeHQwcFNDZDNNYU5JcDI3RENXMm1jVzE3TjlUem5vUVBfYVJjbHo2NTI?oc=5": "2026-10-26T09:22:30.182545+09:00",
     "https://news.google.com/rss/articles/CBMiakFVX3lxTE5vM3FURlJVU2s0aHZXdXdYNFJiT0piMVQxNHZ6bDdkbHNWdGcwbmNZYnRKc0Npc0xsZjJzbmdfM2Z1ZGtPMEt6RXpqdnQ5OXRyRk9RSmRJNW1pdmVvMUtacDFtYnNTazBkaUE?oc=5": "2026-10-26T09:22:30.182545+09:00",
-    "https://news.google.com/rss/articles/CBMinAFBVV95cUxOWmF4WUJvWElqMmh1T2lSRjFScUpxdFQ3UmZnaTZrWS1Eamltdnp0TkRDdWNKSWR4UmF5dnFZNjVPYlp0UmM5OC1YQzl1QmhxSUNPSXMydngzSDdRem5lZXpJVzhwNlEwV3MwRnhqTllGVHNNc252c1BRYkdPR3pwejd5em9nNzV1RXVfSklVOXpDMXl3cGtfZnNMNDE?oc=5": "2026-10-26T09:22:30.182545+09:00"
-  },
-  "_gemini_backoff:quota": "2026-10-26T15:59:59.373478+09:00",
-  "_gemini_backoff_basis:quota": "Googleの待ち時間(境界より前のため採用)"
+    "https://news.google.com/rss/articles/CBMinAFBVV95cUxOWmF4WUJvWElqMmh1T2lSRjFScUpxdFQ3UmZnaTZrWS1Eamltdnp0TkRDdWNKSWR4UmF5dnFZNjVPYlp0UmM5OC1YQzl1QmhxSUNPSXMydngzSDdRem5lZXpJVzhwNlEwV3MwRnhqTllGVHNNc252c1BRYkdPR3pwejd5em9nNzV1RXVfSklVOXpDMXl3cGtfZnNMNDE?oc=5": "2026-10-26T09:22:30.182545+09:00",
+    "https://www.itmedia.co.jp/news/article/2610/26/2000002578/": "2026-10-26T17:47:35.079426+09:00",
+    "https://www.itmedia.co.jp/news/article/2610/26/2000002573/": "2026-10-26T17:47:35.079426+09:00",
+    "https://news.google.com/rss/articles/CBMiakFVX3lxTE01Rkw5Q1djOWlxcTR3aG5VNTFVR3B1d2xpWmE0N3NOcVpJWmp6Rl9xR3JyRHhNWWJyVkhjSzdVVFVJUlZWMUx0VDBxQ0JJRzhXZ1ZpRUZPRWU2WVphMDgwQTdzMURMek14dWc?oc=5": "2026-10-26T17:47:35.079426+09:00"
+  }
 }
