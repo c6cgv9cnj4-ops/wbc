@@ -1,6 +1,5 @@
 {
   "seen_urls": {
-    "https://www.itmedia.co.jp/news/article/2610/10/2000002189/": "2026-10-12T00:38:42.672034+09:00",
     "https://www.itmedia.co.jp/news/article/2610/12/2000002195/": "2026-10-12T19:39:35.242480+09:00",
     "https://www.itmedia.co.jp/news/article/2610/13/2000002200/": "2026-10-13T12:03:11.417542+09:00",
     "https://gigazine.net/news/20261012-iphone-18-pro-battery-charge/": "2026-10-13T12:03:11.417542+09:00",
@@ -220,6 +219,13 @@
     "https://news.google.com/rss/articles/CBMiU0FVX3lxTE9WemswVmZKZUlzMzFUWU03Y1J3TFNEWTBvVGJia3FuT3pzVGxhbkZRNTZ5RW5FLVlQZ3BLd2pteTcxY3M1aFBfZmtYV1RFZ0JwLWEw?oc=5": "2026-10-24T09:40:43.907417+09:00",
     "https://news.google.com/rss/articles/CBMib0FVX3lxTFBBSzYwbzVmTlkyak1COTcwSzFKSzNkMktkMVJTZm5vbDBnVTRhOFVpMVEySWh1ZnhYMFphMUEzMGN6WE9iYndIWTVZVGdFbmtyZ2VBMUVMRUd5Y2FxX1hRNmhmUFVlMWRHNi1Qd05BYw?oc=5": "2026-10-24T17:02:45.258323+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBLV19mdFA2LW43aDg5YVhWTHNUQ1kwR1Vtek1URFVDWnd4Vm9FeFE3aDhMYkN6RWh6UVFsOFN3OGhCdm5BMXZkNGN2QkJrcVVhYjJ0U3NNWTg3YjctSzFQT0FVZEc3SmpD?oc=5": "2026-10-24T17:02:45.258323+09:00",
-    "https://www.itmedia.co.jp/news/article/2610/25/2000002569/": "2026-10-25T22:41:59.057489+09:00"
-  }
+    "https://www.itmedia.co.jp/news/article/2610/25/2000002569/": "2026-10-25T22:41:59.057489+09:00",
+    "https://news.google.com/rss/articles/CBMiVkFVX3lxTE1Ob2NOSVFLLXNKY2FRQlVBNXVkQkhOdGFOYUYtWlRwYzlVdzhUTWlDRWJyVUVlSUhNN3ZfcEJsUUE1cUdPZE9scm9vXzV0dlIzWWRBeVhB?oc=5": "2026-10-26T09:22:30.182545+09:00",
+    "https://news.google.com/rss/articles/CBMiTEFVX3lxTFBwZXE3Zm0wdndHQ2I5TjZzdksyVXNXZDh2SHdRS1oyM0ZUZFhQR2JTOFdVbWhzTDRrZ0owRWZyazl6UHFBa2hCSUNMU18?oc=5": "2026-10-26T09:22:30.182545+09:00",
+    "https://news.google.com/rss/articles/CBMiTEFVX3lxTE5mVHJCN214RFVDYmFSclVsd2M5RnRWb3U5bHlpeHQwcFNDZDNNYU5JcDI3RENXMm1jVzE3TjlUem5vUVBfYVJjbHo2NTI?oc=5": "2026-10-26T09:22:30.182545+09:00",
+    "https://news.google.com/rss/articles/CBMiakFVX3lxTE5vM3FURlJVU2s0aHZXdXdYNFJiT0piMVQxNHZ6bDdkbHNWdGcwbmNZYnRKc0Npc0xsZjJzbmdfM2Z1ZGtPMEt6RXpqdnQ5OXRyRk9RSmRJNW1pdmVvMUtacDFtYnNTazBkaUE?oc=5": "2026-10-26T09:22:30.182545+09:00",
+    "https://news.google.com/rss/articles/CBMinAFBVV95cUxOWmF4WUJvWElqMmh1T2lSRjFScUpxdFQ3UmZnaTZrWS1Eamltdnp0TkRDdWNKSWR4UmF5dnFZNjVPYlp0UmM5OC1YQzl1QmhxSUNPSXMydngzSDdRem5lZXpJVzhwNlEwV3MwRnhqTllGVHNNc252c1BRYkdPR3pwejd5em9nNzV1RXVfSklVOXpDMXl3cGtfZnNMNDE?oc=5": "2026-10-26T09:22:30.182545+09:00"
+  },
+  "_gemini_backoff:quota": "2026-10-26T15:59:59.373478+09:00",
+  "_gemini_backoff_basis:quota": "Googleの待ち時間(境界より前のため採用)"
 }
