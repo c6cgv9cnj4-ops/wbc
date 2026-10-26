@@ -7,10 +7,10 @@
    "verified_at": "2026-10-08T15:40:59.273232+09:00"
   },
   "2026": {
-   "retrieved_at": "2026-10-25T09:31:30.042703+09:00",
+   "retrieved_at": "2026-10-26T09:43:20.274285+09:00",
    "row_count": 113,
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00"
+   "verified_at": "2026-10-26T09:43:20.274285+09:00"
   },
   "2027": {
    "retrieved_at": "2026-10-08T15:40:59.273232+09:00",
@@ -20,7 +20,7 @@
   }
  },
  "points_table": {
-  "checked_at": "2026-10-24T10:04:22.464342+09:00",
+  "checked_at": "2026-10-26T09:43:20.274285+09:00",
   "content_length": 416143,
   "in_force": "2026-04-26",
   "last_modified": "Thu, 07 May 2026 08:28:22 GMT",
@@ -2544,7 +2544,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-10-13",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5212": {
@@ -2564,7 +2564,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-08-18",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5214": {
@@ -2592,7 +2592,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-06-16",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5215": {
@@ -2615,7 +2615,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-06-09",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5217": {
@@ -2635,7 +2635,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-10-27",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5218": {
@@ -2661,7 +2661,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-11-17",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5220": {
@@ -2684,7 +2684,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-09-08",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5228": {
@@ -2735,7 +2735,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-02-24",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5270": {
@@ -2760,7 +2760,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-03-17",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5272": {
@@ -2824,7 +2824,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-11-24",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5275": {
@@ -2844,7 +2844,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-12-08",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5315": {
@@ -2864,7 +2864,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-11-03",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5526": {
@@ -2887,7 +2887,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-10-20",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5555": {
@@ -2907,7 +2907,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-01-22",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5559": {
@@ -2927,7 +2927,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-01-08",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5569": {
@@ -2947,7 +2947,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-01-15",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5577": {
@@ -2967,7 +2967,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-08-25",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5581": {
@@ -2987,7 +2987,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-01-29",
    "status": "中止",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5582": {
@@ -3005,7 +3005,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-02-04",
    "status": "中止",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5587": {
@@ -3023,7 +3023,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-06-26",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5588": {
@@ -3044,7 +3044,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-02-03",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5594": {
@@ -3218,7 +3218,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-10-06",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5595": {
@@ -3236,7 +3236,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-09-29",
    "status": "中止",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5600": {
@@ -3265,7 +3265,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-04-24",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5602": {
@@ -3285,7 +3285,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-12-09",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5621": {
@@ -3305,7 +3305,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-03-13",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5623": {
@@ -3328,7 +3328,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-03-10",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5624": {
@@ -3348,7 +3348,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-02-25",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5625": {
@@ -3371,7 +3371,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-09-01",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5626": {
@@ -3389,7 +3389,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-07-09",
    "status": "中止",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5633": {
@@ -3407,7 +3407,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-08-22",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5635": {
@@ -3445,7 +3445,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-02-13",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5639": {
@@ -3465,7 +3465,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-02-08",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5642": {
@@ -3485,7 +3485,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-03-04",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5644": {
@@ -3505,7 +3505,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-04-16",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5646": {
@@ -3525,7 +3525,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-02-18",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5652": {
@@ -3546,7 +3546,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-11-10",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5657": {
@@ -3566,7 +3566,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-04-10",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5660": {
@@ -3586,7 +3586,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-03-24",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5661": {
@@ -3606,7 +3606,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-02-11",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5666": {
@@ -3626,7 +3626,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-08-07",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5670": {
@@ -3649,7 +3649,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-05-12",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5673": {
@@ -3669,7 +3669,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-05-21",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5675": {
@@ -3689,7 +3689,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-04-02",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5679": {
@@ -3709,7 +3709,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-03-31",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5681": {
@@ -3730,7 +3730,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-03-03",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5685": {
@@ -3750,7 +3750,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-05-13",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5686": {
@@ -3770,7 +3770,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-09-21",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5688": {
@@ -3788,7 +3788,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-04-07",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5689": {
@@ -3808,7 +3808,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-06-03",
    "status": "中止",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5698": {
@@ -3828,7 +3828,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-05-29",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5699": {
@@ -3848,7 +3848,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-06-10",
    "status": "中止",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5701": {
@@ -3871,7 +3871,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-06-23",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5711": {
@@ -3891,7 +3891,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-05-27",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5713": {
@@ -3931,7 +3931,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-05-05",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5722": {
@@ -3951,7 +3951,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-07-21",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5724": {
@@ -3971,7 +3971,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-07-14",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5727": {
@@ -4011,7 +4011,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-08-11",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5736": {
@@ -4031,7 +4031,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-07-22",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5738": {
@@ -4051,7 +4051,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-07-07",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5739": {
@@ -4071,7 +4071,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-05-06",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5748": {
@@ -4089,7 +4089,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-03-09",
    "status": "中止",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5750": {
@@ -4109,7 +4109,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-09-10",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5752": {
@@ -4129,7 +4129,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-11-25",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5754": {
@@ -4149,7 +4149,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-11-11",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5755": {
@@ -4167,7 +4167,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-11-17",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5756": {
@@ -4187,7 +4187,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-09-15",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5757": {
@@ -4207,7 +4207,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-08-04",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5759": {
@@ -4227,7 +4227,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-10-07",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5760": {
@@ -4247,7 +4247,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-10-14",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5761": {
@@ -4287,7 +4287,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-11-06",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5764": {
@@ -4307,7 +4307,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-12-01",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5766": {
@@ -4327,7 +4327,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-09-30",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5771": {
@@ -4351,7 +4351,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-07-01",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5776": {
@@ -4373,7 +4373,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-11-30",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5777": {
@@ -4393,7 +4393,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-11-03",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5779": {
@@ -4413,7 +4413,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-10-21",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5786": {
@@ -4433,7 +4433,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-09-18",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5792": {
@@ -4471,7 +4471,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-10-19",
    "status": "中止",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5795": {
@@ -4491,7 +4491,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-08-12",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5796": {
@@ -4511,7 +4511,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-09-30",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5798": {
@@ -4529,7 +4529,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-12-08",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5799": {
@@ -4549,7 +4549,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-10-28",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5800": {
@@ -4567,7 +4567,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-10-27",
    "status": "中止",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5801": {
@@ -4605,7 +4605,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-07-28",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5804": {
@@ -4625,7 +4625,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-10-15",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5805": {
@@ -4645,7 +4645,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-10-01",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5806": {
@@ -4665,7 +4665,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-09-24",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5808": {
@@ -4685,7 +4685,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-09-03",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5809": {
@@ -4705,7 +4705,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-08-26",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5811": {
@@ -4725,7 +4725,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-05-22",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5812": {
@@ -4765,7 +4765,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-04-29",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5818": {
@@ -4785,7 +4785,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-06-03",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5819": {
@@ -4803,7 +4803,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-07-23",
    "status": "中止",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5822": {
@@ -4821,7 +4821,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-09-08",
    "status": "中止",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5828": {
@@ -4841,7 +4841,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-07-19",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5829": {
@@ -4881,7 +4881,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-11-13",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5838": {
@@ -4901,7 +4901,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-11-18",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5844": {
@@ -4921,7 +4921,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-11-11",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5846": {
@@ -4959,7 +4959,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-11-19",
    "status": "中止",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5848": {
@@ -4979,7 +4979,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-11-26",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5852": {
@@ -4997,7 +4997,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-09-01",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5853": {
@@ -5018,7 +5018,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-11-03",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5855": {
@@ -5038,7 +5038,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-09-22",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5864": {
@@ -5058,7 +5058,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-12-10",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5867": {
@@ -5078,7 +5078,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-10-07",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5869": {
@@ -5098,7 +5098,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-08-18",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5870": {
@@ -5116,7 +5116,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-12-17",
    "status": "中止",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5872": {
@@ -5136,7 +5136,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-08-14",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5874": {
@@ -5154,7 +5154,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-09-25",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5881": {
@@ -5192,7 +5192,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-09-16",
    "status": "中止",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-5887": {
@@ -5212,7 +5212,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-12-02",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-6042": {
@@ -5248,7 +5248,7 @@
    "source_url": "https://corporate.bwfbadminton.com/events/calendar/2026/all/0/all/",
    "start_date": "2026-12-02",
    "status": "確認済み",
-   "verified_at": "2026-10-25T09:31:30.042703+09:00",
+   "verified_at": "2026-10-26T09:43:20.274285+09:00",
    "year": 2026
   },
   "2026-6077": {
