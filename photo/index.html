@@ -1231,6 +1231,7 @@
                                     '<div class="flex flex-wrap items-center gap-1.5">' +
                                         '<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[11px] px-2.5 py-0.5 rounded-full font-bold">' + window.currentOrigin.name + 'から #' + (index + 1) + '</span>' +
                                         seasonStatusBadgeHtml(spot.seasonStatus) +
+                                        freshnessBadgeHtml(spot.id) +
                                         '<span class="bg-slate-700 text-slate-300 text-[11px] px-2 py-0.5 rounded-full">' + spot.pref + '</span>' +
                                         '<span class="text-xs text-slate-400 ml-1">直線: 約<strong class="text-white">' + spot.distanceLinear.toFixed(1) + '</strong>km / 道路: 約<strong class="text-emerald-300">' + spot.distanceRoad.toFixed(1) + '</strong>km</span>' +
                                     '</div>' +
@@ -4643,6 +4644,23 @@
         if (prefFilter) prefFilter.addEventListener('change', renderSpots);
         if (monthFilter) monthFilter.addEventListener('change', renderSpots);
         if (sortBySelect) sortBySelect.addEventListener('change', renderSpots);
+
+        // 情報の鮮度: 公式サイトで実際に確認した日を SPOT_VERIFIED_ON に入れる（例: 'spot-1': '2026-10-20'）。
+        // 未入力のスポットは「未確認」と表示し、見頃は目安として扱う。
+        const SPOT_VERIFIED_ON = {};
+        const VERIFIED_FRESH_DAYS = 180;
+        function freshnessBadgeHtml(spotId) {
+            const badgeBase = 'border text-[11px] px-2.5 py-0.5 rounded-full ';
+            const verifiedOn = SPOT_VERIFIED_ON[spotId];
+            if (!verifiedOn || isNaN(new Date(verifiedOn).getTime())) {
+                return '<span title="公式サイトでの確認日が未登録です。見頃は目安として扱ってください" class="' + badgeBase + 'bg-slate-700 text-slate-300 border-slate-600">❔ 未確認（見頃は目安）</span>';
+            }
+            const days = Math.floor((Date.now() - new Date(verifiedOn).getTime()) / 86400000);
+            if (days <= VERIFIED_FRESH_DAYS) {
+                return '<span title="公式サイトで確認した日" class="' + badgeBase + 'bg-sky-950 text-sky-300 border-sky-700">✅ ' + escapeHtml(verifiedOn) + ' 確認</span>';
+            }
+            return '<span title="確認から' + VERIFIED_FRESH_DAYS + '日以上経過。公式サイトで再確認してください" class="' + badgeBase + 'bg-amber-950 text-amber-300 border-amber-700">⚠ 確認から半年以上（要再確認）</span>';
+        }
 
         // 安全なDOMロード後発火
         window.addEventListener('DOMContentLoaded', () => {
