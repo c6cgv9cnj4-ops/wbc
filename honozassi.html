@@ -475,6 +475,16 @@
 
 /* 映像除外・あらすじ・読む順番 v6 */
 .order-line { font-size: 0.8rem; color: var(--text-muted); font-weight: 700; }
+
+/* 表紙サムネイル（取得できない場合はジャンル色の題名プレート） */
+.card-main { display: flex; gap: 12px; align-items: flex-start; }
+.card-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.cover { flex: 0 0 76px; width: 76px; height: 108px; border-radius: 6px; overflow: hidden; background: #475569; color: #fff; display: flex; align-items: center; justify-content: center; padding: 6px; font-size: 0.66rem; font-weight: 700; line-height: 1.35; text-align: center; overflow-wrap: anywhere; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.2); }
+.cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cover.has-img { background: #f1f5f9; padding: 0; }
+@media (max-width: 600px) {
+    .cover { flex-basis: 64px; width: 64px; height: 92px; }
+}
 </style>
 </head>
 <body>
@@ -1846,11 +1856,16 @@
                         ${isSelected ? '✓' : '✛'}
                     </button>
                 </div>
-                <div class="title">${book.title}</div>
-                <div class="meta">著者: ${authorHtml}${ageText}</div>
-                <div class="pub-line" title="${book.pubSource || ''}">刊行: ${pubText}</div>
-                <div class="order-line">${book.parentId ? `${book.relationText}（順番未確認）` : '元の本'}</div>
-                <div class="synopsis">${book.synopsisStatus === '確認済み' ? book.synopsis : 'あらすじ未確認'}</div>
+                <div class="card-main">
+                    <div class="cover" id="cover-${book.id}" style="background:${GENRE_COLORS[book.genre] || '#475569'}">${book.title}</div>
+                    <div class="card-text">
+                        <div class="title">${book.title}</div>
+                        <div class="meta">著者: ${authorHtml}${ageText}</div>
+                        <div class="pub-line" title="${book.pubSource || ''}">刊行: ${pubText}</div>
+                        <div class="order-line">${book.parentId ? `${book.relationText}（順番未確認）` : '元の本'}</div>
+                        <div class="synopsis">${book.synopsisStatus === '確認済み' ? book.synopsis : 'あらすじ未確認'}</div>
+                    </div>
+                </div>
                 <div class="want-row">
                     <button class="want-toggle ${wanted ? 'on' : ''}" aria-pressed="${wanted}" onclick="toggleWant('${book.id}')">
                         ${wanted ? '📌 読みたい（チェック済み）' : '📌 読みたい'}
@@ -1874,6 +1889,81 @@
         container.innerHTML = groups.map(g => g.length === 1
             ? cardHtml(g[0])
             : `<div class="book-group">${g.map(cardHtml).join('')}</div>`).join('');
+        hydrateCovers(list);
+    }
+
+    // 表紙画像: Google Books API で「題名＋著者」一致の表紙を探す。見つからない・失敗時はジャンル色の題名プレートのまま。
+    // 結果はlocalStorageにキャッシュし、同じ作品を次回以降に再検索しない。
+    const COVER_CACHE_KEY = "honozassi_cover_cache_v1";
+    let coverCache = {};
+    try { coverCache = JSON.parse(localStorage.getItem(COVER_CACHE_KEY) || "{}"); } catch (e) { coverCache = {}; }
+    const coverKey = book => book.title + "|" + book.author;
+    const coverFailed = new Set();
+    const coverInFlight = new Set();
+    const coverQueue = [];
+    let coverActive = 0;
+
+    function saveCoverCache() {
+        try { localStorage.setItem(COVER_CACHE_KEY, JSON.stringify(coverCache)); } catch (e) { /* 保存不可の端末では表示のみ */ }
+    }
+
+    async function lookupCoverUrl(book) {
+        const key = coverKey(book);
+        if (key in coverCache) return coverCache[key];
+        if (coverFailed.has(key)) return "";
+        try {
+            const q = "intitle:" + book.title + " inauthor:" + book.author;
+            const url = "https://www.googleapis.com/books/v1/volumes?langRestrict=ja&printType=books&maxResults=5&q=" + encodeURIComponent(q);
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            const data = await res.json();
+            // 題名と著者の両方が一致する候補だけ採用（別作品の表紙を出さないため）
+            const hit = (data.items || []).map(i => i.volumeInfo || {}).find(v =>
+                (v.title || "").includes(book.title)
+                && (v.authors || []).some(a => a.includes(book.author))
+                && v.imageLinks && v.imageLinks.thumbnail);
+            const img = hit ? hit.imageLinks.thumbnail.replace(/^http:/, "https:") : "";
+            coverCache[key] = img;
+            saveCoverCache();
+            return img;
+        } catch (e) {
+            coverFailed.add(key);
+            return "";
+        }
+    }
+
+    function showCover(book, url) {
+        const el = document.getElementById("cover-" + book.id);
+        if (!el || !url) return;
+        const img = new Image();
+        img.alt = "『" + book.title + "』の表紙";
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.referrerPolicy = "no-referrer";
+        img.onload = () => { el.classList.add("has-img"); el.style.background = ""; el.textContent = ""; el.appendChild(img); };
+        img.src = url;
+    }
+
+    function drainCoverQueue() {
+        while (coverActive < 3 && coverQueue.length) {
+            const book = coverQueue.shift();
+            coverActive++;
+            lookupCoverUrl(book)
+                .then(url => showCover(book, url))
+                .finally(() => { coverActive--; coverInFlight.delete(coverKey(book)); drainCoverQueue(); });
+        }
+    }
+
+    // 再描画されたカードにも、キャッシュ済みの表紙は即座に出す
+    function hydrateCovers(books) {
+        books.forEach(book => {
+            const key = coverKey(book);
+            if (key in coverCache) { showCover(book, coverCache[key]); return; }
+            if (coverFailed.has(key) || coverInFlight.has(key)) return;
+            coverInFlight.add(key);
+            coverQueue.push(book);
+        });
+        drainCoverQueue();
     }
 
     function toggleSelect(id) {
