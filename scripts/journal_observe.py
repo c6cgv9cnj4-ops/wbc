@@ -561,18 +561,20 @@ def interpret(obs: dict, api_key: str, model: str, context_note: str = "") -> tu
 # 出力: Discord 本文 / シート行 / CIログ用の伏せ字サマリー
 # ---------------------------------------------------------------------------
 HEAD_MARK = "📊 週次観測"
-def _term_line(kind: str, x: dict) -> str:
-    """一覧用の短い表記。増減・継続は 比較期間→前週→今週 の割合を並べる。"""
-    if kind in ("new", "returned"):
-        return f"{x['term']}({x['days']}日)"
+def _term_line(kind: str, x: dict, unit_days: int = 7) -> str:
+    """一覧用の短い表記。括弧内は「書いた日のうち、その語が出た日数」で、比べる期間を明記する。"""
+    cur, prev = ("今週", "前週") if unit_days <= 7 else ("今期", "前期")
+    if kind == "new":
+        return f"{x['term']}（{cur}に{x['days']}日出た）"
+    if kind == "returned":
+        return f"{x['term']}（{cur}に{x['days']}日出た・{prev}までは出ていなかった）"
     if kind in ("up", "down", "stable", "steady"):
-        mid = f"→前週{_pp(x['prev_ratio'])}" if x.get("prev_ratio") is not None and len(x.get("series", [])) > 2 else ""
-        tail = f"・{x['streak']}期連続" if kind in ("stable", "steady") else ""
-        return f"{x['term']}({_pp(x['base_ratio'])}{mid}→{_pp(x['ratio'])}{tail})"
+        tail = f"、{x['streak']}期連続" if kind in ("stable", "steady") else ""
+        return f"{x['term']}（{prev}{x['base_days']}日 → {cur}{x['days']}日{tail}）"
     if kind == "gone":
-        return f"{x['term']}(最後 {x['last_seen']})"
+        return f"{x['term']}（{prev}{x['base_days']}日 → {cur}0日・最後は{x['last_seen']}）"
     if kind == "transient":
-        return f"{x['term']}(前週{x['prev_days']}日)"
+        return f"{x['term']}（前週だけ{x['prev_days']}日）"
     return x["term"]
 
 
@@ -594,25 +596,35 @@ def compose_messages(obs: dict, interp: dict | None, interp_status: str, *, head
     if w["chars_vs_prev_pct"] is not None:
         a.append(f"・文字数 前{unit}比 {_signed_pct(w['chars_vs_prev_pct'])}")
     a.append("")
-    a.append("**B. 変化**（語が書いた日のうち何日に出たか＝言及の多さ。気持ちの強さではありません）")
+    a.append("**B. 変化**（語の「出た日数」の変化。気持ちの強さではありません）")
+    a.append("　見方: 「前週5日 → 今週2日」＝書いた日のうち、その語が出た日数の比較。（ ）内の数字はすべて日数です。")
     T = obs["terms"]
     any_change = False
     for k in ("new", "returned", "up", "down", "transient", "gone"):
         if T[k]:
             any_change = True
-            a.append(f"{TERM_KIND_ICON[k]} {TERM_KIND_NAME[k]}: " + "、".join(_term_line(k, x) for x in T[k]))
+            a.append(f"{TERM_KIND_ICON[k]} {TERM_KIND_NAME[k]}: " + "、".join(_term_line(k, x, obs["unit_days"]) for x in T[k]))
     if not any_change:
         a.append("・目立った語の増減は検出されませんでした" + ("" if obs["baseline_ok"] else "（比較データ不足）"))
     mk = [m for m in obs["markers"] if m["direction"]]
     if mk:
-        a.append("🗣 表現の出現率（千字あたり）: " + "、".join(
-            f"{m['short']} {m['base_rate']}"
-            + (f"→前週{m['prev_rate']}" if m.get("prev_rate") is not None and obs["unit_days"] <= 7 else "")
-            + f"→{m['rate']}" for m in mk))
+        cur, prev = ("今週", "前週") if obs["unit_days"] <= 7 else ("今期", "前期")
+        a.append("")
+        a.append("**表現の使われ方**（1000字あたり何回出たか。前の期間 → 今の期間）")
+        for m in mk:
+            word = "増えた" if m["direction"] == "up" else "減った"
+            if obs["unit_days"] <= 7 and m.get("prev_rate") is not None:
+                trail = f"{_base_label(obs)} {m['base_rate']} → {prev} {m['prev_rate']} → {cur} {m['rate']}"
+            else:
+                trail = f"{_base_label(obs)} {m['base_rate']} → {cur} {m['rate']}"
+            a.append(f"・{m['short']}: {trail}（{word}）")
     if obs["cooccur"] or obs["term_markers"]:
-        pairs = [f"{c['a']}×{c['b']}({c['days']}日)" for c in obs["cooccur"][:3]]
-        pairs += [f"{t['term']}×{t['marker']}表現({t['days']}/{t['term_days']}日)" for t in obs["term_markers"][:3]]
-        a.append("🔗 同じ日に出た: " + "、".join(pairs))
+        a.append("")
+        a.append("**同じ日に一緒に出た**（同時に出た日数。因果関係ではありません）")
+        for c in obs["cooccur"][:3]:
+            a.append(f"・「{c['a']}」と「{c['b']}」: {c['days']}日")
+        for t in obs["term_markers"][:3]:
+            a.append(f"・「{t['term']}」が出た{t['term_days']}日のうち{t['days']}日は、{t['marker']}の表現もあった")
     if T["stable"] or T["steady"]:
         a += ["", "**変わらなかったこと**" + ("（直前4週→前週→今週）" if obs["unit_days"] <= 7 else "")]
         for k in ("stable", "steady"):
@@ -622,10 +634,16 @@ def compose_messages(obs: dict, interp: dict | None, interp_status: str, *, head
     if sheet_link:
         a += ["", f"📄 推移（シート）: {sheet_link}"]
 
-    c = ["**C. 気づき（Geminiによる仮説。事実ではありません）**"]
+    dates_by_id = {it["id"]: [e["date"] for e in it.get("evidence", [])] for it in obs.get("items", [])}
+
+    def ref_text(ref):
+        ds = dates_by_id.get(ref) or []
+        return "・".join(ds) if ds else ref
+
+    c = ["**C. 気づき（AIによる仮説。事実ではありません）**"]
     if interp and (interp["hypotheses"] or interp["continuity"]):
         for h in interp["hypotheses"]:
-            c.append(f"・[{','.join(h['refs'])}] {h['text']}")
+            c.append(f"・（根拠の日付: {'、'.join(ref_text(r) for r in h['refs'])}）{h['text']}")
             for alt in h["alternatives"]:
                 c.append(f"　└ 別の可能性: {alt}")
         if interp["continuity"]:
