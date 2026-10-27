@@ -1029,6 +1029,28 @@ def mark_bousai_shown(items, state, now):
             state[key] = now.isoformat()
 
 
+# 2026-10-27: 防災・緊急情報のまとめは「一晩に1回」(細川さんの指定)。
+# 区切りは JST 18:00。同じ晩の2回目以降の実行では防災セクションを載せない(速報の赤枠通知は別送のまま)。
+BOUSAI_NIGHT_START_HOUR = 18
+BOUSAI_NIGHT_KEY_PREFIX = "bousai-night:"
+
+
+def bousai_night_start(now):
+    """now が属する「晩」の開始時刻(JST 18:00。18時より前は前日の晩)。"""
+    jst = now.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
+    start = jst.replace(hour=BOUSAI_NIGHT_START_HOUR, minute=0, second=0, microsecond=0)
+    return start if jst >= start else start - datetime.timedelta(days=1)
+
+
+def bousai_section_due(state, now):
+    """今の晩にまだ防災セクションを載せていなければ True。"""
+    return (BOUSAI_NIGHT_KEY_PREFIX + bousai_night_start(now).isoformat()) not in state
+
+
+def mark_bousai_section_shown(state, now):
+    state[BOUSAI_NIGHT_KEY_PREFIX + bousai_night_start(now).isoformat()] = now.isoformat()
+
+
 def build_bousai_section(bousai_items, status="ok", hidden=0):
     """ローカルニュースメッセージの最上部に必ず入れる「防災・緊急情報」
     セクション。該当情報が無くても省略せず、その旨を明記する
@@ -1289,16 +1311,25 @@ def build_local_news_message(state, now):
     # 2026-10-11: 直近24時間の防災情報は、既に掲載したものを除いて載せる(同一内容の多重配信を防ぐ)
     bousai_total = len(bousai_items)
     bousai_items, bousai_hidden = filter_bousai_already_shown(bousai_items, state, now)
+    # 2026-10-27: 防災セクションの見出しは今の晩に1回。同じ晩でも未掲載の新着は載せる(細川さんの指定)。
+    section_due = bousai_section_due(state, now)
+    has_new_bousai = bool(bousai_items)
     if not anzn_via_mac():
-        # 新着ローカルニュースも、新しい防災アクティブ情報も無ければ送信しない
-        # (防災セクションが「異常なし」だけの空更新を毎回送るのは避ける)。
-        if not saitama_general and not bousai_items:
+        # 新着ローカルニュースも、新しい防災情報も、今晩まだ載せていない見出しも無ければ送信しない。
+        if not saitama_general and not section_due and not has_new_bousai:
             return None, sports_items
 
     now_jst = now.strftime("%Y-%m-%d %H:%M")
     lines = [f"# 🗾 埼玉・県央ローカルニュース ({now_jst} JST時点)", ""]
-    lines.append(build_bousai_section(bousai_items, bousai_status, hidden=bousai_hidden))
-    mark_bousai_shown(bousai_items[:BOUSAI_SUMMARY_MAX_ITEMS], state, now)
+    if section_due or has_new_bousai:
+        lines.append(build_bousai_section(bousai_items, bousai_status, hidden=bousai_hidden))
+        mark_bousai_shown(bousai_items[:BOUSAI_SUMMARY_MAX_ITEMS], state, now)
+    elif anzn_via_mac():
+        # 公式Mastodon経路は従来どおり毎回送る。今晩は掲載済みである旨だけ1行残す(空投稿を避ける)。
+        lines.append("（防災・緊急情報: 今晩のまとめは掲載済み。新着はありません）")
+        lines.append("")
+    if section_due:
+        mark_bousai_section_shown(state, now)
 
     if saitama_general:
         lines.append("")

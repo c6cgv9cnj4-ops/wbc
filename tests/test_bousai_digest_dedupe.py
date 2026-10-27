@@ -58,7 +58,27 @@ class TwoRunsTest(unittest.TestCase):
         self.assertIsNotNone(m2)
         self.assertIn("北本市の小学校で運動会2", m2)
         self.assertEqual(bousai_lines(m2), [])                  # 重複0件
-        self.assertIn("新しく確認された防災・緊急情報はありません", m2)
+        self.assertNotIn("## 🚨 防災・緊急情報", m2)            # 同じ晩の見出しは1回だけ(新着も無いので載せない)
+
+    def test_same_night_new_item_is_shown_without_repeating_heading(self):
+        state = {}
+        m1 = run(state, [FIRE_A], local_n=1)
+        self.assertEqual(m1.count("## 🚨 防災・緊急情報"), 1)
+        m2 = run(state, [FIRE_A, FIRE_C], local_n=2)           # 同じ晩の新着は載る
+        self.assertEqual(bousai_lines(m2), ["- 10-11 09:20頃 ［桶川市］火災 桶川市坂田"])
+        self.assertEqual(m2.count("## 🚨 防災・緊急情報"), 1)  # 見出しは増えない
+
+    def test_next_night_shows_heading_again(self):
+        state = {}
+        run(state, [FIRE_A], local_n=1)
+        later = dt.datetime(2026, 10, 11, 19, 0, tzinfo=JST)   # 同日でも18時を過ぎれば次の晩
+        with mock.patch.dict(os.environ, {"ANZN_SOURCE": "mac"}), \
+             mock.patch.object(fn.mastodon_anzn, "fetch_recent_items", return_value=[dict(FIRE_A)]), \
+             mock.patch.object(fn, "fetch_rss_items", return_value=local_article(2)), \
+             mock.patch.object(fn, "fetch_direct_rss_items", return_value=[]), \
+             contextlib.redirect_stdout(io.StringIO()):
+            msg, _ = fn.build_local_news_message(state, later)
+        self.assertIn("## 🚨 防災・緊急情報", msg)
 
     def test_only_new_item_is_shown_on_next_run(self):
         state = {}
