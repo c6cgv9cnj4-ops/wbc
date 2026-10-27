@@ -1,7 +1,7 @@
 {
   "_alert:dispatcher_gap": "2026-10-27T19:32:53.580495+09:00",
   "_alert:google_news_fetch": "2026-10-18T14:59:14.939670+09:00",
-  "_last_run_at": "2026-10-28T06:50:26.485250+09:00",
+  "_last_run_at": "2026-10-28T07:00:01.094037+09:00",
   "_mastodon_anzn_cursor": "2026-10-28T02:48:07.774178+09:00|117513729896407455",
   "_weekend_market_signature": "{\"jgb\": \"126.40\", \"nikkei\": \"63,268.37\", \"usdjpy\": 157.44}",
   "bousai-body:1a907e9212fde660a594f1bcd6c0ba979790cdfec8be649f4fa57e153f39c1dd": "2026-10-22T13:08:54.873401+09:00",
@@ -274,6 +274,7 @@
   "https://news.google.com/rss/articles/CBMiWEFVX3lxTFBUV0YtQ0dUakVSaXVPTkRvT2dwLW5ZNk13M2pXZkJtLThHai1XdU9GdzNmY01YUTZRQzlscnNrOW12OF9DWGF0eGlTRFRYSDJhSFZDdEs3bmI": "2026-10-19T13:08:07.462876+09:00",
   "https://news.google.com/rss/articles/CBMiWEFVX3lxTFBvY0ZhNlpra3JDX0s2SGxWSEcta0lmV1VPeXpkNmRsbTl0aExtWDdzN3Z0RnNieV80alRMa3dXNmVyUnJUYk5xU0laZlFfQVlyQlNySWJQb0s": "2026-10-22T10:08:53.191026+09:00",
   "https://news.google.com/rss/articles/CBMiWkFVX3lxTE1KTFZuZ3Q5bVJkbEdvOEVDWUV4Rjhmb2I0SVpCd2lHN0hvRjBRZ2ZlTFJTQ1BQZDZLREhhOUhsTGVQaU5SNUlHa2FsMWdIWUxqSnFOR0Nlc3NxZw": "2026-10-20T13:19:10.569735+09:00",
+  "https://news.google.com/rss/articles/CBMiWkFVX3lxTE1faUxDcmJFbnF5Qmk5WXRRNXJXRUlfb2NQazhmVEp2UkViUzdIbjkwOUdHT3B4cVdWZkx5bU1HazAtclpsWDdaQnBiclN0b3pBUS1IOHpNUVliZw": "2026-10-28T07:00:01.094037+09:00",
   "https://news.google.com/rss/articles/CBMiWkFVX3lxTE52SlRCamJBQVU2MkRkdVg4VHppWXBDaGlhSUh1M2pvaS1XSWtZLThkbjV6MmRXQ3VSYmRSZUR5SDd1Y3FUTjg5SjgtSlNLcUhYNGQzb3I2Q1FRQQ": "2026-10-19T00:55:40.426065+09:00",
   "https://news.google.com/rss/articles/CBMiWkFVX3lxTE5INWNpNlB0a2FOWkJPdTBUWUNuVm1QdkZfdVdlM1QtcTFlVmg4SXNPNXpSczBJVC15ZXM4ZDNHVEUwQVRmcmJ5R3hUS0JlTndrZmstTFA5NEdqQQ": "2026-10-17T19:27:16.169266+09:00",
   "https://news.google.com/rss/articles/CBMiWkFVX3lxTE5kM0xTVW9xTUNsZkRTM2NIbGttbE5hYzhSR0JSbkMtb2lUTkdScGo4WHpJZk1YRlNRQWJ1RHNIdjUyc2JvT1drUGNTRGJoeHFxNndlUFF2dy1EZw": "2026-10-15T09:22:48.902076+09:00",
