@@ -1747,12 +1747,26 @@ def build_sports_leak_message(sports_items, now):
     """
     if not sports_items:
         return None
+    # 2026-10-27: 同じ見出しが媒体違い・URL違いで複数入るため、見出しで1件にまとめる(重複通知の防止)。
+    seen, unique = set(), []
+    for item in sports_items:
+        key = _sports_title_key(item["title"])
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(item)
     # 2026-10-06: 巨大な「#」見出し+絵文字をやめ、太字1行+小さな補足に整理(共通原則は discord_style.py)。
     lines = [discord_style.heading("スポーツ記事"),
              discord_style.subtext(f"一般ニュースフィードで検知 ・ {now.strftime('%m/%d %H:%M')} JST")]
-    for item in sports_items:
+    for item in unique:
         lines.append(discord_style.bullet_link(item["title"], item["url"]))
     return "\n".join(lines)
+
+
+def _sports_title_key(title):
+    """媒体名(末尾の「 - 媒体」)と記号・空白・全半角の違いを除いた見出しの比較キー。"""
+    body = local_news_filter.split_source(title)[0]
+    return re.sub(r"[\s　]+", "", unicodedata.normalize("NFKC", body)).lower()
 
 
 ANZN_EMBED_COLOR = 0xE53E3E  # 赤枠(Discord Embedの左側カラーバー)
