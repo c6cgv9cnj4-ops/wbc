@@ -14,11 +14,6 @@
     "https://www.sposoku.com/malaysiaopen/::×緑川・松山　1－2　〇CHENG・ZHANG(中国)": "2026-10-25T01:26:22.122922+09:00"
   },
   "seen_badspi_urls": {
-    "https://www.badspi.jp/202609271410/?utm_source=rss&utm_medium=rss&utm_campaign=202609271410": "2026-09-27T18:50:03.467465+09:00",
-    "https://www.badspi.jp/202609271741/?utm_source=rss&utm_medium=rss&utm_campaign=202609271741": "2026-09-27T23:59:29.905398+09:00",
-    "https://www.badspi.jp/202609271649/?utm_source=rss&utm_medium=rss&utm_campaign=202609271649": "2026-09-27T23:59:29.905398+09:00",
-    "https://www.badspi.jp/202609271636/?utm_source=rss&utm_medium=rss&utm_campaign=202609271636": "2026-09-27T23:59:29.905398+09:00",
-    "https://www.badspi.jp/202609271553/?utm_source=rss&utm_medium=rss&utm_campaign=202609271553": "2026-09-27T23:59:29.905398+09:00",
     "https://www.badspi.jp/202609280840/?utm_source=rss&utm_medium=rss&utm_campaign=202609280840": "2026-09-28T10:10:59.194209+09:00",
     "https://www.badspi.jp/202609281812/?utm_source=rss&utm_medium=rss&utm_campaign=202609281812": "2026-09-28T19:35:42.979173+09:00",
     "https://www.badspi.jp/202609281431/?utm_source=rss&utm_medium=rss&utm_campaign=202609281431": "2026-09-28T19:35:42.979173+09:00",
@@ -201,7 +196,8 @@
     "https://news.google.com/rss/articles/CBMibkFVX3lxTE1hN2ZqYldNR2hETjFSbFh2SzRUQTV0R2Yxb0tPZ0p1OHl6Rkg5ZDVQYUtVQU9CMFhWZVB1UHdsV3NNMWZqNEM3V0lQSnQ5QUZqYjFxWDU5TWVQdWEyM0dXUzF3VXRPTWtsT2U5eXR3?oc=5": "2026-10-25T17:38:23.493614+09:00",
     "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE9GYktCWHNkaFdUTEx5TmRIa1BVSE5kb05HREZia0N0RGJaWW9Hb3UybktkSkJqamUyWER2WVpzVngyV1g5QUdiNm5HNmUxUjR0N2YwdWplTFdKclI4YzY1N2Y2V2F1N3M?oc=5": "2026-10-25T22:22:03.662517+09:00",
     "https://news.google.com/rss/articles/CBMicEFVX3lxTFBqaU5aSmNudExGMl9mdkFTZVo5dE9xQ2VTTmpxeTZ1c0w3RGswaG5lbVdkZzhzdms4VFpGOHBKa3pqZ2lMalFJV3l6X3FxbFVHekptOWJIQ3JMbVBzeTQxUGtDcTVMeE82WEJWbzMxQjM?oc=5": "2026-10-26T08:07:40.909083+09:00",
-    "https://news.google.com/rss/articles/CBMicEFVX3lxTE5PemZ1SmNLd3B6UGxXUUdKTEQzd2FnVUhjQmpiMHg2NkJwcUJkLUJ0bWJScWxDSGJ6WmxqQmJoZVB4ZldEUjBiSWYzd2RmWTBpUnNVY294UGU2cHpYMllodHFIZmJHRFlVeVVabzc4THM?oc=5": "2026-10-27T09:05:28.591579+09:00"
+    "https://news.google.com/rss/articles/CBMicEFVX3lxTE5PemZ1SmNLd3B6UGxXUUdKTEQzd2FnVUhjQmpiMHg2NkJwcUJkLUJ0bWJScWxDSGJ6WmxqQmJoZVB4ZldEUjBiSWYzd2RmWTBpUnNVY294UGU2cHpYMllodHFIZmJHRFlVeVVabzc4THM?oc=5": "2026-10-27T09:05:28.591579+09:00",
+    "https://news.google.com/rss/articles/CBMie0FVX3lxTE9KMFA4dkJtbW5FM0didWRZOFFxdUJCc2NmazNxZmRldkxvTFJMOXlZZjlQTENEMTBDX3N2cFk1NGJtdkN6aG9rdXVZbTJ6YlRxbzdBZ3c2ZkxsMG1aVWo5cnMyeWxyLWdIRFJ4LW1hZkk5cmtJWXlBMFRrcw?oc=5": "2026-10-28T00:33:17.406119+09:00"
   },
   "seen_nba_result_ids": {
     "853": "2026-10-06T20:55:36.454281+09:00",
@@ -239,7 +235,12 @@
     "matches": [],
     "summaries": [],
     "badspi": [],
-    "gnews": [],
+    "gnews": [
+      {
+        "title": "【バドミントン】2026年の日本代表が決定 “シダマツ”は新ペアでそれぞれ選出",
+        "url": "https://news.google.com/rss/articles/CBMie0FVX3lxTE9KMFA4dkJtbW5FM0didWRZOFFxdUJCc2NmazNxZmRldkxvTFJMOXlZZjlQTENEMTBDX3N2cFk1NGJtdkN6aG9rdXVZbTJ6YlRxbzdBZ3c2ZkxsMG1aVWo5cnMyeWxyLWdIRFJ4LW1hZkk5cmtJWXlBMFRrcw?oc=5"
+      }
+    ],
     "nba": []
   },
   "wr_rankings": {
