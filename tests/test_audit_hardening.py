@@ -11,12 +11,10 @@ import tempfile
 import unittest
 from unittest import mock
 
-from bs4 import BeautifulSoup
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts"))
 import atomic_io  # noqa: E402
 import fetch_news as fn  # noqa: E402
-import fetch_sports_standings as fs  # noqa: E402
 
 JST = dt.timezone(dt.timedelta(hours=9))
 NOW = dt.datetime(2026, 10, 12, 12, 0, tzinfo=JST)
@@ -83,23 +81,6 @@ class BousaiHashTest(unittest.TestCase):
         fn.mark_bousai_shown([self.FIRE], state, NOW)
         near = dict(self.FIRE, key="anzn:X:8", summary="火災 北本市荒井3丁目")       # 本文が違えば別事案(類似度では判定しない)
         self.assertEqual(len(fn.filter_bousai_already_shown([near], state, NOW)[0]), 1)
-
-
-class SportsFallbackTest(unittest.TestCase):
-    def cell(self, html):
-        return BeautifulSoup(html, "html.parser").td
-
-    def test_pc_name_preferred(self):
-        self.assertEqual(fs.club_name_from_cell(self.cell('<td class="o-table__cell--club"><a><span data-media="pc">柏レイソル</span><span data-media="sp">柏</span></a></td>')), "柏レイソル")
-
-    def test_no_pc_attribute_falls_back_without_empty_or_doubling(self):
-        self.assertEqual(fs.club_name_from_cell(self.cell('<td class="o-table__cell--club"><a><span>サンフレッチェ広島</span><span>広島</span></a></td>')), "サンフレッチェ広島")
-        self.assertEqual(fs.club_name_from_cell(self.cell('<td class="o-table__cell--club"><a><span data-media="sp">広島</span></a></td>')), "広島")
-
-    def test_doubled_text_is_collapsed(self):
-        self.assertEqual(fs.club_name_from_cell(self.cell('<td class="o-table__cell--club">サンフレッチェ広島サンフレッチェ広島</td>')), "サンフレッチェ広島")
-        self.assertEqual(fs._collapse_doubled("柏レイソル"), "柏レイソル")
-        self.assertEqual(fs.club_name_from_cell(self.cell('<td class="o-table__cell--club"></td>')), "")   # 文字が無い場合のみ空
 
 
 class AtomicWriteTest(unittest.TestCase):

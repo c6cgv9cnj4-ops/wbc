@@ -24,7 +24,7 @@ jobs:
           pip install -r requirements.txt
           playwright install --with-deps chromium
 
-      - name: NPB/Jリーグ/F1/MotoGPの順位表を取得してDiscordへ配信(更新があった場合のみ)
+      - name: NPB/F1/MotoGPの順位表を取得してDiscordへ配信(更新があった場合のみ)
         env:
           DISCORD_WEBHOOK_SPORTS_CULTURE: ${{ secrets.WEBHOOK_SPORTS_CULTURE }}
         run: python scripts/fetch_sports_standings.py
