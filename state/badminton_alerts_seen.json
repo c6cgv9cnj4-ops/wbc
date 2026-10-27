@@ -14,8 +14,6 @@
     "https://www.sposoku.com/malaysiaopen/::×緑川・松山　1－2　〇CHENG・ZHANG(中国)": "2026-10-25T01:26:22.122922+09:00"
   },
   "seen_badspi_urls": {
-    "https://www.badspi.jp/202609261942/?utm_source=rss&utm_medium=rss&utm_campaign=202609261942": "2026-09-27T08:28:12.427798+09:00",
-    "https://www.badspi.jp/202609262019/?utm_source=rss&utm_medium=rss&utm_campaign=202609262019": "2026-09-27T08:28:12.427798+09:00",
     "https://www.badspi.jp/202609271034/?utm_source=rss&utm_medium=rss&utm_campaign=202609271034": "2026-09-27T12:47:14.948270+09:00",
     "https://www.badspi.jp/202609271410/?utm_source=rss&utm_medium=rss&utm_campaign=202609271410": "2026-09-27T18:50:03.467465+09:00",
     "https://www.badspi.jp/202609271741/?utm_source=rss&utm_medium=rss&utm_campaign=202609271741": "2026-09-27T23:59:29.905398+09:00",
@@ -205,7 +203,8 @@
     "https://news.google.com/rss/articles/CBMie0FVX3lxTFBjVWxsdTc0SjloT1NHUzVLV2ZUanJDai1kcDhyOXpQbkM5MHByMGpVVHdTSVFLM1k1RnliRWZwTTMxejBnQjk1c2lWM0J0WkFBSGdvdV9LSjhzb19PSkE4Z0hzbHMtQk1PWkJ6c04tT1hwRHhWblUxZVhaZw?oc=5": "2026-10-25T17:38:23.493614+09:00",
     "https://news.google.com/rss/articles/CBMibkFVX3lxTE1hN2ZqYldNR2hETjFSbFh2SzRUQTV0R2Yxb0tPZ0p1OHl6Rkg5ZDVQYUtVQU9CMFhWZVB1UHdsV3NNMWZqNEM3V0lQSnQ5QUZqYjFxWDU5TWVQdWEyM0dXUzF3VXRPTWtsT2U5eXR3?oc=5": "2026-10-25T17:38:23.493614+09:00",
     "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE9GYktCWHNkaFdUTEx5TmRIa1BVSE5kb05HREZia0N0RGJaWW9Hb3UybktkSkJqamUyWER2WVpzVngyV1g5QUdiNm5HNmUxUjR0N2YwdWplTFdKclI4YzY1N2Y2V2F1N3M?oc=5": "2026-10-25T22:22:03.662517+09:00",
-    "https://news.google.com/rss/articles/CBMicEFVX3lxTFBqaU5aSmNudExGMl9mdkFTZVo5dE9xQ2VTTmpxeTZ1c0w3RGswaG5lbVdkZzhzdms4VFpGOHBKa3pqZ2lMalFJV3l6X3FxbFVHekptOWJIQ3JMbVBzeTQxUGtDcTVMeE82WEJWbzMxQjM?oc=5": "2026-10-26T08:07:40.909083+09:00"
+    "https://news.google.com/rss/articles/CBMicEFVX3lxTFBqaU5aSmNudExGMl9mdkFTZVo5dE9xQ2VTTmpxeTZ1c0w3RGswaG5lbVdkZzhzdms4VFpGOHBKa3pqZ2lMalFJV3l6X3FxbFVHekptOWJIQ3JMbVBzeTQxUGtDcTVMeE82WEJWbzMxQjM?oc=5": "2026-10-26T08:07:40.909083+09:00",
+    "https://news.google.com/rss/articles/CBMicEFVX3lxTE5PemZ1SmNLd3B6UGxXUUdKTEQzd2FnVUhjQmpiMHg2NkJwcUJkLUJ0bWJScWxDSGJ6WmxqQmJoZVB4ZldEUjBiSWYzd2RmWTBpUnNVY294UGU2cHpYMllodHFIZmJHRFlVeVVabzc4THM?oc=5": "2026-10-27T09:05:28.591579+09:00"
   },
   "seen_nba_result_ids": {
     "853": "2026-10-06T20:55:36.454281+09:00",
@@ -242,24 +241,7 @@
   "digest_pool": {
     "matches": [],
     "summaries": [],
-    "badspi": [
-      {
-        "title": "【欧州遠征2026】「すごく充実した3週間にできた。8シードに入れるように、これからも焦らずに頑張っていけたら」（奥原希望）＜選手コメント-6＞",
-        "url": "https://www.badspi.jp/202610261804/?utm_source=rss&utm_medium=rss&utm_campaign=202610261804"
-      },
-      {
-        "title": "【欧州遠征2026】「コンディションがよくなかったけど、2人で力を合わせて最後まで戦えてよかった」（松本麻佑）＜選手コメント-7＞",
-        "url": "https://www.badspi.jp/202610261857/?utm_source=rss&utm_medium=rss&utm_campaign=202610261857"
-      },
-      {
-        "title": "【欧州遠征2026】「会場の環境に合わせながら戦うことが大事になる」（山口茜）＜選手コメント-5＞",
-        "url": "https://www.badspi.jp/202610261756/?utm_source=rss&utm_medium=rss&utm_campaign=202610261756"
-      },
-      {
-        "title": "【欧州遠征2026】「課題だった部分に自信を持って取り組めた試合が多かった」（鈴木陽向）＜選手コメント-2＞",
-        "url": "https://www.badspi.jp/202610261748/?utm_source=rss&utm_medium=rss&utm_campaign=202610261748"
-      }
-    ],
+    "badspi": [],
     "gnews": [],
     "nba": []
   },
