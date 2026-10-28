@@ -1937,7 +1937,6 @@
         if (!el || !url) return;
         const img = new Image();
         img.alt = "『" + book.title + "』の表紙";
-        img.loading = "lazy";
         img.decoding = "async";
         img.referrerPolicy = "no-referrer";
         img.onload = () => { el.classList.add("has-img"); el.style.background = ""; el.textContent = ""; el.appendChild(img); };
