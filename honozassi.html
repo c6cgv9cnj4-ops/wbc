@@ -479,7 +479,10 @@
 /* 表紙サムネイル（取得できない場合はジャンル色の題名プレート） */
 .card-main { display: flex; gap: 12px; align-items: flex-start; }
 .card-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.cover { flex: 0 0 76px; width: 76px; height: 108px; border-radius: 6px; overflow: hidden; background: #475569; color: #fff; display: flex; align-items: center; justify-content: center; padding: 6px; font-size: 0.66rem; font-weight: 700; line-height: 1.35; text-align: center; overflow-wrap: anywhere; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.2); }
+.cover { flex: 0 0 76px; width: 76px; height: 108px; border-radius: 4px 6px 6px 4px; overflow: hidden; background: #475569; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 10px 6px; box-sizing: border-box; text-align: center; overflow-wrap: anywhere; box-shadow: inset 4px 0 0 rgba(0, 0, 0, 0.18), 0 1px 3px rgba(15, 23, 42, 0.2); }
+.cover-award { font-size: 0.5rem; letter-spacing: 0.02em; opacity: 0.9; line-height: 1.3; }
+.cover-title { font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif; font-size: 0.78rem; line-height: 1.45; font-weight: 700; }
+.cover-author { font-size: 0.55rem; opacity: 0.85; line-height: 1.3; }
 .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .cover.has-img { background: #f1f5f9; padding: 0; }
 @media (max-width: 600px) {
@@ -1857,7 +1860,7 @@
                     </button>
                 </div>
                 <div class="card-main">
-                    <div class="cover" id="cover-${book.id}" style="background:${GENRE_COLORS[book.genre] || '#475569'}">${book.title}</div>
+                    <div class="cover" id="cover-${book.id}" style="background:${GENRE_COLORS[book.genre] || '#475569'}"><span class="cover-award">${book.awardLabel}</span><strong class="cover-title">${book.title}</strong><span class="cover-author">${book.author}</span></div>
                     <div class="card-text">
                         <div class="title">${book.title}</div>
                         <div class="meta">著者: ${authorHtml}${ageText}</div>
