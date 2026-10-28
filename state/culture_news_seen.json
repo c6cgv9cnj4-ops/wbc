@@ -1,13 +1,5 @@
 {
   "seen_urls": {
-    "https://www.itmedia.co.jp/news/article/2610/14/2000002265/": "2026-10-14T23:30:03.029386+09:00",
-    "https://www.itmedia.co.jp/news/article/2610/14/2000002278/": "2026-10-14T23:30:03.029386+09:00",
-    "https://www.itmedia.co.jp/news/article/2610/14/2000002276/": "2026-10-14T23:30:03.029386+09:00",
-    "https://news.google.com/rss/articles/CBMiT0FVX3lxTE9wWF9zNXZzc01PdnBpSTVSbkJ3anNTOXBReHFpZlJNME0xc1RzOUp3b2tmYmZMMWRVclNvMV8tVzI5OVBGU1hFMjlabk9NYVk?oc=5": "2026-10-14T23:30:03.029386+09:00",
-    "https://news.google.com/rss/articles/CBMif0FVX3lxTE05SFlTVmVSaGtPbTJFcEFpWWFCanNwXzRIekNJcE1ZY2huLUVDUmVuV0lPMlhXd3htNUU0MUFFV205UVI5VWdoUWhqbV9fekdOdkV0WHpzMVplbW9XZXZ0NG9tRzNPUVdLNEFxNlVWcW45aWJBbjQ1SWhFSm15SGc?oc=5": "2026-10-14T23:30:03.029386+09:00",
-    "https://news.google.com/rss/articles/CBMigAFBVV95cUxORFlYLUNjd3libW9rMGhWTWlXNjlRUEppTDBveVlMQ3RvbENLWXViU0NQcGc0Q0xCR1lMVUxQSlk3NGl0M01BaElQTGNmVmh1M0R0QnpBYW1iQ0NZcmFJWktNOWNfXzJLWW9mWTZMa0lva3JLZTkwU1J3d0JieHNaSw?oc=5": "2026-10-14T23:30:03.029386+09:00",
-    "https://news.google.com/rss/articles/CBMif0FVX3lxTE9aTklqS2dGc29ac3gtODBxbmlZNEpsY0VpRGhsd0V3a3JZMkNFZ2g5Zk80SUpYMmJ0YW84UHhMb2VhOEJLLWtBVElOdjdCclFpdGJVUEY1UXZkQVFpeVVZVk9pMVZsZkpDOUswQ1J4cVpDWjBkVW9sTVJhNnpDcnM?oc=5": "2026-10-14T23:30:03.029386+09:00",
-    "https://news.google.com/rss/articles/CBMif0FVX3lxTE5halRCbC1ZajVVd3QxVkFYdFNJeG8zV3l3YVRxdHhkTjd5WVNYOUZvTGhWd0NRTjZmR0hpUWtpZ2dRTzVqZEsybWgxdEFsVndYdUNWemhzMlVWLW03NklpN0g0dF9DUWRkamU0TURlTmZlYjV3R0Q5NmtLQW5wU2s?oc=5": "2026-10-14T23:30:03.029386+09:00",
     "https://www.itmedia.co.jp/news/article/2610/15/2000002283/": "2026-10-15T09:31:09.934038+09:00",
     "https://www.itmedia.co.jp/news/article/2610/15/2000002282/": "2026-10-15T09:31:09.934038+09:00",
     "https://www.itmedia.co.jp/news/article/2610/14/2000002254/": "2026-10-15T09:31:09.934038+09:00",
@@ -213,6 +205,8 @@
     "https://news.google.com/rss/articles/CBMiogFBVV95cUxPMldGT3RBcDZTcFcwWnliN2FrYXlxZ1RSRnNmeTV1R3Z2R2hXRHpxenA1UThZTHRtZHFWazNMUzZpdHp3SGdaVDJ1bm1ON0ZlaFpDV3dWc0cwclVPVWpITkU0ZDdnSkQ5YmJZYXhFa1dOR29qQ1NzUDlBbDRKS0Fhd2ZWVGpaa1RiSVdYOW5ZUkd1dGFIT1JVVHFPTDVHdXEzZHc?oc=5": "2026-10-28T10:19:58.574827+09:00",
     "https://news.google.com/rss/articles/CBMidEFVX3lxTE8wSUoySm9naUFPMG1uOGhXSExrQTNTYmZOclY5UG5yS1REQjZvTTVfNGVMbmZVcjY1VnQ2c0gyV0JEblhZTml3cWpxX0NsazIzSW5EWmsyWmpDRVl0Xzhid3JaSzB0QzlDb1JpUVR3V3JFTlV3?oc=5": "2026-10-28T18:33:37.504375+09:00",
     "https://news.google.com/rss/articles/CBMiTEFVX3lxTE1BVXJJU005LWkwV2lYTkVVNThtNDRSZlhMWXI5Q2E5VkdBU2dnNXlpWHF0Rmh2VC05ZVFIa1U2R0NMZUpZeW5QSHpJR1c?oc=5": "2026-10-28T18:33:37.504375+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1oWlVzNnAxYkRmS1gzVVhRTEJESFRKNDg5NEJnci1qZldZZmFQUURXSW5BQjhVRGlvMTNtNW9xUC1mbWZrU3RnenVFSVNEX1V0NGlFc3BOVGo0cGlGdE9xeDJTVXhWVVVm?oc=5": "2026-10-28T18:33:37.504375+09:00"
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1oWlVzNnAxYkRmS1gzVVhRTEJESFRKNDg5NEJnci1qZldZZmFQUURXSW5BQjhVRGlvMTNtNW9xUC1mbWZrU3RnenVFSVNEX1V0NGlFc3BOVGo0cGlGdE9xeDJTVXhWVVVm?oc=5": "2026-10-28T18:33:37.504375+09:00",
+    "https://gigazine.net/news/20261028-claude-mythos-5-failure/": "2026-10-29T00:59:39.268123+09:00",
+    "https://gigazine.net/news/20261028-apple-creator-studio-ai-features-openai-models/": "2026-10-29T00:59:39.268123+09:00"
   }
 }
