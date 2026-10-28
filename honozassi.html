@@ -1892,53 +1892,9 @@
         hydrateCovers(list);
     }
 
-    // 表紙画像: Google Books API（題名＋著者一致）。画面内に入ったカードだけを1件ずつ取得する。
-    // 結果はlocalStorageに保存し、同じ作品を再検索しない。429（利用上限）のときは一定時間、問い合わせを止める。
-    const COVER_CACHE_KEY = "honozassi_cover_cache_v1";
-    const COVER_GAP_MS = 1500;
-    const COVER_PAUSE_MS = 10 * 60 * 1000;
-    let coverCache = {};
-    try { coverCache = JSON.parse(localStorage.getItem(COVER_CACHE_KEY) || "{}"); } catch (e) { coverCache = {}; }
-    const coverKey = book => book.title + "|" + book.author;
-    const coverBookById = new Map();
-    const coverQueue = [];
-    const coverQueued = new Set();
-    const coverFailed = new Set();
-    let coverBusy = false;
-    let coverPausedUntil = 0;
-
-    function saveCoverCache() {
-        try { localStorage.setItem(COVER_CACHE_KEY, JSON.stringify(coverCache)); } catch (e) { /* 保存不可の端末では表示のみ */ }
-    }
-
-    async function lookupCoverUrl(book) {
-        const key = coverKey(book);
-        if (key in coverCache) return coverCache[key];
-        const q = "intitle:" + book.title + " inauthor:" + book.author;
-        const url = "https://www.googleapis.com/books/v1/volumes?langRestrict=ja&printType=books&maxResults=5&q=" + encodeURIComponent(q);
-        let res;
-        try {
-            res = await fetch(url);
-        } catch (e) {
-            coverFailed.add(key);
-            return "";
-        }
-        if (res.status === 429) throw Object.assign(new Error("rate limited"), { rateLimited: true });
-        if (!res.ok) {
-            coverFailed.add(key);
-            return "";
-        }
-        const data = await res.json();
-        // 題名と著者の両方が一致する候補だけ採用（別作品の表紙を出さないため）
-        const hit = (data.items || []).map(i => i.volumeInfo || {}).find(v =>
-            (v.title || "").includes(book.title)
-            && (v.authors || []).some(a => a.includes(book.author))
-            && v.imageLinks && v.imageLinks.thumbnail);
-        const img = hit ? hit.imageLinks.thumbnail.replace(/^http:/, "https:") : "";
-        coverCache[key] = img;
-        saveCoverCache();
-        return img;
-    }
+    // 表紙画像: 作品ID→表紙URLの静的な対応表（日本語版Wikipediaの記事画像から作成）。
+    // 閲覧者のブラウザから外部APIは呼ばない。対応がない作品はジャンル色の題名プレートのまま。
+    const COVER_URLS = {};
 
     function showCover(book, url) {
         const el = document.getElementById("cover-" + book.id);
@@ -1951,61 +1907,9 @@
         img.src = url;
     }
 
-    async function drainCoverQueue() {
-        if (coverBusy) return;
-        coverBusy = true;
-        while (coverQueue.length) {
-            const wait = coverPausedUntil - Date.now();
-            if (wait > 0) {
-                setTimeout(() => { coverBusy = false; drainCoverQueue(); }, wait);
-                return;
-            }
-            const book = coverQueue.shift();
-            const key = coverKey(book);
-            try {
-                const url = await lookupCoverUrl(book);
-                coverQueued.delete(key);
-                showCover(book, url);
-            } catch (e) {
-                if (e.rateLimited) {
-                    coverPausedUntil = Date.now() + COVER_PAUSE_MS;
-                    coverQueue.unshift(book);
-                    continue;
-                }
-                coverQueued.delete(key);
-            }
-            await new Promise(r => setTimeout(r, COVER_GAP_MS));
-        }
-        coverBusy = false;
-    }
-
-    function enqueueCover(book) {
-        const key = coverKey(book);
-        if (key in coverCache) { showCover(book, coverCache[key]); return; }
-        if (coverFailed.has(key) || coverQueued.has(key)) return;
-        coverQueued.add(key);
-        coverQueue.push(book);
-        drainCoverQueue();
-    }
-
-    // 画面に入ったカードの表紙だけ取得する（スクロールで順に読み込む）
-    const coverObserver = ("IntersectionObserver" in window) ? new IntersectionObserver(entries => {
-        entries.forEach(entry => {
-            if (!entry.isIntersecting) return;
-            coverObserver.unobserve(entry.target);
-            const book = coverBookById.get(entry.target.id.replace("cover-", ""));
-            if (book) enqueueCover(book);
-        });
-    }, { rootMargin: "200px" }) : null;
-
     function hydrateCovers(books) {
         books.forEach(book => {
-            const el = document.getElementById("cover-" + book.id);
-            if (!el) return;
-            coverBookById.set(book.id, book);
-            if (coverKey(book) in coverCache) { showCover(book, coverCache[coverKey(book)]); return; }
-            if (coverObserver) coverObserver.observe(el);
-            else enqueueCover(book);
+            if (COVER_URLS[book.id]) showCover(book, COVER_URLS[book.id]);
         });
     }
 
