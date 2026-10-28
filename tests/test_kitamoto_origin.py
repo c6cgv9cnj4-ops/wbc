@@ -165,23 +165,24 @@ class SportsRouteTest(unittest.TestCase):
             err = fn._handle_sports_leak(items, "https://hook/sports", NOW, "一般ニュースフィード")
         return err, sent
 
-    def test_origin_removed_general_kept(self):
+    def test_sports_items_are_never_sent(self):
+        # 2026-10-29: スポーツは配信対象外。北條型でも一般型でも、#webhook_sports_culture へは送らない
         items = [{"title": "北條巧が金メダル - 朝日新聞", "url": "https://ex.com/a"},
                  {"title": "中日 3-2 阪神 延長10回サヨナラ - 日刊スポーツ", "url": "https://ex.com/b"}]
         err, sent = self.run_leak(items)
         self.assertFalse(err)
-        self.assertEqual(len(sent), 1)
-        self.assertIn("https://ex.com/b", sent[0])
-        self.assertNotIn("https://ex.com/a", sent[0])
+        self.assertEqual(sent, [])
 
     def test_only_origin_sends_nothing(self):
         err, sent = self.run_leak([{"title": "樋口正修がプロ初本塁打 - 中日新聞", "url": "https://ex.com/a"}])
         self.assertFalse(err)
         self.assertEqual(sent, [])
 
-    def test_unimportant_listing_stays_sports(self):
+    def test_listing_type_sports_also_not_sent(self):
+        # 2026-10-29: 一覧型も含め、スポーツ記事は送信しない
         err, sent = self.run_leak([{"title": "樋口正修 先発予想 中日 vs 広島 - 日刊スポーツ", "url": "https://ex.com/a"}])
-        self.assertEqual(len(sent), 1)                      # 一覧型は台帳対象外=従来どおりスポーツ側
+        self.assertFalse(err)
+        self.assertEqual(sent, [])
 
 
 class HeadlineKeyTest(unittest.TestCase):

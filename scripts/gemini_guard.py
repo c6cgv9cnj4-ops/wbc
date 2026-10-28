@@ -22,6 +22,8 @@ import re
 import threading
 import time
 
+import gemini_budget
+
 try:
     from zoneinfo import ZoneInfo
     _PACIFIC = ZoneInfo("America/Los_Angeles")
@@ -296,18 +298,25 @@ class Guard:
             self.state.pop(key, None)
 
     # ----- 呼び出し -----
-    def call(self, fn, task="gemini"):
+    def call(self, fn, task="gemini", priority=None):
         """fn() を実行する。成功すれば結果を返す。待機中は GeminiBlocked、失敗は GeminiCallError。
-        task は計測ログ(GEMINI_CALL/GEMINI_429)に出す呼び出し元の名前。"""
+        task は計測ログ(GEMINI_CALL/GEMINI_429)に出す呼び出し元の名前。
+        priority(gemini_budget の PRIORITY_*)を渡すと、日次予算を確認し、試行ごとに state へ記録する。
+        予算外なら呼び出さずに GeminiBlocked(reason="budget") を返す(呼び出し側は従来の縮退経路になる)。"""
         blocked = self.blocked()
         if blocked:
             raise GeminiBlocked(blocked[0], blocked[1], blocked[2])
+        if priority is not None and not gemini_budget.allowed(self.state, self.clock(), priority):
+            until, basis = next_daily_boundary(self.clock())
+            raise GeminiBlocked(until, "budget", f"日次予算の上限に達したため(優先度{priority})。{basis}")
         attempts, waited = 0, 0.0
         while True:
             if self._cancelled():
                 raise GeminiCancelled(f"キャンセル済みのため呼び出しを打ち切り(task={task})")
             attempts += 1
             self.calls += 1
+            if priority is not None:
+                gemini_budget.record(self.state, self.clock())
             try:
                 result = fn()
             except Exception as err:  # noqa: BLE001

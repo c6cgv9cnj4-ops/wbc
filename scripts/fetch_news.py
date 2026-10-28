@@ -86,6 +86,7 @@ import discord_style
 import kitamoto_origin
 import local_news_filter
 import mastodon_anzn
+import gemini_budget
 import gemini_guard
 import news_alerts
 
@@ -434,6 +435,9 @@ SPORTS_KEYWORDS = [
     "阪神", "巨人", "読売ジャイアンツ", "ロッテ", "ソフトバンク", "楽天イーグルス",
     "オリックス", "DeNA", "ベイスターズ", "ヤクルト", "広島東洋カープ", "中日ドラゴンズ",
     "Jリーグ", "サッカー", "J1", "J2", "バドミントン", "F1", "MotoGP", "モータースポーツ",
+    # 2026-10-29: 少年・高校の競技と、埼玉の地元チーム名を追加(「野球」「サッカー」の部分一致で漏れていた分)
+    "少年野球", "少年サッカー", "高校野球", "高校サッカー", "浦和ビッグウェイブ", "浦和レッズ",
+    "ベルマーレ", "アルビレックス", "ブラウブリッツ",
 ]
 
 
@@ -1454,7 +1458,8 @@ Yahoo!ニュースが無料公開しているリード文(本文の一部)が付
     guard.last_error = None
     try:
         # 2026-10-09: 再試行・待機は gemini_guard に任せる(429の待ち時間を尊重し、日次上限では呼び出しを控える)
-        resp = guard.call(lambda: client.models.generate_content(model=GEMINI_MODEL_NAME, contents=prompt))
+        resp = guard.call(lambda: client.models.generate_content(model=GEMINI_MODEL_NAME, contents=prompt),
+                          priority=gemini_budget.PRIORITY_HIGH)
     except (gemini_guard.GeminiBlocked, gemini_guard.GeminiCallError) as err:
         print(f"[WARN] Gemini主要ニュース要約を実行できませんでした: {news_alerts.short_error(err)}")
         guard.last_error = err
@@ -1616,7 +1621,8 @@ def _build_market_critical_only(state, now, gemini_client, guard):
     if not fresh:
         return "[INFO] マーケット: 便の合間で、急変判定が未実施の新着はありません(次の便で配信)。", True
     guard = guard or gemini_guard.Guard(state)
-    curated = market_news_curation.curate(fresh, gemini_client, GEMINI_MODEL_NAME, caller=guard.call)
+    curated = market_news_curation.curate(fresh, gemini_client, GEMINI_MODEL_NAME,
+                                          caller=lambda fn: guard.call(fn, priority=gemini_budget.PRIORITY_CRITICAL))
     if curated is None:
         if market_news_curation.LAST_ERROR:
             record_gemini_failure("gemini_market", "market", "経済ニュースの急変判定(Gemini)", market_news_curation.LAST_ERROR,
@@ -1738,7 +1744,8 @@ def build_market_message(state, now, gemini_client=None, guard=None):
         # 2026-09-25追加: 同じ材料の記事をグループ化し、カテゴリ・重要度順に整理する
         # (market_news_curation.py)。失敗時は None が返り、従来の箇条書きに戻す。
         guard = guard or gemini_guard.Guard(state)
-        curated = market_news_curation.curate(biz_new, gemini_client, GEMINI_MODEL_NAME, caller=guard.call)
+        curated = market_news_curation.curate(biz_new, gemini_client, GEMINI_MODEL_NAME,
+                                              caller=lambda fn: guard.call(fn, priority=gemini_budget.PRIORITY_HIGH))
         if curated is None and market_news_curation.LAST_ERROR:
             record_gemini_failure("gemini_market", "market", "経済ニュースの材料整理(Gemini)", market_news_curation.LAST_ERROR,
                                   "継続(従来の箇条書き表示で配信)")
@@ -1983,27 +1990,18 @@ def _rollback_new_keys(state, keys_before, keep_items=()):
 
 
 def _handle_sports_leak(sports_items, sports_webhook, now, source_label):
-    """ローカル/全国いずれかのフィードに混入していたスポーツ記事を
-    #webhook_sports_culture へ振り分ける共通処理。戻り値はhad_errorか否か。
+    """ローカル/全国いずれかのフィードに混入していたスポーツ記事を扱う共通処理。戻り値はhad_errorか否か。
+
+    2026-10-29: スポーツ記事は配信対象外(細川さんの指示)。#webhook_sports_culture へも送らず、ここで除外する。
+    記事は既送信として記録されたままなので、次回以降に再び拾われることはない。
+    (build_sports_leak_message と sports_webhook は後方互換のため残しているが、ここからは使わない。)
     """
     if not sports_items:
         return False
-    # 2026-10-06: 北本ゆかり型(台帳の人物の重要な記事)は地域ニュース側で配信するため、スポーツ側へは送らない
-    origin_dup = [i for i in sports_items if kitamoto_origin.match(i["title"])]
-    if origin_dup:
-        print(f"[INFO] 北本ゆかり型のため地域ニュース側を優先し、スポーツ側へは送りません: {len(origin_dup)}件")
-        sports_items = [i for i in sports_items if i not in origin_dup]
-        if not sports_items:
-            return False
-    print(f"=== {source_label}からスポーツ記事を検知: {len(sports_items)}件 ===")
+    print(f"[INFO] スポーツ記事は配信対象外のため送信しません({source_label}): {len(sports_items)}件")
     for item in sports_items:
-        print(f"  {item['title']}")
-    sports_message = build_sports_leak_message(sports_items, now)
-    if not sports_webhook:
-        print("[WARN] DISCORD_WEBHOOK_SPORTS_CULTURE が未設定のため、"
-              "検知したスポーツ記事の振り分け送信をスキップします(誤配信は防止済み)。")
-        return False
-    return not send_to_discord(sports_webhook, sports_message)
+        print(f"  除外: {item['title']}")
+    return False
 
 
 def main():

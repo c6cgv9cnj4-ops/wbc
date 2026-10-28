@@ -123,7 +123,7 @@ class BuildMarketMessageTest(unittest.TestCase):
         with mock.patch.object(fn, "fetch_economy_news_candidates", return_value=items), \
                 mock.patch.object(fn, "fetch_nikkei225", side_effect=AssertionError("便の合間は株価を取りに行かない")), \
                 mock.patch.dict(os.environ, {"MARKET_NEWS_CURATION": ""}):
-            msg, skip = fn.build_market_message(state, at(9, 3), client, guard=mock.Mock(call=lambda f: f()))
+            msg, skip = fn.build_market_message(state, at(9, 3), client, guard=mock.Mock(call=lambda f, **kw: f()))
         return msg, skip, state, client
 
     def test_offslot_no_critical_sends_nothing_and_keeps_items_unsent(self):
@@ -156,7 +156,7 @@ class BuildMarketMessageTest(unittest.TestCase):
                 mock.patch.object(fn, "format_yf_line", side_effect=lambda label, t: f"- {label}: x"), \
                 mock.patch.object(fn, "fetch_usdjpy", return_value="150.00"), \
                 mock.patch.object(fn, "fetch_jgb_futures", return_value=None):
-            msg, skip = fn.build_market_message(st, at(7, 3), client, guard=mock.Mock(call=lambda f: f()))
+            msg, skip = fn.build_market_message(st, at(7, 3), client, guard=mock.Mock(call=lambda f, **kw: f()))
         self.assertFalse(skip)
         self.assertTrue(msg.startswith("# 💹 マーケット情報 (2026-10-12 07:03 JST時点・"))
         self.assertIn("・朝の便)", msg.splitlines()[0])
@@ -172,7 +172,7 @@ class BuildMarketMessageTest(unittest.TestCase):
                 mock.patch.object(fn, "record_gemini_failure") as rec:
             bad = mock.Mock()
             bad.models.generate_content.side_effect = RuntimeError("429")
-            msg, skip = fn.build_market_message(st, at(9, 3), bad, guard=mock.Mock(call=lambda f: f()))
+            msg, skip = fn.build_market_message(st, at(9, 3), bad, guard=mock.Mock(call=lambda f, **kw: f()))
         self.assertTrue(skip)
         self.assertTrue(rec.called)
         self.assertEqual([k for k in st if k.startswith(mnc.SCREENED_KEY_PREFIX)], [])
