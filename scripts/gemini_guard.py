@@ -35,7 +35,7 @@ except Exception:  # noqa: BLE001  時刻帯データが無い環境では下の
 FALLBACK_BOUNDARY_JST_HOUR = 17
 BACKOFF_PREFIX = "_gemini_backoff:"
 BASIS_PREFIX = "_gemini_backoff_basis:"       # state キー。値はISO日時(この時刻まで呼び出さない)。サフィックスは理由(quota)
-MAX_RETRIES = 2
+MAX_RETRIES = 1   # 2026-10-27: 再試行を2回→1回に削減(1回の依頼で最大2回の呼び出し)。日次枠の消費を抑える
 BASE_DELAY_SECONDS = 4.0
 MAX_SINGLE_WAIT_SECONDS = 60.0
 WAIT_BUDGET_SECONDS = 120.0

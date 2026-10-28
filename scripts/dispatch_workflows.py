@@ -67,7 +67,7 @@ def nikkei_slot_due(run, now):
 
 WORKFLOWS = [
     ("jma_alerts.yml", 10),
-    ("news.yml", 120),   # 2026-10-11: 30分→120分(Gemini無料枠の削減。news.ymlのcronも2時間ごと)
+    ("news.yml", 240),   # 2026-10-27: 120分→240分(Gemini無料枠の削減。news.ymlのcronも4時間ごと)
     # 2026-10-13 停止: 日経CNBCは廃止。代替は market_intelligence.yml(平日08:15/16:15 JST)。
     # 起動係からの起動を止める。旧 nikkei_cnbc_digest.yml の手動実行(workflow_dispatch)は残す。
     # ("nikkei_cnbc_digest.yml", nikkei_slot_due),

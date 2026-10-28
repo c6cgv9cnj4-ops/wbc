@@ -26,6 +26,7 @@ from __future__ import annotations
 import datetime
 import json
 import re
+import time
 from collections import Counter
 
 # ---------------------------------------------------------------------------
@@ -90,6 +91,10 @@ MARKER_SHORT = {"want": "願望", "done": "実行・完了", "intent": "意図�
 _TERM_RE = re.compile(r"[一-龥][みりきし][一-龥]{1,2}(?=[をはがにでとのもへやだま、。！!？?\s]|$)"
                       r"|[ァ-ヴー]{2,}|[一-龥々]{2,8}|[A-Za-z][A-Za-z0-9]{2,}")
 _NOISE_RE = re.compile(r"https?://\S+|<[@#:!&a-z]*[^>]*>")
+# 語の直後が否定(なかった・ない・ません)なら、その語は肯定の言及として数えない
+_NEGATED_RE = re.compile(r"なかっ|なく|ない|ませ")
+# 表記ゆれを同じ語にまとめる(観測の取りこぼし防止)
+_ALIASES = {"スイントレード": "スイングトレード"}
 # 漢字連の直後がこれ以外のひらがな(=送り仮名らしい)なら、末尾の漢字1字は動詞/形容詞の語幹とみなして落とす
 # 例: 仕事終わり → 仕事 / 写真撮って → 写真。し・す・さ・せ はサ変(散歩した)なので落とさない。
 _PARTICLE_OR_SURU = set("をはがにでとのもへやかよねなしすさせだまばぐ")
@@ -123,6 +128,9 @@ def extract_terms(text: str) -> list[str]:
                 if w.startswith(p) and len(w) - len(p) >= 2:
                     w = w[len(p):]
                     break
+        if _NEGATED_RE.match(text, m.end()):
+            continue  # 「出来なかった」「出来ない」は否定の記述。語としては数えない(否定は未実行表現で別に数える)
+        w = _ALIASES.get(w, w)
         if len(w) < 2 or set(w) <= {"ー"} or w in STOP_TERMS or _is_marker_word(w):
             continue
         out.append(w)
@@ -545,16 +553,37 @@ def interpret(obs: dict, api_key: str, model: str, context_note: str = "") -> tu
         from google import genai
 
         client = genai.Client(api_key=api_key)
-        resp = client.models.generate_content(
-            model=model, contents=build_prompt(obs, context_note),
-            config={"response_mime_type": "application/json"},
-        )
+        resp = _generate_with_retry(client, model, build_prompt(obs, context_note))
         result = normalize_interpretation(_loads_loose(resp.text or ""), obs)
         print(f"[INFO] Gemini({model}) 解釈: 仮説{len(result['hypotheses'])}件 / 問い{len(result['questions'])}件")
         return result, "gemini"
     except Exception as err:  # noqa: BLE001
         print(f"[WARN] Gemini 解釈に失敗（観測のみで継続）: {str(err)[:200]}")
         return None, "failed"
+
+
+# 一時的な混雑(503 / 429)だけ待って再試行する。待ち時間は秒。
+INTERPRET_RETRY_WAITS = (10,)   # 2026-10-27: 再試行は1回のみ(日次枠を守るため)
+
+
+def _is_transient(err: Exception) -> bool:
+    # 429 / RESOURCE_EXHAUSTED は日次上限の可能性があり、再試行すると呼び出し枠を無駄に消費する。対象外。
+    text = str(err)
+    return "503" in text or "UNAVAILABLE" in text
+
+
+def _generate_with_retry(client, model: str, prompt: str, waits=INTERPRET_RETRY_WAITS):
+    for attempt, wait in enumerate((*waits, None), start=1):
+        try:
+            return client.models.generate_content(
+                model=model, contents=prompt,
+                config={"response_mime_type": "application/json"},
+            )
+        except Exception as err:  # noqa: BLE001
+            if wait is None or not _is_transient(err):
+                raise
+            print(f"[INFO] Gemini 一時エラーで再試行({attempt}/{len(waits) + 1}): {wait}秒後")
+            time.sleep(wait)
 
 
 # ---------------------------------------------------------------------------

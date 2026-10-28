@@ -1398,14 +1398,14 @@ def record_gemini_failure(base_kind, channel, target, err, delivery, held=None):
             nxt = _next_retry_text(err.backoff_until, getattr(err, "basis", "")) if err.backoff_until else None
         elif info.kind in ("rate", "transient"):
             policy = f"待ち時間を置いて最大{gemini_guard.MAX_RETRIES}回まで再試行しましたが回復しませんでした"
-            nxt = "次回の定期実行（通常30分ごと）。時刻は確定できません"
+            nxt = "次回の定期実行（通常4時間ごと）。時刻は確定できません"
         else:
             policy = "再試行しても直らないエラーのため再試行していません"
-            nxt = "次回の定期実行（通常30分ごと）。同じ原因なら再度失敗します"
+            nxt = "次回の定期実行（通常4時間ごと）。同じ原因なら再度失敗します"
     else:
         lines.append("失敗: 要約処理1回（応答を処理できませんでした）")
         policy = "再試行は次回の定期実行で行います"
-        nxt = "次回の定期実行（通常30分ごと）。時刻は確定できません"
+        nxt = "次回の定期実行（通常4時間ごと）。時刻は確定できません"
     if code:
         lines.append(f"HTTP {code}" + (f" {status}" if status else ""))
     if held is not None:
@@ -1948,7 +1948,7 @@ def send_to_discord(webhook_url, message):
 # 30分程度ごとに実行される。MAC_DISPATCHER=on のときだけ前回実行時刻を記録し、間隔が
 # 大きく空いた場合(Macの停止・スリープ・gh認証切れ)を異常通知する。未設定なら何もしない。
 LAST_RUN_KEY = "_last_run_at"
-DISPATCHER_GAP_ALERT_MINUTES = 150   # 2026-10-11: news.yml の起動間隔が2時間になったため 60→150分(2時間+余裕)。これ以下だと毎回誤検知する
+DISPATCHER_GAP_ALERT_MINUTES = 270   # 2026-10-27: news.yml の起動間隔が4時間になったため 150→270分(4時間+余裕)。これ以下だと毎回誤検知する
 
 
 def check_dispatcher_gap(state, now):

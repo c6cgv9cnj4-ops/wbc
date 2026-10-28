@@ -97,16 +97,16 @@ class GuardTest(unittest.TestCase):
 
     def test_transient_exponential_backoff_then_success(self):
         g = make_guard()
-        f = Flaky(busy_error(), busy_error())
+        f = Flaky(busy_error())   # 2026-10-27: 再試行は1回(MAX_RETRIES=1)
         self.assertEqual(g.call(f), "OK")
-        self.assertEqual((f.calls, g.sleeps), (3, [4.0, 8.0]))
+        self.assertEqual((f.calls, g.sleeps), (2, [4.0]))
 
     def test_transient_gives_up_after_max_retries(self):
         g = make_guard()
         f = Flaky(busy_error(), busy_error(), busy_error(), busy_error())
         with self.assertRaises(gg.GeminiCallError) as cm:
             g.call(f)
-        self.assertEqual((f.calls, cm.exception.attempts, g.sleeps), (3, 3, [4.0, 8.0]))       # 無限リトライしない
+        self.assertEqual((f.calls, cm.exception.attempts, g.sleeps), (2, 2, [4.0]))           # 無限リトライしない
         self.assertEqual(cm.exception.info.code, 503)
         self.assertEqual([k for k in g.state if k.startswith(gg.BACKOFF_PREFIX)], [])           # 一時的なエラーでは待機状態を作らない
 
@@ -393,14 +393,14 @@ class NationalFlowTest(unittest.TestCase):
     def test_changed_error_is_not_buried_by_cooldown(self):
         state = {na.ALERT_STATE_PREFIX + "gemini_national:quota": NOW.isoformat()}
         later = NOW + dt.timedelta(hours=2)
-        run_national(FakeClient(busy_error(), busy_error(), busy_error()), state, now=later)
+        run_national(FakeClient(busy_error(), busy_error()), state, now=later)
         _, notified, suppressed = na.build_embeds(state, later)
         self.assertEqual((notified, suppressed), (["gemini_national:http503"], []))
         d = na.build_embeds(state, later)[0]["news"]["embeds"][0]["description"]
         self.assertIn("Geminiが一時的に混み合っています", d)
-        self.assertIn("・失敗: 要約処理1回（API呼び出し3回、待機12秒）", d)
-        self.assertIn("・再試行方針: 待ち時間を置いて最大2回まで再試行しましたが回復しませんでした", d)
-        self.assertIn("・次回の再試行: 次回の定期実行（通常30分ごと）。時刻は確定できません", d)
+        self.assertIn("・失敗: 要約処理1回（API呼び出し2回、待機4秒）", d)
+        self.assertIn("・再試行方針: 待ち時間を置いて最大1回まで再試行しましたが回復しませんでした", d)
+        self.assertIn("・次回の再試行: 次回の定期実行（通常4時間ごと）。時刻は確定できません", d)
         self.assertNotIn("JST以降", d)                              # 確定できない時刻は出さない
 
     def test_transient_error_recovers_within_run(self):

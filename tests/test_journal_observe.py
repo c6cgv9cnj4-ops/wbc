@@ -304,5 +304,54 @@ class WeeklyPipelineTest(unittest.TestCase):
         self.assertFalse(wm.is_month_closing_week(wm.week_context(datetime.date(2026, 9, 20))))
 
 
+class WeeklyFixes20261027Test(unittest.TestCase):
+    """2026-10-27: 否定形を肯定の語に数えない / 表記ゆれの統合 / Gemini 503 の再試行。合成データのみ。"""
+
+    def test_negated_term_is_not_counted(self):
+        self.assertNotIn("出来", jo.extract_terms("昨日バドミントンが出来なかった"))
+        self.assertNotIn("出来", jo.extract_terms("それは出来ない"))
+
+    def test_affirmative_term_is_still_counted(self):
+        self.assertIn("出来", jo.extract_terms("バドミントンが出来た"))
+
+    def test_spelling_variant_merged(self):
+        self.assertIn("スイングトレード", jo.extract_terms("AIとスイントレードにハマっている"))
+        self.assertNotIn("スイントレード", jo.extract_terms("スイントレードを続ける"))
+
+    def test_retry_then_success(self):
+        class Err(Exception):
+            pass
+        ok = mock.Mock(text="{}")
+        client = mock.Mock()
+        client.models.generate_content.side_effect = [Err("503 UNAVAILABLE"), ok]
+        with mock.patch.object(jo.time, "sleep") as sl:
+            resp = jo._generate_with_retry(client, "m", "p", waits=(1, 2))
+        self.assertIs(resp, ok)
+        self.assertEqual(client.models.generate_content.call_count, 2)
+        sl.assert_called_once_with(1)
+
+    def test_quota_429_is_not_retried(self):
+        client = mock.Mock()
+        client.models.generate_content.side_effect = RuntimeError("429 RESOURCE_EXHAUSTED")
+        with self.assertRaises(RuntimeError):
+            jo._generate_with_retry(client, "m", "p", waits=(1, 2))
+        self.assertEqual(client.models.generate_content.call_count, 1)
+
+    def test_non_transient_error_is_not_retried(self):
+        client = mock.Mock()
+        client.models.generate_content.side_effect = ValueError("bad request")
+        with self.assertRaises(ValueError):
+            jo._generate_with_retry(client, "m", "p", waits=(1, 2))
+        self.assertEqual(client.models.generate_content.call_count, 1)
+
+    def test_gives_up_after_all_waits(self):
+        client = mock.Mock()
+        client.models.generate_content.side_effect = RuntimeError("503 UNAVAILABLE")
+        with mock.patch.object(jo.time, "sleep"):
+            with self.assertRaises(RuntimeError):
+                jo._generate_with_retry(client, "m", "p", waits=(1, 2))
+        self.assertEqual(client.models.generate_content.call_count, 3)
+
+
 if __name__ == "__main__":
     unittest.main()
