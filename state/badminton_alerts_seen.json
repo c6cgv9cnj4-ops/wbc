@@ -182,7 +182,9 @@
     "https://news.google.com/rss/articles/CBMie0FVX3lxTE9KMFA4dkJtbW5FM0didWRZOFFxdUJCc2NmazNxZmRldkxvTFJMOXlZZjlQTENEMTBDX3N2cFk1NGJtdkN6aG9rdXVZbTJ6YlRxbzdBZ3c2ZkxsMG1aVWo5cnMyeWxyLWdIRFJ4LW1hZkk5cmtJWXlBMFRrcw?oc=5": "2026-10-28T00:33:17.406119+09:00",
     "https://news.google.com/rss/articles/CBMif0FVX3lxTE9xd05FOTNVWEFCOW9zZkc0aFU2N1M3clpuQ2N2VE93Tm9KNnltUXhaZlF1YUY4QTNsemFiWnlyXzMwVFJ4N0l4VWR0Q290TDk1V1dfcHhvd0lVdHh4aS1EcGxNYmZrcjgyUXpnc3I0QmtsVlNxaE5iRVJ5NUdBTE0?oc=5": "2026-10-28T19:34:44.507528+09:00",
     "https://news.google.com/rss/articles/CBMia0FVX3lxTFBGUVFjQXBGN1RtaTZiZ3ZSc2pXcUVqUldmVE5Tbm1faFBsamtDUDJ1dU5Wb0FNd2hUMktxTVVQaDlxUjM1c3dCWG4taUtzN2xrQUFtUFp1ci10SF8tNElXb0RYbHd4RndYR19V?oc=5": "2026-10-29T20:03:05.048979+09:00",
-    "https://news.google.com/rss/articles/CBMia0FVX3lxTFBlaGlqV3lPdVdORjFNdUd4dkxVZmMwc3pvbFNHOG95TWd3MWllRnUwWGptSnEtZndtNm0zYXJqb3Fvelo4Zy1SYlNzeVA2a1FHcF9CQ3JldnlkT2VFQ25zNlF4ZFFZM1hvRGhB?oc=5": "2026-10-29T20:03:05.048979+09:00"
+    "https://news.google.com/rss/articles/CBMia0FVX3lxTFBlaGlqV3lPdVdORjFNdUd4dkxVZmMwc3pvbFNHOG95TWd3MWllRnUwWGptSnEtZndtNm0zYXJqb3Fvelo4Zy1SYlNzeVA2a1FHcF9CQ3JldnlkT2VFQ25zNlF4ZFFZM1hvRGhB?oc=5": "2026-10-29T20:03:05.048979+09:00",
+    "https://news.google.com/rss/articles/CBMidEFVX3lxTE5DRWZienZmM1pmTTBNQllSNGVFblJIbHV0Z2dkaldZUmlERHFZWkIxRnJsN2FBc3dzb0dtLUZWMXdqeXVDUl9OMUNhSVBhRXhoa2FNMFNTLWZXZ2lGcHhNcTlMTWc5M21uYzQ5a0FvNngtU2pT?oc=5": "2026-10-30T04:52:09.302706+09:00",
+    "https://news.google.com/rss/articles/CBMieEFVX3lxTE45WWRMNFBYQWRaUk94TnlqdDkyeGNXUW1XV2VXcEdxQnFfOG1zbkZpbDAtMTUyN080YWJpRGE1ak4waXU2T25MT181VVdKaWJJX21oU3cyeDZFRl9SZXRvN0ZVbm9YQll3Vy0tczhfaDAtbEpCenpmeg?oc=5": "2026-10-30T04:52:09.302706+09:00"
   },
   "seen_nba_result_ids": {
     "853": "2026-10-06T20:55:36.454281+09:00",
@@ -220,7 +222,16 @@
     "matches": [],
     "summaries": [],
     "badspi": [],
-    "gnews": [],
+    "gnews": [
+      {
+        "title": "女子ダブルス・高橋美優/中出すみれ 2026年バドミントン日本代表ナショナルチームへ昇格のお知らせ",
+        "url": "https://news.google.com/rss/articles/CBMidEFVX3lxTE5DRWZienZmM1pmTTBNQllSNGVFblJIbHV0Z2dkaldZUmlERHFZWkIxRnJsN2FBc3dzb0dtLUZWMXdqeXVDUl9OMUNhSVBhRXhoa2FNMFNTLWZXZ2lGcHhNcTlMTWc5M21uYzQ5a0FvNngtU2pT?oc=5"
+      },
+      {
+        "title": "2026年バドミントン日本代表 追加選出のお知らせ",
+        "url": "https://news.google.com/rss/articles/CBMieEFVX3lxTE45WWRMNFBYQWRaUk94TnlqdDkyeGNXUW1XV2VXcEdxQnFfOG1zbkZpbDAtMTUyN080YWJpRGE1ak4waXU2T25MT181VVdKaWJJX21oU3cyeDZFRl9SZXRvN0ZVbm9YQll3Vy0tczhfaDAtbEpCenpmeg?oc=5"
+      }
+    ],
     "nba": []
   },
   "wr_rankings": {
