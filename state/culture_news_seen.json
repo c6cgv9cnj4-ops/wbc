@@ -1,14 +1,5 @@
 {
   "seen_urls": {
-    "https://www.itmedia.co.jp/news/article/2610/15/2000002306/": "2026-10-15T23:09:35.450770+09:00",
-    "https://www.itmedia.co.jp/news/article/2610/15/2000002301/": "2026-10-15T23:09:35.450770+09:00",
-    "https://www.itmedia.co.jp/news/article/2610/15/2000002300/": "2026-10-15T23:09:35.450770+09:00",
-    "https://postcoffee.co/magazine/coffee/howtobrew/specialty-matcha-guide/": "2026-10-15T23:09:35.450770+09:00",
-    "https://news.google.com/rss/articles/CBMiTkFVX3lxTE44dXJDTXR4X0tSUnVCelZPNF9hRjFrYjdZLTd5V0dMdDQwcjMzb0EwVFJhMHdXWlN5anNvYkVNamN2ZXZ5LU96bnpybjdVZw?oc=5": "2026-10-15T23:09:35.450770+09:00",
-    "https://news.google.com/rss/articles/CBMidEFVX3lxTFB6WnFoNGlUSmZrV081cmNRc0hRZVliQnBseXkxSU9DUHlqVVV6ZkVEYjA4dmE5ZFh5bGJQN09KSzdxLVJlVGtwTGJoU2gwQVR5clFvV0pmRzlwNXVjQ0lWTXpHb1R0QWdvb2VNVFE0azZ4UDND?oc=5": "2026-10-15T23:09:35.450770+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE82LW4wMzZlWGF0R1oyd0V3eWdsVEtGRlRPbkRuRnpsZVJVbS04Z2JsVi1NYks0Qk9SYXp0MHVXY09xeWlJTF9ybDh6NUJsb3c5YVJ6SE9JYlJFU1dhanROV0FSSXhSR0NS?oc=5": "2026-10-15T23:09:35.450770+09:00",
-    "https://news.google.com/rss/articles/CBMiXkFVX3lxTE1xYUZmSExJcHpzVHp6b0N1Sjl6Rm1kS3E4aWVUdEFaRzZuOVNOZl9wVnBuc1c4a0xOVmFqbWhvZzRJdkFOdzJsejVkZnRXUGdnanRZRmdoMU1WcXZ2Unc?oc=5": "2026-10-15T23:09:35.450770+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE9DWW5VQ19QanVtY2pyVzNYNFJMQklLRUxGNzg1LVl6QkFpUWJEWktHZHhqUFZLaXBuaWhSODE4NnpPbnVoQl9JN2tfQTB4SEVyYTZELUVvRmFid2k5Zzg2aUdhblFfM3lX?oc=5": "2026-10-15T23:09:35.450770+09:00",
     "https://gigazine.net/news/20261015-ai-agents-not-going-rogue/": "2026-10-16T09:23:50.727389+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBqT0s4TmNPMEdNNWZTV2ZHcERJczFLLVdJWDgtODRqNTJMUTlUcnVTZVh1X1ZWWFRtM3NnMWs0dWxIbkxsUUdxUlRwZ1QwblJOVnZzQjNPR0JjUHVZY2lTOWZfazE2T0ha?oc=5": "2026-10-16T09:23:50.727389+09:00",
     "https://news.google.com/rss/articles/CBMiekFVX3lxTE5wVGV2TXRBYjFGalprMGZYTUd0Y1JyLVZGR1BDbWJJTWE3WTlKWmlXVHZHR1lfMFgteXVzTWdaNEwzSDE0TGVuVml6QTdBNVNmZHVScTFBQ3hIeWdGNVFCZy1wZ3pramNKODJadjFGeWY1TTl4QWVLY2hn?oc=5": "2026-10-16T09:23:50.727389+09:00",
@@ -192,6 +183,10 @@
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1oWlVzNnAxYkRmS1gzVVhRTEJESFRKNDg5NEJnci1qZldZZmFQUURXSW5BQjhVRGlvMTNtNW9xUC1mbWZrU3RnenVFSVNEX1V0NGlFc3BOVGo0cGlGdE9xeDJTVXhWVVVm?oc=5": "2026-10-28T18:33:37.504375+09:00",
     "https://gigazine.net/news/20261028-claude-mythos-5-failure/": "2026-10-29T00:59:39.268123+09:00",
     "https://gigazine.net/news/20261028-apple-creator-studio-ai-features-openai-models/": "2026-10-29T00:59:39.268123+09:00",
-    "https://gigazine.net/news/20261029-openai-anthropic-llm-price-cuts/": "2026-10-29T10:47:22.367736+09:00"
+    "https://gigazine.net/news/20261029-openai-anthropic-llm-price-cuts/": "2026-10-29T10:47:22.367736+09:00",
+    "https://gigazine.net/news/20261029-eclipsa-audio-technology/": "2026-10-30T01:06:18.798738+09:00",
+    "https://gigazine.net/news/20261029-anthropic-stanford-professors/": "2026-10-30T01:06:18.798738+09:00",
+    "https://postcoffee.co/magazine/coffee/howtobrew/specialty-matcha-guide/": "2026-10-30T01:06:18.798738+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE82LW4wMzZlWGF0R1oyd0V3eWdsVEtGRlRPbkRuRnpsZVJVbS04Z2JsVi1NYks0Qk9SYXp0MHVXY09xeWlJTF9ybDh6NUJsb3c5YVJ6SE9JYlJFU1dhanROV0FSSXhSR0NS?oc=5": "2026-10-30T01:06:18.798738+09:00"
   }
 }
