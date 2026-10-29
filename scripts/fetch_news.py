@@ -502,9 +502,52 @@ def save_seen_state(state):
     atomic_io.write_json_atomic(STATE_PATH, state, ensure_ascii=False, indent=2, sort_keys=True)
 
 
+def parse_seen_at(value):
+    """既送信記録の日時を aware な datetime にする。解析できなければ None。
+
+    値は ISO 8601 文字列(末尾に「|投稿ID」が付くことがある)。タイムゾーンの無い値は JST とみなす。
+    """
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.datetime.fromisoformat(value.split("|", 1)[0])
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=JST_TZ)
+    return parsed
+
+
 def prune_old_entries(state, now):
-    cutoff = (now - datetime.timedelta(days=STATE_RETENTION_DAYS)).isoformat()
-    return {key: seen_at for key, seen_at in state.items() if seen_at >= cutoff}
+    """STATE_RETENTION_DAYS より古い既送信記録を削除し、残った state を返す。
+
+    2026-10-29: 全項目を文字列として比較していたため、整数の管理項目(_gemini_budget:YYYY-MM-DD)で
+    TypeError となり実行が止まった。以下の方針に変更する。
+      - "_" で始まるキーは管理項目(カーソル・アラート時刻・予算カウンタ等)なので触らない。
+      - 日時として解析できる既送信記録だけ、期限(タイムゾーン込みの時刻比較)で判定する。
+      - 解析できない値は「送信済みか分からない」ので削除しない(削除すると再配信につながるため)。件数を表示する。
+    """
+    cutoff = now - datetime.timedelta(days=STATE_RETENTION_DAYS)
+    kept = {}
+    removed = 0
+    unparsed = []
+    for key, value in state.items():
+        if key.startswith("_"):
+            kept[key] = value
+            continue
+        seen_at = parse_seen_at(value)
+        if seen_at is None:
+            kept[key] = value
+            unparsed.append(key)
+        elif seen_at >= cutoff:
+            kept[key] = value
+        else:
+            removed += 1
+    if removed:
+        print(f"[INFO] 既送信記録を{removed}件削除しました({STATE_RETENTION_DAYS}日より古いもの)")
+    if unparsed:
+        print(f"[WARN] 日時として解析できない既送信記録を{len(unparsed)}件残しました(再配信防止のため削除しない)")
+    return kept
 
 
 def dedupe_new_items(items, key_field, state, now):
