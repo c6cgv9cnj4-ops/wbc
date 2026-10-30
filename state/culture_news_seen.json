@@ -1,12 +1,5 @@
 {
   "seen_urls": {
-    "https://gigazine.net/news/20261015-ai-agents-not-going-rogue/": "2026-10-16T09:23:50.727389+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBqT0s4TmNPMEdNNWZTV2ZHcERJczFLLVdJWDgtODRqNTJMUTlUcnVTZVh1X1ZWWFRtM3NnMWs0dWxIbkxsUUdxUlRwZ1QwblJOVnZzQjNPR0JjUHVZY2lTOWZfazE2T0ha?oc=5": "2026-10-16T09:23:50.727389+09:00",
-    "https://news.google.com/rss/articles/CBMiekFVX3lxTE5wVGV2TXRBYjFGalprMGZYTUd0Y1JyLVZGR1BDbWJJTWE3WTlKWmlXVHZHR1lfMFgteXVzTWdaNEwzSDE0TGVuVml6QTdBNVNmZHVScTFBQ3hIeWdGNVFCZy1wZ3pramNKODJadjFGeWY1TTl4QWVLY2hn?oc=5": "2026-10-16T09:23:50.727389+09:00",
-    "https://news.google.com/rss/articles/CBMiywJBVV95cUxPZHpyM3BYMXRUOE4xOXV5SXhkS09SMmNVWFBIOGR3eEVHeHBxVVJxUnRDSk1sTkhvbUptNGlRN2hYNE5QSnUxUjdHWHFldFhzWUhTTjg4dUxFdkExMWxXWVNHV2Vhem91MDNlX3hWa0hXVXBqdkZidWVqbklSVnpUVzlUeGUxcV9WOXpxUGU5dlMtOVBJMVV5cENRWVJ5Mk5YRXp3eHZsSjEySkc1NnFtZVdkWlFhbW5uMVoteEg0enNxaUFkTTI1WnVoemJBTEFPVzhGZExRSjFBM0pCZ3dmUE15Q1FRblRpeDIwbmd1cFlfSWlEdkozeTY4d2lORDljNWt4ZHFvT0kwc1JIRmUzeU1oQV9MelZCbVN4Uzh0RVREc0xoWUlZcFdsS19SMjBvM1hHbWtqcXVPWXBZeThoaWltZEdrS3JPUU1v?oc=5": "2026-10-16T09:23:50.727389+09:00",
-    "https://news.google.com/rss/articles/CBMiakFVX3lxTFB0ZmxBdDVFU2NJSzhHY1dEdTRyQXUwYzVlVnJ4UzBXMlJpQWVuV3R3MDZ5NTRmWjBuVmh0bTZXY3JYSFlWWjE0cUhiVUE0V29sVHVQUDlqa3E0bVRxLWRsVFVSVU5uSm1MUnc?oc=5": "2026-10-16T09:23:50.727389+09:00",
-    "https://news.google.com/rss/articles/CBMiakFVX3lxTE5iZkJnQ2o2YTY2eVk5LXlRR2hCTURmSVlUWGxROGh0ZlNwYnpEVnRLWnBHckVtdXZjWXpiMDRQUW5EMXZiQmU0VjZFYm02UUpnREc2eUdTMnZLVWNHS1diQi1rM2J1VHViS0E?oc=5": "2026-10-16T09:23:50.727389+09:00",
-    "https://news.google.com/rss/articles/CBMiakFVX3lxTE9XMDM1NFI5Yy1uTDRuS2t0NEtKY3lQS1Zzc0hNUlc4MkxHR1NZNmFSSXdYa0J5Smp5VUUyX0FmLWhkRGJPWmJJX2FKUWlxQlE1blJuSUtUX0tWWk4xRVFLXzcwSmg4WkgybWc?oc=5": "2026-10-16T09:23:50.727389+09:00",
     "https://www.itmedia.co.jp/news/article/2610/16/2000002277/": "2026-10-16T17:05:04.687845+09:00",
     "https://www.itmedia.co.jp/news/article/2610/16/2000002315/": "2026-10-16T17:05:04.687845+09:00",
     "https://news.google.com/rss/articles/CBMiYEFVX3lxTFBRakVUWGRlR3V1aTZ1T3dqcU1KUnAwRmc3Ujc4eU1OSlU5YWdObzAtcWZyVEZ2RHpweVY4dU5qaXBpMHIyeGpDdzZsb2libHo2VDFRc3J2Y2FqQWE1cko1Xw?oc=5": "2026-10-16T17:05:04.687845+09:00",
@@ -187,6 +180,11 @@
     "https://gigazine.net/news/20261029-eclipsa-audio-technology/": "2026-10-30T01:06:18.798738+09:00",
     "https://gigazine.net/news/20261029-anthropic-stanford-professors/": "2026-10-30T01:06:18.798738+09:00",
     "https://postcoffee.co/magazine/coffee/howtobrew/specialty-matcha-guide/": "2026-10-30T01:06:18.798738+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE82LW4wMzZlWGF0R1oyd0V3eWdsVEtGRlRPbkRuRnpsZVJVbS04Z2JsVi1NYks0Qk9SYXp0MHVXY09xeWlJTF9ybDh6NUJsb3c5YVJ6SE9JYlJFU1dhanROV0FSSXhSR0NS?oc=5": "2026-10-30T01:06:18.798738+09:00"
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE82LW4wMzZlWGF0R1oyd0V3eWdsVEtGRlRPbkRuRnpsZVJVbS04Z2JsVi1NYks0Qk9SYXp0MHVXY09xeWlJTF9ybDh6NUJsb3c5YVJ6SE9JYlJFU1dhanROV0FSSXhSR0NS?oc=5": "2026-10-30T01:06:18.798738+09:00",
+    "https://www.itmedia.co.jp/news/article/2610/30/2000002735/": "2026-10-30T10:57:20.935102+09:00",
+    "https://gigazine.net/news/20261030-openai-detect-frontier-model-misalignment/": "2026-10-30T10:57:20.935102+09:00",
+    "https://gigazine.net/news/20261030-ai-sleep-knowledge/": "2026-10-30T10:57:20.935102+09:00",
+    "https://news.google.com/rss/articles/CBMiekFVX3lxTE5wVGV2TXRBYjFGalprMGZYTUd0Y1JyLVZGR1BDbWJJTWE3WTlKWmlXVHZHR1lfMFgteXVzTWdaNEwzSDE0TGVuVml6QTdBNVNmZHVScTFBQ3hIeWdGNVFCZy1wZ3pramNKODJadjFGeWY1TTl4QWVLY2hn?oc=5": "2026-10-30T10:57:20.935102+09:00",
+    "https://news.google.com/rss/articles/CBMiywJBVV95cUxPZHpyM3BYMXRUOE4xOXV5SXhkS09SMmNVWFBIOGR3eEVHeHBxVVJxUnRDSk1sTkhvbUptNGlRN2hYNE5QSnUxUjdHWHFldFhzWUhTTjg4dUxFdkExMWxXWVNHV2Vhem91MDNlX3hWa0hXVXBqdkZidWVqbklSVnpUVzlUeGUxcV9WOXpxUGU5dlMtOVBJMVV5cENRWVJ5Mk5YRXp3eHZsSjEySkc1NnFtZVdkWlFhbW5uMVoteEg0enNxaUFkTTI1WnVoemJBTEFPVzhGZExRSjFBM0pCZ3dmUE15Q1FRblRpeDIwbmd1cFlfSWlEdkozeTY4d2lORDljNWt4ZHFvT0kwc1JIRmUzeU1oQV9MelZCbVN4Uzh0RVREc0xoWUlZcFdsS19SMjBvM1hHbWtqcXVPWXBZeThoaWltZEdrS3JPUU1v?oc=5": "2026-10-30T10:57:20.935102+09:00"
   }
 }
