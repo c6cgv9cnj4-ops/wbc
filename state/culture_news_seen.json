@@ -1,13 +1,5 @@
 {
   "seen_urls": {
-    "https://www.itmedia.co.jp/news/article/2610/16/2000002336/": "2026-10-16T22:56:31.105899+09:00",
-    "https://www.itmedia.co.jp/news/article/2610/16/2000002346/": "2026-10-16T22:56:31.105899+09:00",
-    "https://www.itmedia.co.jp/news/article/2610/16/2000002345/": "2026-10-16T22:56:31.105899+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBHd21lUVQxS1U4YUtTQlNxVU5jOGlOOXpWekhQVjRZSnB6ZUdQX0x5NFVWaFVxV01TSGFzTGxOeDhaQ0xPMm1fYWUweUd1NElOU3JJYk5jUVlaY3AxRmJPaG0wWWV5TnFu?oc=5": "2026-10-16T22:56:31.105899+09:00",
-    "https://news.google.com/rss/articles/CBMijAFBVV95cUxNTl9zUkFwTUNZSUx6YzlOTXpXRWVvRFBtaWJUSEJoSjV2aHlpUU9qTGR1ZGZSOXlXUFZIcXpNcS1JUDR1aTdKeFJlQkhxczduNFdNYmxJYWJQemZmbU9VVU1ZYmZ4SkVDdGU3cFZuYnNGVlZlS293Ym9aOEhYX3hvbnNEVlQ5V3BPMThjbQ?oc=5": "2026-10-16T22:56:31.105899+09:00",
-    "https://news.google.com/rss/articles/CBMilAFBVV95cUxOZmg0b0UyZzNjWENodFBFZVRZU3ZjT05JMVdSRzRGMF81SHZMVG12d3hUQTJwQnBQMVlNS1J4aF9rMFE2SGMtc045N0ZKZmEzUENDVnhoR3NsQlppSU1zV2QzaEQxcmlRUlR0cDBGdGlsZUJxZjB4MExSUTZCV3F5bzNtWkV5YTJjS2J2U1hPNnhZWHVy?oc=5": "2026-10-16T22:56:31.105899+09:00",
-    "https://news.google.com/rss/articles/CBMidEFVX3lxTE10RlZCeVFJRGhfeXc4bFhpZm5XeXdvbVhfcU10dHE1TzFvR2dhQ0xVeU5LU2QtWlJMOXdBSHl1em1fQ3JONXJlVVlLVzRZaWtVb0ppUTlFTjgwXzZSaEt3TURVXzJKUXNPQlhTdHNBNXBqdkZC?oc=5": "2026-10-16T22:56:31.105899+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFA3cUk4dmMzcXc3aUtMV0NrN0o4UzI3eG5nWlhrank5NTFQUWk3YjJHRHhqdC13V0hFeXVGcG52cDBQNkNuWTAzeWN1VC1raVRmaVVfczE2NnRWMnBoVnp1T2pNRGxQRkpM?oc=5": "2026-10-16T22:56:31.105899+09:00",
     "https://gigazine.net/news/20261016-google-quantum-ai-magic-state-cultivation/": "2026-10-17T09:28:11.949902+09:00",
     "https://gigazine.net/news/20261016-iphone-cooling-system/": "2026-10-17T09:28:11.949902+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1RczRXa1FMeUNHbHpPeHpMZGtaVUJmWGhwODM1c3FwM3FlOFRUNGF6RnViRWJKbGM3S0doSTVLRFVzS0NXbldyTVctSGZuSUZfamx2SHBsTmNELTA2Qmltc1JhVGFVNU1l?oc=5": "2026-10-17T09:28:11.949902+09:00",
@@ -180,6 +172,13 @@
     "https://news.google.com/rss/articles/CBMiekFVX3lxTE5wVGV2TXRBYjFGalprMGZYTUd0Y1JyLVZGR1BDbWJJTWE3WTlKWmlXVHZHR1lfMFgteXVzTWdaNEwzSDE0TGVuVml6QTdBNVNmZHVScTFBQ3hIeWdGNVFCZy1wZ3pramNKODJadjFGeWY1TTl4QWVLY2hn?oc=5": "2026-10-30T10:57:20.935102+09:00",
     "https://news.google.com/rss/articles/CBMiywJBVV95cUxPZHpyM3BYMXRUOE4xOXV5SXhkS09SMmNVWFBIOGR3eEVHeHBxVVJxUnRDSk1sTkhvbUptNGlRN2hYNE5QSnUxUjdHWHFldFhzWUhTTjg4dUxFdkExMWxXWVNHV2Vhem91MDNlX3hWa0hXVXBqdkZidWVqbklSVnpUVzlUeGUxcV9WOXpxUGU5dlMtOVBJMVV5cENRWVJ5Mk5YRXp3eHZsSjEySkc1NnFtZVdkWlFhbW5uMVoteEg0enNxaUFkTTI1WnVoemJBTEFPVzhGZExRSjFBM0pCZ3dmUE15Q1FRblRpeDIwbmd1cFlfSWlEdkozeTY4d2lORDljNWt4ZHFvT0kwc1JIRmUzeU1oQV9MelZCbVN4Uzh0RVREc0xoWUlZcFdsS19SMjBvM1hHbWtqcXVPWXBZeThoaWltZEdrS3JPUU1v?oc=5": "2026-10-30T10:57:20.935102+09:00",
     "https://gigazine.net/news/20261030-openai-model-spec-five-principles/": "2026-10-30T18:54:53.634151+09:00",
-    "https://news.google.com/rss/articles/CBMiXkFVX3lxTFBSbW1rajhQaUtOWldELWtndXFpNG9kWTZPQTFfb2FVcWNUNnFud1J4UnF0ekhCQnY4UnZVOXhWRFRZTlB5cTFtSEVWN2FRWG5Ta0RYWkpkZXFJU3E4UGc?oc=5": "2026-10-30T18:54:53.634151+09:00"
+    "https://news.google.com/rss/articles/CBMiXkFVX3lxTFBSbW1rajhQaUtOWldELWtndXFpNG9kWTZPQTFfb2FVcWNUNnFud1J4UnF0ekhCQnY4UnZVOXhWRFRZTlB5cTFtSEVWN2FRWG5Ta0RYWkpkZXFJU3E4UGc?oc=5": "2026-10-30T18:54:53.634151+09:00",
+    "https://gigazine.net/news/20261030-google-search-alphabet-revenue/": "2026-10-31T00:55:12.563732+09:00",
+    "https://gigazine.net/news/20261030-apple-chip-sellers-impact/": "2026-10-31T00:55:12.563732+09:00",
+    "https://news.google.com/rss/articles/CBMikwFBVV95cUxNOGYwVGpfQkpDQjN4ZFI5X2tfTEdqRkI2eUFuTDBTd0hFRHRZNk5waHdVS0dpM0xpRlZUV1luamR1akhmT3ZONGxxNVp5N1dwTHB4eUV5VnI5ZFJXeWlsb3pyMnNmaGNLZlFNRHNBZXEyQ0NyUldIajlBNmRyb1lWQnBlaVh1anN3OXM5XzlaOXRrdzg?oc=5": "2026-10-31T00:55:12.563732+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFA4MlZhVzlycU1HOXJYTURFdFRpdDdNdEx5RG43Vjg3S2FIemtrRzdCXzBnN1hNa3ZwbVpsNHYxcEFPRTUzcENiNWwtcmxXeUdUQXlxQVg5LU1ZMnhpY0pON3YxWmRleUs2?oc=5": "2026-10-31T00:55:12.563732+09:00",
+    "https://news.google.com/rss/articles/CBMiU0FVX3lxTE1UTG1ManpucHJJR3VFeXhOekhNRmpWbFlmdlZ1aWRZYXluRmxUdy1tdkVtWG1uWXc0MEY4b2RzQjlsaVd6aWpUaTExWGRyN04tYlJ3?oc=5": "2026-10-31T00:55:12.563732+09:00",
+    "https://news.google.com/rss/articles/CBMiYEFVX3lxTFBRakVUWGRlR3V1aTZ1T3dqcU1KUnAwRmc3Ujc4eU1OSlU5YWdObzAtcWZyVEZ2RHpweVY4dU5qaXBpMHIyeGpDdzZsb2libHo2VDFRc3J2Y2FqQWE1cko1Xw?oc=5": "2026-10-31T00:55:12.563732+09:00",
+    "https://news.google.com/rss/articles/CBMidkFVX3lxTFBXeTFBdDVKTU5ja0lCUVB2LVZRWXhHZDY5YmhBaDczUGljZXJoTWxhNEozNzdGZnBkdlR0RGI4N05US3dya2FVZG9obnBKQmlMMTJna0xPZ0FXeDg1Wk9wYkhrVjdQNTMxTkVoeTNoNWFqQlN4VEE?oc=5": "2026-10-31T00:55:12.563732+09:00"
   }
 }
