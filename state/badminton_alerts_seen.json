@@ -14,7 +14,6 @@
     "https://www.sposoku.com/malaysiaopen/::×緑川・松山　1－2　〇CHENG・ZHANG(中国)": "2026-10-25T01:26:22.122922+09:00"
   },
   "seen_badspi_urls": {
-    "https://www.badspi.jp/202609301013/?utm_source=rss&utm_medium=rss&utm_campaign=202609301013": "2026-09-30T13:04:48.053636+09:00",
     "https://www.badspi.jp/202610012012/?utm_source=rss&utm_medium=rss&utm_campaign=202610012012": "2026-10-02T02:22:25.326838+09:00",
     "https://www.badspi.jp/202610061050/?utm_source=rss&utm_medium=rss&utm_campaign=202610061050": "2026-10-06T11:30:56.153351+09:00",
     "https://www.badspi.jp/202610062147/?utm_source=rss&utm_medium=rss&utm_campaign=202610062147": "2026-10-07T02:58:51.512449+09:00",
@@ -67,7 +66,8 @@
     "https://www.badspi.jp/202610261804/?utm_source=rss&utm_medium=rss&utm_campaign=202610261804": "2026-10-27T01:11:07.531311+09:00",
     "https://www.badspi.jp/202610261857/?utm_source=rss&utm_medium=rss&utm_campaign=202610261857": "2026-10-27T01:11:07.531311+09:00",
     "https://www.badspi.jp/202610261756/?utm_source=rss&utm_medium=rss&utm_campaign=202610261756": "2026-10-27T01:11:07.531311+09:00",
-    "https://www.badspi.jp/202610261748/?utm_source=rss&utm_medium=rss&utm_campaign=202610261748": "2026-10-27T01:11:07.531311+09:00"
+    "https://www.badspi.jp/202610261748/?utm_source=rss&utm_medium=rss&utm_campaign=202610261748": "2026-10-27T01:11:07.531311+09:00",
+    "https://www.badspi.jp/202610301123/?utm_source=rss&utm_medium=rss&utm_campaign=202610301123": "2026-10-30T13:28:45.841981+09:00"
   },
   "seen_national_summaries": {
     "https://www.sposoku.com/wakabacup-badminton/::優勝：岡垣ジュニア(福岡県)準優勝：Selfish(神奈川県)第三位：shinshin(石川県)、F.Flash(埼玉県)": "2026-10-06T04:48:47.421266+09:00",
@@ -94,9 +94,6 @@
     "https://www.sposoku.com/kokuspo-badminton-026/::優勝：青森県準優勝：山口県第三位：埼玉県第四位：大阪府": "2026-10-14T18:01:59.543009+09:00"
   },
   "seen_gnews_urls": {
-    "https://news.google.com/rss/articles/CBMijgFBVV95cUxOeC1CMjE3OHZVdFRWSWJ0alZpMXVHM0swMG5ubjRSYU1RZEpYRGd2WFVockxETHJjT2VPM09rTl8xOTNTQjBSeml0UEk0OTJFb1dja2JZV0ljX2VDNWR3azZGNGpuaXd4TlJtd3VqcFhRMVB3NmNhaWhMNVBDVl9jOU5zMXBnRVp0R0x0c2hR?oc=5": "2026-09-30T13:04:48.053636+09:00",
-    "https://news.google.com/rss/articles/CBMiiAFBVV95cUxPelE1cHhnS1hLSUV0TFFUVnlUcEowVGo3SEFnWEhVbVZDWkdsakU4cjVZZDFwMUtzMXhZT2pPSVEzR1F1eDdTMVBiOEZGMFczcG54eExNZDZRUkdSS0xHSFFRc3R5Q1phc1puYWpBT0szbDVjMFBOSTdseDRDNmp2Tkg1SkY2X29l?oc=5": "2026-09-30T13:04:48.053636+09:00",
-    "https://news.google.com/rss/articles/CBMif0FVX3lxTE53djFyb3RIYl9qczV2UnF0dGt0bGRiY0F1Y1JaTURidFdxUzVja3NLT2hBdF9QN25iVDJ6bjd3WU4wREpnOW9zQkU3R1JzX25yQjRkZDdzdDZveGdDbHJYSHpiZWM4Qkh5cXlOWW9VOVdLUWJYcmdyVGN0eUpSZDQ?oc=5": "2026-09-30T13:04:48.053636+09:00",
     "https://news.google.com/rss/articles/CBMijAJBVV95cUxPSlQtOGpUVDdWeG1YMVVsb1NkY2RkZ1NuVkZtN0tUQ1VsMVYwaVFSUnozbWdJNWNqY3UwLTV6bElIcXFoeDNQT3NLX1ZEbkNrcl9uNFNpV01mejJMQ0J3eG1uLTl5aXl0RjJGZVRlS1JydGhQZHRFQXZTYXlrYURhVkdCNnRzam9ocTVlMFUzVTl0Mzl6ZC1rSm9CVmxrX1RYcW95R2xSYmVGLTRiN2MzSWZlTWpoSlFMQU5GWEFoSmxETnZjVEJGY05EUkFGR1hZRTVsQ0lmb2JkTzF5WktyUkNPaHlNREowX3lsVm0zVzlyb0xwMFRKZE1NS0VuS0tfVmVmY3NnbU5HVlZq?oc=5": "2026-10-01T01:29:27.846572+09:00",
     "https://news.google.com/rss/articles/CBMif0FVX3lxTE43VE1XMXNfbDh6WDY1cFdwa0RNbXI1ZG95ek9iOW9ESVN6cHNrWWMxMVVwSUM2LS1YMHdkLXJ0bWI4MVZNLTdQOER2MVVUcF9OUXVUU3hUUWRhbjBPUDBGSGVOZlZVZmZzRzF1dDMwQTdxbDhjcHRSSEVwNVNUQ2s?oc=5": "2026-10-01T13:16:48.049962+09:00",
     "https://news.google.com/rss/articles/CBMif0FVX3lxTE15WEx6VGstVDZ5LXVqanJjOGFrSUIta1dPLVd1d2FmdmtPUVhYYUZOT0hBYXMyeExSaGJfZTdhZGFHSWxFbmZfZ3FTRGZfSVlpbkRRc3owbnBfR1ZQaTFDTXM4aWdtNlU4dGxJWW1FNHk0QVIxWWxiQXRaUmU1dWs?oc=5": "2026-10-02T13:09:54.849324+09:00",
@@ -183,7 +180,8 @@
     "https://news.google.com/rss/articles/CBMidEFVX3lxTE5DRWZienZmM1pmTTBNQllSNGVFblJIbHV0Z2dkaldZUmlERHFZWkIxRnJsN2FBc3dzb0dtLUZWMXdqeXVDUl9OMUNhSVBhRXhoa2FNMFNTLWZXZ2lGcHhNcTlMTWc5M21uYzQ5a0FvNngtU2pT?oc=5": "2026-10-30T04:52:09.302706+09:00",
     "https://news.google.com/rss/articles/CBMieEFVX3lxTE45WWRMNFBYQWRaUk94TnlqdDkyeGNXUW1XV2VXcEdxQnFfOG1zbkZpbDAtMTUyN080YWJpRGE1ak4waXU2T25MT181VVdKaWJJX21oU3cyeDZFRl9SZXRvN0ZVbm9YQll3Vy0tczhfaDAtbEpCenpmeg?oc=5": "2026-10-30T04:52:09.302706+09:00",
     "https://news.google.com/rss/articles/CBMiX0FVX3lxTE1RYVVUNV8zSl9sOERxcWduc3pndTM3UnlXSzdkZGM4MWd0bl9NcVVHd3hzRGU4YmNSSE51ZTlUZmE1UU9Da09YbkItdHp3a3h0LXl0NVFvMHFYOEdrUU1N?oc=5": "2026-10-30T09:24:22.854816+09:00",
-    "https://news.google.com/rss/articles/CBMiREFVX3lxTE5kU2NVb19kdHlESWM2cl9SVU1lY28tdm1FMlJnbVRWLUhoYmpDQk1iZThuenNoNGNUdzFKQkVVeDhQVExS?oc=5": "2026-10-30T09:43:42.386294+09:00"
+    "https://news.google.com/rss/articles/CBMiREFVX3lxTE5kU2NVb19kdHlESWM2cl9SVU1lY28tdm1FMlJnbVRWLUhoYmpDQk1iZThuenNoNGNUdzFKQkVVeDhQVExS?oc=5": "2026-10-30T09:43:42.386294+09:00",
+    "https://news.google.com/rss/articles/CBMiX0FVX3lxTE45U1NBZ1otTzZldGRzRS01WXlFS3pZZkFIMmhFZjUxQU9mSW9RNHc2dWlwZHRCMy1zcDlBSEVHaE5JaS14WnY0dTQzM21lOTVVVG5kSjFkZ2ZOaUtBZk9Z?oc=5": "2026-10-30T13:28:45.841981+09:00"
   },
   "seen_nba_result_ids": {
     "853": "2026-10-06T20:55:36.454281+09:00",
