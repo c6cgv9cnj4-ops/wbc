@@ -1,15 +1,5 @@
 {
   "seen_urls": {
-    "https://gigazine.net/news/20261016-google-quantum-ai-magic-state-cultivation/": "2026-10-17T09:28:11.949902+09:00",
-    "https://gigazine.net/news/20261016-iphone-cooling-system/": "2026-10-17T09:28:11.949902+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1RczRXa1FMeUNHbHpPeHpMZGtaVUJmWGhwODM1c3FwM3FlOFRUNGF6RnViRWJKbGM3S0doSTVLRFVzS0NXbldyTVctSGZuSUZfamx2SHBsTmNELTA2Qmltc1JhVGFVNU1l?oc=5": "2026-10-17T09:28:11.949902+09:00",
-    "https://news.google.com/rss/articles/CBMiQ0FVX3lxTE42NzlodFd4M0JsNk5HdHlVVUJKTUVvNFhMU2ZtUDgyZFE0YU0yVTF2YWxGZm5nVjctNmZOTDVXSFZwMHM?oc=5": "2026-10-17T09:28:11.949902+09:00",
-    "https://news.google.com/rss/articles/CBMiU0FVX3lxTE5oOFNVeE11bnFSX01GV0NfUThseXlwV3h1UEsyZFI5bFo2Tnl3RGJaX2NrUUtvLWJKVEJVeVpEMDkzMEU5U0JXbUtQR3U4MHZKUVdn?oc=5": "2026-10-17T09:28:11.949902+09:00",
-    "https://news.google.com/rss/articles/CBMiWEFVX3lxTE5OOF9LMDJXeGNReTFOVGE3blR2cm5LZFp2T2lkVmVRSjZJQmUzc2VaTEVxUTMwVUtwcEhERVRHRlJWcERDakdVdkZlT3ZpT2hiVVBZdERsemw?oc=5": "2026-10-17T09:28:11.949902+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE9SdEN0S3o2UjNCalBmZmFsam1kMkFienE0bS12YzE4R2NucUZhVGJjczY5TlZWVnZaTDFTOFE1LVREM0wySzdqZVVDRVNvQWV2OU53UmFobUZlN0d6MFRBTWZMRWVYT0dq?oc=5": "2026-10-17T09:28:11.949902+09:00",
-    "https://news.google.com/rss/articles/CBMiTEFVX3lxTE1qUmJObDQwTWtHYjBGZmtZZ0FqVzVzQ19BSXYtWWR3RVZSQW5vYVBYTVNrYS1fSXlRZFlxOE1TY3FjUFFjNENXeWVnakc?oc=5": "2026-10-17T09:28:11.949902+09:00",
-    "https://news.google.com/rss/articles/CBMiakFVX3lxTFAyc0lzR1Y4WjBmVVdjR0N1d3RDQ250aXFkZTM0TjNCZGV2MUhhMS1lNHV6QU5vZjFFdW9CLUhFWVBvV0ppRmpndnVDTnl3OE1WZ1RyUnBjN1hiNm1XemtibC13NG1kcHBqSEE?oc=5": "2026-10-17T09:28:11.949902+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE5idlhuSTlLU1Y1OGw5eGNiamVNZXpLc0swWGxQbmFZMTYxNEdLbEJjcXRia3V5WVJxc1RheFhDWXF4azNPUlpWLThrVHJ0empDcmc4VUc4M1hWanF1RS11OUFObHNGTXlj?oc=5": "2026-10-17T09:28:11.949902+09:00",
     "https://news.google.com/rss/articles/CBMiWEFVX3lxTE9JMWdSbWtZd0xlWEJsV3VVdDM0ODUwWTM5OUpaVDBKVmlwdFpaZTJxaTh4dG1LYmJnMWhYN0xiUk91Rm11MFV3MGppeHdrT2haSGNMTnl1RTk?oc=5": "2026-10-17T21:57:53.870817+09:00",
     "https://news.google.com/rss/articles/CBMif0FVX3lxTE9jNlZ6ZmNpU2hlNW9fTngxVTdOMF9fbjFmUkRFODA2UENhaHh2cklIM293b2NoR0F6N18zeFRWREhNNjlvT25td2xCa2lpbUlTZ0dsX3o1djJZckUxZWVVSmFfMnBmeTA1VHQ0a0xwTS0zbkxxZnJuRzhRZEpHMXM?oc=5": "2026-10-18T09:01:46.352742+09:00",
     "https://news.google.com/rss/articles/CBMiakFVX3lxTE9vakJwak9aeWV4UFY4S25wYnIwZ1pNdHdzaGlnZldIRktleFlzZkliT2hMVFhaTUpVZXVhRmdORFhmb21BOWtsZ1FkejlHdXhnc09ONUV4UkZ4Ym5JWjVvVzJuZzdJLUxCRUE?oc=5": "2026-10-18T09:01:46.352742+09:00",
@@ -179,6 +169,15 @@
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTFA4MlZhVzlycU1HOXJYTURFdFRpdDdNdEx5RG43Vjg3S2FIemtrRzdCXzBnN1hNa3ZwbVpsNHYxcEFPRTUzcENiNWwtcmxXeUdUQXlxQVg5LU1ZMnhpY0pON3YxWmRleUs2?oc=5": "2026-10-31T00:55:12.563732+09:00",
     "https://news.google.com/rss/articles/CBMiU0FVX3lxTE1UTG1ManpucHJJR3VFeXhOekhNRmpWbFlmdlZ1aWRZYXluRmxUdy1tdkVtWG1uWXc0MEY4b2RzQjlsaVd6aWpUaTExWGRyN04tYlJ3?oc=5": "2026-10-31T00:55:12.563732+09:00",
     "https://news.google.com/rss/articles/CBMiYEFVX3lxTFBRakVUWGRlR3V1aTZ1T3dqcU1KUnAwRmc3Ujc4eU1OSlU5YWdObzAtcWZyVEZ2RHpweVY4dU5qaXBpMHIyeGpDdzZsb2libHo2VDFRc3J2Y2FqQWE1cko1Xw?oc=5": "2026-10-31T00:55:12.563732+09:00",
-    "https://news.google.com/rss/articles/CBMidkFVX3lxTFBXeTFBdDVKTU5ja0lCUVB2LVZRWXhHZDY5YmhBaDczUGljZXJoTWxhNEozNzdGZnBkdlR0RGI4N05US3dya2FVZG9obnBKQmlMMTJna0xPZ0FXeDg1Wk9wYkhrVjdQNTMxTkVoeTNoNWFqQlN4VEE?oc=5": "2026-10-31T00:55:12.563732+09:00"
-  }
+    "https://news.google.com/rss/articles/CBMidkFVX3lxTFBXeTFBdDVKTU5ja0lCUVB2LVZRWXhHZDY5YmhBaDczUGljZXJoTWxhNEozNzdGZnBkdlR0RGI4N05US3dya2FVZG9obnBKQmlMMTJna0xPZ0FXeDg1Wk9wYkhrVjdQNTMxTkVoeTNoNWFqQlN4VEE?oc=5": "2026-10-31T00:55:12.563732+09:00",
+    "https://postcoffee.co/magazine/coffee/liquid-coffee-home-iced-coffee/": "2026-10-31T10:35:26.077884+09:00",
+    "https://postcoffee.co/magazine/coffee/coffee-tonic-rtd/": "2026-10-31T10:35:26.077884+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE5RNE1hT3BST1ROeE81dXlTZXl0OGI2QTI1amg2dzFxeXFUOTRYY09veTBQbFZwOExpZDJOWnJjQ1NxN0VQcHc1b3pIZENsYkxadXVwX3hWZFU0Y1dpQ2l1RUpNTnExYXNO?oc=5": "2026-10-31T10:35:26.077884+09:00",
+    "https://news.google.com/rss/articles/CBMiYEFVX3lxTE5aajNTXzA3MndTejBfV3B0azBuTm1Sb2F0a0d0Q1g0V3NFTEpOVWk2Z25FNTljb0JmazAwOVZvSlVkeXJDUjRUZ0NWUWM4SThabkozWU1NT3hLX1NLMFJvUQ?oc=5": "2026-10-31T10:35:26.077884+09:00",
+    "https://news.google.com/rss/articles/CBMifEFVX3lxTFBVSkJoaExLTk1HallRMm9Ga3lpR09wc2tNRGFGTXFILU5lTE1zc0JaNFk3VWVOR0VFdWxUNUZuTm9WaWtVeTF1QUg1U2N0QWtMYWU3bzBIVjhjbEVrWkF2VGRfU240OFJadFBvWkhQOXFja1U0bEJYYnpZS2U?oc=5": "2026-10-31T10:35:26.077884+09:00",
+    "https://news.google.com/rss/articles/CBMic0FVX3lxTE81ek9CSmRSV1FhTFlvejV1SkVja1RKX0lGdXdoQTFXclplRXBfUXlZSXBDQ2Z6T2JLelBhYVpiNFhiYkdDQlVjUXM3WU5GUkVfTU1HNjhnSzJnSmVoNlVvamNLVFlwRnptTmxQMVIwamVNZTg?oc=5": "2026-10-31T10:35:26.077884+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE95aGE4VW5Ic1ZUQlQ0eW5RcWxEalg4V1c0YUg2Wk5UVnBidVJDbDAxaHFwMHJxaE4xY2ZFWUplSEl6RUtWSDdFYTNyZGxvRk5kbWtBTzZwc3I2UHpQMmhIUUZQYXVXYmZt?oc=5": "2026-10-31T10:35:26.077884+09:00"
+  },
+  "_gemini_backoff:quota": "2026-10-31T15:59:59.810680+09:00",
+  "_gemini_backoff_basis:quota": "Googleの待ち時間(境界より前のため採用)"
 }
