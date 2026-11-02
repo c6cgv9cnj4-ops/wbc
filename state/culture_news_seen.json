@@ -1,10 +1,5 @@
 {
   "seen_urls": {
-    "https://news.google.com/rss/articles/CBMiakFVX3lxTE9YelVRWGZLR1RVMUhDR1RERTdHWHZKOGdfNkQ3eXAybktZMzgwQTVCVml6cTJFRndSQUJWZWVlTl9FVTE5ZENRMGFQbWhkeWN4RWFNX3lNT1duUzlKU3VOTkhRMExqcGlfMkE?oc=5": "2026-10-20T01:27:04.029823+09:00",
-    "https://news.google.com/rss/articles/CBMiRkFVX3lxTE82TGpKZl9vQTFMcjJaR0E3Z0p0NWRDc2ItV3hNbjdJcnQxRTBNU05BSWZUV3JpWHFOcE15RDI4Y2dkYk5aZ1E?oc=5": "2026-10-20T01:27:04.029823+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE41Y1d4RGZMUXVvUGI2ZVh5RVdRaXR5YXF6NVpyQ1hZcXZwdVFlTlhCdDVIVkgySUVReVJCUklaZ1Y4LV82b2h1V3cxSzdCbjVybFIweG9URkRqSllKN3pVTTBLSVgwOWlp?oc=5": "2026-10-20T01:27:04.029823+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBydlpZalo0aWc3UFM4alVQVXotSjNUM2lSYi1ZVG1kVURWZ210bm52TlNVR0FNQTVNMDYwVXRSUkM2MTV1OTJlXzBhX01ZdlZ4UGc5OHRxcFM1a1EwTHlsb19FM05rME81?oc=5": "2026-10-20T01:27:04.029823+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFB1cXJFb01USFMxY0pBMkcwaGtjcEd0elZuUjFsRDd3YlhMMVhsNEFDUmp4VDUtckdhYnQ3azNHUy00eWItRDZBd21fSXlYVXJIeTQtSEdSTW9kbTlnTlItSDB2aXc4NllV?oc=5": "2026-10-20T01:27:04.029823+09:00",
     "https://www.itmedia.co.jp/news/article/2610/20/2000002410/": "2026-10-20T10:05:25.472108+09:00",
     "https://www.itmedia.co.jp/news/article/2610/20/2000002409/": "2026-10-20T10:05:25.472108+09:00",
     "https://www.itmedia.co.jp/news/article/2610/20/2000002408/": "2026-10-20T10:05:25.472108+09:00",
@@ -168,6 +163,13 @@
     "https://gigazine.net/news/20261031-toyota-waymo-bz4x-robotaxi-2027/": "2026-11-01T19:22:05.998700+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1RczRXa1FMeUNHbHpPeHpMZGtaVUJmWGhwODM1c3FwM3FlOFRUNGF6RnViRWJKbGM3S0doSTVLRFVzS0NXbldyTVctSGZuSUZfamx2SHBsTmNELTA2Qmltc1JhVGFVNU1l?oc=5": "2026-11-01T19:22:05.998700+09:00",
     "https://postcoffee.co/magazine/cffbns/stereoscope-california-coffee-culture/": "2026-11-02T01:00:04.776114+09:00",
-    "https://postcoffee.co/magazine/coffee/coffee-process-washed-natural-honey/": "2026-11-02T10:29:59.614032+09:00"
+    "https://postcoffee.co/magazine/coffee/coffee-process-washed-natural-honey/": "2026-11-02T10:29:59.614032+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/02/2000002779/": "2026-11-03T04:28:26.914492+09:00",
+    "https://postcoffee.co/magazine/coffee/aeropress-how-to/": "2026-11-03T04:28:26.914492+09:00",
+    "https://news.google.com/rss/articles/CBMiW0FVX3lxTE1HbjN2TlVabGR5RnMtUkFqVDRkNE52bnZTOVR6ckJsLUdBbVpjajVfYURHTDV4MWJYQjVoMDZ5Ty1nNVFCc0xMZzFIU1NqNExPZUc2SFZQdUtQMVk?oc=5": "2026-11-03T04:28:26.914492+09:00",
+    "https://news.google.com/rss/articles/CBMid0FVX3lxTE1yWnZWYUpXZGpxdG12RmxWV1V2WkpDYWhmNEs5WGVoTWFJMmN2TFB5WUhKdlRKWmRyUnhNVXNpdlpMdGpwX2tvTGxIdmZlRlBQZktNTEpRUm5HQjY1MzRJeWJiT2sxTkdNdkY4eEtYTVVHVDdmNWFF0gF8QVVfeXFMT1VUUXlsMGVfdXBCbzUzOXJQVXRSdWFJM0FIZ0tmejRvUHhCWldqOHpqdnNHWUdfdHp0V19ZX21Hc0FEU2ZlR3dOR2NLSFR2TzJicURRbGo0WDBXaEZ0R21oTjRjQmZieDZ5eXhHR3R0ZGxDODQxaEdTaERKdw?oc=5": "2026-11-03T04:28:26.914492+09:00",
+    "https://news.google.com/rss/articles/CBMijAFBVV95cUxNTl9zUkFwTUNZSUx6YzlOTXpXRWVvRFBtaWJUSEJoSjV2aHlpUU9qTGR1ZGZSOXlXUFZIcXpNcS1JUDR1aTdKeFJlQkhxczduNFdNYmxJYWJQemZmbU9VVU1ZYmZ4SkVDdGU3cFZuYnNGVlZlS293Ym9aOEhYX3hvbnNEVlQ5V3BPMThjbQ?oc=5": "2026-11-03T04:28:26.914492+09:00",
+    "https://news.google.com/rss/articles/CBMidEFVX3lxTE1oWGFPbEE2ZXpJZHpfdHRpTWFwal92U1pzNzJYWHlDbHl5ZnlNTHFxYm1nTFR5cG8xRDFiaEN4VDd0REtGek42U3ZjY0JJOFF5d3NJTU50VXlSMVdUeS0yYU9CWGFKaDFnWjdzSGFpRXVrUnNZ?oc=5": "2026-11-03T04:28:26.914492+09:00",
+    "https://news.google.com/rss/articles/CBMikgFBVV95cUxORGtUNWFTZHE1cDhieWdSSkJRXzNwaDBKWmRQNTFaY2RsMFFXTm10OVlINmZVcGdNdlpzbXB5cFp3RTZnb1l1NDFSMkhfNUtmMjJHVFczaUphMkRxSGZMWldxV0lhR1Q0SExqZXdhYmRrTDFTM1FzM1FXSGhVcnZCbkhnM3JJczNPUnhMd3g4RHJBZw?oc=5": "2026-11-03T04:28:26.914492+09:00"
   }
 }
