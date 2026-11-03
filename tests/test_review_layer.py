@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""レビュー表示・集約層(2026-09-30 再設計)と、Gemini への送信境界の検証。
+"""レビュー表示・集約層(2026-09-30 再設計)と、Claude への送信境界の検証。
 すべて架空の文章。通信はすべて差し替える。実行: .venv/bin/python -m unittest discover -s tests -v"""
 import contextlib
 import datetime
@@ -39,7 +39,7 @@ def synthetic_threads():
 
 
 def sentence_pieces(threads, min_len=8):
-    """日記の「文」の断片(語より長いもの)。これが Gemini への送信内容に出てはいけない。"""
+    """日記の「文」の断片(語より長いもの)。これが Claude への送信内容に出てはいけない。"""
     out = set()
     for t in threads:
         for piece in re.split(r"[。\n]", t["text"]):
@@ -49,16 +49,14 @@ def sentence_pieces(threads, min_len=8):
     return out
 
 
-def fake_genai(capture: list, reply: str):
+def fake_claude(capture: list, reply: str):
     class Client:
         def __init__(self, api_key):
-            self.models = self
+            self.messages = self
 
-        def generate_content(self, model, contents, config=None):
-            capture.append(contents)
-            r = mock.Mock()
-            r.text = reply
-            return r
+        def create(self, model, max_tokens, system, messages):
+            capture.append(messages[0]["content"])
+            return mock.Mock(content=[mock.Mock(type="text", text=reply)])
     return Client
 
 
@@ -89,11 +87,11 @@ class SendBoundaryTest(Base):
         for x in self.diff["減少・消失した語"] + self.diff["新規・再登場・増加した語"]:
             self.assertEqual(set(x), {"語", "区分", "比較期間の出現日数", "今期の出現日数"})
 
-    def test_prompt_sent_to_gemini_has_no_journal_text(self):
+    def test_prompt_sent_to_claude_has_no_journal_text(self):
         sent = []
-        with mock.patch("google.genai.Client", fake_genai(sent, GOOD_REPLY)):
+        with mock.patch("anthropic.Anthropic", fake_claude(sent, GOOD_REPLY)):
             hyps, status, prompt = jo.interpret_diff(self.diff, "key", "m")
-        self.assertEqual(status, "gemini")
+        self.assertEqual(status, "claude")
         self.assertEqual(len(sent), 1)
         for piece in sentence_pieces(self.threads):
             self.assertNotIn(piece, sent[0])
@@ -127,10 +125,10 @@ class FallbackTest(Base):
         expected = ["no_key", "failed", "failed", "invalid"]
         for (key, exc, reply), exp in zip(cases, expected):
             sent = []
-            client = fake_genai(sent, reply or "")
+            client = fake_claude(sent, reply or "")
             if exc:
                 client = mock.Mock(side_effect=exc)
-            with mock.patch("google.genai.Client", client):
+            with mock.patch("anthropic.Anthropic", client):
                 hyps, status, _ = jo.interpret_diff(self.diff, key, "m")
             self.assertIsNone(hyps)
             self.assertEqual(status, exp)
@@ -153,7 +151,7 @@ class FallbackTest(Base):
 
 class MainReviewTest(Base):
     def test_threads_with_python_excerpts_and_confirm_marks(self):
-        with mock.patch("google.genai.Client", fake_genai([], GOOD_REPLY)):
+        with mock.patch("anthropic.Anthropic", fake_claude([], GOOD_REPLY)):
             hyps, status, _ = jo.interpret_diff(self.diff, "key", "m")
         ex = [jo.excerpts_for(h["words"], self.days, self.obs, MON, 4) for h in hyps]
         text = "\n".join(jo.compose_review(self.obs, self.diff, hyps, status, ex, head=jo.HEAD_MARK))
@@ -164,7 +162,7 @@ class MainReviewTest(Base):
         self.assertIn("今期：", text)
         self.assertIn("`1 ○` / `1 △` / `1 ×`", text)
         FallbackTest.assert_no_raw_metrics(self, text)
-        # 抜粋は元の記録の本文から取っている(Gemini が作った文ではない)
+        # 抜粋は元の記録の本文から取っている(Claude が作った文ではない)
         before, now = ex[0]
         self.assertIn("インディード", before)
         self.assertTrue(any(before.split(" ", 1)[1].strip("…") in t["text"] for t in self.threads))
@@ -197,13 +195,13 @@ class MainReviewTest(Base):
 
 
 class PipelineTest(unittest.TestCase):
-    """weekly_mindmap.main() を通しで動かし、Gemini への送信内容と Discord 本文を検査する。"""
+    """weekly_mindmap.main() を通しで動かし、Claude への送信内容と Discord 本文を検査する。"""
 
-    def _run(self, env, argv, gemini_reply=GOOD_REPLY):
+    def _run(self, env, argv, claude_reply=GOOD_REPLY):
         import weekly_mindmap as wm
         threads = synthetic_threads()
         sent, posts = [], []
-        base_env = {"GEMINI_API_KEY": "key", "DISCORD_BOT_TOKEN": "t", "DISCORD_CHANNEL_ID_MORNING_JOURNAL": "c",
+        base_env = {"ANTHROPIC_API_KEY": "key", "DISCORD_BOT_TOKEN": "t", "DISCORD_CHANNEL_ID_MORNING_JOURNAL": "c",
                     "GITHUB_ACTIONS": "", "JOURNAL_RUN_MODE": "", "WEEKLY_SPREADSHEET_ID": "", "DRY_RUN": ""}
         buf = io.StringIO()
         with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, {**base_env, **env}), \
@@ -214,7 +212,7 @@ class PipelineTest(unittest.TestCase):
                 mock.patch.object(wm, "build_service_account_credentials", return_value=None), \
                 mock.patch.object(wm, "post_messages", side_effect=lambda m, img, username: posts.append((m, img))), \
                 mock.patch.object(wm.jo, "render_png", return_value=None), \
-                mock.patch("google.genai.Client", fake_genai(sent, gemini_reply)), \
+                mock.patch("anthropic.Anthropic", fake_claude(sent, claude_reply)), \
                 contextlib.redirect_stdout(buf):
             rc = wm.main()
         return rc, threads, sent, posts, buf.getvalue()
@@ -234,8 +232,8 @@ class PipelineTest(unittest.TestCase):
             self.assertIsNone(re.search(r"\bO\d+\b", text))
             self.assertNotIn("千字", text)
 
-    def test_gemini_down_still_no_raw_metrics(self):
-        rc, _, sent, posts, _ = self._run({"GEMINI_API_KEY": ""}, ["--week", "2026-09-27"])
+    def test_claude_down_still_no_raw_metrics(self):
+        rc, _, sent, posts, _ = self._run({"ANTHROPIC_API_KEY": ""}, ["--week", "2026-09-27"])
         self.assertEqual(sent, [])
         text = "\n".join("\n".join(m) for m, _ in posts)
         self.assertIn("【前期からの主な変化（機械集計）】", text)
@@ -262,7 +260,7 @@ class PipelineTest(unittest.TestCase):
         import weekly_mindmap as wm
         threads = synthetic_threads()
         sent, posts = [], []
-        base_env = {"GEMINI_API_KEY": "key", "DISCORD_BOT_TOKEN": "t", "DISCORD_CHANNEL_ID_MORNING_JOURNAL": "c",
+        base_env = {"ANTHROPIC_API_KEY": "key", "DISCORD_BOT_TOKEN": "t", "DISCORD_CHANNEL_ID_MORNING_JOURNAL": "c",
                     "GITHUB_ACTIONS": "", "WEEKLY_SPREADSHEET_ID": "sheet", "DRY_RUN": ""}
         with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, {**base_env, **env}), \
                 mock.patch.object(sys, "argv", ["weekly_mindmap.py", "--week", "2026-09-27"]), \
@@ -272,7 +270,7 @@ class PipelineTest(unittest.TestCase):
                 mock.patch.object(wm, "post_messages", side_effect=lambda m, img, username: posts.append((m, img))), \
                 mock.patch.object(wm, "pin_latest_and_unpin_old", side_effect=AssertionError("pin")), \
                 mock.patch.object(wm.jo, "render_png", return_value=None), \
-                mock.patch("google.genai.Client", fake_genai(sent, GOOD_REPLY)), \
+                mock.patch("anthropic.Anthropic", fake_claude(sent, GOOD_REPLY)), \
                 contextlib.redirect_stdout(io.StringIO()):
             rc = wm.main()
         return rc, threads, sent, posts, ""

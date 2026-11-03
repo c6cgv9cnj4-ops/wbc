@@ -8,7 +8,7 @@
 | 担当 | やること |
 |---|---|
 | Python（`scripts/journal_observe.py`） | 書いた日数・文字数、語が「書いた日のうち何日に出たか」の変化（🆕新しく出た／↩️再び出た／⬆️増えた／⬇️減った／💤出てこなかった／🔁続いている）、表現（〜たい・やった・面倒・不安 等）の1000字あたり出現率、同じ日に出た組み合わせ、根拠（日付・抜粋・スレッドURL）。同じ入力なら必ず同じ結果 |
-| Gemini | 上の観測と根拠抜粋だけを受け取り、観測ID（O1…）を参照した**仮説**を複数の可能性として返す。指示・評価・断定の文は機械的に除去。失敗しても観測だけで完結 |
+| Claude（Anthropic API） | 上の観測と根拠抜粋だけを受け取り、観測ID（O1…）を参照した**仮説**を複数の可能性として返す。指示・評価・断定の文は機械的に除去。失敗しても観測だけで完結 |
 
 出力先（すべて非公開の場所のみ）:
 
@@ -19,7 +19,7 @@
 | ファイル | 役割 |
 |---|---|
 | `scripts/weekly_mindmap.py` | 収集 → 観測 → 仮説 → PNG → Sheets → Discord（ファイル名・CLIは互換のため据え置き）|
-| `scripts/journal_observe.py` | 観測・仮説・出力整形（通信は Gemini のみ）|
+| `scripts/journal_observe.py` | 観測・仮説・出力整形（通信は Claude のみ）|
 | `tests/test_journal_observe.py` | 単体テスト（`python -m unittest discover -s tests`）|
 | `.github/workflows/weekly_mindmap.yml` | 定期実行（cron `0 11 * * 0`）。成果物のコミット・アーティファクト保存はしない |
 | `reports/weekly/YYYY_Www_observe.png` | ローカル生成物（コミットしない）|
@@ -108,7 +108,7 @@ DISCORD_BOT_TOKEN=... python scripts/list_discord_channels.py
 
 | 名前 | 値 |
 |---|---|
-| `GEMINI_API_KEY` | （既存を流用）|
+| `ANTHROPIC_API_KEY` | Anthropic Console で発行したキー（新規）|
 | `DISCORD_BOT_TOKEN` | （既存を流用）|
 | `DISCORD_CHANNEL_ID_MORNING_JOURNAL` | `# モーニングジャーナル` のチャンネル ID |
 | `DISCORD_WEBHOOK_WEEKLY` | `# 週間まとめ` の Webhook URL |
@@ -133,7 +133,7 @@ DISCORD_BOT_TOKEN=... python scripts/list_discord_channels.py
 
 | 名前 | 既定 | 用途 |
 |---|---|---|
-| `GEMINI_MODEL` | `gemini-3.6-flash` | 構造化モデル |
+| `CLAUDE_MODEL` | `claude-haiku-5-5` | 仮説生成モデル（物足りなければ `claude-sonnet-5-5` へ）|
 | `GOOGLE_CALENDAR_IDS` | `primary` | 読むカレンダー。カンマ区切りで複数可（例 `primary,xxxxx@group.calendar.google.com`）|
 
 ---
@@ -151,7 +151,7 @@ python scripts/weekly_mindmap.py --use-mock
 python -m unittest discover -s tests   # 観測ロジックの単体テスト
 
 # (B) 実データを収集するが Sheets 書き込み / Discord 投稿はしない（PNG は生成）
-export GEMINI_API_KEY=... DISCORD_BOT_TOKEN=... DISCORD_CHANNEL_ID_MORNING_JOURNAL=...
+export ANTHROPIC_API_KEY=... DISCORD_BOT_TOKEN=... DISCORD_CHANNEL_ID_MORNING_JOURNAL=...
 export GOOGLE_OAUTH_CLIENT_ID=... GOOGLE_OAUTH_CLIENT_SECRET=... GOOGLE_OAUTH_REFRESH_TOKEN=...
 python scripts/weekly_mindmap.py --dry-run
 
@@ -187,7 +187,7 @@ Actions タブ → 「週次観測（モーニングジャーナル）」→ Run
 - **OAuth トークン失効を毎回検知**する。実行開始時にトークン更新を1回試し、失敗したら
   `[ERROR]` ログ + Discord 本文に `⚠️ Google 認証エラー…` を必ず出す（データがあるのに
   黙って空マップを投稿し続けるのを防ぐ）。CI ステップ自体は緑のまま終わる。
-- Gemini 失敗（402 クレジット切れ等）時は C 欄に「今回は仮説なし」と出し、A・B・D はそのまま出す。
+- Claude 失敗（クレジット切れ・通信エラー等）時は C 欄に「今回は仮説なし」と出し、A・B・D はそのまま出す。
 - 週次観測シートは対象週（A列）で既存行を検索し上書きする（冪等）。値は RAW で書く。
 - Discord 送信は画像あり=multipart / 画像なし=生 JSON で自動切替。Discord GET は 429/5xx を
   指数バックオフで再試行。Google API は各呼び出しで `num_retries=5`。

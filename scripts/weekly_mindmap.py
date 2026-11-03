@@ -18,7 +18,7 @@
   2. 観測(Python / scripts/journal_observe.py): 書いた日数・文字数・語が「書いた日のうち
      何日に出たか」の変化(新規/再登場/増/減/不在/継続)・表現(〜たい/やった/面倒/不安 等)の
      出現率・同じ日に出た組み合わせ・根拠(日付/抜粋/URL)。再現可能な数値のみ。
-  3. 解釈(Gemini): 2 の観測と根拠抜粋だけを渡し、観測IDを参照した「仮説」を複数の可能性
+  3. 解釈(Claude): 2 の観測と根拠抜粋だけを渡し、観測IDを参照した「仮説」を複数の可能性
      として返させる。指示・評価・断定口調は除去。失敗しても観測だけで出力は成立する。
   4. 出力(すべて非公開の置き場所のみ):
        - PNG ダッシュボード(reports/weekly/YYYY_Www_observe.png。コミットしない)
@@ -45,7 +45,7 @@ GitHub Actions 上(公開リポジトリのためログも公開)では、本文
 ------------------------------------------------------------------------------
 環境変数
 ------------------------------------------------------------------------------
-  GEMINI_API_KEY / GEMINI_MODEL(既定 gemini-3.6-flash)  未設定・失敗なら仮説なしで継続
+  ANTHROPIC_API_KEY / CLAUDE_MODEL(既定 claude-haiku-5-5)  未設定・失敗なら仮説なしで継続
   DISCORD_BOT_TOKEN / DISCORD_CHANNEL_ID_MORNING_JOURNAL(無ければ DISCORD_CHANNEL_ID_HEALTH)
   DISCORD_WEBHOOK_WEEKLY(無ければ DISCORD_CHANNEL_ID_WEEKLY_SUMMARY + Bot で投稿)
   GOOGLE_SERVICE_ACCOUNT_JSON(Sheets) / GOOGLE_OAUTH_CLIENT_ID・SECRET・REFRESH_TOKEN
@@ -75,7 +75,7 @@ NEXT_DAYS = 7
 LOOKBACK_WEEKS = 8           # 対象週 + 過去7週(新規判定・連続判定・月次の前28日比較に使う)
 
 # 他スクリプト(generate_daily_report.py / fetch_news.py)と同一の現行モデルに揃える。
-DEFAULT_GEMINI_MODEL = "gemini-3.6-flash"
+DEFAULT_CLAUDE_MODEL = "claude-haiku-5-5"
 
 REPORT_WEEKLY_DIR = "reports/weekly"
 OBSERVE_SHEET_NAME = "週次観測"
@@ -330,7 +330,7 @@ def collect_tasks(creds, ctx: dict) -> dict:
 
 
 # ===========================================================================
-# 5) 構造化(Gemini → 失敗時フォールバック)
+# 5) 構造化(Claude → 失敗時フォールバック)
 # ===========================================================================
 
 
@@ -616,8 +616,8 @@ def main() -> int:
         anchor = default_anchor(today)
     ctx = week_context(anchor)
     print(f"=== 週次観測 {ctx['week_tag']} ({ctx['label']}) / dry_run={dry_run} mock={args.use_mock} ===")
-    model = os.environ.get("GEMINI_MODEL", "").strip() or DEFAULT_GEMINI_MODEL
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    model = os.environ.get("CLAUDE_MODEL", "").strip() or DEFAULT_CLAUDE_MODEL
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     quiet_log = _in_public_ci()
 
     # --- 1. 収集 -----------------------------------------------------------
@@ -626,7 +626,7 @@ def main() -> int:
     context_line = ""
     if args.use_mock:
         threads = jo.mock_threads(ctx["monday"], LOOKBACK_WEEKS)
-        api_key = ""  # モックでは Gemini を呼ばない
+        api_key = ""  # モックでは Claude を呼ばない
     else:
         threads, w = collect_journal_threads(ctx)
         warnings += w
@@ -648,7 +648,7 @@ def main() -> int:
     print(f"[INFO] 観測: {jo.redacted_summary(obs)}")
     empty = obs["writing"]["written"] == 0
 
-    # --- 3. 仮説(Gemini): 語の増減だけを渡す。日記本文・抜粋・URL は送らない ------
+    # --- 3. 仮説(Claude): 語の増減だけを渡す。日記本文・抜粋・URL は送らない ------
     acceptance = _is_acceptance_run()
     generated_at = datetime.datetime.now(JST).isoformat(timespec="seconds")
     run_id = f"{'AT' if acceptance else 'prod'}-{generated_at}"

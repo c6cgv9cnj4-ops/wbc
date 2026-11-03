@@ -2,6 +2,7 @@ feedparser
 requests
 beautifulsoup4
 google-genai
+anthropic
 youtube-transcript-api
 playwright
 yfinance
