@@ -1,16 +1,5 @@
 {
   "seen_urls": {
-    "https://nobi.com/jp/entry-1267.html": "2026-10-20T23:17:32.446917+09:00",
-    "https://nobi.com/jp/entry-1265.html": "2026-10-20T23:17:32.446917+09:00",
-    "https://nobi.com/jp/products_design/tech/entry-1264.html": "2026-10-20T23:17:32.446917+09:00",
-    "https://www.itmedia.co.jp/news/article/2610/20/2000002434/": "2026-10-20T23:17:32.446917+09:00",
-    "https://www.itmedia.co.jp/news/article/2610/20/2000002435/": "2026-10-20T23:17:32.446917+09:00",
-    "https://www.itmedia.co.jp/news/article/2610/20/2000002433/": "2026-10-20T23:17:32.446917+09:00",
-    "https://news.google.com/rss/articles/CBMidEFVX3lxTE12b3FKcnVKV1Y4emF5VzZyUkhvSXcxWXhaTW8xc3lycUs4R0lBZlVCOTY4aGp4cWsxZXZCeWFyVDNIdFJpY3VNNXE4TFF6TDNSUzU0R1JKX05SbEdSR21PeW5rWnJULVFHTXMtWjZwWm5uRDA50gF6QVVfeXFMTmF0WEZuRjRtcGdZZE90M09zd2VOaW84S28tQ0FnR21kWWVwbVdJYXBlaFdDcjZOS3h0Ujk4WmFRVTdXUWJHUHhXa0RQZXBWNWpUdTZzZjJySl9mbzRKY1pKazZfNEh5SlprMm1wX2VXQXRUNjlIOGlzcmc?oc=5": "2026-10-20T23:17:32.446917+09:00",
-    "https://news.google.com/rss/articles/CBMif0FVX3lxTE1POUpUTXdvaTFZS05UVGo3ZjR1Z1pVSnZEaUZPV3paMFFKS25sczYxM21mOFFGN3F1MnVKbGxZNVF2VDRTakVybU5fcHROeERHX0ptbG5ScWFUdEhTRlhBUDN6UnBreTdHTkJzZmpRUzhPUWZCMlZ4V1JadmJuTGM?oc=5": "2026-10-20T23:17:32.446917+09:00",
-    "https://news.google.com/rss/articles/CBMilAFBVV95cUxQVjYydGtPS21HT1BqOUxPRW02bFlUeVpHSlBsVHNTYkQxM0FpcGFSa3RhcVdZQjViYVJMT09Yc2hhMDBTR0Y5aERUTmo5aGlmS19kMm1raUdIcXlBd2dpd05wQXd5TE9xbjlmeVZDUEtLTlpQcl9iTndpdjFkcm9zMHVtbWFaWGl2RTFiTGZEMGVIbUhx?oc=5": "2026-10-20T23:17:32.446917+09:00",
-    "https://news.google.com/rss/articles/CBMidkFVX3lxTE5QUkVzbUxzZDYtYnBvNkRTSVF4ZWxiWFM4Rk1qQ2tSQ3dUVjRQR1pmRmlXanhrQmxZdmtVaFp2R1doVTNKZWlqVGZ5TmsxV015U2lOYjk2a1A3NlVqbkZBNGlUbHVwbDg3cWtZeHlGOU1udjFONUE?oc=5": "2026-10-20T23:17:32.446917+09:00",
-    "https://news.google.com/rss/articles/CBMiUEFVX3lxTE9uWmZVMzN0MGhWVVlsWVVObDY3Z05BTmdjN29lRjJUUDk0ZVRkOERxanlOWFh1X1hUaFp0YUxDNTB0VDJuVExCUnU1eFV4ZnFo?oc=5": "2026-10-20T23:17:32.446917+09:00",
     "https://www.itmedia.co.jp/news/article/2610/21/2000002443/": "2026-10-21T09:37:00.225085+09:00",
     "https://www.itmedia.co.jp/news/article/2610/21/2000002442/": "2026-10-21T09:37:00.225085+09:00",
     "https://www.itmedia.co.jp/news/article/2610/21/2000002441/": "2026-10-21T09:37:00.225085+09:00",
@@ -159,6 +148,11 @@
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1tdnRXOGMyOWVobnVrS0hTZkVobDAwby1MTHY2T3dyckwzMDZNNldpNS1HUWxJS200UGZ1bW9CbjRYT1JCVkVGS1pOTFZsbTR0dElBbzRRdkZuUFBuRFVjVTdoVzNRd0s3?oc=5": "2026-11-03T19:44:35.795300+09:00",
     "https://news.google.com/rss/articles/CBMiTEFVX3lxTE1tMk9lSGJyaG5WUGFPSW4waC0xb2FDZXpPQ1ZhQV8xZkJYbGxobHliWS1JMC1vcS1jQnQwRTZsWFF6Q196WEVqRFBkUHU?oc=5": "2026-11-03T19:44:35.795300+09:00",
     "https://news.google.com/rss/articles/CBMipwFBVV95cUxPdFJDajZOaVd1RnJIcUotQkNmQUg4aC02WWhGZ05haFZSOU8yNl9wSUhyZFdleVZqM01GV1hGQkZmVUpSR1N2T0xVb1NWejQ0UlZkQUFQa1lWNmNfcG5NVThvaHJZT043VkZaUmJiN0xDT0MwMkpEMXlEazJ1UTFFVXhnNmZHNUdKaDNiOVltU2RjV01EUGVaQkJyS21aV0xvRzRCX21QUQ?oc=5": "2026-11-03T19:44:35.795300+09:00",
-    "https://news.google.com/rss/articles/CBMiggFBVV95cUxNX0hHZTg3SjNkOTNYUm1Xc1dkOHdGTUdmVzIxOFpnbGIyaWc1TlBxTUhGREZxVVl3NXpzcVNRYnVycjFYdzZrYVp1cGMzdGhTS1N1LW1wTUtMVkk3bFFLUWd6U2FRSGhiU3VzMElpT2U2NzRaLW52Nm5odFJVdldubU13?oc=5": "2026-11-03T19:44:35.795300+09:00"
+    "https://news.google.com/rss/articles/CBMiggFBVV95cUxNX0hHZTg3SjNkOTNYUm1Xc1dkOHdGTUdmVzIxOFpnbGIyaWc1TlBxTUhGREZxVVl3NXpzcVNRYnVycjFYdzZrYVp1cGMzdGhTS1N1LW1wTUtMVkk3bFFLUWd6U2FRSGhiU3VzMElpT2U2NzRaLW52Nm5odFJVdldubU13?oc=5": "2026-11-03T19:44:35.795300+09:00",
+    "https://nobi.com/jp/entry-1267.html": "2026-11-04T02:00:36.149119+09:00",
+    "https://nobi.com/jp/entry-1265.html": "2026-11-04T02:00:36.149119+09:00",
+    "https://nobi.com/jp/products_design/tech/entry-1264.html": "2026-11-04T02:00:36.149119+09:00",
+    "https://gigazine.net/news/20261103-protecting-against-retry-storms/": "2026-11-04T02:00:36.149119+09:00",
+    "https://news.google.com/rss/articles/CBMiakFVX3lxTE9YelVRWGZLR1RVMUhDR1RERTdHWHZKOGdfNkQ3eXAybktZMzgwQTVCVml6cTJFRndSQUJWZWVlTl9FVTE5ZENRMGFQbWhkeWN4RWFNX3lNT1duUzlKU3VOTkhRMExqcGlfMkE?oc=5": "2026-11-04T02:00:36.149119+09:00"
   }
 }
