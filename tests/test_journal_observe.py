@@ -129,7 +129,7 @@ class TimeAxisAuditTest(unittest.TestCase):
         got = jo.normalize_interpretation(raw, obs)
         self.assertEqual([h["text"] for h in got["hypotheses"]], ["部屋のことに意識が向いている時期かもしれない"])
 
-    def test_claude_receives_only_changes_and_short_snippets(self):
+    def test_gemini_receives_only_changes_and_short_snippets(self):
         days = jo.build_days(jo.mock_threads(MON, 8))
         obs = jo.observe(days, MON)
         prompt = jo.build_prompt(obs)
@@ -237,29 +237,16 @@ class InterpretationTest(unittest.TestCase):
 
     def test_interpret_statuses(self):
         self.assertEqual(jo.interpret(self.obs, "", "m")[1], "no_key")
-        with mock.patch("anthropic.Anthropic", side_effect=RuntimeError("402 credits depleted")):
+        with mock.patch("google.genai.Client", side_effect=RuntimeError("402 credits depleted")):
             self.assertEqual(jo.interpret(self.obs, "k", "m"), (None, "failed"))
         fake = mock.Mock()
-        fake.messages.create.return_value.content = [mock.Mock(type="text", text=(
+        fake.models.generate_content.return_value.text = (
             '```json\n{"hypotheses":[{"refs":["O4"],"text":"面接が近い週なのかもしれない","alternatives":["別の用事"]}],'
-            '"continuity":"","questions":[]}\n```'))]
-        with mock.patch("anthropic.Anthropic", return_value=fake):
+            '"continuity":"","questions":[]}\n```')
+        with mock.patch("google.genai.Client", return_value=fake):
             interp, st = jo.interpret(self.obs, "k", "m")
-        self.assertEqual(st, "claude")
+        self.assertEqual(st, "gemini")
         self.assertEqual(interp["hypotheses"][0]["refs"], ["O4"])
-
-    def test_claude_request_shape(self):
-        """Messages API の形: model / max_tokens / system は別引数、messages は user の1通だけ。"""
-        fake = mock.Mock()
-        fake.messages.create.return_value.content = [mock.Mock(type="text", text='{"hypotheses":[]}')]
-        with mock.patch("anthropic.Anthropic", return_value=fake) as client_cls:
-            jo.ask_claude("プロンプト本文", "k", "claude-haiku-5-5")
-        client_cls.assert_called_once_with(api_key="k")
-        kwargs = fake.messages.create.call_args.kwargs
-        self.assertEqual(kwargs["model"], "claude-haiku-5-5")
-        self.assertEqual(kwargs["max_tokens"], jo.CLAUDE_MAX_TOKENS)
-        self.assertEqual(kwargs["system"], jo.CLAUDE_SYSTEM)
-        self.assertEqual(kwargs["messages"], [{"role": "user", "content": "プロンプト本文"}])
 
     def test_prompt_contains_observations_not_whole_journal(self):
         p = jo.build_prompt(self.obs)
@@ -275,7 +262,7 @@ class OutputTest(unittest.TestCase):
     def test_messages_fit_discord_and_label_hypotheses(self):
         interp = {"hypotheses": [{"refs": ["O2"], "text": "x" * 150, "alternatives": ["y"]}] * 4,
                   "continuity": "", "questions": ["問い"]}
-        msgs = jo.compose_messages(self.obs, interp, "claude", head=jo.HEAD_MARK)
+        msgs = jo.compose_messages(self.obs, interp, "gemini", head=jo.HEAD_MARK)
         self.assertGreaterEqual(len(msgs), 2)
         self.assertTrue(all(len(m) <= 1900 for m in msgs))
         self.assertTrue(msgs[0].startswith(jo.HEAD_MARK))

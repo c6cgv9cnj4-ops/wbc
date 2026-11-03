@@ -106,7 +106,7 @@ class ComposeTest(unittest.TestCase):
 
     def test_numbered_hypotheses_and_guide(self):
         obs = jo.observe(jo.build_days(jo.mock_threads(datetime.date(2026, 9, 21), 8)), datetime.date(2026, 9, 21))
-        text = "\n".join(jo.compose_messages(obs, INTERP, "claude", head=jo.HEAD_MARK,
+        text = "\n".join(jo.compose_messages(obs, INTERP, "gemini", head=jo.HEAD_MARK,
                                              answer_guide=jc.answer_guide(2)))
         self.assertIn("**1.** 架空の仮説Aかもしれない（根拠 O2）", text)
         self.assertIn("**2.** 架空の仮説Bかもしれない（根拠 O3,O5）", text)

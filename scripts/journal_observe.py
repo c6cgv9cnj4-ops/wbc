@@ -12,14 +12,14 @@
       - 観測可能な表現(〜たい・やった・面倒・不安 など)の出現回数の変化
       - 変化した語どうし・語と表現が同じ日に出てくる回数(共起。因果ではない)
       - 各観測の根拠(日付・抜粋・スレッドURL)
-  Claude(interpret) … Python の観測結果と、その根拠の短い抜粋だけを受け取り、
+  Gemini(interpret) … Python の観測結果と、その根拠の短い抜粋だけを受け取り、
       解釈の「仮説」を複数の可能性として返す。観測IDを参照しない仮説・指示/評価口調の
       文は捨てる。失敗しても観測だけで週次ダッシュボードは成立する。
 
 原則: 「仕事が20回出た」は観測できるが「仕事のストレスが高まった」は観測できない。
 出現回数は感情の強さを表さない。出力ではこの境界を必ず明示する。
 
-通信は interpret(Claude) のみ。それ以外は純粋関数で、tests/test_journal_observe.py で検証する。
+通信は interpret(Gemini) のみ。それ以外は純粋関数で、tests/test_journal_observe.py で検証する。
 """
 from __future__ import annotations
 
@@ -380,7 +380,7 @@ def observe(days: dict, cur_start: datetime.date, *, unit_days: int = 7,
 
 
 def _items(obs: dict, days: dict, cur: dict, base_active: list) -> list[dict]:
-    """人が読める観測文(ID付き)と根拠。Claude にはこのIDで参照させる。"""
+    """人が読める観測文(ID付き)と根拠。Gemini にはこのIDで参照させる。"""
     items: list[dict] = []
 
     def add(kind, text, evidence=None):
@@ -456,9 +456,9 @@ def _signed_pct(p) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Claude: 観測 → 解釈の仮説(事実として扱わない)
+# Gemini: 観測 → 解釈の仮説(事実として扱わない)
 # ---------------------------------------------------------------------------
-PROMPT_EVIDENCE_CHARS = 1200   # Claude に渡す抜粋の総量上限(本文全体は渡さない)
+PROMPT_EVIDENCE_CHARS = 1200   # Gemini に渡す抜粋の総量上限(本文全体は渡さない)
 PROMPT_EVIDENCE_KINDS = ("new", "returned", "up", "down", "transient")   # 今期の変化の根拠だけ渡す
 _BANNED = re.compile(r"すべき|しましょう|べきです|必要があります|してください|明らかに|間違いなく|確実に"
                      r"|\d+(?:\.\d+)?\s*(?:点|/10|／10)|スコア")
@@ -535,39 +535,26 @@ def normalize_interpretation(raw: dict, obs: dict) -> dict:
     return {"hypotheses": hyps[:4], "continuity": cont, "questions": qs}
 
 
-CLAUDE_MAX_TOKENS = 1024
-CLAUDE_SYSTEM = "出力はJSONオブジェクトのみ。前置き・後書き・コードブロックは付けない。"
-
-
-def ask_claude(prompt: str, api_key: str, model: str) -> str:
-    """Anthropic Messages API に1回だけ問い合わせ、応答のテキストを返す。
-    JSON は呼び出し側で _loads_loose により取り出す(コードブロック付きの応答も許容)。"""
-    import anthropic
-
-    client = anthropic.Anthropic(api_key=api_key)
-    msg = client.messages.create(
-        model=model,
-        max_tokens=CLAUDE_MAX_TOKENS,
-        system=CLAUDE_SYSTEM,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return "".join(block.text for block in msg.content if block.type == "text")
-
-
 def interpret(obs: dict, api_key: str, model: str, context_note: str = "") -> tuple[dict | None, str]:
-    """(解釈, 状態) を返す。状態: 'claude' / 'few'(変化の観測が無い) / 'no_key' / 'failed'。"""
+    """(解釈, 状態) を返す。状態: 'gemini' / 'few'(変化の観測が無い) / 'no_key' / 'failed'。"""
     if len(obs["items"]) <= 1:
         return None, "few"
     if not api_key:
-        print("[INFO] ANTHROPIC_API_KEY 未設定。解釈(仮説)はスキップし観測のみ出力")
+        print("[INFO] GEMINI_API_KEY 未設定。解釈(仮説)はスキップし観測のみ出力")
         return None, "no_key"
     try:
-        result = normalize_interpretation(
-            _loads_loose(ask_claude(build_prompt(obs, context_note), api_key, model)), obs)
-        print(f"[INFO] Claude({model}) 解釈: 仮説{len(result['hypotheses'])}件 / 問い{len(result['questions'])}件")
-        return result, "claude"
+        from google import genai
+
+        client = genai.Client(api_key=api_key)
+        resp = client.models.generate_content(
+            model=model, contents=build_prompt(obs, context_note),
+            config={"response_mime_type": "application/json"},
+        )
+        result = normalize_interpretation(_loads_loose(resp.text or ""), obs)
+        print(f"[INFO] Gemini({model}) 解釈: 仮説{len(result['hypotheses'])}件 / 問い{len(result['questions'])}件")
+        return result, "gemini"
     except Exception as err:  # noqa: BLE001
-        print(f"[WARN] Claude 解釈に失敗（観測のみで継続）: {str(err)[:200]}")
+        print(f"[WARN] Gemini 解釈に失敗（観測のみで継続）: {str(err)[:200]}")
         return None, "failed"
 
 
@@ -641,7 +628,7 @@ def compose_messages(obs: dict, interp: dict | None, interp_status: str, *, head
     if sheet_link:
         a += ["", f"📄 推移（シート）: {sheet_link}"]
 
-    c = ["**C. 気づき（Claudeによる仮説。事実ではありません）**"]
+    c = ["**C. 気づき（Geminiによる仮説。事実ではありません）**"]
     if interp and (interp["hypotheses"] or interp["continuity"]):
         for i, h in enumerate(interp["hypotheses"], 1):
             c.append(f"**{hyp_prefix}{i}.** {h['text']}（根拠 {','.join(h['refs'])}）")
@@ -652,8 +639,8 @@ def compose_messages(obs: dict, interp: dict | None, interp_status: str, *, head
         for q in interp["questions"]:
             c.append(f"❓ {q}")
     else:
-        reason = {"failed": "Claude の呼び出しに失敗", "few": "解釈するほどの変化が観測されなかった",
-                  "no_key": "Claude 未設定"}.get(interp_status, interp_status)
+        reason = {"failed": "Gemini の呼び出しに失敗", "few": "解釈するほどの変化が観測されなかった",
+                  "no_key": "Gemini 未設定"}.get(interp_status, interp_status)
         c.append(f"・今回は仮説なし（{reason}）。A・B の観測だけで完結しています。")
     c += list(answer_guide or [])
     c += ["", "**D. 根拠**（観測ID → 日付・元スレッド）"]
@@ -680,7 +667,7 @@ def _chunk(text: str, limit: int = 1900) -> list[str]:
 SHEET_HEADER = (["対象週", "書いた日数", "総文字数", "1日平均文字数", "文字数 前週比%"]
                 + [MARKER_SHORT[k] for k, _, _ in MARKERS]
                 + [TERM_KIND_NAME[k] + "語" for k in TERM_KINDS]
-                + ["気づき（Claude仮説）", "根拠スレッド", "解釈の状態"])
+                + ["気づき（Gemini仮説）", "根拠スレッド", "解釈の状態"])
 
 
 def sheet_row(week_tag: str, obs: dict, interp: dict | None, interp_status: str) -> list:
@@ -825,26 +812,26 @@ def render_png(obs: dict, out_path: str, *, title: str, font_family: str | None 
 # レビュー表示・集約層(2026-09-30 再設計。Acceptance Test 不合格を受けて)
 #
 #   Python : 前期→今期の語の増減を整理し、元の記録から抜粋を取り出す(意味付けはしない)
-#   Claude : 語の増減(語と日数だけ)から「変化の筋」の仮説を最大3件つくる
+#   Gemini : 語の増減(語と日数だけ)から「変化の筋」の仮説を最大3件つくる
 #   本人   : ○ △ × どれも違う 別のこと で確認する
 #
-# 送信境界: Claude へ送るのは語と機械的な日数だけ。日記本文・抜粋・URL・Discord 本文は送らない。
+# 送信境界: Gemini へ送るのは語と機械的な日数だけ。日記本文・抜粋・URL・Discord 本文は送らない。
 # Discord の主な本文には、仮説(最大3件)・Python が付けた抜粋・確認記号だけを載せる。
 # O-項目・表現率・共起などの計測値は「観測詳細」タブ(非公開シート)にだけ残す。
 # ===========================================================================
 AI_DECREASED_KINDS = ("down", "gone")              # 減少・消失
 AI_INCREASED_KINDS = ("new", "returned", "up")     # 新規・再登場・増加
-AI_WORDS_PER_SIDE = 12        # Claude に渡す語の数の上限(片側)
+AI_WORDS_PER_SIDE = 12        # Gemini に渡す語の数の上限(片側)
 MAX_THREADS = 3               # 主な本文に出す「変化の筋」の上限
-FALLBACK_WORDS_PER_SIDE = 8   # Claude が使えないときの対照表示の語数(片側)
+FALLBACK_WORDS_PER_SIDE = 8   # Gemini が使えないときの対照表示の語数(片側)
 NO_RECORD = "該当する記録なし"
 _KIND_JA = {"down": "減少", "gone": "消失", "new": "新規", "returned": "再登場", "up": "増加"}
-# 仮説文の中に元の文章らしい引用(かぎ括弧の長い中身)があれば捨てる(Claude に引用を作らせない)
+# 仮説文の中に元の文章らしい引用(かぎ括弧の長い中身)があれば捨てる(Gemini に引用を作らせない)
 _QUOTE_LIKE = re.compile(r"「[^」]{16,}」|『[^』]{16,}』")
 
 
 def diff_for_ai(obs: dict) -> dict:
-    """Claude に渡してよい機械データだけを作る。語・区分・日数のみで、本文・抜粋・URL は含めない。"""
+    """Gemini に渡してよい機械データだけを作る。語・区分・日数のみで、本文・抜粋・URL は含めない。"""
     T = obs["terms"]
     w = obs["writing"]
 
@@ -914,25 +901,30 @@ def normalize_diff_hypotheses(raw: dict, diff: dict) -> list[dict]:
 
 
 def interpret_diff(diff: dict, api_key: str, model: str) -> tuple[list[dict] | None, str, str]:
-    """(仮説, 状態, Claude に送ったプロンプト)。状態: claude / few / no_key / failed / invalid。
-    Claude に送るのは build_diff_prompt(diff) だけ(語と日数のみ)。"""
+    """(仮説, 状態, Gemini に送ったプロンプト)。状態: gemini / few / no_key / failed / invalid。
+    Gemini に送るのは build_diff_prompt(diff) だけ(語と日数のみ)。"""
     if diff_is_empty(diff):
         return None, "few", ""
     prompt = build_diff_prompt(diff)
     if not api_key:
-        print("[INFO] ANTHROPIC_API_KEY 未設定。仮説はつくらず、語の増減の機械集計を表示")
+        print("[INFO] GEMINI_API_KEY 未設定。仮説はつくらず、語の増減の機械集計を表示")
         return None, "no_key", prompt
     try:
-        raw = _loads_loose(ask_claude(prompt, api_key, model))
+        from google import genai
+
+        client = genai.Client(api_key=api_key)
+        resp = client.models.generate_content(model=model, contents=prompt,
+                                              config={"response_mime_type": "application/json"})
+        raw = _loads_loose(resp.text or "")
     except Exception as err:  # noqa: BLE001
-        print(f"[WARN] Claude の呼び出しに失敗（機械集計の表示に切り替え）: {type(err).__name__}")
+        print(f"[WARN] Gemini の呼び出しに失敗（機械集計の表示に切り替え）: {type(err).__name__}")
         return None, "failed", prompt
     hyps = normalize_diff_hypotheses(raw, diff)
     if not hyps:
-        print("[INFO] Claude の応答に使える仮説が無かった（機械集計の表示に切り替え）")
+        print("[INFO] Gemini の応答に使える仮説が無かった（機械集計の表示に切り替え）")
         return None, "invalid", prompt
-    print(f"[INFO] Claude({model}) 仮説 {len(hyps)}件")
-    return hyps, "claude", prompt
+    print(f"[INFO] Gemini({model}) 仮説 {len(hyps)}件")
+    return hyps, "gemini", prompt
 
 
 def _pick_excerpt(days: dict, words: list[str], start: datetime.date, end: datetime.date) -> str:
@@ -949,7 +941,7 @@ def _pick_excerpt(days: dict, words: list[str], start: datetime.date, end: datet
 
 def excerpts_for(words: list[str], days: dict, obs: dict, cur_start: datetime.date,
                  n_base: int) -> tuple[str, str]:
-    """仮説の根拠語から、以前(比較期間)と今期の抜粋を1つずつ取り出す。Claude には作らせない。
+    """仮説の根拠語から、以前(比較期間)と今期の抜粋を1つずつ取り出す。Gemini には作らせない。
     以前は「減少・消失」の語を優先、今期は「新規・再登場・増加」の語を優先する。"""
     unit = datetime.timedelta(days=obs["unit_days"])
     cur_end = cur_start + unit - datetime.timedelta(days=1)
@@ -968,7 +960,7 @@ def compose_review(obs: dict, diff: dict, hyps: list[dict] | None, status: str,
                    warnings: list[str] | None = None, answer_guide: list[str] | None = None,
                    detail_note: str = "") -> list[str]:
     """Discord の主な本文。仮説(最大3件)・抜粋・確認記号だけ。
-    Claude が使えないときは、語の増減の対照表示(機械集計)だけ。計測値・O-項目・PNG は載せない。"""
+    Gemini が使えないときは、語の増減の対照表示(機械集計)だけ。計測値・O-項目・PNG は載せない。"""
     w = obs["writing"]
     lines = [f"{head}  {obs['period']}", ""]
     for x in warnings or []:
@@ -984,7 +976,7 @@ def compose_review(obs: dict, diff: dict, hyps: list[dict] | None, status: str,
             lines += [f"**【変化の筋 {prefix}{i}】**", h["text"], "",
                       f"以前：{before}", f"今期：{now}", "",
                       f"確認：`{prefix}{i} ○` / `{prefix}{i} △` / `{prefix}{i} ×`", ""]
-        lines.append("※ 仮説は AI（Claude）が語の増減だけから作ったもので、事実ではありません。抜粋は元の記録そのままです。")
+        lines.append("※ 仮説は AI（Gemini）が語の増減だけから作ったもので、事実ではありません。抜粋は元の記録そのままです。")
     elif diff_is_empty(diff):
         lines.append("今期は、前期からの目立った語の増減はありませんでした（変化候補なし）。")
     else:
