@@ -44,6 +44,7 @@ WAIT_BUDGET_SECONDS = 120.0
 DEFAULT_QUOTA_BACKOFF_MINUTES = 60        # 日次上限なのに待ち時間が返らなかったときの控え時間(Googleの案内ではなく当方の方針)
 JST = datetime.timezone(datetime.timedelta(hours=9))
 BASIS_RETRY_INFO = "Googleの待ち時間(境界より前のため採用)"
+DAILY_EARLY_MARGIN = datetime.timedelta(minutes=15)   # 境界の直前にこれ以内で終わる待ち時間は採らず境界を使う
 BASIS_BOUNDARY = "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)"
 BASIS_DEFAULT = "既定の控え時間(Googleの待ち時間なし。境界より前)"
 BASIS_MINUTE = "分あたり上限のGoogle待ち時間(日次境界は適用しない)"
@@ -239,6 +240,10 @@ def daily_retry_until(now, retry_after):
         basis = BASIS_DEFAULT
     else:
         candidate = now.astimezone(JST) + datetime.timedelta(seconds=retry_after)
+        # 2026-11-04: Googleの待ち時間が境界の直前(16:59)を指し、リセット(17:00)前に再試行して失敗した。
+        # 境界の直前(DAILY_EARLY_MARGIN_SECONDS以内)に当たる待ち時間は、境界まで待つ。
+        if boundary - DAILY_EARLY_MARGIN <= candidate <= boundary:
+            return boundary, BASIS_BOUNDARY + "／" + boundary_basis
         basis = BASIS_RETRY_INFO
     if candidate > boundary:
         return boundary, BASIS_BOUNDARY + "／" + boundary_basis

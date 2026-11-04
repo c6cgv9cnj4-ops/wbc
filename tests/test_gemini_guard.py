@@ -203,6 +203,12 @@ class DailyBoundaryTest(unittest.TestCase):
         self.assertEqual(until, self.J(2026, 10, 9, 8, 59, 13))      # 4393秒後
         self.assertEqual(basis, gg.BASIS_RETRY_INFO)
 
+    def test_retry_info_just_before_boundary_waits_for_boundary(self):
+        # 2026-11-04 再現: 13:37 JST + 3時間21分 = 16:58 → 境界直前なので17:00(PT0時)まで待つ
+        until, basis = gg.daily_retry_until(self.J(2026, 11, 4, 13, 37), 3 * 3600 + 21 * 60)
+        self.assertEqual(until, self.J(2026, 11, 4, 17))
+        self.assertIn(gg.BASIS_BOUNDARY, basis)
+
     def test_retry_info_past_boundary_is_shortened(self):
         until, basis = gg.daily_retry_until(self.J(2026, 10, 9, 10), 86400)
         self.assertEqual(until, self.J(2026, 10, 9, 16))
