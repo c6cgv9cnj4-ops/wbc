@@ -117,10 +117,10 @@ STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "state", "badminton_a
 STATE_RETENTION_DAYS = 30
 REQUEST_TIMEOUT = 15
 BADSPI_RSS_URL = "https://www.badspi.jp/feed/"
-BADSPI_ITEM_LIMIT = 20
+BADSPI_ITEM_LIMIT = 40  # 2026-11-04: 1日1回の実行で1日分を取りこぼさないよう 20→40
 COLOR_BADSPI = 0x2B6CB0
 GOOGLE_NEWS_BADMINTON_QUERY = "バドミントン 日本代表"
-GOOGLE_NEWS_BADMINTON_ITEM_LIMIT = 20
+GOOGLE_NEWS_BADMINTON_ITEM_LIMIT = 40  # 2026-11-04: 20→40(同上)
 COLOR_GNEWS_BADMINTON = 0x718096
 
 # 2026-09-06、初回実装の本番テストで実際に混入したノイズを見て、細川さんの
@@ -528,6 +528,10 @@ def fetch_badspi_articles(limit=BADSPI_ITEM_LIMIT):
         return []
 
     feed = feedparser.parse(resp.content)
+    # 2026-11-04: 件数を記録し、上限で切り捨てた場合は取りこぼしの可能性を警告する
+    print(f"[INFO] バド×スピRSS: {len(feed.entries)}件(取得上限{limit}件)")
+    if len(feed.entries) > limit:
+        print(f"[WARN] 取りこぼしの可能性: バド×スピRSSは{len(feed.entries)}件中{limit}件のみ取得しました")
     items = []
     for entry in feed.entries[:limit]:
         if not entry.get("link") or not entry.get("title"):
@@ -1050,6 +1054,9 @@ def fetch_google_news_badminton(limit=GOOGLE_NEWS_BADMINTON_ITEM_LIMIT, retries=
         return []
 
     feed = feedparser.parse(resp.content)
+    print(f"[INFO] Google News(バドミントン): {len(feed.entries)}件(取得上限{limit}件)")
+    if len(feed.entries) > limit:
+        print(f"[WARN] 取りこぼしの可能性: Google Newsは{len(feed.entries)}件中{limit}件のみ取得しました")
     items = []
     seen_titles_in_batch = set()
     for entry in feed.entries[:limit]:
