@@ -1,13 +1,5 @@
 {
   "seen_urls": {
-    "https://www.itmedia.co.jp/news/article/2610/22/2000002498/": "2026-10-22T17:31:21.148869+09:00",
-    "https://www.itmedia.co.jp/news/article/2610/22/2000002492/": "2026-10-22T17:31:21.148869+09:00",
-    "https://news.google.com/rss/articles/CBMiakFVX3lxTE5YQ3FacEQta3ota3c0NjY2M2lSTmdSZmZ5LXFhQVVwSVUtWVdkem1aREh1cWtTd3ItdUlKQ3Q5TGEyNE5yWjJBb3FKWU5OZWI4WXQtUnJERlYxVEZfUXR1V2wxNjFsellnLXc?oc=5": "2026-10-22T23:30:26.874777+09:00",
-    "https://news.google.com/rss/articles/CBMiT0FVX3lxTE1kS21tVjByOS1WY1h5MlYtbEk5S0lQYUNUTUYwdUpLNGZWbDloTkJFMUNNb2hEMFQ2d3JFQ1Z4aE1FempET3FxbUQ0ZVZEcEU?oc=5": "2026-10-22T23:30:26.874777+09:00",
-    "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE82TWNxbmtiV0hmZFhOTWFCMU5JanFPOC1OUFVqS2JMWmZsQ0VUZUtMM0ZiWXhubEdGWnlkYWIzb19LaUd4NHJiU2txZ0YxWnViQmhrY1RwYjItMHdCVkpmaVJBLXBQOFk?oc=5": "2026-10-22T23:30:26.874777+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE82ZkZqOWJ6MjZxcHJwSEJvNWpHNnoxVUJVVUpPU3U0bE1sUHlrX01xZnlYekVPY1E1dk9rc3dMQlpMOHoyVFBac2ppcDlwLXY2eFdyVFhSVGtLdFd2TV95TVZ2QTBHd1hp?oc=5": "2026-10-22T23:30:26.874777+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE81dTNZekp1YWxQdjIyak80ZFlwVnNRdmFydnBmejUwNFhhOXBsZDF2MEZtVjJJUWYwNkpURnh4bTI3T01VeUxRQTEwcTdTWTJ2Y29nZHhJWDY2OThrbGFrYjVKcE1ZaWxP?oc=5": "2026-10-22T23:30:26.874777+09:00",
-    "https://news.google.com/rss/articles/CBMiX0FVX3lxTFBHQXZCVUI2V0kwcG5CVW9XTE9IRW5wam1Ha3d0a1JMb3JVajVaYWVVYzRyZ1p3ajJZTzY0QjRUeU4xckQxQm1EZXlNOFp0WW1aRnhTalY4UWZlSVZSY2pR?oc=5": "2026-10-22T23:30:26.874777+09:00",
     "https://news.google.com/rss/articles/CBMiU0FVX3lxTE1XNTJ3QjBZNkt0ZHRVVk93amR6MDBnNjdtbUhWck40Y3RBdTVNWFM4WGxESWJscmNNYXRyOEl1Ny1xWWJsRW93ZGFxVjM1S01meUMw?oc=5": "2026-10-23T09:39:19.378456+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBzY2Q1eEFuZTFIYW4tTnZsazBYX1daRzVmczJTRFFScElNd0dNUWJ5UEtwTXBGRWVsN3N6Q3ZFWVNVa2xzTm9BOEpQdlQyTWFGc2d6OGdQYUhFamo0OG1yajJ3X2pJRXR0?oc=5": "2026-10-23T09:39:19.378456+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1WbnBwb1puZVAybmJwUUJYMFlRMVVnUFJnTkI5a1Rta3JQbE5XdkN1V3NPUXVMMUdXZ0w5d3o1RWt1LVo3Z2hxYXY2c05yRDVXTm5ManphWC1WMVcyMGl3alF0VVdGRmZP?oc=5": "2026-10-23T09:39:19.378456+09:00",
@@ -138,8 +130,8 @@
     "https://news.google.com/rss/articles/CBMilAFBVV95cUxOZmg0b0UyZzNjWENodFBFZVRZU3ZjT05JMVdSRzRGMF81SHZMVG12d3hUQTJwQnBQMVlNS1J4aF9rMFE2SGMtc045N0ZKZmEzUENDVnhoR3NsQlppSU1zV2QzaEQxcmlRUlR0cDBGdGlsZUJxZjB4MExSUTZCV3F5bzNtWkV5YTJjS2J2U1hPNnhZWHVy?oc=5": "2026-11-05T10:27:12.910777+09:00",
     "https://news.google.com/rss/articles/CBMiYkFVX3lxTE10di1JeUNLRWFUcTktelowZjNaTHhCVmYwTUVGSEk2bUV2U01mUks5X1l2blBuaXRRajlPY0U3aVAwamNZYzRRd2NZWFplaktlaEcxVDhjR2ZSMVFacm80b2RR?oc=5": "2026-11-05T10:27:12.910777+09:00",
     "https://news.google.com/rss/articles/CBMilgFBVV95cUxOSjdfQkY4anYweVEtamJGMjV3RmQ4VEFYYXVfR2lmak1YRU4tckU1LUlUYXZfcjlNOHIxTF91bGxPYWtVQXZiTFB3MlVuNnJoYk5UMDBRaXBLVy1lRUNFcTJjb09PNTMwZUVMTzBGVFZDVTlNdldDYlVPTUpvVUU3RW9fX2lTRGFwSThVUjVFODRSTmNSdVE?oc=5": "2026-11-05T10:27:12.910777+09:00",
-    "https://news.google.com/rss/articles/CBMidEFVX3lxTE10RlZCeVFJRGhfeXc4bFhpZm5XeXdvbVhfcU10dHE1TzFvR2dhQ0xVeU5LU2QtWlJMOXdBSHl1em1fQ3JONXJlVVlLVzRZaWtVb0ppUTlFTjgwXzZSaEt3TURVXzJKUXNPQlhTdHNBNXBqdkZC?oc=5": "2026-11-05T10:27:12.910777+09:00"
-  },
-  "_gemini_backoff:quota": "2026-11-05T17:00:00+09:00",
-  "_gemini_backoff_basis:quota": "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)／日次境界(太平洋時間0時・推定)"
+    "https://news.google.com/rss/articles/CBMidEFVX3lxTE10RlZCeVFJRGhfeXc4bFhpZm5XeXdvbVhfcU10dHE1TzFvR2dhQ0xVeU5LU2QtWlJMOXdBSHl1em1fQ3JONXJlVVlLVzRZaWtVb0ppUTlFTjgwXzZSaEt3TURVXzJKUXNPQlhTdHNBNXBqdkZC?oc=5": "2026-11-05T10:27:12.910777+09:00",
+    "https://gigazine.net/news/20261106-ai-in-cybersecurity-php2shell-vulnerability/": "2026-11-06T06:30:57.364961+09:00",
+    "https://gigazine.net/news/20261105-apple-cuts-internal-ai-usage/": "2026-11-06T06:30:57.364961+09:00"
+  }
 }
