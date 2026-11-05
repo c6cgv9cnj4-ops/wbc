@@ -1444,7 +1444,8 @@ def record_gemini_failure(base_kind, channel, target, err, delivery, held=None):
             policy = f"利用上限のため再試行せず、待ち時間{wait_text}が終わるまでAPIを呼びません"
             nxt = _next_retry_text(err.backoff_until, getattr(err, "basis", "")) if err.backoff_until else None
         elif info.kind in ("rate", "transient"):
-            policy = f"待ち時間を置いて最大{gemini_guard.MAX_RETRIES}回まで再試行しましたが回復しませんでした"
+            retry_limit = gemini_guard.TRANSIENT_MAX_RETRIES if info.kind == "transient" else gemini_guard.MAX_RETRIES
+            policy = f"待ち時間を置いて最大{retry_limit}回まで再試行しましたが回復しませんでした"
             nxt = "次回の定期実行（通常4時間ごと）。時刻は確定できません"
         else:
             policy = "再試行しても直らないエラーのため再試行していません"

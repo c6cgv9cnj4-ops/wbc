@@ -38,6 +38,10 @@ FALLBACK_BOUNDARY_JST_HOUR = 17
 BACKOFF_PREFIX = "_gemini_backoff:"
 BASIS_PREFIX = "_gemini_backoff_basis:"       # state キー。値はISO日時(この時刻まで呼び出さない)。サフィックスは理由(quota)
 MAX_RETRIES = 1   # 2026-10-27: 再試行を2回→1回に削減(1回の依頼で最大2回の呼び出し)。日次枠の消費を抑える
+# 2026-11-05: 503(混雑・一時的な過負荷)は数分続くことがあるため、待ちを長くして再試行を2回まで行う。
+# 429(枠切れ)は従来どおり再試行しない(日次上限は待っても戻らないため)。
+TRANSIENT_MAX_RETRIES = 2
+TRANSIENT_WAIT_SECONDS = (15.0, 45.0)   # 1回目の再試行は15秒後、2回目は45秒後(合計60秒)
 BASE_DELAY_SECONDS = 4.0
 MAX_SINGLE_WAIT_SECONDS = 60.0
 WAIT_BUDGET_SECONDS = 120.0
@@ -341,9 +345,15 @@ class Guard:
                         until, basis = now.astimezone(JST) + datetime.timedelta(minutes=DEFAULT_QUOTA_BACKOFF_MINUTES), BASIS_DEFAULT
                     self._set_backoff(until, "quota", basis)
                     raise GeminiCallError(info, attempts, waited, err, backoff_until=until, basis=basis) from err
-                if attempts > self.max_retries:
-                    raise GeminiCallError(info, attempts, waited, err) from err
-                wait = info.retry_after if info.retry_after is not None else self.base_delay * (2 ** (attempts - 1))
+                if info.kind == "transient":
+                    if attempts > TRANSIENT_MAX_RETRIES:
+                        raise GeminiCallError(info, attempts, waited, err) from err
+                    default_wait = TRANSIENT_WAIT_SECONDS[min(attempts - 1, len(TRANSIENT_WAIT_SECONDS) - 1)]
+                else:
+                    if attempts > self.max_retries:
+                        raise GeminiCallError(info, attempts, waited, err) from err
+                    default_wait = self.base_delay * (2 ** (attempts - 1))
+                wait = info.retry_after if info.retry_after is not None else default_wait
                 wait = min(wait, MAX_SINGLE_WAIT_SECONDS)
                 if self.waited_total + wait > self.wait_budget:
                     raise GeminiCallError(info, attempts, waited, err) from err

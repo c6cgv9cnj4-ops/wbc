@@ -93,7 +93,7 @@ class NikkeiBatchTest(unittest.TestCase):
     def test_transient_gives_up_after_limited_retries(self):
         client = FakeClient(busy_503(), busy_503(), busy_503(), busy_503())
         res, _, _ = self.run_batch(client, items(2))
-        self.assertEqual(client.calls, 2)                              # 上限(1回再試行)で打ち切り
+        self.assertEqual(client.calls, 3)                              # 上限(2回再試行)で打ち切り
         self.assertEqual(res, [None, None])
 
     def test_waiting_state_prevents_calls_next_run(self):
