@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "scope": "日本バドミントン協会 代表選手（出典は config/badminton_results.json の jp_roster_source_urls）",
+  "_comment": "status は JP_CONFIRMED / NON_JP_CONFIRMED のみ。未登録の選手は UNKNOWN（非日本人とみなさない）。人が確認して追加する。",
+  "players": []
+}

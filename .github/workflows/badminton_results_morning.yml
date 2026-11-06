@@ -1,0 +1,71 @@
+name: バドミントン前日結果（06:05 JST・独立配信）
+
+# 既存の badminton_alerts.yml（同じ 06:05 JST）には一切触れない独立workflow。
+# - concurrency group は既存と別（badminton-results-morning）。cancel-in-progress は false（朝の配信を途中で止めない）。
+# - 状態は専用ブランチ badminton-results-state に保存し、main へは書き込まない（main 側の競合を避ける）。
+# - Discord 出力は config/badminton_results.json の discord_output_enabled（既定 false）で制御する。
+# - APIキー（BADMINTON_API_KEY）が未設定なら、モジュールは何も取得・保存・送信せず終了する。
+#
+# 事前準備（人が一度だけ行う）: 専用ブランチ badminton-results-state を作成する。
+# 無ければ、このworkflowの「状態ブランチを取得」が失敗する。
+
+on:
+  schedule:
+    - cron: "5 21 * * *"   # JST 06:05（UTC 21:05）。GitHub Actions の遅延があり得る
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: badminton-results-morning
+  cancel-in-progress: false
+
+jobs:
+  results:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: コードを取得（main）
+        uses: actions/checkout@v4
+
+      - name: 状態ブランチを取得（state_branch フォルダへ）
+        uses: actions/checkout@v4
+        with:
+          ref: badminton-results-state
+          path: state_branch
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install requests
+
+      - name: 取得・保存・（設定がONなら）配信
+        env:
+          BADMINTON_API_KEY: ${{ secrets.BADMINTON_API_KEY }}
+          DISCORD_WEBHOOK_OSHI: ${{ secrets.WEBHOOK_OSHI }}
+          BADMINTON_STATE_PATH: state_branch/state/badminton_results_state.json
+        run: python scripts/badminton_results_free.py
+
+      - name: 状態ブランチへ保存（競合時は取り込み直して再試行）
+        if: always()
+        working-directory: state_branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p state
+          git add -A state
+          if git diff --cached --quiet; then
+            echo "状態の変更なし"
+            exit 0
+          fi
+          git commit -m "バドミントン前日結果の状態を更新"
+          for i in 1 2 3; do
+            if git push origin HEAD:badminton-results-state; then
+              exit 0
+            fi
+            git pull --rebase origin badminton-results-state || exit 1
+          done
+          exit 1

@@ -1,0 +1,23 @@
+{
+  "_comment": "バドミントン前日結果の独立配信の設定。discord_output_enabled が false の間は Discord へ送らず、通知済みにもしない。",
+  "discord_output_enabled": false,
+  "backlog_days": 3,
+  "max_backlog_per_run": 30,
+  "state_retention_days": 30,
+  "run_log_keep": 90,
+  "max_api_pages": 5,
+  "api_min_interval_sec": 6.0,
+  "jp_roster_source_urls": [
+    "https://www.badminton.or.jp/national/player?gender=male",
+    "https://www.badminton.or.jp/national/player?gender=female",
+    "https://www.badminton.or.jp/national/player?gender=male&category[]=u24",
+    "https://www.badminton.or.jp/national/player?gender=female&category[]=u24"
+  ],
+  "badspi_ranking_urls": {
+    "MS": null,
+    "WS": null,
+    "MD": null,
+    "WD": null,
+    "XD": null
+  }
+}
