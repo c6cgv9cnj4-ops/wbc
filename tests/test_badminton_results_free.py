@@ -673,5 +673,40 @@ class AnomalyWarningTest(RunTestBase):
         self.assertNotIn("::warning::", buf.getvalue())
 
 
+class UnverifiedApiTest(RunTestBase):
+    def test_side_without_players_key_is_not_normalized_and_not_notified(self):
+        item = _item("ev_shape", s1=("pl_jp1", "pl_x"))
+        item["side1"] = {"team": [{"id": "pl_jp1", "name": "日本A"}]}  # キー名が想定と違う
+        post = FakePost()
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            self.run_once([{"data": [item], "meta": {}}], cfg=_cfg(discord_output_enabled=True), post=post)
+        self.assertEqual(post.embed_ids(), [])
+        self.assertIn("正規化できた試合が0件", buf.getvalue())
+
+    def test_string_winner_is_not_guessed(self):
+        norm = m.normalize_match(_item("ev_w", s1=("pl_jp1", "pl_x"), winner="1"))
+        self.assertIsNone(norm["winner"])
+
+    def test_unverified_items_are_recorded_in_run_log(self):
+        self.run_once([{"data": [], "meta": {}}], cfg=_cfg())
+        log = self.load()["runs"][-1]
+        self.assertIn("api_unverified", log)
+        self.assertTrue(any(x.startswith("start:") for x in log["api_unverified"]))
+        self.assertTrue(any(x.startswith("side1/side2:") for x in log["api_unverified"]))
+
+    def test_api_key_unset_and_discord_off_stay_safe(self):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc, post = self.run_once([{"data": [_item("ev_s", s1=("pl_jp1", "pl_x"))], "meta": {}}],
+                                     key="", cfg=_cfg(discord_output_enabled=True))
+        self.assertEqual(rc, 0)
+        self.assertEqual(post.payloads, [])
+        rc2, post2 = self.run_once([{"data": [_item("ev_s2", s1=("pl_jp1", "pl_x"))], "meta": {}}],
+                                   cfg=_cfg(discord_output_enabled=False))
+        self.assertEqual(post2.payloads, [])
+        self.assertIsNone(self.load()["matches"]["ev_s2"]["notified_at"])
+
+
 if __name__ == "__main__":
     unittest.main()

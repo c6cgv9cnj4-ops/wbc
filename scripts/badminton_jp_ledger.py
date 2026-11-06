@@ -37,7 +37,10 @@ API_BASE = "https://api.badmintonapi.com"
 SEARCH_PATH = "/v1/search"
 REQUEST_TIMEOUT = 20
 SEARCH_INTERVAL_SEC = 6.0   # 10回/分の制限に合わせる
-SEARCH_MAX_PER_RUN = 20     # 1回の実行で検索する上限（Free: 50回/日。朝の結果取得・再試行・ページングの枠を残す）
+SEARCH_MAX_PER_RUN = 20     # 1回の実行で検索する上限
+SEARCH_DAILY_BUDGET = 30    # 1日（UTC）の検索の上限。Free は50回/日のため、結果取得用に20回を必ず残す
+QUEUE_PATH = ROOT / "config" / "badminton_jp_confirm_queue.md"
+QUEUE_BATCH = 10            # 人が確認する1回の塊（一括確認を避けるため）
 JBA_CARD_RE = re.compile(r'<li class="p-player__item">([\s\S]*?)</li>')
 JBA_HREF_RE = re.compile(r'href="(https://www\.badminton\.or\.jp/national/player/view/(\d+))"')
 JBA_NAME_RE = re.compile(r'<p class="p-player__name">([^<]+)</p>')
@@ -134,15 +137,21 @@ def _num(value) -> float:
 
 
 def search_candidates(doc: dict, api_key: str, fetch, *, max_calls: int = SEARCH_MAX_PER_RUN,
-                      sleep=time.sleep, now_iso: str | None = None) -> dict:
+                      sleep=time.sleep, now_iso: str | None = None, today_utc: str | None = None) -> dict:
     """未検索の候補だけを検索する（1回最大 SEARCH_MAX_PER_RUN 件。超過分は次回に回す）。
     429 を受けたら、その日の検索を停止する（無理な再試行はしない）。
     戻り値: {"searched": n, "stopped": 理由 or None, "remaining": 未検索の件数}"""
-    max_calls = min(int(max_calls), SEARCH_MAX_PER_RUN)
+    today = today_utc or dt.datetime.now(dt.timezone.utc).date().isoformat()
+    usage = doc.setdefault("search_usage", {})
+    used_today = int(usage.get(today, 0))
+    allowed_today = max(0, SEARCH_DAILY_BUDGET - used_today)
+    max_calls = min(int(max_calls), SEARCH_MAX_PER_RUN, allowed_today)
     done = 0
     stopped = None
+    if allowed_today == 0:
+        stopped = f"本日（UTC {today}）の検索枠 {SEARCH_DAILY_BUDGET} 回に到達。結果取得用の枠を残すため停止"
     for c in doc["candidates"]:
-        if c.get("search") is not None:
+        if stopped or c.get("search") is not None:
             continue
         if done >= max_calls:
             break
@@ -150,6 +159,7 @@ def search_candidates(doc: dict, api_key: str, fetch, *, max_calls: int = SEARCH
             sleep(SEARCH_INTERVAL_SEC)
         code, payload = fetch(api_key, c["name"])
         done += 1
+        usage[today] = used_today + done
         if code == 429:
             stopped = "429（分または日次の上限）: 本日の検索を停止しました。翌日に未検索分から再開してください"
             break
@@ -167,7 +177,10 @@ def search_candidates(doc: dict, api_key: str, fetch, *, max_calls: int = SEARCH
         results.sort(key=lambda r: (-_num(r["score"]), r["id"]))
         c["search"] = {"searched_at": now_iso or _now(), "results": results[:5]}
     remaining = sum(1 for c in doc["candidates"] if c.get("search") is None)
-    return {"searched": done, "stopped": stopped, "remaining": remaining}
+    if stopped is None and remaining and int(usage.get(today, 0)) >= SEARCH_DAILY_BUDGET:
+        stopped = f"本日（UTC {today}）の検索枠 {SEARCH_DAILY_BUDGET} 回に到達。結果取得用の枠を残すため停止"
+    return {"searched": done, "stopped": stopped, "remaining": remaining,
+            "used_today": int(usage.get(today, 0)), "budget_today": SEARCH_DAILY_BUDGET}
 
 
 def _find(doc: dict, detail_id: str) -> dict:
@@ -215,6 +228,38 @@ def confirm(doc: dict, roster: dict, *, detail_id: str, player_id: str, decision
     roster["players"] = players
     cand["status"] = status
     return entry
+
+
+def confirm_queue_markdown(doc: dict) -> str:
+    """人が確認する対象だけを並べる。検索でJPNの候補が出た人だけが対象（一括確認を避け、10件ずつの塊にする）。"""
+    queue = []
+    for c in doc["candidates"]:
+        if c["status"] != "UNMATCHED" or not c.get("search"):
+            continue
+        jpn = [r for r in c["search"]["results"] if r.get("country") == "JPN"]
+        if jpn:
+            queue.append((c, jpn[0]))
+    lines = [
+        "# 人が確認する候補（JPN候補あり）",
+        "",
+        "- 自動確定はしていません。1名ずつ、本人の所属・出典（JBA選手ページ）と照合してください。",
+        f"- 対象: {len(queue)} 名（{QUEUE_BATCH}名ずつの塊）。残りは「JPN候補なし」で、review.md にあります。",
+        "- 確定コマンドの例（人が実行）: `python3 scripts/badminton_jp_ledger.py confirm --detail-id <JBA詳細ID> --player-id <API選手ID> --decision JP --source-url <JBA選手ページURL> --confirmed-by <確認者> --confirmed-at <YYYY-MM-DD>`",
+        "",
+    ]
+    for start in range(0, len(queue), QUEUE_BATCH):
+        lines.append(f"## 塊 {start // QUEUE_BATCH + 1}（{start + 1}〜{min(start + QUEUE_BATCH, len(queue))}件目）")
+        lines.append("")
+        lines.append("| # | JBA詳細ID | 氏名 | 所属・都道府県 | JBA選手ページ | API選手ID（候補） | 国 | score | 同名 |")
+        lines.append("|---|---|---|---|---|---|---|---|---|")
+        for i, (c, hit) in enumerate(queue[start:start + QUEUE_BATCH], start=start + 1):
+            lines.append(f"| {i} | {c['jba_detail_id']} | {c['name']} | {c['team']} {c['prefecture']} | "
+                         f"{c['jba_detail_url']} | {hit['id']} {hit['name']} | {hit.get('country')} | "
+                         f"{hit.get('score')} | {'あり' if c.get('same_name_count', 1) > 1 else 'なし'} |")
+        lines.append("")
+    if not queue:
+        lines.append("（JPN候補が出た人はいません。検索を実行していない場合は、まず search を実行してください）")
+    return "\n".join(lines) + "\n"
 
 
 def review_markdown(doc: dict) -> str:
@@ -288,6 +333,7 @@ def main(argv: list[str] | None = None) -> int:
         doc = build_candidates(pages)
         _write_json(CANDIDATES_PATH, doc)
         REVIEW_PATH.write_text(review_markdown(doc), encoding="utf-8")
+        QUEUE_PATH.write_text(confirm_queue_markdown(doc), encoding="utf-8")
         print(f"[OK] 候補 {len(doc['candidates'])} 件を書き出しました")
         return 0
 
@@ -306,7 +352,9 @@ def main(argv: list[str] | None = None) -> int:
         result = search_candidates(doc, api_key, fetch_search, max_calls=args.max_calls)
         _write_json(CANDIDATES_PATH, doc)
         REVIEW_PATH.write_text(review_markdown(doc), encoding="utf-8")
-        print(f"[OK] 検索 {result['searched']} 件 / 未検索の残り {result['remaining']} 件"
+        QUEUE_PATH.write_text(confirm_queue_markdown(doc), encoding="utf-8")
+        print(f"[OK] 検索 {result['searched']} 件 / 未検索の残り {result['remaining']} 件 / "
+              f"本日の検索 {result['used_today']}/{result['budget_today']}（残りは結果取得用に確保）"
               + (f"（中止: {result['stopped']}）" if result["stopped"] else ""))
         return 1 if result["stopped"] else 0
 
@@ -322,11 +370,13 @@ def main(argv: list[str] | None = None) -> int:
         _write_json(ROSTER_PATH, roster)
         _write_json(CANDIDATES_PATH, doc)
         REVIEW_PATH.write_text(review_markdown(doc), encoding="utf-8")
+        QUEUE_PATH.write_text(confirm_queue_markdown(doc), encoding="utf-8")
         print(f"[OK] 台帳に追加: {entry['player_id']} {entry['name']} {entry['status']}")
         return 0
 
     if args.cmd == "review":
         REVIEW_PATH.write_text(review_markdown(doc), encoding="utf-8")
+        QUEUE_PATH.write_text(confirm_queue_markdown(doc), encoding="utf-8")
         print(f"[OK] {REVIEW_PATH}")
         return 0
     return 1

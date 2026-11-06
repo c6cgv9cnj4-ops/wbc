@@ -5,7 +5,8 @@ badspi.jp の「世界ランキング」（種目別）を月次スナップシ�
 実HTML確認（2026-11-06、5種目すべて。robots.txt は Allow: /）:
 - 取得URLは 301 で正規URLへ転送される。config に正規URLを設定する（推測で作っていない）。
 - ページのタイトルは「世界ランキング 男子シングルス（11月3日付）」形式。基準日は月日のみで年は無い。
-  → 年は呼び出し側の指定を使い、ページの基準月と一致しない場合は保存しない（年を推測しない）。
+  → 年はページに無い。基準年は (a) HTTPの Last-Modified の年月が一致 または (b) 人の確認で独立に確認できた場合のみ保存する。
+    どちらも無ければ [HOLD]（保存しない。年を推測しない）。
 - 表示範囲は「上位15位」＋「上位15位より下の日本選手」。全ランキングはページに無い（full_ranking_available=false）。
   → 完全性は「1〜15位が欠けなく揃うこと」で判定する。総件数の表記は確認できなかった。
 - 行は「順位・国・氏名・ポイント・大会数」の5行組。ダブルスの氏名は「A／B」（構成2名）。
@@ -194,16 +195,44 @@ def save_snapshot(snapshot_dir: Path, snap: dict) -> str:
     return action
 
 
-def fetch_html(url: str) -> tuple[str, str]:
-    """戻り値: (本文, 転送後の最終URL)。転送は許可（正規URLへの301）。"""
+def fetch_html(url: str) -> tuple[str, str, str | None]:
+    """戻り値: (本文, 転送後の最終URL, Last-Modified ヘッダー or None)。転送は許可（正規URLへの301）。"""
     resp = requests.get(url, timeout=REQUEST_TIMEOUT, headers={"User-Agent": USER_AGENT}, allow_redirects=True)
     resp.raise_for_status()
     m = re.search(r"charset=([\w.-]+)", resp.headers.get("Content-Type", ""), re.I)
-    return decode_body(resp.content, m.group(1) if m else None), resp.url
+    return decode_body(resp.content, m.group(1) if m else None), resp.url, resp.headers.get("Last-Modified")
+
+
+def year_from_last_modified(value: str | None) -> tuple[int, int] | None:
+    """Last-Modified（RFC 1123）の (年, 月) を返す。無い・読めない場合は None。
+    注意: 公開ページの更新時刻であり、基準日の年を直接示すものではない。"""
+    if not value:
+        return None
+    try:
+        from email.utils import parsedate_to_datetime
+        d = parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        return None
+    return (d.year, d.month) if d else None
+
+
+def year_evidence(*, year: int, month: int, last_modified: str | None,
+                  human: dict | None) -> dict | None:
+    """基準年を独立に確認できる根拠を返す。無ければ None（＝保存を保留する）。
+    根拠は次のどちらか:
+      (a) HTTPの Last-Modified の年月が、保存対象の年月と一致する（サーバーの更新時刻）
+      (b) 人が確認した根拠（出典と年）。年が保存対象の年と一致する場合のみ
+    ページ本文の「11月3日付」には年が無いため、それだけでは根拠にならない。"""
+    lm = year_from_last_modified(last_modified)
+    if lm == (year, month):
+        return {"kind": "http_last_modified", "value": last_modified}
+    if human and human.get("year") == year and str(human.get("source", "")).strip():
+        return {"kind": "human_confirmed", "value": str(human["source"]).strip(), "year": year}
+    return None
 
 
 def run_snapshot(*, year_month: str, urls: dict, snapshot_dir: Path, fetch=fetch_html,
-                 now_utc: dt.datetime | None = None) -> int:
+                 now_utc: dt.datetime | None = None, human_year: dict | None = None) -> int:
     """種目ごとに独立して取得・保存する。戻り値: 1つでも失敗があれば 1、無ければ 0。
     全種目がURL未設定のときは警告を出して 0 で終了する。"""
     try:
@@ -227,9 +256,16 @@ def run_snapshot(*, year_month: str, urls: dict, snapshot_dir: Path, fetch=fetch
             print(f"[SKIP] {code} {DISCIPLINE_NAMES[code]}: URL未設定のため取得しない")
             continue
         try:
-            text, final_url = fetch(url)
+            text, final_url, last_modified = fetch(url)
             snap = build_snapshot(text, year=year, month=month, discipline_code=code,
                                   source_url=final_url, fetched_at=fetched_at)
+            evidence = year_evidence(year=year, month=month, last_modified=last_modified, human=human_year)
+            if evidence is None:
+                # 年を独立に確認できない（ページに年が無く、更新時刻の年月も一致しない）→ 保存を保留
+                print(f"[HOLD] {code} {DISCIPLINE_NAMES[code]} {snap['year_month']}: 基準年を独立に確認できないため保存を保留"
+                      f"（ページは「{snap['basis_date'][5:]}」の月日のみ。Last-Modified={last_modified}）")
+                continue
+            snap["year_evidence"] = evidence
         except BasisMismatch as err:
             # 保存しない。ページが対象月に更新されるまで待つ（前月データを推測して保存しない）
             print(f"[WAIT] {code} {DISCIPLINE_NAMES[code]}: {err}。保存せず次回の実行で再確認します")
@@ -249,10 +285,19 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="badspi 世界ランキングのスナップショット保存")
     ap.add_argument("--year-month", required=True, help="YYYY-MM（ページの基準月と一致させる）")
     ap.add_argument("--snapshot-dir", default=str(DEFAULT_SNAPSHOT_DIR))
+    ap.add_argument("--confirm-year-source", default=None,
+                    help="人が基準年を確認した根拠（出典URLや説明）。--confirm-year と併用")
+    ap.add_argument("--confirm-year", type=int, default=None, help="人が確認した基準年（YYYY）")
     args = ap.parse_args(argv)
+    human = None
+    if args.confirm_year_source or args.confirm_year:
+        if not (args.confirm_year_source and args.confirm_year):
+            print("[ERROR] --confirm-year-source と --confirm-year は両方指定してください")
+            return 1
+        human = {"source": args.confirm_year_source, "year": args.confirm_year}
     config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
     return run_snapshot(year_month=args.year_month, urls=config.get("badspi_ranking_urls", {}),
-                        snapshot_dir=Path(args.snapshot_dir))
+                        snapshot_dir=Path(args.snapshot_dir), human_year=human)
 
 
 if __name__ == "__main__":

@@ -78,6 +78,17 @@ TARGET_DISCIPLINES = {"男子シングルス", "女子シングルス", "男子�
 # 内容の同一性判定に使う項目（訂正検知）。選手は表示名ではなくIDで比較する。
 CONTENT_KEYS = ("discipline", "side1", "side2", "games", "winner", "status", "start")
 
+# 文書（OpenAPI・マニュアル 2026-11-06）で確認できなかった項目。実データ（APIキー取得後）まで推測で補わない。
+# 形式が想定と違う試合は正規化されず通知されない（推測して埋めない）。
+UNVERIFIED_API_ITEMS = (
+    "start: 形式・タイムゾーン未記載（タイムゾーン無しは日付不明＝通知対象外）",
+    "side1/side2: キー名（players・id・name）未記載（想定。不一致は正規化不可＝通知しない）",
+    "winner: 型未記載（整数の 1 / 2 のみ採用。それ以外は未確定と表示）",
+    "games: 型未記載（整数2要素の配列のみ採用。欠損は取得不可と表示）",
+    "status: 値の意味未記載（保存のみ。判定には使わない）",
+    "ページング: next_cursor→cursor は一覧の共通仕様から推定（実データ未検証）",
+)
+
 DEFAULT_CONFIG = {
     "discord_output_enabled": False,
     "backlog_days": 3,
@@ -709,6 +720,7 @@ def run_once(*, api_key: str, webhook: str, now_utc: dt.datetime, state_path: Pa
         "unmapped_discipline": sum(1 for i in items if not isinstance(i, dict)
                                    or DISCIPLINE_MAP.get(str(i.get("discipline", "")).strip()) is None),
         "quarantined_total": len(state["quarantine"]),
+        "api_unverified": list(UNVERIFIED_API_ITEMS),
     })
     save_state(state_path, state)  # 保存完了後にのみ通知へ進む
 

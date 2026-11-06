@@ -150,6 +150,75 @@ class SaveTest(unittest.TestCase):
         self.assertTrue((self.dir / "2026-11_MS.incomplete.json").exists())
 
 
+LM_2026 = "Wed, 04 Nov 2026 09:15:00 GMT"   # 2026年11月の更新（基準年の独立根拠）
+LM_2025 = "Tue, 04 Nov 2025 09:15:00 GMT"   # 古いページ（前年）
+
+
+class YearGuardTest(unittest.TestCase):
+    """ページに年が無い。実行年を無条件に採用して古いページを誤登録しないことを検証する。"""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self._tmp.name) / "d"
+        self.url = "https://example.invalid/MS"
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def run_with(self, *, last_modified, human=None, year_month="2026-11", html=None):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = b.run_snapshot(year_month=year_month, urls={"MS": self.url}, snapshot_dir=self.dir,
+                                fetch=lambda u: (html or page_html("MS"), u, last_modified),
+                                human_year=human)
+        return rc, buf.getvalue()
+
+    def test_no_year_evidence_holds_and_saves_nothing(self):
+        rc, out = self.run_with(last_modified=None)
+        self.assertEqual(rc, 0)
+        self.assertIn("[HOLD] MS", out)
+        self.assertFalse(self.dir.exists())
+
+    def test_old_page_with_previous_year_last_modified_is_held_not_saved_as_current_year(self):
+        # 古いページ（2025年11月の更新）を、実行年2026で誤登録しないこと
+        rc, out = self.run_with(last_modified=LM_2025)
+        self.assertEqual(rc, 0)
+        self.assertIn("[HOLD] MS", out)
+        self.assertFalse((self.dir / "2026-11_MS.json").exists())
+
+    def test_matching_last_modified_year_month_saves_with_evidence(self):
+        rc, out = self.run_with(last_modified=LM_2026)
+        self.assertEqual(rc, 0)
+        saved = json.loads((self.dir / "2026-11_MS.json").read_text(encoding="utf-8"))
+        self.assertEqual(saved["year_evidence"]["kind"], "http_last_modified")
+
+    def test_human_confirmation_with_matching_year_saves(self):
+        rc, out = self.run_with(last_modified=None, human={"source": "人が確認（2026-11-06）", "year": 2026})
+        saved = json.loads((self.dir / "2026-11_MS.json").read_text(encoding="utf-8"))
+        self.assertEqual(saved["year_evidence"]["kind"], "human_confirmed")
+
+    def test_human_confirmation_with_other_year_is_held(self):
+        rc, out = self.run_with(last_modified=None, human={"source": "x", "year": 2025})
+        self.assertIn("[HOLD]", out)
+        self.assertFalse(self.dir.exists())
+
+    def test_existing_complete_snapshot_is_never_touched_by_held_run(self):
+        self.run_with(last_modified=LM_2026)
+        path = self.dir / "2026-11_MS.json"
+        before = path.read_text(encoding="utf-8")
+        self.run_with(last_modified=None, html=page_html("MS", copy.deepcopy(FIXTURE["pages"])))
+        self.run_with(last_modified=LM_2025)
+        self.assertEqual(path.read_text(encoding="utf-8"), before)
+
+    def test_held_year_is_not_marked_as_failure_in_exit_code(self):
+        rc, _ = self.run_with(last_modified=None)
+        self.assertEqual(rc, 0)
+
+    def test_page_text_year_is_not_used_as_evidence(self):
+        self.assertIsNone(b.year_evidence(year=2026, month=11, last_modified=None, human=None))
+        self.assertIsNone(b.year_from_last_modified("not a date"))
+
+
 class RunTest(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -161,7 +230,7 @@ class RunTest(unittest.TestCase):
 
     def fetch_ok(self, url):
         code = url.rsplit("/", 1)[-1]
-        return page_html(code), url + "?final"
+        return page_html(code), url + "?final", LM_2026
 
     def test_all_five_saved_and_final_url_recorded(self):
         buf = io.StringIO()
@@ -258,7 +327,7 @@ class RealHtmlTest(unittest.TestCase):
         with contextlib.redirect_stdout(buf):
             rc = b.run_snapshot(year_month="2026-12", urls={"MS": "https://example.invalid/MS"},
                                 snapshot_dir=Path(tmp.name) / "d",
-                                fetch=lambda u: (self._real("MS"), u))
+                                fetch=lambda u: (self._real("MS"), u, None))
         self.assertEqual(rc, 0)
         self.assertIn("[WAIT] MS", buf.getvalue())
         self.assertFalse((Path(tmp.name) / "d").exists())

@@ -254,5 +254,50 @@ class QuotaAndRobustnessTest(unittest.TestCase):
                       confirmed_by="細川", confirmed_at="2026-11-06")
 
 
+class DailyBudgetAndQueueTest(unittest.TestCase):
+    def _doc(self, n):
+        return {"candidates": [{"jba_detail_id": str(i), "name": f"候補{i}", "team": "T", "prefecture": "P",
+                                "pages": ["x"], "source_urls": [SRC], "status": "UNMATCHED",
+                                "search": None, "same_name_count": 1, "jba_detail_url": f"u{i}"}
+                               for i in range(n)]}
+
+    def test_daily_budget_is_30_and_keeps_20_for_results(self):
+        self.assertEqual(L.SEARCH_DAILY_BUDGET, 30)
+        doc = self._doc(60)
+        ok = lambda k, q: (200, _search_payload([]))
+        a = L.search_candidates(doc, "K", ok, max_calls=20, sleep=lambda s: None, today_utc="2026-11-06")
+        b = L.search_candidates(doc, "K", ok, max_calls=20, sleep=lambda s: None, today_utc="2026-11-06")
+        self.assertEqual(a["searched"], 20)
+        self.assertEqual(b["searched"], 10, "同じUTC日の合計は30まで")
+        self.assertIn("検索枠", b["stopped"])
+        self.assertEqual(doc["search_usage"]["2026-11-06"], 30)
+
+    def test_budget_resets_on_next_utc_day(self):
+        doc = self._doc(60)
+        ok = lambda k, q: (200, _search_payload([]))
+        L.search_candidates(doc, "K", ok, max_calls=20, sleep=lambda s: None, today_utc="2026-11-06")
+        L.search_candidates(doc, "K", ok, max_calls=20, sleep=lambda s: None, today_utc="2026-11-06")
+        nxt = L.search_candidates(doc, "K", ok, max_calls=20, sleep=lambda s: None, today_utc="2026-11-07")
+        self.assertEqual(nxt["searched"], 20)
+        self.assertIsNone(nxt["stopped"])
+
+    def test_queue_lists_only_jpn_hits_in_batches_of_ten_and_never_confirms(self):
+        doc = self._doc(12)
+        hits = [{"kind": "player", "id": f"pl_{i}", "name": f"候補{i}", "country": "JPN" if i % 2 == 0 else "CHN",
+                 "score": 90} for i in range(12)]
+        it = iter(hits)
+        L.search_candidates(doc, "K", lambda k, q: (200, _search_payload([next(it)])), max_calls=20,
+                            sleep=lambda s: None, today_utc="2026-11-06")
+        md = L.confirm_queue_markdown(doc)
+        self.assertIn("対象: 6 名", md)
+        self.assertIn("塊 1", md)
+        self.assertNotIn("候補1 |", md, "JPN以外は対象外")
+        self.assertIn("自動確定はしていません", md)
+        self.assertTrue(all(c["status"] == "UNMATCHED" for c in doc["candidates"]))
+
+    def test_queue_is_empty_before_search(self):
+        self.assertIn("JPN候補が出た人はいません", L.confirm_queue_markdown(self._doc(3)))
+
+
 if __name__ == "__main__":
     unittest.main()
