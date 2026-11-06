@@ -1,10 +1,5 @@
 {
   "seen_urls": {
-    "https://gigazine.net/news/20261023-anthropic-formal-verification/": "2026-10-23T17:27:38.867899+09:00",
-    "https://gigazine.net/news/20261023-micron-4fsquare-shift/": "2026-10-23T17:27:38.867899+09:00",
-    "https://news.google.com/rss/articles/CBMiR0FVX3lxTFBwRkpsTEMyY3Y4MWxHbUJYaFpFWWVzU0FSd3dMT005OE4xVVlfRXJCbHVlMUtDQkpLS2I0MkJhc19uWlRYNU1J?oc=5": "2026-10-23T17:27:38.867899+09:00",
-    "https://news.google.com/rss/articles/CBMiW0FVX3lxTFBHQzQxTzRGLVlKeVNmZUFGQW96bVFqZEpjcnB3NVhsQVc3Ql9CRG03RnJqTWIzT0lpLWFselhqcngxNFBRclJjNG43bDBRWXJ6cWtqQ2pOYm5lUWc?oc=5": "2026-10-23T23:13:21.137339+09:00",
-    "https://news.google.com/rss/articles/CBMif0FVX3lxTE9FcFNxTXdjcGpMWEVWZ2tzaUloNGxoa2Z3NDBzTlA4bEM4ZE9UMGFvNVF6M1I4TXBlOGl4dUpQdmc3ZHgxUVNxbVlzLWtQYllNUER3WkdxSFl2UEhHTDk4RUszMTliWmhjTFNaODB0VVRfVjhubnJGZURSWGlibVE?oc=5": "2026-10-23T23:13:21.137339+09:00",
     "https://www.itmedia.co.jp/news/article/2610/24/2000002564/": "2026-10-24T09:40:43.907417+09:00",
     "https://gigazine.net/news/20261023-usb-c-magnetic-connect-microsoft/": "2026-10-24T09:40:43.907417+09:00",
     "https://postcoffee.co/magazine/coffee/howtobrew/hoop-how-to-brew/": "2026-10-24T09:40:43.907417+09:00",
@@ -138,8 +133,9 @@
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1BUDFnRXVOWDZXY3d0WkVydWY5enRUcDUwN2V2UnloNTg0MTNxY2dScl9tT1daeEl0OEwxeGRLeG03bVAtcnVfaFBaa09pTjRDRWpUNVZMVmVCd2hqTG9BUWNWVzhiZDZQ?oc=5": "2026-11-06T10:29:52.512284+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1iWDR0M3l1Xy1WRXJ6ckRDaGtCb1A4V3lsMkp4aXIxaUN3MkI5SDRpTGlocnd1MjVrRWxlNUJjLTd0Z1A2ZWRNWWFzajlpRENJRWF6eTFodXFMVW9kVi1LUVJvcUJiaERY?oc=5": "2026-11-06T10:29:52.512284+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE9DWW5VQ19QanVtY2pyVzNYNFJMQklLRUxGNzg1LVl6QkFpUWJEWktHZHhqUFZLaXBuaWhSODE4NnpPbnVoQl9JN2tfQTB4SEVyYTZELUVvRmFid2k5Zzg2aUdhblFfM3lX?oc=5": "2026-11-06T10:29:52.512284+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFA3cUk4dmMzcXc3aUtMV0NrN0o4UzI3eG5nWlhrank5NTFQUWk3YjJHRHhqdC13V0hFeXVGcG52cDBQNkNuWTAzeWN1VC1raVRmaVVfczE2NnRWMnBoVnp1T2pNRGxQRkpM?oc=5": "2026-11-06T10:29:52.512284+09:00"
-  },
-  "_gemini_backoff:quota": "2026-11-06T17:00:00+09:00",
-  "_gemini_backoff_basis:quota": "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)／日次境界(太平洋時間0時・推定)"
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFA3cUk4dmMzcXc3aUtMV0NrN0o4UzI3eG5nWlhrank5NTFQUWk3YjJHRHhqdC13V0hFeXVGcG52cDBQNkNuWTAzeWN1VC1raVRmaVVfczE2NnRWMnBoVnp1T2pNRGxQRkpM?oc=5": "2026-11-06T10:29:52.512284+09:00",
+    "https://gigazine.net/news/20261106-open-closed-weight/": "2026-11-07T06:33:34.329540+09:00",
+    "https://gigazine.net/news/20261106-discord-rebuild-app-in-rust/": "2026-11-07T06:33:34.329540+09:00",
+    "https://news.google.com/rss/articles/CBMiR0FVX3lxTFBwRkpsTEMyY3Y4MWxHbUJYaFpFWWVzU0FSd3dMT005OE4xVVlfRXJCbHVlMUtDQkpLS2I0MkJhc19uWlRYNU1J?oc=5": "2026-11-07T06:33:34.329540+09:00"
+  }
 }
