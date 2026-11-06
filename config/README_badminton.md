@@ -48,3 +48,29 @@ python3 scripts/badminton_jp_ledger.py confirm \
 
 - `discord_output_enabled` は既定 `false`。true にするまで Discord へは送らない。
 - 警告（取得件数はあるが正規化0件・未知の種目表記・開始日時不明）は、ログ（`::warning::`）とDiscordヘッダーに出る。「対象試合なし」とは区別される。
+
+## 6. Mac mini でのローカル実行（launchd・採用方式）
+
+- APIキーは GitHub Secrets に置かない。**macOS キーチェーン**から読む（コード・設定・ログ・GitHub には保存しない）。
+- キーが無い場合は取得を試みず停止（終了コード 78）。badspi（キー不要）は継続する。
+- 二重起動はロックで防止（終了コード 75）。当日分が取得済みなら再取得しない。
+- badspi は週1回（7日以上古い、または未取得のとき）だけ取得する。
+- 台帳の検索は1日30件まで（UTC）。確定は人が行う。Discord は送らない（既定 OFF。このランナーは Discord の認証情報を読まない）。
+- 実行時の生成物（状態・ランキング・台帳・ログ）は `~/Library/Application Support/ricky-kogyo/badminton/` に置く（リポジトリには置かない）。
+
+### 登録手順（社長の承認後・一度だけ）
+
+```bash
+# 1) キーを登録（値は端末で入力。チャットに貼らない）
+security add-generic-password -s ricky-kogyo-badminton-api-free -a BADMINTON_API_KEY -w
+
+# 2) 依存パッケージ（ローカルの python3 に）
+python3 -m pip install requests
+
+# 3) plist を展開して登録（06:05 JST に毎日実行）
+scripts/install_local_badminton_launchd.sh --load
+```
+
+- 停止は `launchctl bootout gui/$(id -u)/com.rickykogyo.badminton-results`。
+- ログは `~/Library/Application Support/ricky-kogyo/badminton/logs/` を見る。
+- Mac mini の時刻帯は Asia/Tokyo であること。スリープ中は起床後に実行される。

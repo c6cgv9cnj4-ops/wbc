@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- 注意: APIキーは含めない（macOS キーチェーンから読む）。Discord の認証情報も含めない。 -->
+<!-- 時刻は Mac mini のシステム時刻帯（Asia/Tokyo）で 06:05 に起動する。スリープ中の場合は起床後に実行される。 -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.rickykogyo.badminton-results</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>__PYTHON__</string>
+        <string>__RUNNER__</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>__WORKDIR__</string>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>6</integer>
+        <key>Minute</key>
+        <integer>5</integer>
+    </dict>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+        <key>BADMINTON_LOCAL_DIR</key>
+        <string>__LOCALDIR__</string>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>__LOGDIR__/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>__LOGDIR__/launchd.err.log</string>
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

@@ -29,9 +29,13 @@ import requests
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = ROOT / "config" / "badminton_results.json"
-CANDIDATES_PATH = ROOT / "config" / "badminton_jp_candidates.json"
-REVIEW_PATH = ROOT / "config" / "badminton_jp_candidates_review.md"
-ROSTER_PATH = ROOT / "config" / "badminton_jp_players.json"
+# 既定はリポジトリ内の config。BADMINTON_LOCAL_DIR を指定すると、実行時の生成物をその場所に置く
+# （Mac mini のローカル運用では、確認済みIDや検索結果をリポジトリ・GitHubに置かない）。
+_LOCAL_DIR = os.environ.get("BADMINTON_LOCAL_DIR", "").strip()
+_BASE = Path(_LOCAL_DIR) if _LOCAL_DIR else ROOT / "config"
+CANDIDATES_PATH = _BASE / "badminton_jp_candidates.json"
+REVIEW_PATH = _BASE / "badminton_jp_candidates_review.md"
+ROSTER_PATH = _BASE / "badminton_jp_players.json"
 
 API_BASE = "https://api.badmintonapi.com"
 SEARCH_PATH = "/v1/search"
@@ -39,7 +43,7 @@ REQUEST_TIMEOUT = 20
 SEARCH_INTERVAL_SEC = 6.0   # 10回/分の制限に合わせる
 SEARCH_MAX_PER_RUN = 20     # 1回の実行で検索する上限
 SEARCH_DAILY_BUDGET = 30    # 1日（UTC）の検索の上限。Free は50回/日のため、結果取得用に20回を必ず残す
-QUEUE_PATH = ROOT / "config" / "badminton_jp_confirm_queue.md"
+QUEUE_PATH = _BASE / "badminton_jp_confirm_queue.md"
 QUEUE_BATCH = 10            # 人が確認する1回の塊（一括確認を避けるため）
 JBA_CARD_RE = re.compile(r'<li class="p-player__item">([\s\S]*?)</li>')
 JBA_HREF_RE = re.compile(r'href="(https://www\.badminton\.or\.jp/national/player/view/(\d+))"')

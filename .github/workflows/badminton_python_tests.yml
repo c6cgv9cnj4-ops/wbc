@@ -33,4 +33,5 @@ jobs:
             tests.test_badminton_results_free \
             tests.test_badspi_ranking_snapshot \
             tests.test_badminton_jp_ledger \
-            tests.test_state_branch
+            tests.test_state_branch \
+            tests.test_local_badminton_run
