@@ -101,6 +101,7 @@ DEFAULT_CONFIG = {
     "run_log_keep": 90,
     "max_api_pages": 5,
     "api_min_interval_sec": 6.0,
+    "data_publish_enabled": False,  # 専用ブランチへの自動公開（Deploy Key の範囲をブランチ制限で証明するまで False）
     "api_format_verified": False,  # 実API応答で形式を確認するまで False（False の間は試合を書き出さない）
 }
 
@@ -707,6 +708,8 @@ def handoff_matches(state: dict, roster: dict, api_day_utc: str) -> list[dict]:
             "status": e.get("status"),
             "start_utc": start.astimezone(UTC).isoformat(),
         }
+        if not H.is_international_tournament(m["tournament"]):
+            continue  # 国内大会は既存のJBA結果配信が担当（重複防止・安全側で除外）
         if H.validate_match(m, api_day_utc) is None:
             out.append(m)
     return out

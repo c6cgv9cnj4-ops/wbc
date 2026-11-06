@@ -23,5 +23,7 @@
   "_badspi_note": "世界ランキング（海外）の正規URL。2026-11-06に5種目とも実HTMLで確認（旧URL /ranking/男子海外シングルス/ は301で正規URLへ転送）。国内ランキングは対象外。",
   "_results_note": "結果取得は /v1/results/yesterday（文書上のFree）。/v1/results（date指定, Free表記）は実データ未検証のため未採用。",
   "api_format_verified": false,
-  "_api_format_note": "実API応答（start・side・winner・games・status・ページング）を実データで確認し終えるまで false。false の間は試合結果JSONに試合を書き出さない。"
+  "_api_format_note": "実API応答（start・side・winner・games・status・ページング）を実データで確認し終えるまで false。false の間は試合結果JSONに試合を書き出さない。",
+  "data_publish_enabled": false,
+  "_data_publish_note": "専用ブランチへの自動公開。Deploy Key の書き込み範囲をブランチ制限で証明できるまで false。true にするのは社長の承認後のみ。"
 }

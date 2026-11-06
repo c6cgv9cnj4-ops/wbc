@@ -35,7 +35,7 @@ KEY_LIKE = "SECRET_KEY_FOR_TEST_ONLY_12345"
 def match(**over):
     m = {
         "match_id": "m-1",
-        "tournament": "テスト国際大会",
+        "tournament": "BWF Test Open",
         "discipline": "WS",
         "side_a": [{"name": "奥原 希望"}],
         "side_b": [{"name": "Test Opponent"}],
@@ -163,7 +163,7 @@ class ConsumerContentTest(HandoffTestBase):
         self.assertEqual(reason, "ok")
         self.assertEqual(len(embeds), 1)
         e = embeds[0]
-        self.assertIn("テスト国際大会", e["title"])
+        self.assertIn("BWF Test Open", e["title"])
         self.assertIn("女子シングルス", e["title"])
         self.assertIn("**奥原 希望** 21-15 21-18 Test Opponent", e["description"])  # 勝者・スコア・敗者
         self.assertIn("badmintonapi.com", e["description"])                       # 出典
@@ -269,7 +269,7 @@ class ProducerTest(unittest.TestCase):
         state = {"matches": {"x": {"id": "x", "date_status": "confirmed", "winner": 1, "games": [[21, 1], [21, 2]],
                                    "start": "2026-11-06T04:30:00+00:00", "status": "finished",
                                    "side1": [{"id": "1", "name": "奥原"}], "side2": [{"id": "2", "name": "B"}],
-                                   "tournament": {"name": "T"}, "discipline": "WS"}}}
+                                   "tournament": {"name": "BWF T Open"}, "discipline": "WS"}}}
         roster = {"1": {"name": "奥原", "status": R.JP_CONFIRMED}}
         with contextlib.redirect_stdout(io.StringIO()):
             R._write_handoff_safely(self.out, NOW, window, {"api_format_verified": False}, "ok", state, roster)
@@ -282,7 +282,7 @@ class ProducerTest(unittest.TestCase):
         base = {"date_status": "confirmed", "winner": 1, "games": [[21, 1], [21, 2]],
                 "start": "2026-11-06T04:30:00+00:00", "status": "finished",
                 "side1": [{"id": "1", "name": "奥原"}], "side2": [{"id": "2", "name": "B"}],
-                "tournament": {"name": "T"}, "discipline": "WS"}
+                "tournament": {"name": "BWF T Open"}, "discipline": "WS"}
         state = {"matches": {
             "jp": dict(base, id="jp"),
             "non_jp": dict(base, id="non", side1=[{"id": "9", "name": "X"}]),
@@ -467,6 +467,32 @@ class WorkflowConcurrencyStaticTest(unittest.TestCase):
         self.assertNotIn("schedule:", wf)
         self.assertNotIn("secrets.", wf)
         self.assertIn("tests.test_badminton_handoff", wf)
+
+
+class DomesticExclusionTest(HandoffTestBase):
+    """国内大会（JBA結果ページの既存配信と重複し得る）は安全側で除外する。"""
+
+    def test_classifier(self):
+        self.assertTrue(H.is_international_tournament("BWF World Tour Japan Open 2026"))
+        self.assertTrue(H.is_international_tournament("Yonex All England Open"))
+        self.assertTrue(H.is_international_tournament("Thomas & Uber Cup Finals"))
+        for name in ("全日本総合選手権", "日本ジュニア選手権", "埼玉県大会", "北本市民大会", "", None, "Unknown Event"):
+            self.assertFalse(H.is_international_tournament(name), name)
+
+    def test_domestic_match_is_excluded_on_the_consumer_side(self):
+        self.write(payload([match(match_id="intl-1", tournament="BWF Japan Open"),
+                            match(match_id="dom-1", tournament="全日本総合選手権")]))
+        embeds, marks, _ = self.collect()
+        self.assertEqual([k for k, _ in marks], ["intl::intl-1"])
+        self.assertEqual(len(embeds), 1)
+
+    def test_unknown_tournament_is_not_sent(self):
+        self.write(payload([match(tournament="Unknown Event")]))
+        self.assertEqual(self.collect()[0], [])
+
+    def test_producer_filter_uses_the_same_rule(self):
+        self.assertFalse(R.H.is_international_tournament("全日本総合選手権"))
+        self.assertTrue(R.H.is_international_tournament("BWF Japan Open"))
 
 
 if __name__ == "__main__":

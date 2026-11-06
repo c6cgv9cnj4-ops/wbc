@@ -32,6 +32,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import badminton_results_free as R  # noqa: E402
 import badminton_jp_ledger as L  # noqa: E402
 import badspi_ranking_snapshot as BS  # noqa: E402
+import hashlib  # noqa: E402
 import badminton_handoff as BH  # noqa: E402
 
 KEYCHAIN_SERVICE = "ricky-kogyo-badminton-api-free"
@@ -121,6 +122,55 @@ def search_step(local_dir: Path, api_key: str, *, fetch_search, now_utc: dt.date
     return result
 
 
+PUBLISH_SCRIPT = ROOT / "scripts" / "publish_badminton_handoff.sh"
+PUBLISH_LOG = "publish.log"
+
+
+def _redact(text: str, env: dict) -> str:
+    """ログに鍵の場所（パス）を出さない。"""
+    key = (env or {}).get("BADMINTON_DATA_DEPLOY_KEY", "")
+    return text.replace(key, "<DEPLOY_KEY>") if key else text
+
+
+def publish_handoff(*, outbox_path: Path, local_dir: Path, config: dict, now_utc: dt.datetime,
+                    env: dict, runner=subprocess.run) -> str:
+    """結果JSONを専用ブランチへ公開する（既定は無効）。戻り値は判定理由または 'published' / 'failed'。
+    失敗は隠さず publish.log に残す。公開済みの内容は再公開しない（内容ハッシュで判定）。"""
+    try:
+        payload, _ = BH.read_payload(outbox_path)
+        data = outbox_path.read_bytes() if outbox_path.exists() else b""
+    except OSError:
+        payload, data = None, b""
+    digest = hashlib.sha256(data).hexdigest() if data else ""
+    marker = local_dir / "publish_last.json"
+    last = None
+    try:
+        last = json.loads(marker.read_text(encoding="utf-8")).get("digest")
+    except (OSError, ValueError, AttributeError):
+        last = None
+    decision = BH.publish_decision(payload, now_utc, enabled=config.get("data_publish_enabled") is True,
+                                   key_present=bool(env.get("BADMINTON_DATA_DEPLOY_KEY")),
+                                   last_digest=last, digest=digest)
+    if decision != "publish":
+        print(f"[PUBLISH] 公開しません（{decision}）")
+        return decision
+    (local_dir / "logs").mkdir(parents=True, exist_ok=True)
+    try:
+        r = runner(["bash", str(PUBLISH_SCRIPT), str(outbox_path)], env=env,
+                   capture_output=True, text=True, timeout=180)
+        out = _redact((r.stdout or "") + (r.stderr or ""), env)
+    except (OSError, subprocess.SubprocessError) as err:
+        out, r = f"実行できませんでした（{type(err).__name__}）", None
+    with open(local_dir / "logs" / PUBLISH_LOG, "a", encoding="utf-8") as fh:
+        fh.write(f"{now_utc.isoformat()} rc={getattr(r, 'returncode', 'n/a')}\n{out}\n")
+    if r is not None and r.returncode == 0:
+        marker.write_text(json.dumps({"digest": digest, "published_at": now_utc.isoformat()}), encoding="utf-8")
+        print("[PUBLISH] 公開しました")
+        return "published"
+    print(f"[PUBLISH][ERROR] 公開に失敗しました（{PUBLISH_LOG} を参照。Discord送信には影響しません）")
+    return "failed"
+
+
 def run_local(*, local_dir: Path, env: dict, now_utc: dt.datetime | None = None,
               keychain=None, fetch=None, post=None, fetch_search=None, badspi_fetch=None,
               sleep=time.sleep) -> int:
@@ -169,6 +219,11 @@ def run_local(*, local_dir: Path, env: dict, now_utc: dt.datetime | None = None,
                                 fetch=fetch, post=post, sleep=sleep, event="schedule", rankings=rankings,
                                 handoff_path=local_dir / "outbox" / BH.DATA_FILENAME)
                 rc = max(rc, r1)
+                # 試合結果JSONの公開（この実行で生成された新しいJSONだけ。既定は無効）
+                pub = publish_handoff(outbox_path=local_dir / "outbox" / BH.DATA_FILENAME, local_dir=local_dir,
+                                      config=config, now_utc=now_utc, env=env)
+                if pub == "failed":
+                    rc = max(rc, EX_FAIL)
             # 2) 台帳の照合（確定はしない・日次上限あり）
             s = search_step(local_dir, api_key, fetch_search=fetch_search, now_utc=now_utc, sleep=sleep)
             print(f"[INFO] 台帳の照合: {s}")

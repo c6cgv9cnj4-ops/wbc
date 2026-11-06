@@ -30,6 +30,21 @@ DATA_FILENAME = "badminton_results_handoff.json"
 DISCIPLINE_LABEL = {"MS": "男子シングルス", "WS": "女子シングルス", "MD": "男子ダブルス",
                     "WD": "女子ダブルス", "XD": "混合ダブルス"}
 _CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
+# 国内大会（JBA 結果ページの既存配信が担当）を示す語。1つでも含めば除外する（安全側）。
+DOMESTIC_MARKERS = ("全日本", "日本", "全国", "国民体育", "国体", "インターハイ", "インカレ", "実業団",
+                    "全中", "ジュニア", "都道府県", "県", "市民", "JBA", "ランキング大会")
+# 国際大会と確認できる語。どれも含まない試合は除外する（API実データ未検証のため「不明は配信しない」）。
+INTERNATIONAL_MARKERS = ("BWF", "World", "Open", "Masters", "Super", "Asia", "Thomas", "Uber",
+                         "Sudirman", "Olympic", "Championships", "Grand Prix", "International", "Challenge")
+
+
+def is_international_tournament(name) -> bool:
+    """大会名から国際大会と確認できるものだけ True。国内の語を含むものは必ず False。"""
+    n = str(name or "").strip()
+    if not n or any(m in n for m in DOMESTIC_MARKERS):
+        return False
+    low = n.lower()
+    return any(m.lower() in low for m in INTERNATIONAL_MARKERS)
 
 
 def expected_api_day_utc(now_utc: dt.datetime) -> str:
@@ -193,6 +208,9 @@ def collect_embeds(path: Path, now_utc: dt.datetime, seen: dict, exclude_player=
         if problem:
             skipped[problem] = skipped.get(problem, 0) + 1
             continue
+        if not is_international_tournament(m.get("tournament")):
+            skipped["not_international_or_unverified"] = skipped.get("not_international_or_unverified", 0) + 1
+            continue
         if exclude_player and any(exclude_player(p["name"]) for p in m["side_a"] + m["side_b"]):
             skipped["covered_by_existing"] = skipped.get("covered_by_existing", 0) + 1
             continue
@@ -228,3 +246,31 @@ def prune_seen(seen: dict, now_utc: dt.datetime, days: int = SEEN_RETENTION_DAYS
             continue
         if sent < cutoff:
             del seen[key]
+
+
+PUBLISH_MAX_AGE = dt.timedelta(minutes=15)   # この実行で生成された直後のJSONだけを公開対象にする
+
+
+def publish_decision(payload, now_utc: dt.datetime, *, enabled: bool, key_present: bool,
+                     last_digest: str | None, digest: str) -> str:
+    """公開するかどうかの判定。戻り値は理由（publish のみ公開する）。古いJSONは再公開しない。"""
+    if not enabled:
+        return "disabled"
+    if payload is None:
+        return "no_payload"
+    if payload.get("status") != "ok" or payload.get("format_verified") is not True:
+        return "not_ok"
+    try:
+        generated = dt.datetime.fromisoformat(payload.get("generated_at"))
+    except (TypeError, ValueError):
+        return "bad_generated_at"
+    if generated.tzinfo is None:
+        return "bad_generated_at"
+    age = now_utc.astimezone(dt.timezone.utc) - generated.astimezone(dt.timezone.utc)
+    if age > PUBLISH_MAX_AGE or age < -FUTURE_TOLERANCE:
+        return "stale"
+    if not key_present:
+        return "no_key"
+    if last_digest == digest:
+        return "unchanged"
+    return "publish"

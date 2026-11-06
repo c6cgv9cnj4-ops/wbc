@@ -36,7 +36,7 @@ JST = dt.timezone(dt.timedelta(hours=9))
 
 def _match(mid="m-1", api_day=None):
     day = api_day or H.expected_api_day_utc(dt.datetime.now(UTC))   # 取得窓（UTC前日）の中の試合にする
-    return {"match_id": mid, "tournament": "ドライラン国際大会", "discipline": "MS",
+    return {"match_id": mid, "tournament": "BWF Dry Run Open", "discipline": "MS",
             "side_a": [{"name": "Dry Run Player"}], "side_b": [{"name": "Dry Run Opponent"}],
             "games": [[21, 12], [21, 19]], "winner_side": "a", "status": "finished",
             "start_utc": f"{day}T03:00:00+00:00"}
@@ -113,13 +113,13 @@ class IntegratedDryRunTest(unittest.TestCase):
         self.assertEqual(len(self.sent), 1, "1回の配信（1メッセージ）に既存と新規をまとめる")
         titles = self.all_titles()
         self.assertIn("既存バド×スピ", titles)                      # 既存機能は維持
-        self.assertTrue(any("ドライラン国際大会" in t for t in titles))  # 新規結果が追加
+        self.assertTrue(any("BWF Dry Run Open" in t for t in titles))  # 新規結果が追加
         self.assertIn("intl::m-1", self.saved_state["intl_results_seen"])
 
         # 同じデータで再実行しても、同一試合は二重投稿されない
         self.sent.clear()
         self.run_main(state=self.saved_state)
-        self.assertFalse(any("ドライラン国際大会" in t for t in self.all_titles()))
+        self.assertFalse(any("BWF Dry Run Open" in t for t in self.all_titles()))
 
     def test_players_covered_by_existing_articles_are_not_sent_twice(self):
         # 指定選手（既存の大会記事が担当）を含む試合は除外し、それ以外の試合だけを追加する
@@ -127,7 +127,7 @@ class IntegratedDryRunTest(unittest.TestCase):
         self.write_payload([covered, _match("other")])
         self.run_main()
         titles = self.all_titles()
-        self.assertEqual(sum("ドライラン国際大会" in t for t in titles), 1)
+        self.assertEqual(sum("BWF Dry Run Open" in t for t in titles), 1)
         self.assertIn("intl::other", self.saved_state["intl_results_seen"])
         self.assertNotIn("intl::covered", self.saved_state["intl_results_seen"])
 
@@ -147,10 +147,10 @@ class IntegratedDryRunTest(unittest.TestCase):
                             status="ok", matches=[_match()])
         self.handoff.write_text(json.dumps(p), encoding="utf-8")
         self.run_main()
-        self.assertFalse(any("ドライラン国際大会" in t for t in self.all_titles()))
+        self.assertFalse(any("BWF Dry Run Open" in t for t in self.all_titles()))
         self.write_payload(format_verified=False)
         self.run_main()
-        self.assertFalse(any("ドライラン国際大会" in t for t in self.all_titles()))
+        self.assertFalse(any("BWF Dry Run Open" in t for t in self.all_titles()))
 
     def test_night_band_never_sends_handoff(self):
         self.write_payload()
@@ -166,7 +166,7 @@ class IntegratedDryRunTest(unittest.TestCase):
         self.send_ok = True
         self.sent.clear()
         self.run_main(state=self.saved_state)
-        self.assertTrue(any("ドライラン国際大会" in t for t in self.all_titles()))
+        self.assertTrue(any("BWF Dry Run Open" in t for t in self.all_titles()))
 
     def test_exception_in_handoff_path_is_isolated(self):
         self.write_payload()

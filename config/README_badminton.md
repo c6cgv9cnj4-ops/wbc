@@ -81,3 +81,21 @@ scripts/install_local_badminton_launchd.sh --load
 
 ### 未解決（本番前に必要）
 - 国内大会（JBA 結果ページで配信される試合）が API に含まれる場合、既存の JBA 結果配信と重複し得る。実データで含有を確認し、必要なら除外規則を追加する。
+
+### 公開経路（ローカル実行から自動接続）
+- 入口：`scripts/local_badminton_run.py`（launchd と手動実行の共通）。API取得に成功し、この実行で生成されたJSONだけを公開対象にする。
+- 判定（`badminton_handoff.publish_decision`）：`data_publish_enabled` が true / 応答形式が検証済み / status が ok / 生成から15分以内 / キーがある / 前回と内容が違う。満たさなければ公開しない（理由をログに出す）。
+- 公開：`scripts/publish_badminton_handoff.sh` が専用ブランチへ fast-forward push。失敗は `logs/publish.log` に残し、終了コードを1にする（Discord送信には影響しない）。
+- ログ：鍵の場所は `<DEPLOY_KEY>` に置換して記録。鍵の中身は表示しない。
+- **既定は無効**（`data_publish_enabled: false`）。
+
+### 権限の証明（未達のため、公開は有効化しない）
+- 現状：リポジトリのルールセット 0件、Deploy Key 0件、main のブランチ保護なし（GitHub API で確認）。
+- Deploy Key に書き込み権限を与えると、リポジトリ全体への書き込みになり得る。専用ブランチへの限定は **ルールセットで main を含む他ブランチへの push を拒否する設定**が成立して初めて証明できる。
+- 証明できるまで Deploy Key 方式は採用しない。ルールセットの作成・Deploy Key の登録は社長の操作（リポジトリ設定の変更）。
+- 証明の手順（社長の設定後）：①専用ブランチへの push が成功する、②main への push が拒否される、③削除・force push が拒否される、の3点を実際に試して確認する。
+
+### 国内大会の重複対策（安全側）
+- 大会名に国内の語（全日本・日本・県・市・JBA など）を含む試合は除外。国際大会と確認できる語（BWF・Open・World など）を含まない試合も除外。
+- 指定選手（既存の大会記事が担当）を含む試合も除外。
+- 実APIの大会名の実データで、この規則の妥当性を確認する必要がある。
