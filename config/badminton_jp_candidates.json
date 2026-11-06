@@ -1,0 +1,791 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-06T08:53:38.085454+00:00",
+  "source": "日本バドミントン協会 代表選手ページ（候補であり、確定ではない）",
+  "candidates": [
+    {
+      "jba_detail_id": "1",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/1",
+      "name": "保木卓朗",
+      "team": "トナミ運輸",
+      "prefecture": "富山県",
+      "pages": [
+        "JBA男子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "10",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/10",
+      "name": "中西貴映",
+      "team": "BIPROGY",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA女子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "100",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/100",
+      "name": "保原彩夏",
+      "team": "ヨネックス",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA女子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "11",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/11",
+      "name": "岩永鈴",
+      "team": "BIPROGY",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA女子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "12",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/12",
+      "name": "霜上雄一",
+      "team": "日立情報通信エンジニアリング",
+      "prefecture": "神奈川県",
+      "pages": [
+        "JBA男子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "120",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/120",
+      "name": "目崎駿太郎",
+      "team": "トナミ運輸",
+      "prefecture": "富山県",
+      "pages": [
+        "JBA男子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "13",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/13",
+      "name": "野村拓海",
+      "team": "日立情報通信エンジニアリング",
+      "prefecture": "神奈川県",
+      "pages": [
+        "JBA男子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "142",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/142",
+      "name": "廣上瑠依",
+      "team": "ヨネックス",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA女子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "145",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/145",
+      "name": "水津愛美",
+      "team": "ACT SAIKYO",
+      "prefecture": "山口県",
+      "pages": [
+        "JBA女子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "148",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/148",
+      "name": "山北奈緖",
+      "team": "NTT東日本",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA女子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "156",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/156",
+      "name": "髙野日向",
+      "team": "BIPROGY",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA男子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "157",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/157",
+      "name": "宮下怜",
+      "team": "日立情報通信エンジニアリング",
+      "prefecture": "神奈川県",
+      "pages": [
+        "JBA男子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "158",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/158",
+      "name": "川邊悠陽",
+      "team": "日立情報通信エンジニアリング",
+      "prefecture": "神奈川県",
+      "pages": [
+        "JBA男子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "159",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/159",
+      "name": "松川健大",
+      "team": "日立情報通信エンジニアリング",
+      "prefecture": "神奈川県",
+      "pages": [
+        "JBA男子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "160",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/160",
+      "name": "渡邉柚乃",
+      "team": "倉敷中央高等学校",
+      "prefecture": "岡山県",
+      "pages": [
+        "JBA女子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "162",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/162",
+      "name": "清瀬璃子",
+      "team": "岐阜Bluvic",
+      "prefecture": "岐阜県",
+      "pages": [
+        "JBA女子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "163",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/163",
+      "name": "原菜那子",
+      "team": "岐阜Bluvic",
+      "prefecture": "岐阜県",
+      "pages": [
+        "JBA女子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "164",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/164",
+      "name": "新見桃芭",
+      "team": "広島ガス",
+      "prefecture": "広島県",
+      "pages": [
+        "JBA女子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "165",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/165",
+      "name": "相磯美心",
+      "team": "広島ガス",
+      "prefecture": "広島県",
+      "pages": [
+        "JBA女子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "171",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/171",
+      "name": "奥優汰",
+      "team": "トナミ運輸",
+      "prefecture": "富山県",
+      "pages": [
+        "JBA男子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "265",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/265",
+      "name": "田口真彩",
+      "team": "ACT SAIKYO",
+      "prefecture": "山口県",
+      "pages": [
+        "JBA女子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "3",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/3",
+      "name": "小林優吾",
+      "team": "トナミ運輸",
+      "prefecture": "富山県",
+      "pages": [
+        "JBA男子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "30",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/30",
+      "name": "渡邉航貴",
+      "team": "BIPROGY",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA男子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "35",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/35",
+      "name": "古賀輝",
+      "team": "ジェイテクト",
+      "prefecture": "愛知県",
+      "pages": [
+        "JBA男子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "37",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/37",
+      "name": "岡村洋輝",
+      "team": "BIPROGY",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA男子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "4",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/4",
+      "name": "松山奈未",
+      "team": "再春館製薬所",
+      "prefecture": "熊本県",
+      "pages": [
+        "JBA女子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "42",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/42",
+      "name": "山下恭平",
+      "team": "NTT東日本",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA男子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "43",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/43",
+      "name": "緑川大輝",
+      "team": "NTT東日本",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA男子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "49",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/49",
+      "name": "田中湧士",
+      "team": "NTT東日本",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA男子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "495",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/495",
+      "name": "白川菜結",
+      "team": "ヨネックス",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA女子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "496",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/496",
+      "name": "中出すみれ",
+      "team": "BIPROGY",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA女子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "5",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/5",
+      "name": "奈良岡功大",
+      "team": "NTT東日本",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA男子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "513",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/513",
+      "name": "櫻井煌介",
+      "team": "法政大学",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA男子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "514",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/514",
+      "name": "南本和哉",
+      "team": "法政大学",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA男子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "515",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/515",
+      "name": "鎌田虹花",
+      "team": "柳井商工高校",
+      "prefecture": "山口県",
+      "pages": [
+        "JBA女子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "52",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/52",
+      "name": "武井凜生",
+      "team": "NTT東日本",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA男子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "53",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/53",
+      "name": "沖本優大",
+      "team": "BIPROGY",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA男子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "54",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/54",
+      "name": "熊谷翔",
+      "team": "BIPROGY",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA男子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "6",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/6",
+      "name": "西大輝",
+      "team": "BIPROGY",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA男子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "60",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/60",
+      "name": "山口茜",
+      "team": "再春館製薬所",
+      "prefecture": "熊本県",
+      "pages": [
+        "JBA女子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "71",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/71",
+      "name": "福島由紀",
+      "team": "岐阜Bluvic",
+      "prefecture": "岐阜県",
+      "pages": [
+        "JBA女子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "77",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/77",
+      "name": "松本麻佑",
+      "team": "ほねごり相模原",
+      "prefecture": "神奈川県",
+      "pages": [
+        "JBA女子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "9",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/9",
+      "name": "西本拳太",
+      "team": "ジェイテクト",
+      "prefecture": "愛知県",
+      "pages": [
+        "JBA男子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=male"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "90",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/90",
+      "name": "齋藤夏",
+      "team": "PLENTY GLOBAL LINX",
+      "prefecture": "京都府",
+      "pages": [
+        "JBA女子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "91",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/91",
+      "name": "郡司莉子",
+      "team": "再春館製薬所",
+      "prefecture": "熊本県",
+      "pages": [
+        "JBA女子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "92",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/92",
+      "name": "宮崎友花",
+      "team": "ACT SAIKYO",
+      "prefecture": "山口県",
+      "pages": [
+        "JBA女子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "95",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/95",
+      "name": "明地陽菜",
+      "team": "再春館製薬所",
+      "prefecture": "熊本県",
+      "pages": [
+        "JBA女子・U24"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female&category[]=u24"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "97",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/97",
+      "name": "髙橋美優",
+      "team": "BIPROGY",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA女子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    },
+    {
+      "jba_detail_id": "98",
+      "jba_detail_url": "https://www.badminton.or.jp/national/player/view/98",
+      "name": "鈴木陽向",
+      "team": "NTT東日本",
+      "prefecture": "東京都",
+      "pages": [
+        "JBA女子・全体"
+      ],
+      "source_urls": [
+        "https://www.badminton.or.jp/national/player?gender=female"
+      ],
+      "status": "UNMATCHED",
+      "search": null,
+      "same_name_count": 1
+    }
+  ]
+}

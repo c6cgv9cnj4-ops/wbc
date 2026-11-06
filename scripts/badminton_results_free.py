@@ -689,6 +689,9 @@ def run_once(*, api_key: str, webhook: str, now_utc: dt.datetime, state_path: Pa
         "unchanged": counts["unchanged"], "jp_confirmed": verdicts["jp"],
         "non_jp_confirmed": verdicts["non_jp"], "unknown": verdicts["unknown"],
         "date_status": date_counts, "roster_size": len(roster), "pruned": removed,
+        # 種目表記が想定外の件数（API文書に種目の語彙が無いため、ずれを検知できるよう記録する）
+        "unmapped_discipline": sum(1 for i in items if not isinstance(i, dict)
+                                   or DISCIPLINE_MAP.get(str(i.get("discipline", "")).strip()) is None),
         "quarantined_total": len(state["quarantine"]),
     })
     save_state(state_path, state)  # 保存完了後にのみ通知へ進む

@@ -1,0 +1,735 @@
+{
+ "note": "2026-11-06に取得した実ページの行データ（抽出値）。転載ではなく解析の回帰テスト用。",
+ "pages": {
+  "MS": {
+   "page_title": "世界ランキング 男子シングルス（11月3日付） | バドスピ | BADMINTON SPIRIT",
+   "basis_date": "2026-11-03",
+   "rows": [
+    {
+     "rank": 1,
+     "country": "フランス",
+     "name": "クリスト・ポポフ",
+     "points": 89932,
+     "tournaments": 18
+    },
+    {
+     "rank": 2,
+     "country": "タイ",
+     "name": "クンラビット・ビティサラン",
+     "points": 89465,
+     "tournaments": 17
+    },
+    {
+     "rank": 3,
+     "country": "デンマーク",
+     "name": "アンダース・アントンセン",
+     "points": 85525,
+     "tournaments": 18
+    },
+    {
+     "rank": 4,
+     "country": "台湾",
+     "name": "周天成",
+     "points": 82230,
+     "tournaments": 25
+    },
+    {
+     "rank": 5,
+     "country": "フランス",
+     "name": "アレックス・ラニエ",
+     "points": 81565,
+     "tournaments": 14
+    },
+    {
+     "rank": 6,
+     "country": "カナダ",
+     "name": "ビクター・ライ",
+     "points": 79845,
+     "tournaments": 17
+    },
+    {
+     "rank": 7,
+     "country": "中国",
+     "name": "石宇奇",
+     "points": 79525,
+     "tournaments": 13
+    },
+    {
+     "rank": 8,
+     "country": "日本",
+     "name": "奈良岡功大",
+     "points": 78740,
+     "tournaments": 19
+    },
+    {
+     "rank": 9,
+     "country": "インドネシア",
+     "name": "ジョナタン・クリスティ",
+     "points": 78631,
+     "tournaments": 17
+    },
+    {
+     "rank": 10,
+     "country": "インドネシア",
+     "name": "アルウィ・ファルハン",
+     "points": 73699,
+     "tournaments": 17
+    },
+    {
+     "rank": 11,
+     "country": "シンガポール",
+     "name": "ロー・ケンイゥ",
+     "points": 69020,
+     "tournaments": 16
+    },
+    {
+     "rank": 12,
+     "country": "フランス",
+     "name": "トマ・ジュニア・ポポフ",
+     "points": 66047,
+     "tournaments": 19
+    },
+    {
+     "rank": 13,
+     "country": "インド",
+     "name": "ラクシャ・セン",
+     "points": 65723,
+     "tournaments": 19
+    },
+    {
+     "rank": 14,
+     "country": "台湾",
+     "name": "林俊易",
+     "points": 64924,
+     "tournaments": 18
+    },
+    {
+     "rank": 15,
+     "country": "日本",
+     "name": "渡邉航貴",
+     "points": 59220,
+     "tournaments": 19
+    },
+    {
+     "rank": 17,
+     "country": "日本",
+     "name": "田中湧士",
+     "points": 58585,
+     "tournaments": 21
+    },
+    {
+     "rank": 21,
+     "country": "日本",
+     "name": "沖本優大",
+     "points": 50864,
+     "tournaments": 19
+    },
+    {
+     "rank": 30,
+     "country": "日本",
+     "name": "西本拳太",
+     "points": 44829,
+     "tournaments": 16
+    },
+    {
+     "rank": 48,
+     "country": "日本",
+     "name": "古賀穂",
+     "points": 33620,
+     "tournaments": 19
+    },
+    {
+     "rank": 61,
+     "country": "日本",
+     "name": "小川翔悟",
+     "points": 28780,
+     "tournaments": 14
+    }
+   ]
+  },
+  "MD": {
+   "page_title": "世界ランキング 男子ダブルス（11月3日付） | バドスピ | BADMINTON SPIRIT",
+   "basis_date": "2026-11-03",
+   "rows": [
+    {
+     "rank": 1,
+     "country": "韓国",
+     "name": "金ワンホ／徐承宰",
+     "points": 111499,
+     "tournaments": 15
+    },
+    {
+     "rank": 2,
+     "country": "インドネシア",
+     "name": "アルフィアン／フィクリ",
+     "points": 95153,
+     "tournaments": 14
+    },
+    {
+     "rank": 3,
+     "country": "中国",
+     "name": "王昶／梁偉鏗",
+     "points": 95089,
+     "tournaments": 16
+    },
+    {
+     "rank": 4,
+     "country": "マレーシア",
+     "name": "A・チア／ソー・W･Y",
+     "points": 87504,
+     "tournaments": 14
+    },
+    {
+     "rank": 5,
+     "country": "マレーシア",
+     "name": "ゴー・S･F／N・イズッディン",
+     "points": 80917,
+     "tournaments": 19
+    },
+    {
+     "rank": 6,
+     "country": "インド",
+     "name": "シェティ／ランキレッディ",
+     "points": 74831,
+     "tournaments": 16
+    },
+    {
+     "rank": 7,
+     "country": "インドネシア",
+     "name": "グタマ／イスファニ",
+     "points": 68746,
+     "tournaments": 17
+    },
+    {
+     "rank": 8,
+     "country": "イングランド",
+     "name": "ラーン／ベンディ",
+     "points": 67521,
+     "tournaments": 18
+    },
+    {
+     "rank": 9,
+     "country": "マレーシア",
+     "name": "ティー・K･W／マン・W･C",
+     "points": 67521,
+     "tournaments": 11
+    },
+    {
+     "rank": 10,
+     "country": "韓国",
+     "name": "カン・ミンヒュク／キ・ドンジュ",
+     "points": 63153,
+     "tournaments": 13
+    },
+    {
+     "rank": 11,
+     "country": "中国",
+     "name": "陳柏陽／劉毅",
+     "points": 62715,
+     "tournaments": 15
+    },
+    {
+     "rank": 12,
+     "country": "インドネシア",
+     "name": "インドラ／ホアキン",
+     "points": 62086,
+     "tournaments": 16
+    },
+    {
+     "rank": 13,
+     "country": "デンマーク",
+     "name": "ルンドガード／ベスターガード",
+     "points": 60975,
+     "tournaments": 21
+    },
+    {
+     "rank": 14,
+     "country": "日本",
+     "name": "保木卓朗／小林優吾",
+     "points": 60700,
+     "tournaments": 15
+    },
+    {
+     "rank": 15,
+     "country": "台湾",
+     "name": "李哲輝／楊博涵",
+     "points": 54506,
+     "tournaments": 21
+    },
+    {
+     "rank": 17,
+     "country": "日本",
+     "name": "熊谷翔／西大輝",
+     "points": 52788,
+     "tournaments": 19
+    },
+    {
+     "rank": 27,
+     "country": "日本",
+     "name": "山下恭平／岡村洋輝",
+     "points": 43410,
+     "tournaments": 10
+    },
+    {
+     "rank": 33,
+     "country": "日本",
+     "name": "野村拓海／霜上雄一",
+     "points": 41781,
+     "tournaments": 14
+    },
+    {
+     "rank": 54,
+     "country": "日本",
+     "name": "後藤拓人／吉田翼",
+     "points": 28430,
+     "tournaments": 10
+    },
+    {
+     "rank": 57,
+     "country": "日本",
+     "name": "川邊悠陽／松川健大",
+     "points": 27520,
+     "tournaments": 9
+    }
+   ]
+  },
+  "WS": {
+   "page_title": "世界ランキング 女子シングルス（11月3日付） | バドスピ | BADMINTON SPIRIT",
+   "basis_date": "2026-11-03",
+   "rows": [
+    {
+     "rank": 1,
+     "country": "韓国",
+     "name": "アン・セヨン",
+     "points": 122287,
+     "tournaments": 15
+    },
+    {
+     "rank": 2,
+     "country": "日本",
+     "name": "山口茜",
+     "points": 103726,
+     "tournaments": 17
+    },
+    {
+     "rank": 3,
+     "country": "中国",
+     "name": "王祉怡",
+     "points": 101389,
+     "tournaments": 16
+    },
+    {
+     "rank": 4,
+     "country": "中国",
+     "name": "陳雨菲",
+     "points": 87351,
+     "tournaments": 13
+    },
+    {
+     "rank": 5,
+     "country": "タイ",
+     "name": "ラチャノック・インタノン",
+     "points": 77546,
+     "tournaments": 19
+    },
+    {
+     "rank": 6,
+     "country": "インド",
+     "name": "プサルラ・V.シンドゥ",
+     "points": 74421,
+     "tournaments": 17
+    },
+    {
+     "rank": 7,
+     "country": "日本",
+     "name": "宮崎友花",
+     "points": 71406,
+     "tournaments": 21
+    },
+    {
+     "rank": 8,
+     "country": "タイ",
+     "name": "ポンパウィ・チョチュウォン",
+     "points": 70277,
+     "tournaments": 19
+    },
+    {
+     "rank": 9,
+     "country": "インドネシア",
+     "name": "プトリ・クスマ・ワルダニ",
+     "points": 69903,
+     "tournaments": 16
+    },
+    {
+     "rank": 10,
+     "country": "日本",
+     "name": "奥原希望",
+     "points": 68930,
+     "tournaments": 18
+    },
+    {
+     "rank": 11,
+     "country": "中国",
+     "name": "韓悦",
+     "points": 64698,
+     "tournaments": 12
+    },
+    {
+     "rank": 12,
+     "country": "デンマーク",
+     "name": "リーネ・クリストフェルセン",
+     "points": 57940,
+     "tournaments": 21
+    },
+    {
+     "rank": 13,
+     "country": "韓国",
+     "name": "キム・ガウン",
+     "points": 57791,
+     "tournaments": 14
+    },
+    {
+     "rank": 14,
+     "country": "韓国",
+     "name": "シム・ユジン",
+     "points": 54544,
+     "tournaments": 12
+    },
+    {
+     "rank": 15,
+     "country": "カナダ",
+     "name": "ミシェル・リー",
+     "points": 53277,
+     "tournaments": 20
+    },
+    {
+     "rank": 16,
+     "country": "日本",
+     "name": "明地陽菜",
+     "points": 52110,
+     "tournaments": 21
+    },
+    {
+     "rank": 20,
+     "country": "日本",
+     "name": "郡司莉子",
+     "points": 49803,
+     "tournaments": 20
+    },
+    {
+     "rank": 38,
+     "country": "日本",
+     "name": "仁平菜月",
+     "points": 38100,
+     "tournaments": 16
+    },
+    {
+     "rank": 58,
+     "country": "日本",
+     "name": "水津愛美",
+     "points": 28710,
+     "tournaments": 11
+    },
+    {
+     "rank": 85,
+     "country": "日本",
+     "name": "舛木さくら",
+     "points": 22270,
+     "tournaments": 9
+    }
+   ]
+  },
+  "WD": {
+   "page_title": "世界ランキング 女子ダブルス（11月3日付） | バドスピ | BADMINTON SPIRIT",
+   "basis_date": "2026-11-03",
+   "rows": [
+    {
+     "rank": 1,
+     "country": "中国",
+     "name": "譚寧／劉聖書",
+     "points": 114167,
+     "tournaments": 13
+    },
+    {
+     "rank": 2,
+     "country": "韓国",
+     "name": "白荷娜／李紹希",
+     "points": 100434,
+     "tournaments": 12
+    },
+    {
+     "rank": 3,
+     "country": "日本",
+     "name": "福島由紀／松本麻佑",
+     "points": 95906,
+     "tournaments": 15
+    },
+    {
+     "rank": 4,
+     "country": "マレーシア",
+     "name": "P・タン／ティナー・M",
+     "points": 87250,
+     "tournaments": 17
+    },
+    {
+     "rank": 5,
+     "country": "日本",
+     "name": "中西貴映／岩永鈴",
+     "points": 74414,
+     "tournaments": 18
+    },
+    {
+     "rank": 6,
+     "country": "インドネシア",
+     "name": "セティアニングルム／ローズ",
+     "points": 66056,
+     "tournaments": 17
+    },
+    {
+     "rank": 7,
+     "country": "台湾",
+     "name": "許尹鏸／林芝昀",
+     "points": 65944,
+     "tournaments": 27
+    },
+    {
+     "rank": 8,
+     "country": "インドネシア",
+     "name": "プラティウィ／ラマダンティ",
+     "points": 62563,
+     "tournaments": 16
+    },
+    {
+     "rank": 9,
+     "country": "ブルガリア",
+     "name": "G・ストエワ／S・ストエワ",
+     "points": 62556,
+     "tournaments": 19
+    },
+    {
+     "rank": 10,
+     "country": "インドネシア",
+     "name": "クスマ／プスピタサリ",
+     "points": 61974,
+     "tournaments": 18
+    },
+    {
+     "rank": 11,
+     "country": "台湾",
+     "name": "謝沛蓁／洪恩慈",
+     "points": 59515,
+     "tournaments": 17
+    },
+    {
+     "rank": 12,
+     "country": "日本",
+     "name": "髙橋美優／中出すみれ",
+     "points": 58640,
+     "tournaments": 10
+    },
+    {
+     "rank": 13,
+     "country": "日本",
+     "name": "鈴木陽向／山北奈緖",
+     "points": 56327,
+     "tournaments": 13
+    },
+    {
+     "rank": 14,
+     "country": "日本",
+     "name": "廣田彩花／櫻本絢子",
+     "points": 56120,
+     "tournaments": 10
+    },
+    {
+     "rank": 15,
+     "country": "アメリカ",
+     "name": "L・ラム／A･Q・リー",
+     "points": 55439,
+     "tournaments": 22
+    },
+    {
+     "rank": 17,
+     "country": "日本",
+     "name": "保原彩夏／廣上瑠依",
+     "points": 53800,
+     "tournaments": 16
+    },
+    {
+     "rank": 23,
+     "country": "日本",
+     "name": "大澤佳歩／田部真唯",
+     "points": 47550,
+     "tournaments": 17
+    },
+    {
+     "rank": 37,
+     "country": "日本",
+     "name": "石川心菜／平本梨々菜",
+     "points": 36780,
+     "tournaments": 14
+    },
+    {
+     "rank": 39,
+     "country": "日本",
+     "name": "五十嵐有紗／志田千陽",
+     "points": 36289,
+     "tournaments": 9
+    },
+    {
+     "rank": 52,
+     "country": "日本",
+     "name": "原菜那子／清瀬璃子",
+     "points": 27560,
+     "tournaments": 10
+    }
+   ]
+  },
+  "XD": {
+   "page_title": "世界ランキング ミックスダブルス（11月3日付） | バドスピ | BADMINTON SPIRIT",
+   "basis_date": "2026-11-03",
+   "rows": [
+    {
+     "rank": 1,
+     "country": "中国",
+     "name": "馮彦哲／黄東萍",
+     "points": 109950,
+     "tournaments": 16
+    },
+    {
+     "rank": 2,
+     "country": "中国",
+     "name": "蒋振邦／魏雅欣",
+     "points": 93600,
+     "tournaments": 14
+    },
+    {
+     "rank": 3,
+     "country": "フランス",
+     "name": "ジケル／デリュウィ",
+     "points": 89250,
+     "tournaments": 17
+    },
+    {
+     "rank": 4,
+     "country": "デンマーク",
+     "name": "クリスチャンセン／ボエ",
+     "points": 84470,
+     "tournaments": 18
+    },
+    {
+     "rank": 5,
+     "country": "タイ",
+     "name": "デチャポル／スピッサラ",
+     "points": 81570,
+     "tournaments": 16
+    },
+    {
+     "rank": 6,
+     "country": "中国",
+     "name": "郭新娃／陳芳卉",
+     "points": 79670,
+     "tournaments": 18
+    },
+    {
+     "rank": 7,
+     "country": "台湾",
+     "name": "葉宏蔚／N･G・チャン",
+     "points": 68010,
+     "tournaments": 20
+    },
+    {
+     "rank": 8,
+     "country": "中国",
+     "name": "程星／張馳",
+     "points": 65840,
+     "tournaments": 19
+    },
+    {
+     "rank": 9,
+     "country": "インドネシア",
+     "name": "シャーナウィ／マルワー",
+     "points": 63020,
+     "tournaments": 16
+    },
+    {
+     "rank": 10,
+     "country": "台湾",
+     "name": "楊博軒／胡綾芳",
+     "points": 59310,
+     "tournaments": 20
+    },
+    {
+     "rank": 11,
+     "country": "マレーシア",
+     "name": "ゴー・S･H／ライ・S･J",
+     "points": 58750,
+     "tournaments": 19
+    },
+    {
+     "rank": 12,
+     "country": "日本",
+     "name": "渡辺勇大／田口真彩",
+     "points": 57880,
+     "tournaments": 17
+    },
+    {
+     "rank": 13,
+     "country": "香港",
+     "name": "鄧俊文／謝影雪",
+     "points": 55070,
+     "tournaments": 10
+    },
+    {
+     "rank": 14,
+     "country": "アメリカ",
+     "name": "スミス／ガイ",
+     "points": 53520,
+     "tournaments": 21
+    },
+    {
+     "rank": 15,
+     "country": "マレーシア",
+     "name": "フー・P･R／ライ・P･J",
+     "points": 53220,
+     "tournaments": 10
+    },
+    {
+     "rank": 16,
+     "country": "日本",
+     "name": "古賀輝／齋藤夏",
+     "points": 52890,
+     "tournaments": 18
+    },
+    {
+     "rank": 18,
+     "country": "日本",
+     "name": "霜上雄一／保原彩夏",
+     "points": 52840,
+     "tournaments": 13
+    },
+    {
+     "rank": 86,
+     "country": "日本",
+     "name": "川邊悠陽／石川心菜",
+     "points": 17820,
+     "tournaments": 5
+    },
+    {
+     "rank": 87,
+     "country": "日本",
+     "name": "緑川大輝／松山奈未",
+     "points": 17750,
+     "tournaments": 5
+    },
+    {
+     "rank": 118,
+     "country": "日本",
+     "name": "緑川大輝／齋藤夏",
+     "points": 13600,
+     "tournaments": 2
+    }
+   ]
+  }
+ }
+}
