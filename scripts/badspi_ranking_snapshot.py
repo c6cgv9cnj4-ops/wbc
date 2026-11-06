@@ -1,22 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-badspi.jp の「世界ランキング」（種目別）を月次スナップショットとして保存するモジュール。
+badspi.jp の「世界ランキング」（種目別）を保存し、結果通知から参照できるようにするモジュール。
 
 実HTML確認（2026-11-06、5種目すべて。robots.txt は Allow: /）:
-- 取得URLは 301 で正規URLへ転送される。config に正規URLを設定する（推測で作っていない）。
-- ページのタイトルは「世界ランキング 男子シングルス（11月3日付）」形式。基準日は月日のみで年は無い。
-  → 年はページに無い。基準年は (a) HTTPの Last-Modified の年月が一致 または (b) 人の確認で独立に確認できた場合のみ保存する。
-    どちらも無ければ [HOLD]（保存しない。年を推測しない）。
-- 表示範囲は「上位15位」＋「上位15位より下の日本選手」。全ランキングはページに無い（full_ranking_available=false）。
-  → 完全性は「1〜15位が欠けなく揃うこと」で判定する。総件数の表記は確認できなかった。
-- 行は「順位・国・氏名・ポイント・大会数」の5行組。ダブルスの氏名は「A／B」（構成2名）。
-- 上位15位外の日本選手は、実際の世界順位つきで表示される。
+- 取得URLは 301 で正規URLへ転送される。config に正規URLを設定（推測で作っていない）。
+- タイトルは「世界ランキング 男子シングルス（11月3日付）」。基準日は月日のみで、年は無い。
+- 表示範囲は「上位15位」＋「上位15位より下の日本選手」。全ランキングではない。
+- 行は「順位・国・氏名・ポイント・大会数」の5行組。ダブルスの氏名は「A／B」。
+
+年の扱い（重要）:
+- 年は確定できない。ページ更新時刻（Last-Modified 等）は基準日の年の証明にはならないため使わない。
+- 保存する基準日は「11月3日付（年未確認）」のように年不明のまま記録し、年を捏造しない。
+- 順位データ自体は有効（月日・取得時刻・取得元を併記して保存する）。古さは取得時刻と基準月日で判断できる。
 
 保存ルール:
-- 完全（complete=true）のみ .json に保存し、既存の完全版は上書きしない。
-- 不完全（上位15位が欠ける、タイトルの種目が一致しない等）は .incomplete.json に別保存し、完全版を置き換えない。
-- 種目ごとに独立。1種目の失敗は他種目を止めない。URL未設定の種目は個別にSKIPし、理由をログに残す。
-- 既存の wr_rankings（バドナビ由来）とは混在させない。保存先は専用ディレクトリ。
+- 完全（上位1〜15位が欠けなく揃い、重複なし）なものは「<MM-DD>_<種目>.json」。
+  同じ基準月日の完全版が既にあれば上書きしない。
+- 不完全は「.incomplete.json」に別保存し、完全版を置き換えない。
+- 種目ごとに独立。1種目の失敗は他種目を止めない。URL未設定の種目は個別にSKIP。
+- 通知側は load_latest_rankings() で完全版のみを読み、取得時刻が最新のものを使う。
 """
 from __future__ import annotations
 
@@ -40,6 +42,7 @@ USER_AGENT = "ricky-kogyo-ranking-snapshot/1.0 (personal use)"
 STRUCTURE_VERIFIED_ON = "2026-11-06"  # 5種目の実HTMLで行構造・タイトル・基準日を確認した日
 TOP_N = 15                            # ページの上位表示範囲（実HTMLで確認）
 TITLE_PREFIX = "世界ランキング"
+PAIR_SEP = "／"
 
 DISCIPLINE_NAMES = {
     "MS": "男子シングルス", "WS": "女子シングルス",
@@ -54,15 +57,10 @@ TITLE_KEYWORD = {
 BASIS_RE = re.compile(r"(\d{1,2})月(\d{1,2})日付")
 NUM_RE = re.compile(r"^[\d,]+$")
 TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.S | re.I)
-PAIR_SEP = "／"
 
 
 class ParseError(ValueError):
     pass
-
-
-class BasisMismatch(ParseError):
-    """ページの基準月が、保存対象の年月と一致しない（ページ未更新など）。失敗ではなく「待ち」。"""
 
 
 def html_to_lines(text: str) -> list[str]:
@@ -99,7 +97,7 @@ def parse_rows(lines: list[str]) -> list[dict]:
                 "rank": int(rank),
                 "country": country,
                 "name": name,
-                "members": members,          # ダブルスは構成2名（「／」区切りを分解。分解できない場合は1名）
+                "members": members,
                 "points": int(points.replace(",", "")),
                 "tournaments": int(tournaments),
             })
@@ -127,21 +125,14 @@ def decode_body(content: bytes, header_charset: str | None) -> str:
         return content.decode("utf-8", errors="replace")
 
 
-def build_snapshot(html_text: str, *, year: int, month: int, discipline_code: str,
-                   source_url: str, fetched_at: str) -> dict:
+def build_snapshot(html_text: str, *, discipline_code: str, source_url: str, fetched_at: str) -> dict:
+    """ページを解析する。年は読まない・推測しない（year は None、year_status は unconfirmed）。"""
     if discipline_code not in DISCIPLINE_NAMES:
         raise ParseError(f"未知の種目コード: {discipline_code}")
     title = parse_title(html_text)
     if not title.startswith(TITLE_PREFIX) or TITLE_KEYWORD[discipline_code] not in title:
         raise ParseError(f"ページの種目が一致しない（{discipline_code}を期待、タイトル: {title[:40]}）")
     basis_month, basis_day = parse_basis_month_day(title)
-    if basis_month != month:
-        raise BasisMismatch(f"基準月（{basis_month}月）が指定月（{month}月）と一致しない")
-    try:
-        basis_date = dt.date(year, basis_month, basis_day).isoformat()   # 年は指定値。推測しない
-    except ValueError as err:
-        raise ParseError(f"基準日が不正: {err}") from err
-
     rows = parse_rows(html_to_lines(html_text))
     for r in rows:
         r["section"] = "top" if r["rank"] <= TOP_N else "japan_listed"
@@ -156,16 +147,19 @@ def build_snapshot(html_text: str, *, year: int, month: int, discipline_code: st
         reason = f"上位{TOP_N}位の欠け: {missing}"
     else:
         reason = None
+    basis_md = f"{basis_month:02d}-{basis_day:02d}"
     return {
-        "schema_version": 3,
-        "scope": f"世界ランキング（上位{TOP_N}位＋上位外の日本選手）",
-        "full_ranking_available": False,       # ページは全件を表示しない（実HTMLで確認）
+        "schema_version": 4,
+        "scope": f"世界ランキング（上位{TOP_N}位＋ページ掲載の日本選手のみ。全ランキングではない）",
+        "full_ranking_available": False,
         "top_n": TOP_N,
         "structure_verified_on": STRUCTURE_VERIFIED_ON,
         "discipline_code": discipline_code,
         "discipline": DISCIPLINE_NAMES[discipline_code],
-        "year_month": f"{year:04d}-{month:02d}",
-        "basis_date": basis_date,
+        "basis_month_day": basis_md,
+        "year": None,                       # 年は確定できないため記録しない
+        "year_status": "unconfirmed",
+        "basis_label": f"{basis_month}月{basis_day}日付（年未確認）",
         "page_title": title,
         "source_url": source_url,
         "fetched_at": fetched_at,
@@ -178,8 +172,8 @@ def build_snapshot(html_text: str, *, year: int, month: int, discipline_code: st
 
 
 def save_snapshot(snapshot_dir: Path, snap: dict) -> str:
-    """戻り値: "saved"（完全版を新規保存）/ "exists"（完全版が既にあり据え置き）/ "incomplete_saved"（不完全版を別保存）"""
-    base = f"{snap['year_month']}_{snap['discipline_code']}"
+    """戻り値: "saved"（完全版を新規保存）/ "exists"（同じ基準月日の完全版が既にある）/ "incomplete_saved"（不完全版）"""
+    base = f"{snap['basis_month_day']}_{snap['discipline_code']}"
     complete_path = snapshot_dir / f"{base}.json"
     incomplete_path = snapshot_dir / f"{base}.incomplete.json"
     if snap["complete"]:
@@ -195,54 +189,55 @@ def save_snapshot(snapshot_dir: Path, snap: dict) -> str:
     return action
 
 
-def fetch_html(url: str) -> tuple[str, str, str | None]:
-    """戻り値: (本文, 転送後の最終URL, Last-Modified ヘッダー or None)。転送は許可（正規URLへの301）。"""
+def load_latest_rankings(snapshot_dir: Path) -> dict:
+    """種目コード → 取得時刻が最も新しい完全版。不完全版・壊れたファイルは読まない。"""
+    latest: dict[str, dict] = {}
+    if not snapshot_dir.is_dir():
+        return latest
+    for path in snapshot_dir.glob("*.json"):
+        if path.name.endswith(".incomplete.json"):
+            continue
+        try:
+            snap = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(snap, dict) or not snap.get("complete") or snap.get("discipline_code") not in DISCIPLINE_NAMES:
+            continue
+        code = snap["discipline_code"]
+        if code not in latest or str(snap.get("fetched_at", "")) > str(latest[code].get("fetched_at", "")):
+            latest[code] = snap
+    return latest
+
+
+def find_rank(snap: dict, player_names: list[str]) -> int | None:
+    """選手（シングルス）または構成2名（ダブルス）の順位を返す。
+    誤結合を防ぐため、氏名の完全一致のみ。候補が複数・0件・名前が空の場合は None（順位不明）。"""
+    names = [n.strip() for n in player_names]
+    if not names or any(not n for n in names):
+        return None
+    hits = []
+    for row in snap.get("rows", []):
+        if len(names) == 1:
+            if row["name"] == names[0] and len(row["members"]) == 1:
+                hits.append(row["rank"])
+        elif len(names) == 2 and len(row["members"]) == 2:
+            if sorted(row["members"]) == sorted(names):
+                hits.append(row["rank"])
+    return hits[0] if len(hits) == 1 else None
+
+
+def fetch_html(url: str) -> tuple[str, str]:
+    """戻り値: (本文, 転送後の最終URL)。転送は許可（正規URLへの301）。"""
     resp = requests.get(url, timeout=REQUEST_TIMEOUT, headers={"User-Agent": USER_AGENT}, allow_redirects=True)
     resp.raise_for_status()
     m = re.search(r"charset=([\w.-]+)", resp.headers.get("Content-Type", ""), re.I)
-    return decode_body(resp.content, m.group(1) if m else None), resp.url, resp.headers.get("Last-Modified")
+    return decode_body(resp.content, m.group(1) if m else None), resp.url
 
 
-def year_from_last_modified(value: str | None) -> tuple[int, int] | None:
-    """Last-Modified（RFC 1123）の (年, 月) を返す。無い・読めない場合は None。
-    注意: 公開ページの更新時刻であり、基準日の年を直接示すものではない。"""
-    if not value:
-        return None
-    try:
-        from email.utils import parsedate_to_datetime
-        d = parsedate_to_datetime(value)
-    except (TypeError, ValueError):
-        return None
-    return (d.year, d.month) if d else None
-
-
-def year_evidence(*, year: int, month: int, last_modified: str | None,
-                  human: dict | None) -> dict | None:
-    """基準年を独立に確認できる根拠を返す。無ければ None（＝保存を保留する）。
-    根拠は次のどちらか:
-      (a) HTTPの Last-Modified の年月が、保存対象の年月と一致する（サーバーの更新時刻）
-      (b) 人が確認した根拠（出典と年）。年が保存対象の年と一致する場合のみ
-    ページ本文の「11月3日付」には年が無いため、それだけでは根拠にならない。"""
-    lm = year_from_last_modified(last_modified)
-    if lm == (year, month):
-        return {"kind": "http_last_modified", "value": last_modified}
-    if human and human.get("year") == year and str(human.get("source", "")).strip():
-        return {"kind": "human_confirmed", "value": str(human["source"]).strip(), "year": year}
-    return None
-
-
-def run_snapshot(*, year_month: str, urls: dict, snapshot_dir: Path, fetch=fetch_html,
-                 now_utc: dt.datetime | None = None, human_year: dict | None = None) -> int:
+def run_snapshot(*, urls: dict, snapshot_dir: Path, fetch=fetch_html,
+                 now_utc: dt.datetime | None = None) -> int:
     """種目ごとに独立して取得・保存する。戻り値: 1つでも失敗があれば 1、無ければ 0。
     全種目がURL未設定のときは警告を出して 0 で終了する。"""
-    try:
-        year_s, month_s = year_month.split("-")
-        year, month = int(year_s), int(month_s)
-        if not 1 <= month <= 12:
-            raise ValueError
-    except ValueError:
-        print(f"[ERROR] 年月の形式が不正です（YYYY-MM）: {year_month}")
-        return 1
     fetched_at = (now_utc or dt.datetime.now(dt.timezone.utc)).isoformat()
     configured = {c: urls.get(c) for c in DISCIPLINE_NAMES}
     if not any(configured.values()):
@@ -256,48 +251,25 @@ def run_snapshot(*, year_month: str, urls: dict, snapshot_dir: Path, fetch=fetch
             print(f"[SKIP] {code} {DISCIPLINE_NAMES[code]}: URL未設定のため取得しない")
             continue
         try:
-            text, final_url, last_modified = fetch(url)
-            snap = build_snapshot(text, year=year, month=month, discipline_code=code,
-                                  source_url=final_url, fetched_at=fetched_at)
-            evidence = year_evidence(year=year, month=month, last_modified=last_modified, human=human_year)
-            if evidence is None:
-                # 年を独立に確認できない（ページに年が無く、更新時刻の年月も一致しない）→ 保存を保留
-                print(f"[HOLD] {code} {DISCIPLINE_NAMES[code]} {snap['year_month']}: 基準年を独立に確認できないため保存を保留"
-                      f"（ページは「{snap['basis_date'][5:]}」の月日のみ。Last-Modified={last_modified}）")
-                continue
-            snap["year_evidence"] = evidence
-        except BasisMismatch as err:
-            # 保存しない。ページが対象月に更新されるまで待つ（前月データを推測して保存しない）
-            print(f"[WAIT] {code} {DISCIPLINE_NAMES[code]}: {err}。保存せず次回の実行で再確認します")
-            continue
+            text, final_url = fetch(url)
+            snap = build_snapshot(text, discipline_code=code, source_url=final_url, fetched_at=fetched_at)
         except (requests.RequestException, OSError, ParseError) as err:
             print(f"[ERROR] {code} {DISCIPLINE_NAMES[code]}: 取得・解析に失敗（{type(err).__name__}: {err}）")
             rc = 1
             continue
         action = save_snapshot(snapshot_dir, snap)
-        print(f"[{action.upper()}] {code} {DISCIPLINE_NAMES[code]} {snap['year_month']} "
+        print(f"[{action.upper()}] {code} {DISCIPLINE_NAMES[code]} 基準 {snap['basis_label']} "
               f"行数{snap['row_count']}（日本選手（上位外）{snap['japan_listed_count']}）complete={snap['complete']}"
               + (f" 理由: {snap['incomplete_reason']}" if snap["incomplete_reason"] else ""))
     return rc
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="badspi 世界ランキングのスナップショット保存")
-    ap.add_argument("--year-month", required=True, help="YYYY-MM（ページの基準月と一致させる）")
+    ap = argparse.ArgumentParser(description="badspi 世界ランキングの保存（基準年は確定しない）")
     ap.add_argument("--snapshot-dir", default=str(DEFAULT_SNAPSHOT_DIR))
-    ap.add_argument("--confirm-year-source", default=None,
-                    help="人が基準年を確認した根拠（出典URLや説明）。--confirm-year と併用")
-    ap.add_argument("--confirm-year", type=int, default=None, help="人が確認した基準年（YYYY）")
     args = ap.parse_args(argv)
-    human = None
-    if args.confirm_year_source or args.confirm_year:
-        if not (args.confirm_year_source and args.confirm_year):
-            print("[ERROR] --confirm-year-source と --confirm-year は両方指定してください")
-            return 1
-        human = {"source": args.confirm_year_source, "year": args.confirm_year}
     config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    return run_snapshot(year_month=args.year_month, urls=config.get("badspi_ranking_urls", {}),
-                        snapshot_dir=Path(args.snapshot_dir), human_year=human)
+    return run_snapshot(urls=config.get("badspi_ranking_urls", {}), snapshot_dir=Path(args.snapshot_dir))
 
 
 if __name__ == "__main__":

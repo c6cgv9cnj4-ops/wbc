@@ -708,5 +708,78 @@ class UnverifiedApiTest(RunTestBase):
         self.assertIsNone(self.load()["matches"]["ev_s2"]["notified_at"])
 
 
+class RankingAttachTest(RunTestBase):
+    """保存済みbadspiランキングを、結果通知の選手・対戦相手の順位として付ける（完全一致のみ）。"""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import badspi_ranking_snapshot as bs
+        cls.bs = bs
+        raw = (ROOT / "tests" / "fixtures" / "real" / "badspi_world_MS_20261103.html").read_bytes()
+        cls.ms = bs.build_snapshot(bs.decode_body(raw, "utf-8"), discipline_code="MS",
+                                   source_url="https://example.invalid/MS",
+                                   fetched_at="2026-11-06T00:00:00+00:00")
+        raw_md = (ROOT / "tests" / "fixtures" / "real" / "badspi_world_MD_20261103.html").read_bytes()
+        cls.md = bs.build_snapshot(bs.decode_body(raw_md, "utf-8"), discipline_code="MD",
+                                   source_url="https://example.invalid/MD",
+                                   fetched_at="2026-11-06T00:00:00+00:00")
+
+    def _named_item(self, mid, discipline, side1_names, side2_names):
+        def side(names, base):
+            return {"players": [{"id": f"pl_{base}{i}", "name": n} for i, n in enumerate(names)]}
+        return {"id": mid, "tournament": {"name": "Test Open", "year": 2026}, "discipline": discipline,
+                "side1": side(side1_names, "a"), "side2": side(side2_names, "b"),
+                "games": [[21, 10], [21, 12]], "winner": 1, "status": "finished", "start": START_D1}
+
+    def test_singles_rank_attached_for_exact_name_and_unknown_marked(self):
+        item = self._named_item("ev_rank", "MS", ["クリスト・ポポフ"], ["存在しない選手"])
+        roster = {"pl_a0": {"name": "クリスト・ポポフ", "status": m.JP_CONFIRMED}}
+        rec = m.build_record(m.normalize_match(item), "2026-11-04")
+        emb = m.build_embed(rec, roster, m.compute_window(RUN_1), rankings={"MS": self.ms})
+        self.assertIn("1位 ／ 順位不明", emb["description"])
+        self.assertIn("上位15位＋掲載日本選手のみ。全順位ではありません", emb["description"])
+        self.assertIn("11月3日付（年未確認）", emb["description"])
+
+    def test_japanese_player_rank_15_attached(self):
+        item = self._named_item("ev_jp15", "MS", ["渡邉航貴"], ["クリスト・ポポフ"])
+        rec = m.build_record(m.normalize_match(item), "2026-11-04")
+        emb = m.build_embed(rec, {}, m.compute_window(RUN_1), rankings={"MS": self.ms})
+        self.assertIn("15位 ／ 1位", emb["description"])
+
+    def test_doubles_pair_rank_is_order_insensitive_and_exact(self):
+        pair = next(r for r in self.md["rows"] if "／" in r["name"])
+        a, b2 = pair["members"]
+        item = self._named_item("ev_md", "MD", [b2, a], ["存在しない", "組"])
+        rec = m.build_record(m.normalize_match(item), "2026-11-04")
+        emb = m.build_embed(rec, {}, m.compute_window(RUN_1), rankings={"MD": self.md})
+        self.assertIn(f"{pair['rank']}位 ／ 順位不明", emb["description"])
+
+    def test_no_snapshot_means_unavailable_not_guessed(self):
+        item = self._named_item("ev_none", "MS", ["クリスト・ポポフ"], ["x"])
+        rec = m.build_record(m.normalize_match(item), "2026-11-04")
+        emb = m.build_embed(rec, {}, m.compute_window(RUN_1), rankings={})
+        self.assertIn("保存データなし（順位不明）", emb["description"])
+
+    def test_end_to_end_run_attaches_saved_ranking_to_notification(self):
+        with tempfile.TemporaryDirectory() as d:
+            snapdir = Path(d) / "badspi_ranking"
+            self.bs.save_snapshot(snapdir, self.ms)
+            rankings = self.bs.load_latest_rankings(snapdir)
+            item = self._named_item("ev_e2e", "MS", ["クリスト・ポポフ"], ["存在しない"])
+            item["side1"]["players"][0]["id"] = "pl_jp1"
+            post = FakePost()
+            with contextlib.redirect_stdout(io.StringIO()):
+                rc = m.run_once(api_key="k", webhook="hook", now_utc=RUN_1, state_path=self.state_path,
+                                config=_cfg(discord_output_enabled=True),
+                                roster={"pl_jp1": {"name": "クリスト・ポポフ", "status": m.JP_CONFIRMED}},
+                                fetch=_fake_fetch([{"data": [item], "meta": {}}]), post=post,
+                                sleep=lambda s: None, event="schedule", rankings=rankings)
+            self.assertEqual(rc, 0)
+            text = json.dumps(post.payloads, ensure_ascii=False)
+            self.assertIn("1位 ／ 順位不明", text)
+            self.assertIn("ev_e2e", text)
+
+
 if __name__ == "__main__":
     unittest.main()

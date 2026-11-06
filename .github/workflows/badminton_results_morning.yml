@@ -61,6 +61,7 @@ jobs:
           BADMINTON_API_KEY: ${{ secrets.BADMINTON_API_KEY }}
           DISCORD_WEBHOOK_OSHI: ${{ secrets.WEBHOOK_OSHI }}
           BADMINTON_STATE_PATH: state_branch/state/badminton_results_state.json
+          BADSPI_SNAPSHOT_DIR: state_branch/state/badspi_ranking
         run: python scripts/badminton_results_free.py
 
       - name: 状態ブランチへ保存（対象の状態JSONのみ・競合時は取り込み直して再試行）

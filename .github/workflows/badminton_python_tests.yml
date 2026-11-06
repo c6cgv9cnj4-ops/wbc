@@ -1,0 +1,36 @@
+name: バドミントン新規モジュールのテスト
+
+# 本PRで追加した新規モジュールの単体テストを実行する（ネットワーク・APIキー・Discord 不要）。
+# 既存の朝配信 workflow・既存テストには触れない。mainへのマージは行わない。
+
+on:
+  pull_request:
+  push:
+    branches:
+      - feature/badminton-results-independent
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install requests
+
+      - name: 単体テストを実行
+        run: |
+          python -m unittest -v \
+            tests.test_badminton_results_free \
+            tests.test_badspi_ranking_snapshot \
+            tests.test_badminton_jp_ledger \
+            tests.test_state_branch

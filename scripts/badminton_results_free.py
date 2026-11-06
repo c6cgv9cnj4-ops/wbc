@@ -38,6 +38,9 @@ from pathlib import Path
 
 import requests
 
+from badspi_ranking_snapshot import DISCIPLINE_NAMES as RANK_DISCIPLINES
+from badspi_ranking_snapshot import find_rank, load_latest_rankings
+
 API_BASE = "https://api.badmintonapi.com"
 RESULTS_YESTERDAY_PATH = "/v1/results/yesterday"
 SOURCE_DOC_URL = "https://badmintonapi.com/documentation"
@@ -559,7 +562,29 @@ def _count_line(j1: list[dict], j2: list[dict]) -> str:
     return f"判定内訳：日本人確認{jp}名／非日本人確認{non}名／判定不能{unk}名"
 
 
-def build_embed(entry: dict, roster: dict, window: dict, attempt_no: int = 1, retry_note: bool = False) -> dict:
+def _side_rank(side: list[dict], snap: dict | None) -> str:
+    if snap is None:
+        return "未取得"
+    if len(side) not in (1, 2):
+        return "順位不明"
+    rank = find_rank(snap, [p["name"] for p in side])
+    return f"{rank}位" if rank is not None else "順位不明"
+
+
+def rank_line(entry: dict, rankings: dict | None) -> str:
+    """保存済みランキングを参照するだけ（取得はしない）。氏名の完全一致のみ。一致しなければ順位不明。
+    表示は「上位15位＋掲載日本選手のみ」であることを必ず併記する。"""
+    code = next((c for c, n in RANK_DISCIPLINES.items() if n == entry["discipline"]), None)
+    snap = (rankings or {}).get(code) if code else None
+    if snap is None:
+        return "世界ランキング：保存データなし（順位不明）"
+    head = (f"世界ランキング（badspi・基準 {snap.get('basis_label', '年未確認')}・"
+            "上位15位＋掲載日本選手のみ。全順位ではありません）")
+    return f"{head}：{_side_rank(entry['side1'], snap)} ／ {_side_rank(entry['side2'], snap)}"
+
+
+def build_embed(entry: dict, roster: dict, window: dict, attempt_no: int = 1, retry_note: bool = False,
+                rankings: dict | None = None) -> dict:
     j1 = judge_side(entry["side1"], roster)
     j2 = judge_side(entry["side2"], roster)
     games = entry.get("games")
@@ -578,6 +603,7 @@ def build_embed(entry: dict, roster: dict, window: dict, attempt_no: int = 1, re
         f"情報取得時刻：{_fmt_jst(entry.get('fetched_at'))}",
         f"出典：{SOURCE_DOC_URL}",
     ]
+    lines.append(rank_line(entry, rankings))
     if retry_note:
         lines.append("※ 前回の送信結果が未確定のため、重複して届く可能性があります。")
     tname = (entry.get("tournament") or {}).get("name") or "大会名：取得不可"
@@ -658,7 +684,8 @@ def send_batches(webhook: str, header: dict, items: list[tuple[str, dict]], post
 # 8. 実行本体
 # ------------------------------------------------------------
 def run_once(*, api_key: str, webhook: str, now_utc: dt.datetime, state_path: Path, config: dict,
-             roster: dict, fetch, post, sleep=time.sleep, event: str = "manual") -> int:
+             roster: dict, fetch, post, sleep=time.sleep, event: str = "manual",
+             rankings: dict | None = None) -> int:
     """1回分の処理。戻り値は終了コード（0: 正常、1: 失敗）。"""
     if not api_key:
         print("::warning::BADMINTON_API_KEY が未設定のため、取得・保存・配信は行いません（未稼働）")
@@ -766,7 +793,8 @@ def run_once(*, api_key: str, webhook: str, now_utc: dt.datetime, state_path: Pa
         # 2) 送信
         header = build_header(window, status, notified=len(pending), **header_kwargs)
         items_out = [(e["id"], build_embed(e, roster, window, attempt_no=len(e["notify_attempts"]),
-                                           retry_note=prior_unknown[e["id"]])) for e in pending]
+                                           retry_note=prior_unknown[e["id"]], rankings=rankings))
+                     for e in pending]
         res = send_batches(webhook, header, items_out, post)
         # 3) 結果を保存する
         sent_at = dt.datetime.now(UTC).isoformat()
@@ -809,6 +837,8 @@ def run(event: str | None = None) -> int:
         fetch=fetch_page,
         post=requests.post,
         event=event or os.environ.get("GITHUB_EVENT_NAME", "manual"),
+        rankings=load_latest_rankings(Path(os.environ.get("BADSPI_SNAPSHOT_DIR", "").strip()
+                                           or ROOT / "state_branch" / "state" / "badspi_ranking")),
     )
 
 
