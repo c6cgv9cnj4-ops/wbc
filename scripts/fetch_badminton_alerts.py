@@ -960,8 +960,9 @@ def set_tournament_meta(service):
 
 def decorate_embed_with_tournament_meta(embed, article_titles):
     """記事Embedの先頭に、BWF公式から補完した大会メタ情報(大会格・レベル・ポイント・日本選手)を付ける。
-    大会を特定できない記事には何も付けない。特定できない大会名がある場合は『確認中』の1行だけを付ける(推測しない)。
-    補完に失敗しても記事の配信は止めない。"""
+    大会を特定できない記事には何も付けない。
+    大会メタ情報が『確認中』だけになる記事は None を返し、配信しない(2026-11-06追加。
+    中身の無い告知記事を通知しないため)。補完に失敗しても記事の配信は止めない。"""
     svc = _TOURNAMENT_META
     if svc is None:
         return embed
@@ -971,6 +972,9 @@ def decorate_embed_with_tournament_meta(embed, article_titles):
             info = svc.resolve(t)
             if info["kind"] != "none":
                 break
+        if tournament_master.is_placeholder_only(info, svc):
+            print(f"[INFO] 大会情報が『確認中』のみの記事のため配信を見送ります: {article_titles[0][:50]}")
+            return None
         title_ja, meta = tournament_master.render_meta(info, svc)
     except Exception as err:  # noqa: BLE001
         print(f"[WARN] 大会メタ情報の補完に失敗しました(記事は従来の表示で配信します): {err}")
@@ -1002,11 +1006,13 @@ def build_article_embeds(articles, wr_rankings, color):
     for a, e in enriched:
         tie_key = _tie_group_key(e.get("details"))
         if tie_key is None:
-            embeds.append(decorate_embed_with_tournament_meta({
+            decorated = decorate_embed_with_tournament_meta({
                 "title": f"🏸 {a['title']}"[:256],
                 "description": render_article_description(a, wr),
                 "color": color,
-            }, [a["title"]]))
+            }, [a["title"]])
+            if decorated is not None:  # None = 『確認中』のみで中身が無い記事は配信しない
+                embeds.append(decorated)
         elif tie_key not in emitted_ties:
             emitted_ties.add(tie_key)
             group_items = [(a2, e2) for a2, e2 in enriched if _tie_group_key(e2.get("details")) == tie_key]

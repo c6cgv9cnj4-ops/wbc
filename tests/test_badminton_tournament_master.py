@@ -402,14 +402,38 @@ class EmbedTest(unittest.TestCase):
         with mock.patch.object(svc, "resolve", side_effect=RuntimeError("boom")):
             self.assertEqual(fb.decorate_embed_with_tournament_meta(e, [TITLE]), e)
 
-    def test_pending_adds_one_line_only(self):
+    def test_pending_only_article_is_not_posted(self):
+        # 大会を公式で特定できず中身が『確認中』だけになる記事は配信しない(2026-11-06)
         svc, f = make()
         fb.set_tournament_meta(svc)
         e = {"title": "🏸 【ナゾカップオープン2026】速報", "description": "本文", "color": 1}
-        out = fb.decorate_embed_with_tournament_meta(e, ["【ナゾカップオープン2026】速報"])
-        self.assertEqual(out["title"], e["title"])
-        self.assertEqual(out["description"].count("\n"), 1)
-        self.assertTrue(out["description"].startswith("-# 大会情報：確認中"))
+        self.assertIsNone(fb.decorate_embed_with_tournament_meta(e, ["【ナゾカップオープン2026】速報"]))
+
+    def test_placeholder_only_rule(self):
+        # 大会を特定できない記事(none)は従来どおり。確定情報が1つでもあれば配信する
+        svc, f = make()
+        with patch_pdf():
+            self.assertFalse(bm.is_placeholder_only(svc.resolve("【全日本社会人2026】速報"), svc))
+            self.assertTrue(bm.is_placeholder_only(svc.resolve("【ナゾカップオープン2026】速報"), svc))
+            self.assertFalse(bm.is_placeholder_only(svc.resolve(TITLE), svc))
+
+    def test_ok_record_without_any_confirmed_field_is_placeholder(self):
+        # 確定の大会格・ポイント・日本選手が全部取れない場合は、status=OKでも配信しない
+        svc, f = make()
+        with patch_pdf():
+            info = svc.resolve(TITLE)
+            with mock.patch.object(bm, "category_info", return_value={"label": None, "level": None, "points_key": None}), \
+                 mock.patch.object(svc, "japanese_players", return_value=None):
+                self.assertTrue(bm.is_placeholder_only(info, svc))
+
+    def test_placeholder_article_not_in_embed_list(self):
+        svc, f = make()
+        fb.set_tournament_meta(svc)
+        no_detail = {"url": "https://example.invalid/a", "title": "【ナゾカップオープン2026】速報",
+                     "details": None, "real_url": None, "excerpt": ""}
+        with patch_pdf(), mock.patch.object(fb, "enrich_article", return_value=no_detail):
+            embeds = fb.build_article_embeds([no_detail], {}, 1)
+        self.assertEqual(embeds, [])
 
 
 if __name__ == "__main__":

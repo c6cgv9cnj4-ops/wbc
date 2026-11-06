@@ -626,3 +626,29 @@ def render_meta(info, master_obj):
         src.append("日本選手はBWF公式エントリー一覧")
     lines += ["", f"-# 出典：{'・'.join(src)}｜確認 {str(rec.get('verified_at', ''))[:10]}" + ("（再検証できず）" if stale else "")]
     return title, "\n".join(lines) + "\n"
+
+
+def is_placeholder_only(info, master_obj):
+    """大会メタ情報の中身が『確認中』だけになるかを返す(True なら記事を配信しない)。
+    - kind=none(大会を特定していない記事): 対象外のため False(記事は従来どおり)
+    - kind=pending(大会名は分かるが公式で特定できない): True
+    - 中止: 公式の確定情報なので False
+    - 公式情報が未確定・再検証できない(stale): True
+    - 大会格・ポイント・日本選手のいずれか1つでも確定していれば False"""
+    if info["kind"] == "none":
+        return False
+    if info["kind"] == "pending":
+        return True
+    rec = info["record"]
+    if rec["status"] == STATUS_CANCELLED:
+        return False
+    if rec["status"] != STATUS_OK or info.get("stale"):
+        return True
+    cat = category_info(rec["category_text"])
+    pt = master_obj.master.get("points_table") or {}
+    confirmed = (
+        bool(cat["label"])
+        or bool(points_for(pt, cat["points_key"]))
+        or master_obj.japanese_players(rec) is not None  # 空リスト(=該当なし)も公式の確定情報
+    )
+    return not confirmed
