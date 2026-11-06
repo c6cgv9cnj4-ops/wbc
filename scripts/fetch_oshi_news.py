@@ -22,6 +22,7 @@ b)終了日(単発イベントは開催日)のEVENT_REMINDER_DAYS日前を1日�
   DISCORD_WEBHOOK_OSHI (必須)
 """
 import datetime
+import difflib
 import hashlib
 import json
 import os
@@ -169,25 +170,64 @@ def prune_old_entries(state, now):
     cutoff = now - datetime.timedelta(days=STATE_RETENTION_DAYS)
     state["seen_urls"] = _prune_map(state.get("seen_urls", {}), cutoff)
     state["seen_titles"] = _prune_map(state.get("seen_titles", {}), cutoff)
+    state["seen_title_texts"] = [
+        pair for pair in state.get("seen_title_texts", [])
+        if datetime.datetime.fromisoformat(pair[1]) >= cutoff
+    ][-STATE_MAX_ENTRIES:]
     return state
 
 
-def title_key(title):
-    """タイトルの正規化ハッシュ。Google Newsの『 - 媒体名』サフィックス、空白・記号、全半角、
-    大小文字の違いを吸収し、同一記事の別URL配信(転載・別トークン)を同一視する。"""
-    t = re.sub(r"\s[-－―–|｜]\s[^-－―–|｜]{1,30}$", "", title.strip())  # 末尾の「 - 媒体名」
+# 媒体ごとに見出しが違う同一記事（例: 『…（SBC信越放送）』と『… | SBC NEWS | … | SBC信越放送』）を
+# 同一視するための閾値。時刻差も条件にして、別の記事を誤って落とさないようにする。
+NEAR_DUP_RATIO = 0.9
+NEAR_DUP_WINDOW = datetime.timedelta(minutes=60)
+
+
+def title_text(title):
+    """媒体名・カテゴリ・記号を除いた見出し本文（正規化済み）を返す。"""
+    t = title.strip()
+    t = re.sub(r"[（(][^（()）]{1,30}[)）]\s*$", "", t)           # 末尾の「（媒体名）」
+    t = re.split(r"\s*[|｜]\s*", t)[0]                               # 「 | 媒体名 | カテゴリ」の前を採用
+    t = re.sub(r"\s[-－―–]\s[^-－―–]{1,30}$", "", t)                # 末尾の「 - 媒体名」
     t = unicodedata.normalize("NFKC", t).casefold()
-    t = re.sub(r"[\s\W_]+", "", t)
-    return hashlib.sha1(t.encode("utf-8")).hexdigest()[:16]
+    return re.sub(r"[\s\W_]+", "", t)
 
 
-def is_already_sent(state, item):
-    return item["url"] in state.get("seen_urls", {}) or title_key(item["title"]) in state.get("seen_titles", {})
+def title_key(title):
+    """タイトルの正規化ハッシュ（完全一致の判定用）。"""
+    return hashlib.sha1(title_text(title).encode("utf-8")).hexdigest()[:16]
+
+
+def is_near_duplicate(state, item, now):
+    """過去に送った見出しと、本文の類似度が高く、発信時刻が近い記事を重複とみなす。"""
+    text = title_text(item["title"])
+    when = item.get("published_dt") or now
+    for old_text, old_iso in state.get("seen_title_texts", []):
+        try:
+            old_when = datetime.datetime.fromisoformat(old_iso)
+        except (TypeError, ValueError):
+            continue
+        if abs(when - old_when) > NEAR_DUP_WINDOW:
+            continue
+        if difflib.SequenceMatcher(None, text, old_text).ratio() >= NEAR_DUP_RATIO:
+            return True
+    return False
+
+
+def is_already_sent(state, item, now=None):
+    now = now or datetime.datetime.now(datetime.timezone.utc)
+    return (
+        item["url"] in state.get("seen_urls", {})
+        or title_key(item["title"]) in state.get("seen_titles", {})
+        or is_near_duplicate(state, item, now)
+    )
 
 
 def mark_sent(state, item, now):
     state.setdefault("seen_urls", {})[item["url"]] = now.isoformat()
     state.setdefault("seen_titles", {})[title_key(item["title"])] = now.isoformat()
+    when = item.get("published_dt") or now
+    state.setdefault("seen_title_texts", []).append([title_text(item["title"]), when.isoformat()])
 
 
 def published_datetime(entry):
@@ -365,7 +405,7 @@ def build_oshi_embeds(state, now):
         items = fetch_keyword_news(keyword)
         stats["fetched"] += len(items)
         for item in items:
-            if is_already_sent(state, item):
+            if is_already_sent(state, item, now):
                 stats["dup"] += 1
                 continue
             if is_too_old(item.get("published_dt"), now):
