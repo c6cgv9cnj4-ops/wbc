@@ -36,4 +36,5 @@ jobs:
             tests.test_state_branch \
             tests.test_local_badminton_run \
             tests.test_offline_guard \
-            tests.test_badminton_handoff \n            tests.test_badminton_handoff_dryrun
+            tests.test_badminton_handoff \
+            tests.test_badminton_handoff_dryrun
