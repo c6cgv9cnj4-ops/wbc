@@ -121,8 +121,14 @@ def search_step(local_dir: Path, api_key: str, *, fetch_search, now_utc: dt.date
 
 
 def run_local(*, local_dir: Path, env: dict, now_utc: dt.datetime | None = None,
-              keychain=read_keychain_key, fetch=R.fetch_page, post=requests.post,
-              fetch_search=L.fetch_search, badspi_fetch=BS.fetch_html, sleep=time.sleep) -> int:
+              keychain=None, fetch=None, post=None, fetch_search=None, badspi_fetch=None,
+              sleep=time.sleep) -> int:
+    # 既定の実装は呼び出し時に解決する（テストで差し替え可能にするため）
+    keychain = keychain or read_keychain_key
+    fetch = fetch or R.fetch_page
+    post = post or requests.post
+    fetch_search = fetch_search or L.fetch_search
+    badspi_fetch = badspi_fetch or BS.fetch_html
     now_utc = (now_utc or dt.datetime.now(dt.timezone.utc)).astimezone(dt.timezone.utc)
     local_dir.mkdir(parents=True, exist_ok=True)
     # 台帳の生成物は、このローカルディレクトリに閉じる（リポジトリ内 config には書かない）
@@ -176,10 +182,19 @@ def run_local(*, local_dir: Path, env: dict, now_utc: dt.datetime | None = None,
         return rc
 
 
+def check() -> int:
+    """環境の自己確認。ネットワーク・キーチェーン・Discord には触れない。"""
+    from importlib.metadata import version
+    print(f"OK: python={sys.version.split()[0]} requests={version('requests')}")
+    return EX_OK
+
+
 def main(argv: list[str] | None = None) -> int:
+    if argv and argv[0] == "--check":
+        return check()
     local_dir = Path(os.environ.get("BADMINTON_LOCAL_DIR", "").strip() or DEFAULT_LOCAL_DIR)
     return run_local(local_dir=local_dir, env=dict(os.environ))
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

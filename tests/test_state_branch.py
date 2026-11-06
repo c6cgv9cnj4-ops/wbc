@@ -142,8 +142,7 @@ class PushRaceTest(unittest.TestCase):
         self.assertTrue((check / "state" / "badspi_ranking" / "2026-11_MS.json").exists())
 
     def test_no_force_push_is_used_in_workflows_or_scripts(self):
-        for f in (ROOT / ".github" / "workflows" / "badminton_results_morning.yml",
-                  ROOT / ".github" / "workflows" / "badspi_ranking_monthly.yml", SCRIPT):
+        for f in (ROOT / ".github" / "workflows" / "badminton_python_tests.yml", SCRIPT):
             text = f.read_text(encoding="utf-8")
             self.assertIsNone(re.search(r"push\s+(-f\b|--force)", text), f.name)
             self.assertIsNone(re.search(r"^\s*git add -A", text, re.M), f.name)

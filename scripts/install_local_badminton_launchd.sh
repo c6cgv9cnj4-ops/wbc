@@ -11,7 +11,13 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMPLATE="${HERE}/launchd/com.rickykogyo.badminton-results.plist.template"
 LABEL="com.rickykogyo.badminton-results"
 LOCAL_DIR="${BADMINTON_LOCAL_DIR:-$HOME/Library/Application Support/ricky-kogyo/badminton}"
-PYTHON_BIN="${PYTHON_BIN:-$(command -v python3)}"
+VENV_DIR="${BADMINTON_VENV_DIR:-${LOCAL_DIR}/venv}"
+# launchd の実行先は専用venvのPythonに固定する（既存の python3 には依存しない）
+PYTHON_BIN="${PYTHON_BIN:-${VENV_DIR}/bin/python}"
+if [ ! -x "${PYTHON_BIN}" ]; then
+  echo "専用venvのPythonが見つかりません: ${PYTHON_BIN}（先に setup_local_badminton_env.sh を実行）" >&2
+  exit 3
+fi
 TARGET="${HOME}/Library/LaunchAgents/${LABEL}.plist"
 LOAD=0
 

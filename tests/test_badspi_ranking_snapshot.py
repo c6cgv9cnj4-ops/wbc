@@ -282,11 +282,14 @@ class MonthlyEntrypointTest(unittest.TestCase):
                 self.assertTrue(snap["complete"])
                 self.assertIsNone(snap["year"])
 
-    def test_workflow_invokes_entrypoint_without_year_argument(self):
-        text = (ROOT / ".github" / "workflows" / "badspi_ranking_monthly.yml").read_text(encoding="utf-8")
-        self.assertIn("badspi_ranking_snapshot.py", text)
-        self.assertNotIn("--year-month", text)
-        self.assertNotIn("git add -A", text)
+    def test_github_actions_has_no_scheduled_collector_and_is_test_only(self):
+        wf = ROOT / ".github" / "workflows"
+        self.assertFalse((wf / "badspi_ranking_monthly.yml").exists())
+        self.assertFalse((wf / "badminton_results_morning.yml").exists())
+        text = (wf / "badminton_python_tests.yml").read_text(encoding="utf-8")
+        self.assertNotIn("schedule:", text, "GitHub Actions は定時取得を行わない（テスト専用）")
+        self.assertNotIn("secrets.", text, "GitHub Secrets を参照しない")
+        self.assertIn("unittest", text)
 
 
 if __name__ == "__main__":

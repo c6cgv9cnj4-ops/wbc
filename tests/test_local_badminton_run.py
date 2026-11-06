@@ -219,17 +219,59 @@ class RunLocalTest(unittest.TestCase):
         self.assertEqual(len(calls), n_first, "週1回：1日後は取得しない")
 
 
+class MainEntrypointNoKeyTest(unittest.TestCase):
+    """launchd が実行する入口（main）。キー無しでは試合結果のAPIを一切呼ばず、badspi（キー不要）だけ取得する。"""
+
+    def test_main_without_key_never_calls_results_api_or_discord_and_fetches_badspi_only(self):
+        with tempfile.TemporaryDirectory() as d:
+            local = Path(d) / "badminton"
+            calls = {"results": 0, "post": 0, "badspi": []}
+
+            def results_api(*a, **k):
+                calls["results"] += 1
+                raise AssertionError("results API must not be called without key")
+
+            def post(*a, **k):
+                calls["post"] += 1
+                raise AssertionError("Discord must not be called")
+
+            def badspi(url):
+                calls["badspi"].append(url)
+                code = {u: c for c, u in json.loads((ROOT / "config" / "badminton_results.json").read_text(
+                    encoding="utf-8"))["badspi_ranking_urls"].items()}[url]
+                return _real_html(code), url
+
+            with mock.patch.dict(os.environ, {"BADMINTON_LOCAL_DIR": str(local)}), \
+                    mock.patch.object(LR, "read_keychain_key", return_value=None), \
+                    mock.patch.object(R, "fetch_page", side_effect=results_api), \
+                    mock.patch.object(requests, "post", side_effect=post), \
+                    mock.patch.object(BS, "fetch_html", side_effect=badspi), \
+                    contextlib.redirect_stdout(io.StringIO()) as out:
+                rc = LR.main([])
+            self.assertEqual(rc, LR.EX_NO_KEY)
+            self.assertEqual(calls["results"], 0)
+            self.assertEqual(calls["post"], 0)
+            self.assertEqual(len(calls["badspi"]), 5)
+            self.assertEqual(len(list((local / "badspi_ranking").glob("*.json"))), 5)
+            self.assertNotIn("BADMINTON_API_KEY=", out.getvalue())
+            self.assertFalse((local / "badminton_results_state.json").exists())
+
+
 class LaunchdTemplateTest(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.tmp = Path(self._tmp.name)
+        # 検証用の専用venv（実際のPythonへのリンク。本番の venv は作らない）
+        (self.tmp / "venv" / "bin").mkdir(parents=True)
+        (self.tmp / "venv" / "bin" / "python").symlink_to(sys.executable)
 
     def tearDown(self):
         self._tmp.cleanup()
 
     def render(self, extra_env=None):
         target = self.tmp / "out.plist"
-        env = dict(os.environ, BADMINTON_LOCAL_DIR=str(self.tmp / "local"), **(extra_env or {}))
+        env = dict(os.environ, BADMINTON_LOCAL_DIR=str(self.tmp / "local"),
+                   BADMINTON_VENV_DIR=str(self.tmp / "venv"), **(extra_env or {}))
         r = subprocess.run(["bash", str(ROOT / "scripts" / "install_local_badminton_launchd.sh"),
                             "--target", str(target)], env=env, capture_output=True, text=True)
         return r, target
@@ -263,9 +305,25 @@ class LaunchdTemplateTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertFalse(calls.exists(), "既定では launchctl を実行しない")
 
+    def test_plist_uses_venv_python_not_system_python(self):
+        r, target = self.render()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn(str(self.tmp / "venv" / "bin" / "python"), target.read_text(encoding="utf-8"))
+
+    def test_missing_venv_stops_with_instruction_and_writes_no_plist(self):
+        target = self.tmp / "none.plist"
+        env = dict(os.environ, BADMINTON_LOCAL_DIR=str(self.tmp / "local"),
+                   BADMINTON_VENV_DIR=str(self.tmp / "no-venv"))
+        r = subprocess.run(["bash", str(ROOT / "scripts" / "install_local_badminton_launchd.sh"),
+                            "--target", str(target)], env=env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 3)
+        self.assertFalse(target.exists())
+
     def test_unknown_argument_is_rejected(self):
+        r, _ = self.render()
         r = subprocess.run(["bash", str(ROOT / "scripts" / "install_local_badminton_launchd.sh"), "--nope"],
-                           capture_output=True, text=True)
+                           capture_output=True, text=True,
+                           env=dict(os.environ, BADMINTON_VENV_DIR=str(self.tmp / "venv")))
         self.assertEqual(r.returncode, 2)
 
 

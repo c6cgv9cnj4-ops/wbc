@@ -177,7 +177,7 @@ class CliTest(unittest.TestCase):
             buf = io.StringIO()
             with mock.patch.object(L, "CANDIDATES_PATH", cpath), \
                     mock.patch.object(L, "REVIEW_PATH", Path(d) / "r.md"), \
-                    mock.patch.dict("os.environ", {"BADMINTON_API_KEY": ""}, clear=False), \
+                    mock.patch.object(L, "_load_api_key", return_value=""), \
                     contextlib.redirect_stdout(buf):
                 rc = L.main(["search"])
             self.assertEqual(rc, 0)
@@ -297,6 +297,94 @@ class DailyBudgetAndQueueTest(unittest.TestCase):
 
     def test_queue_is_empty_before_search(self):
         self.assertIn("JPN候補が出た人はいません", L.confirm_queue_markdown(self._doc(3)))
+
+
+class BatchDecisionTest(unittest.TestCase):
+    """社長の一括確認：CSVに decision を書いて1回 apply する。根拠が揃う行だけ確定し、他は未確定のまま。"""
+
+    def _doc(self):
+        doc = _doc()
+        L.search_candidates(doc, "K", lambda k, q: (200, _search_payload([
+            {"kind": "player", "id": "pl_jp", "name": "保木卓朗", "country": "JPN", "score": 95}])),
+            max_calls=1, sleep=lambda s: None, today_utc="2026-11-06")
+        return doc
+
+    def _csv(self, doc, decision="", who="", when="", source=None):
+        import csv
+        import io
+        text = L.export_decisions_csv(doc)
+        rows = list(csv.reader(io.StringIO(text)))
+        header = rows[0]
+        idx = {h: i for i, h in enumerate(header)}
+        for row in rows[1:]:
+            if row[idx["jba_detail_id"]] == "1":
+                row[idx["decision(JP/NON_JP/空欄)"]] = decision
+                row[idx["confirmed_by"]] = who
+                row[idx["confirmed_at(YYYY-MM-DD)"]] = when
+                if source is not None:
+                    row[idx["JBA選手ページ(根拠URL)"]] = source
+        out = io.StringIO()
+        csv.writer(out).writerows([header] + rows[1:])
+        return out.getvalue()
+
+    def test_export_has_one_row_per_candidate_with_evidence_columns_and_no_status_change(self):
+        doc = self._doc()
+        text = L.export_decisions_csv(doc)
+        self.assertEqual(text.count("\n"), 1 + len(doc["candidates"]))
+        self.assertIn("候補あり（人が確認）", text)
+        self.assertIn("未照合（検索未実施）", text)
+        self.assertTrue(all(c["status"] == "UNMATCHED" for c in doc["candidates"]), "出力だけでは確定しない")
+
+    def test_blank_decision_rows_stay_unconfirmed(self):
+        doc = self._doc()
+        roster = {"players": []}
+        res = L.apply_decisions(doc, roster, self._csv(doc))
+        self.assertEqual(res["applied"], [])
+        self.assertEqual(roster["players"], [])
+
+    def test_complete_evidence_row_is_confirmed_in_one_apply(self):
+        doc = self._doc()
+        roster = {"players": []}
+        csv_text = self._csv(doc, "JP", "細川", "2026-11-06", SRC)
+        res = L.apply_decisions(doc, roster, csv_text)
+        self.assertEqual(len(res["applied"]), 1)
+        self.assertEqual(roster["players"][0]["player_id"], "pl_jp")
+        self.assertEqual(roster["players"][0]["confirmed_by"], "細川")
+
+    def test_missing_evidence_stays_unconfirmed_with_reason(self):
+        doc = self._doc()
+        roster = {"players": []}
+        res = L.apply_decisions(doc, roster, self._csv(doc, "JP", "", "", SRC))
+        self.assertEqual(res["applied"], [])
+        self.assertEqual(len(res["rejected"]), 1)
+        self.assertIn("確認者", res["rejected"][0]["reason"])
+        self.assertEqual(roster["players"], [])
+
+    def test_missing_jba_url_stays_unconfirmed(self):
+        doc = self._doc()
+        res = L.apply_decisions(doc, {"players": []}, self._csv(doc, "JP", "細川", "2026-11-06", ""))
+        self.assertEqual(res["applied"], [])
+        self.assertIn("出典", res["rejected"][0]["reason"])
+
+    def test_candidate_without_jpn_hit_cannot_be_decided(self):
+        doc = self._doc()
+        doc["candidates"][1]["search"] = {"searched_at": "x", "results": [
+            {"id": "pl_cn", "name": "別人候補", "country": "CHN", "score": 80}]}
+        import csv, io
+        text = L.export_decisions_csv(doc)
+        rows = list(csv.reader(io.StringIO(text)))
+        idx = {h: i for i, h in enumerate(rows[0])}
+        for r in rows[1:]:
+            if r[0] == "2":
+                r[idx["decision(JP/NON_JP/空欄)"]] = "JP"
+                r[idx["confirmed_by"]] = "細川"
+                r[idx["confirmed_at(YYYY-MM-DD)"]] = "2026-11-06"
+                r[idx["JBA選手ページ(根拠URL)"]] = SRC
+        out = io.StringIO()
+        csv.writer(out).writerows(rows)
+        res = L.apply_decisions(doc, {"players": []}, out.getvalue())
+        self.assertEqual(res["applied"], [])
+        self.assertEqual(len(res["rejected"]), 1)
 
 
 if __name__ == "__main__":

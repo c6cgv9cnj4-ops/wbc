@@ -266,6 +266,68 @@ def confirm_queue_markdown(doc: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+DECISION_COLUMNS = [
+    "jba_detail_id", "氏名", "所属", "都道府県", "JBA選手ページ(根拠URL)", "API候補ID", "API候補名",
+    "国コード", "score", "同名あり", "根拠状況", "decision(JP/NON_JP/空欄)", "confirmed_by", "confirmed_at(YYYY-MM-DD)",
+]
+
+
+def _best_jpn_hit(c: dict) -> dict | None:
+    hits = [r for r in (c.get("search") or {}).get("results", []) if r.get("country") == "JPN"]
+    return hits[0] if hits else None
+
+
+def export_decisions_csv(doc: dict) -> str:
+    """社長が一括で確認する一覧（CSV）。自動確定はしない。
+    decision 列に JP / NON_JP を書き、confirmed_by・confirmed_at を埋めて apply-decisions を1回実行する。
+    根拠（JBAページURL・API候補ID・国コード・確認者・確認日）が揃わない行は未確定のまま残る。"""
+    import csv
+    import io
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(DECISION_COLUMNS)
+    for c in doc["candidates"]:
+        hit = _best_jpn_hit(c)
+        if c.get("search") is None:
+            status = "未照合（検索未実施）"
+        elif hit is None:
+            status = "JPN候補なし（確定不可）"
+        else:
+            status = "候補あり（人が確認）"
+        w.writerow([
+            c["jba_detail_id"], c["name"], c.get("team", ""), c.get("prefecture", ""),
+            c.get("jba_detail_url", ""),
+            hit["id"] if hit else "", hit["name"] if hit else "",
+            hit.get("country") if hit else "", hit.get("score") if hit else "",
+            "あり" if c.get("same_name_count", 1) > 1 else "なし",
+            status, "", "", "",
+        ])
+    return buf.getvalue()
+
+
+def apply_decisions(doc: dict, roster: dict, csv_text: str) -> dict:
+    """decision 列が JP / NON_JP の行だけを、confirm の検証（根拠・国コード・検索結果内のID）を通して確定する。
+    根拠が不足する行は確定せず、理由を返す。decision が空の行は何もしない。"""
+    import csv
+    import io
+    applied, rejected = [], []
+    rows = list(csv.DictReader(io.StringIO(csv_text)))
+    for row in rows:
+        decision = (row.get("decision(JP/NON_JP/空欄)") or "").strip().upper()
+        if decision not in ("JP", "NON_JP"):
+            continue
+        cand_id = (row.get("API候補ID") or "").strip()
+        try:
+            entry = confirm(doc, roster, detail_id=row["jba_detail_id"].strip(), player_id=cand_id,
+                            decision=decision, source_url=(row.get("JBA選手ページ(根拠URL)") or "").strip(),
+                            confirmed_by=(row.get("confirmed_by") or "").strip(),
+                            confirmed_at=(row.get("confirmed_at(YYYY-MM-DD)") or "").strip())
+            applied.append({"detail_id": row["jba_detail_id"], "name": entry["name"], "status": entry["status"]})
+        except LedgerError as err:
+            rejected.append({"detail_id": row.get("jba_detail_id"), "name": row.get("氏名"), "reason": str(err)})
+    return {"applied": applied, "rejected": rejected, "rows": len(rows)}
+
+
 def review_markdown(doc: dict) -> str:
     lines = [
         "# 日本人選手ID 候補一覧（人が確認する用）",
@@ -290,6 +352,17 @@ def review_markdown(doc: dict) -> str:
         lines.append(f"| {c['jba_detail_id']} | {c['name']}{flag} | {c['team']} | {c['prefecture']} | "
                      f"{' / '.join(c['pages'])} | {hit} | {c['status']} |")
     return "\n".join(lines) + "\n"
+
+
+def _load_api_key() -> str:
+    """キーは macOS キーチェーンから読む（コマンドラインや環境変数に書かない）。無ければ空文字。値は表示しない。"""
+    import subprocess
+    try:
+        r = subprocess.run(["security", "find-generic-password", "-s", "ricky-kogyo-badminton-api-free",
+                            "-a", "BADMINTON_API_KEY", "-w"], capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return (r.stdout or "").strip() if r.returncode == 0 else ""
 
 
 def _load_json(path: Path, default):
@@ -326,6 +399,9 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--confirmed-by", required=True)
     c.add_argument("--confirmed-at", required=True)
     sub.add_parser("review", help="人が確認する一覧（Markdown）を書き出す")
+    sub.add_parser("export-decisions", help="一括確認用のCSVを書き出す（自動確定しない）")
+    ap_apply = sub.add_parser("apply-decisions", help="CSVの decision 列を、根拠が揃う行だけ確定する")
+    ap_apply.add_argument("--file", required=True)
     args = ap.parse_args(argv)
 
     if args.cmd == "build":
@@ -347,7 +423,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     if args.cmd == "search":
-        api_key = os.environ.get("BADMINTON_API_KEY", "").strip()
+        api_key = _load_api_key()
         if not api_key:
             print("::warning::BADMINTON_API_KEY が未設定のため、照合（search）は実行しません。候補は未照合のままです。")
             return 0
@@ -376,6 +452,28 @@ def main(argv: list[str] | None = None) -> int:
         REVIEW_PATH.write_text(review_markdown(doc), encoding="utf-8")
         QUEUE_PATH.write_text(confirm_queue_markdown(doc), encoding="utf-8")
         print(f"[OK] 台帳に追加: {entry['player_id']} {entry['name']} {entry['status']}")
+        return 0
+
+    if args.cmd == "export-decisions":
+        out_dir = Path(os.environ.get("BADMINTON_LOCAL_DIR", "").strip()
+                       or Path.home() / "Library" / "Application Support" / "ricky-kogyo" / "badminton")
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out = out_dir / "badminton_jp_decisions.csv"   # 個人確認用の一覧はリポジトリに置かない
+        out.write_text("\ufeff" + export_decisions_csv(doc), encoding="utf-8")
+        print(f"[OK] 一括確認用CSVを書き出しました: {out}")
+        return 0
+
+    if args.cmd == "apply-decisions":
+        roster = _load_json(ROSTER_PATH, {"schema_version": 1, "players": []})
+        csv_text = Path(args.file).read_text(encoding="utf-8-sig")
+        result = apply_decisions(doc, roster, csv_text)
+        _write_json(ROSTER_PATH, roster)
+        _write_json(CANDIDATES_PATH, doc)
+        REVIEW_PATH.write_text(review_markdown(doc), encoding="utf-8")
+        QUEUE_PATH.write_text(confirm_queue_markdown(doc), encoding="utf-8")
+        print(f"[OK] 確定 {len(result['applied'])} 件 / 未確定（根拠不足など）{len(result['rejected'])} 件 / 行 {result['rows']}")
+        for r in result["rejected"]:
+            print(f"  [未確定] {r['detail_id']} {r['name']}: {r['reason']}")
         return 0
 
     if args.cmd == "review":
