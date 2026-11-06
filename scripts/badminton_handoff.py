@@ -248,7 +248,7 @@ def prune_seen(seen: dict, now_utc: dt.datetime, days: int = SEEN_RETENTION_DAYS
             del seen[key]
 
 
-PUBLISH_MAX_AGE = dt.timedelta(minutes=15)   # この実行で生成された直後のJSONだけを公開対象にする
+PUBLISH_MAX_AGE = dt.timedelta(hours=2)   # 生成から2時間以内のJSONだけを公開対象にする（再試行 05:30〜05:55 を含む）
 
 
 def publish_decision(payload, now_utc: dt.datetime, *, enabled: bool, key_present: bool,

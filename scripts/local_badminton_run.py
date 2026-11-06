@@ -219,11 +219,12 @@ def run_local(*, local_dir: Path, env: dict, now_utc: dt.datetime | None = None,
                                 fetch=fetch, post=post, sleep=sleep, event="schedule", rankings=rankings,
                                 handoff_path=local_dir / "outbox" / BH.DATA_FILENAME)
                 rc = max(rc, r1)
-                # 試合結果JSONの公開（この実行で生成された新しいJSONだけ。既定は無効）
-                pub = publish_handoff(outbox_path=local_dir / "outbox" / BH.DATA_FILENAME, local_dir=local_dir,
-                                      config=config, now_utc=now_utc, env=env)
-                if pub == "failed":
-                    rc = max(rc, EX_FAIL)
+            # 試合結果JSONの公開。取得の有無にかかわらず毎回判定する（前回の公開失敗を次回に再試行するため）。
+            # 公開判定が「未公開・新鮮・検証済み・キーあり」を満たすときだけ公開する。API は呼ばない。
+            pub = publish_handoff(outbox_path=local_dir / "outbox" / BH.DATA_FILENAME, local_dir=local_dir,
+                                  config=config, now_utc=now_utc, env=env)
+            if pub == "failed":
+                rc = max(rc, EX_FAIL)
             # 2) 台帳の照合（確定はしない・日次上限あり）
             s = search_step(local_dir, api_key, fetch_search=fetch_search, now_utc=now_utc, sleep=sleep)
             print(f"[INFO] 台帳の照合: {s}")

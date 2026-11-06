@@ -214,3 +214,126 @@ class RunLocalPublishPathTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RetryAfterPublishFailureTest(unittest.TestCase):
+    """公開失敗後の次回実行で、API を再取得せずに公開だけ再試行されることを実行で証明する。"""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.local = self.tmp / "local"
+        self.local.mkdir()
+        self.bare = self.tmp / "remote.git"
+        seed = self.tmp / "seed"
+        subprocess.run(["git", "init", "-q", "--bare", str(self.bare)], check=True)
+        seed.mkdir()
+        subprocess.run(["git", "-C", str(seed), "init", "-q"], check=True)
+        (seed / "README.md").write_text("main\n", encoding="utf-8")
+        g = ["git", "-C", str(seed), "-c", "user.name=t", "-c", "user.email=t@t"]
+        subprocess.run(g + ["add", "."], check=True)
+        subprocess.run(g + ["commit", "-q", "-m", "main"], check=True)
+        subprocess.run(["git", "-C", str(seed), "push", "-q", str(self.bare), "HEAD:refs/heads/main"], check=True)
+        self.keyfile = self.tmp / "deploy_key_for_test"
+        self.keyfile.write_text("dummy\n", encoding="utf-8")
+        self.now = dt.datetime.now(UTC).replace(microsecond=0)
+        self.api_day = LR.R.compute_window(self.now)["api_day_utc"]
+        # 当日の取得は成功済み（state に ok の実行がある）。JSON は 05:30 相当に生成済み（5分前）
+        state = LR.R.empty_state()
+        state["runs"].append({"status": "ok", "api_day_utc": self.api_day, "run_at": self.now.isoformat()})
+        LR.R.save_state(self.local / "badminton_results_state.json", state)
+        H.write_payload_atomic(self.local / "outbox" / H.DATA_FILENAME,
+                               ok_payload(generated=self.now - dt.timedelta(minutes=5)))
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def run_once_local(self, remote):
+        fetch = mock.Mock(side_effect=AssertionError("API must not be re-fetched"))
+        env = {"BADMINTON_DATA_REMOTE": str(remote), "BADMINTON_DATA_DEPLOY_KEY": str(self.keyfile)}
+        cfg = dict(LR.R.load_config(), data_publish_enabled=True)
+        with mock.patch.object(LR, "search_step", return_value={"status": "skipped"}), \
+                mock.patch.object(LR.BS, "run_snapshot", return_value=0), \
+                mock.patch.object(LR, "badspi_due", return_value=False), \
+                mock.patch.object(LR.R, "load_config", return_value=cfg), \
+                contextlib.redirect_stdout(io.StringIO()) as out:
+            rc = LR.run_local(local_dir=self.local, env=env, now_utc=self.now,
+                              keychain=lambda: "TEST_KEY_NOT_REAL", fetch=fetch, post=mock.Mock(),
+                              sleep=lambda s: None)
+        fetch.assert_not_called()           # 当日取得済みのため API を呼ばない
+        return rc, out.getvalue()
+
+    def test_failed_publish_is_retried_next_run_without_refetch(self):
+        broken = self.tmp / "no-such-remote.git"
+        rc1, out1 = self.run_once_local(broken)
+        self.assertEqual(rc1, LR.EX_FAIL)                                  # 失敗は隠さない
+        self.assertIn("公開に失敗しました", out1)
+        self.assertFalse((self.local / "publish_last.json").exists())      # 成功していないので記録しない
+        rc2, out2 = self.run_once_local(self.bare)                          # 次回実行（同日）
+        self.assertEqual(rc2, LR.EX_OK, out2)
+        self.assertIn("公開しました", out2)
+        self.assertTrue((self.local / "publish_last.json").exists())
+        rc3, out3 = self.run_once_local(self.bare)                          # 同じ内容は再公開しない
+        self.assertIn("公開しません（unchanged）", out3)
+
+    def test_stale_json_is_not_published_on_retry(self):
+        H.write_payload_atomic(self.local / "outbox" / H.DATA_FILENAME,
+                               ok_payload(generated=self.now - dt.timedelta(hours=3)))
+        rc, out = self.run_once_local(self.bare)
+        self.assertIn("公開しません（stale）", out)
+        self.assertNotIn("refs/heads/badminton-results-data", self._refs())
+
+    def test_not_ok_json_is_never_published_on_retry(self):
+        H.write_payload_atomic(self.local / "outbox" / H.DATA_FILENAME,
+                               ok_payload(generated=self.now - dt.timedelta(minutes=1), status="fetch_failed"))
+        rc, out = self.run_once_local(self.bare)
+        self.assertIn("公開しません（not_ok）", out)
+        self.assertNotIn("refs/heads/badminton-results-data", self._refs())
+
+    def _refs(self):
+        out = subprocess.run(["git", "-C", str(self.bare), "for-each-ref", "--format=%(refname)"],
+                             capture_output=True, text=True, check=True).stdout
+        return set(out.split())
+
+
+class PublishAuthFailureTest(unittest.TestCase):
+    """認証・接続の失敗を「ブランチ未作成」と誤認しないこと。"""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.key = self.tmp / "k"
+        self.key.write_text("x", encoding="utf-8")
+        self.src = self.tmp / "p.json"
+        H.write_payload_atomic(self.src, ok_payload())
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_unreachable_remote_is_reported_as_connection_failure_not_missing_branch(self):
+        env = dict(os.environ, BADMINTON_DATA_REMOTE=str(self.tmp / "nope.git"),
+                   BADMINTON_DATA_DEPLOY_KEY=str(self.key))
+        r = subprocess.run(["bash", str(LR.PUBLISH_SCRIPT), str(self.src)], env=env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("接続の失敗", r.stdout)
+        self.assertNotIn("未作成", r.stdout)
+        self.assertNotIn(str(self.key), r.stdout + r.stderr)   # 鍵の場所は表示しない
+
+    def test_missing_branch_on_working_remote_is_created(self):
+        bare = self.tmp / "ok.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(bare)], check=True)
+        env = dict(os.environ, BADMINTON_DATA_REMOTE=str(bare), BADMINTON_DATA_DEPLOY_KEY=str(self.key))
+        r = subprocess.run(["bash", str(LR.PUBLISH_SCRIPT), str(self.src)], env=env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("未作成のため新規作成", r.stdout)
+
+    def test_existing_branch_is_updated_not_recreated(self):
+        bare = self.tmp / "ok2.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(bare)], check=True)
+        env = dict(os.environ, BADMINTON_DATA_REMOTE=str(bare), BADMINTON_DATA_DEPLOY_KEY=str(self.key))
+        subprocess.run(["bash", str(LR.PUBLISH_SCRIPT), str(self.src)], env=env, capture_output=True, text=True, check=True)
+        H.write_payload_atomic(self.src, ok_payload(matches=[]))
+        r = subprocess.run(["bash", str(LR.PUBLISH_SCRIPT), str(self.src)], env=env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertNotIn("未作成のため新規作成", r.stdout)
+        count = subprocess.run(["git", "-C", str(bare), "rev-list", "--count", "badminton-results-data"],
+                               capture_output=True, text=True, check=True).stdout.strip()
+        self.assertEqual(count, "2")   # 既存の履歴に積まれている（作り直していない）

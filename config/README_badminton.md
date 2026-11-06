@@ -2,7 +2,7 @@
 
 ## 0. 実行系統（確定）
 - **Discord へ投稿するのは既存 `badminton_alerts.yml`（毎朝06:05 JST）の1本だけ**。
-- Mac mini のローカルジョブ（launchd・毎朝06:05）は **試合結果JSONの生成だけ**を行い、Discord へは送らない（`DISCORD_DELIVERY_ENABLED = False` で封じ込め）。
+- Mac mini のローカルジョブ（launchd）は **試合結果JSONの生成と専用ブランチへの公開**を行い、Discord へは送らない（`DISCORD_DELIVERY_ENABLED = False` で封じ込め）。
 - GitHub Actions の `バドミントン新規モジュールのテスト` はテスト専用（定時実行・Secrets 参照なし）。
 - APIキーは **macOS キーチェーン**から読む。GitHub Secrets には登録しない。
 - Discord は既定で無効（`discord_output_enabled: false`）。ローカル実行は Discord の認証情報を読まない。
@@ -46,7 +46,7 @@ security add-generic-password -s ricky-kogyo-badminton-api-free -a BADMINTON_API
 # 2) 専用venvの作成・固定版の導入・plist展開・plutil検証（登録はしない）
 scripts/setup_local_badminton_env.sh
 
-# 3) 登録（06:05 JST に毎日実行）
+# 3) 登録（05:30・05:40・05:50 JST に毎日実行。既存の GitHub 06:05 配信より前に公開を完了させる）
 scripts/install_local_badminton_launchd.sh --load
 ```
 - 既存の python3 や他プロジェクトの依存は変更しない（専用venvのみ）。依存は `requirements-badminton-local.txt` で固定。
@@ -72,7 +72,7 @@ scripts/install_local_badminton_launchd.sh --load
 - 試合は1件ずつ検証（勝者と得点の整合、終了済み `finished` のみ、タイムゾーン必須、取得窓内、得点の範囲）。不正な試合は除外して理由を記録。
 - 指定選手（既存の大会記事が担当）を含む試合は除外し、二重投稿を防ぐ。
 - 既送信記録は既存の `state/badminton_alerts_seen.json` の新しいキー空間（`intl::<試合ID>`）に保存。内容が変わった場合は「（訂正）」として1回だけ送る。
-- 既存配信への追加は **朝06:05の実行（morning 帯）のみ**。送信成功後にだけ既送信として記録（失敗時は次回再試行）。
+- 既存配信への追加は **朝06:05の実行（morning 帯）のみ**。Mac の公開は 05:30 に始まり、遅れても 06:05 の取得より前に完了させる（再試行は 05:40・05:50）。送信成功後にだけ既送信として記録（失敗時は次回再試行）。
 - 取り込みの例外・JSONの欠落・破損・期限切れ・取得失敗は、既存配信を止めない（既存の送信内容は従来どおり）。
 
 ### 応答形式の未検証
@@ -99,3 +99,23 @@ scripts/install_local_badminton_launchd.sh --load
 - 大会名に国内の語（全日本・日本・県・市・JBA など）を含む試合は除外。国際大会と確認できる語（BWF・Open・World など）を含まない試合も除外。
 - 指定選手（既存の大会記事が担当）を含む試合も除外。
 - 実APIの大会名の実データで、この規則の妥当性を確認する必要がある。
+
+## 7. 実行時刻の設計（衝突の解消）
+
+| 実行 | 時刻（JST） | 役割 |
+|---|---|---|
+| Mac launchd（初回） | 05:30 | API取得 → JSON生成 → 専用ブランチへ公開 |
+| Mac launchd（再試行） | 05:40・05:50 | 公開が未完了なら公開だけ再試行（当日取得済みならAPIは呼ばない） |
+| GitHub Actions（既存） | 06:05（cron `5 21 * * *` UTC、変更なし） | 専用ブランチを取得し、既存配信へ追加 |
+
+- 1回の実行の上限は15分（設計上の上限）。最後の実行（05:50）の上限が 06:05 までに収まる。
+- Mac の実行が遅れたり失敗したりしても、GitHub 側は「データなし」として既存配信を従来どおり送る。
+- GitHub の cron は遅延し得るため、取得時刻は保証しない（遅延しても既存配信は止まらない）。
+
+## 8. 公開の鮮度・再試行・既送信の扱い
+
+- 公開対象：この実行が生成したJSON、または未公開の最新JSON。生成から2時間以内、status が ok、応答形式検証済み、キーあり、前回公開と内容が違う。
+- 公開成功時だけ `publish_last.json`（内容ハッシュ）を更新する。失敗時は更新しないため、次回実行で再試行される。
+- 古いJSON・取得失敗JSON・未検証JSON・破損JSONは公開しない。
+- 公開スクリプトは、リモートへの接続（ls-remote）に失敗した場合は「ブランチ未作成」と見なさず、中止して終了コード2を返す。
+- 既送信記録（`intl::`）は、GitHub 側が **送信成功後にだけ**更新する。

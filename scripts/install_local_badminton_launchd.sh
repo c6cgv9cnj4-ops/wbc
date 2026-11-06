@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# 朝06:05 のローカル実行（launchd）を、テンプレートから plist に展開する。
+# 朝のローカル実行（launchd：05:30 JST、再試行 05:40・05:50）を、テンプレートから plist に展開する。
+# GitHub Actions の 06:05 配信より前に公開を完了させるため、06:05 には起動しない。
 # 既定では plist を書き出すだけで、launchctl は実行しない（登録は --load を付けた時だけ）。
 # 使い方:
 #   scripts/install_local_badminton_launchd.sh                 … 専用フォルダ（staging）に展開のみ（登録されない）
@@ -57,7 +58,7 @@ if [ "${LOAD}" -eq 1 ]; then
   cp "${STAGED}" "${LAUNCH_AGENT}"
   launchctl bootout "gui/$(id -u)/${LABEL}" >/dev/null 2>&1 || true
   launchctl bootstrap "gui/$(id -u)" "${LAUNCH_AGENT}"
-  echo "登録しました（次回 06:05 に実行）: ${LABEL}"
+  echo "登録しました（次回は 05:30 JST、再試行 05:40・05:50 JST に実行）: ${LABEL}"
 else
   echo "まだ登録していません（LaunchAgents へは未配置）。登録は次のコマンドで行う（社長の承認後）:"
   echo "  ${HERE}/scripts/install_local_badminton_launchd.sh --load"

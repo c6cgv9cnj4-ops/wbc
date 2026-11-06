@@ -38,10 +38,19 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "${TMP}"' EXIT
 export GIT_SSH_COMMAND="ssh -i ${BADMINTON_DATA_DEPLOY_KEY} -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
 
-if git clone --quiet --depth 1 --branch "${BRANCH}" "${REMOTE}" "${TMP}/repo" 2>/dev/null; then
-  :
+# 1) リモートへ接続できるかを確認。失敗（認証・接続）は「ブランチ未作成」と区別して中止する
+if ! HEADS="$(git ls-remote --heads "${REMOTE}" "${BRANCH}" 2>"${TMP}/ls-remote.err")"; then
+  echo "[ERROR] リモートへ接続できません（認証または接続の失敗）。ブランチの有無は確認できないため公開しません"
+  # 鍵の場所は表示しない（実際の値を置換する）
+  python3 -c 'import sys; k=sys.argv[1]; t=open(sys.argv[2],encoding="utf-8",errors="replace").read(); print(t.replace(k, "<DEPLOY_KEY>")[:500])' "${BADMINTON_DATA_DEPLOY_KEY}" "${TMP}/ls-remote.err"
+  exit 2
+fi
+if [ -n "${HEADS}" ]; then
+  # 2) 既存ブランチを取得して、その上に fast-forward で積む
+  git clone --quiet --depth 1 --branch "${BRANCH}" "${REMOTE}" "${TMP}/repo"
 else
-  # 専用ブランチがまだ無い場合だけ、孤立ブランチとして作る（main の履歴とは無関係）
+  # 3) 本当に無い場合だけ、孤立ブランチとして作る（main の履歴とは無関係）
+  echo "[INFO] 専用ブランチ ${BRANCH} は未作成のため新規作成します"
   git init -q "${TMP}/repo"
   git -C "${TMP}/repo" remote add origin "${REMOTE}"
   git -C "${TMP}/repo" checkout -q --orphan "${BRANCH}"

@@ -38,4 +38,5 @@ jobs:
             tests.test_offline_guard \
             tests.test_badminton_handoff \
             tests.test_badminton_handoff_dryrun \
-            tests.test_badminton_publish
+            tests.test_badminton_publish \
+            tests.test_handoff_order

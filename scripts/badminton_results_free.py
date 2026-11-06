@@ -49,8 +49,8 @@ REQUEST_TIMEOUT = 20
 DISCORD_BATCH = 10
 RETRY_MAX = 3
 RETRY_WAIT_SEC = (2, 4, 8)
-SCHEDULE_HOUR_UTC = 21   # JST 06:05 = UTC 21:05
-SCHEDULE_MINUTE_UTC = 5
+SCHEDULE_HOUR_UTC = 20   # Mac（launchd）の初回予定 JST 05:30 = UTC 20:30（既存の GitHub 06:05 配信より前に公開を完了させる）
+SCHEDULE_MINUTE_UTC = 30
 
 JST = dt.timezone(dt.timedelta(hours=9))
 UTC = dt.timezone.utc
