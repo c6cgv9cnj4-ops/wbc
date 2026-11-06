@@ -1,10 +1,5 @@
 {
   "seen_urls": {
-    "https://news.google.com/rss/articles/CBMiU0FVX3lxTE1XNTJ3QjBZNkt0ZHRVVk93amR6MDBnNjdtbUhWck40Y3RBdTVNWFM4WGxESWJscmNNYXRyOEl1Ny1xWWJsRW93ZGFxVjM1S01meUMw?oc=5": "2026-10-23T09:39:19.378456+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBzY2Q1eEFuZTFIYW4tTnZsazBYX1daRzVmczJTRFFScElNd0dNUWJ5UEtwTXBGRWVsN3N6Q3ZFWVNVa2xzTm9BOEpQdlQyTWFGc2d6OGdQYUhFamo0OG1yajJ3X2pJRXR0?oc=5": "2026-10-23T09:39:19.378456+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1WbnBwb1puZVAybmJwUUJYMFlRMVVnUFJnTkI5a1Rta3JQbE5XdkN1V3NPUXVMMUdXZ0w5d3o1RWt1LVo3Z2hxYXY2c05yRDVXTm5ManphWC1WMVcyMGl3alF0VVdGRmZP?oc=5": "2026-10-23T09:39:19.378456+09:00",
-    "https://news.google.com/rss/articles/CBMie0FVX3lxTE5zamNyNWl0MDFwSXpsOGU1bFlfekFTeU5NSjZXeXBIbW5VbENFdFI0Y1NZTnctdmtLUFVoUFdBTUVPQUNtNmxpaW9oSncyX2tkOExfRkZLQzJMcTF2RjZyWU1odDYwWFQyajNTUGMwa1lfcjF6LVVZcFZxTQ?oc=5": "2026-10-23T09:39:19.378456+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1FX1VkdUdyUnd1ekhDX21NTEVFUl9zejR2NGlkWWM1MDY3N1o1cHNDTUZTQWlwX195TVB2SGJBMUo2NDZhV0ZHOUhqSHBfT0lDS3U4STNuUnUyRzdWemlsbDFwYm5sQ2l2?oc=5": "2026-10-23T09:39:19.378456+09:00",
     "https://gigazine.net/news/20261023-anthropic-formal-verification/": "2026-10-23T17:27:38.867899+09:00",
     "https://gigazine.net/news/20261023-micron-4fsquare-shift/": "2026-10-23T17:27:38.867899+09:00",
     "https://news.google.com/rss/articles/CBMiR0FVX3lxTFBwRkpsTEMyY3Y4MWxHbUJYaFpFWWVzU0FSd3dMT005OE4xVVlfRXJCbHVlMUtDQkpLS2I0MkJhc19uWlRYNU1J?oc=5": "2026-10-23T17:27:38.867899+09:00",
@@ -132,6 +127,19 @@
     "https://news.google.com/rss/articles/CBMilgFBVV95cUxOSjdfQkY4anYweVEtamJGMjV3RmQ4VEFYYXVfR2lmak1YRU4tckU1LUlUYXZfcjlNOHIxTF91bGxPYWtVQXZiTFB3MlVuNnJoYk5UMDBRaXBLVy1lRUNFcTJjb09PNTMwZUVMTzBGVFZDVTlNdldDYlVPTUpvVUU3RW9fX2lTRGFwSThVUjVFODRSTmNSdVE?oc=5": "2026-11-05T10:27:12.910777+09:00",
     "https://news.google.com/rss/articles/CBMidEFVX3lxTE10RlZCeVFJRGhfeXc4bFhpZm5XeXdvbVhfcU10dHE1TzFvR2dhQ0xVeU5LU2QtWlJMOXdBSHl1em1fQ3JONXJlVVlLVzRZaWtVb0ppUTlFTjgwXzZSaEt3TURVXzJKUXNPQlhTdHNBNXBqdkZC?oc=5": "2026-11-05T10:27:12.910777+09:00",
     "https://gigazine.net/news/20261106-ai-in-cybersecurity-php2shell-vulnerability/": "2026-11-06T06:30:57.364961+09:00",
-    "https://gigazine.net/news/20261105-apple-cuts-internal-ai-usage/": "2026-11-06T06:30:57.364961+09:00"
-  }
+    "https://gigazine.net/news/20261105-apple-cuts-internal-ai-usage/": "2026-11-06T06:30:57.364961+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/06/2000002936/": "2026-11-06T10:29:52.512284+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/06/2000002935/": "2026-11-06T10:29:52.512284+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/06/2000002934/": "2026-11-06T10:29:52.512284+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/06/2000002867/": "2026-11-06T10:29:52.512284+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/06/2000002932/": "2026-11-06T10:29:52.512284+09:00",
+    "https://postcoffee.co/magazine/coffee/what-is-coffee-roaster/": "2026-11-06T10:29:52.512284+09:00",
+    "https://news.google.com/rss/articles/CBMiUEFVX3lxTE83bWFSbTJpQWd6cV9ueHpRN1A2Qi1CUVA2REZzV2VIcTNxTG1xTWZydW1UcGM4MkI3QUR1cXJiZlE1TXVWUGc5THBsUUE1STJx?oc=5": "2026-11-06T10:29:52.512284+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1BUDFnRXVOWDZXY3d0WkVydWY5enRUcDUwN2V2UnloNTg0MTNxY2dScl9tT1daeEl0OEwxeGRLeG03bVAtcnVfaFBaa09pTjRDRWpUNVZMVmVCd2hqTG9BUWNWVzhiZDZQ?oc=5": "2026-11-06T10:29:52.512284+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1iWDR0M3l1Xy1WRXJ6ckRDaGtCb1A4V3lsMkp4aXIxaUN3MkI5SDRpTGlocnd1MjVrRWxlNUJjLTd0Z1A2ZWRNWWFzajlpRENJRWF6eTFodXFMVW9kVi1LUVJvcUJiaERY?oc=5": "2026-11-06T10:29:52.512284+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE9DWW5VQ19QanVtY2pyVzNYNFJMQklLRUxGNzg1LVl6QkFpUWJEWktHZHhqUFZLaXBuaWhSODE4NnpPbnVoQl9JN2tfQTB4SEVyYTZELUVvRmFid2k5Zzg2aUdhblFfM3lX?oc=5": "2026-11-06T10:29:52.512284+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFA3cUk4dmMzcXc3aUtMV0NrN0o4UzI3eG5nWlhrank5NTFQUWk3YjJHRHhqdC13V0hFeXVGcG52cDBQNkNuWTAzeWN1VC1raVRmaVVfczE2NnRWMnBoVnp1T2pNRGxQRkpM?oc=5": "2026-11-06T10:29:52.512284+09:00"
+  },
+  "_gemini_backoff:quota": "2026-11-06T17:00:00+09:00",
+  "_gemini_backoff_basis:quota": "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)／日次境界(太平洋時間0時・推定)"
 }
