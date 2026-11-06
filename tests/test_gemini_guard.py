@@ -97,16 +97,16 @@ class GuardTest(unittest.TestCase):
 
     def test_transient_exponential_backoff_then_success(self):
         g = make_guard()
-        f = Flaky(busy_error(), busy_error())
+        f = Flaky(busy_error())   # 2026-11-05: 503の再試行は最大2回(待ち15秒・45秒)
         self.assertEqual(g.call(f), "OK")
-        self.assertEqual((f.calls, g.sleeps), (3, [4.0, 8.0]))
+        self.assertEqual((f.calls, g.sleeps), (2, [15.0]))
 
     def test_transient_gives_up_after_max_retries(self):
         g = make_guard()
         f = Flaky(busy_error(), busy_error(), busy_error(), busy_error())
         with self.assertRaises(gg.GeminiCallError) as cm:
             g.call(f)
-        self.assertEqual((f.calls, cm.exception.attempts, g.sleeps), (3, 3, [4.0, 8.0]))       # 無限リトライしない
+        self.assertEqual((f.calls, cm.exception.attempts, g.sleeps), (3, 3, [15.0, 45.0]))    # 上限(2回再試行)で打ち切り
         self.assertEqual(cm.exception.info.code, 503)
         self.assertEqual([k for k in g.state if k.startswith(gg.BACKOFF_PREFIX)], [])           # 一時的なエラーでは待機状態を作らない
 
@@ -202,6 +202,12 @@ class DailyBoundaryTest(unittest.TestCase):
         until, basis = gg.daily_retry_until(self.J(2026, 10, 9, 7, 46), 4393)
         self.assertEqual(until, self.J(2026, 10, 9, 8, 59, 13))      # 4393秒後
         self.assertEqual(basis, gg.BASIS_RETRY_INFO)
+
+    def test_retry_info_just_before_boundary_waits_for_boundary(self):
+        # 2026-11-04 再現: 13:37 JST + 3時間21分 = 16:58 → 境界直前なので17:00(PT0時)まで待つ
+        until, basis = gg.daily_retry_until(self.J(2026, 11, 4, 13, 37), 3 * 3600 + 21 * 60)
+        self.assertEqual(until, self.J(2026, 11, 4, 17))
+        self.assertIn(gg.BASIS_BOUNDARY, basis)
 
     def test_retry_info_past_boundary_is_shortened(self):
         until, basis = gg.daily_retry_until(self.J(2026, 10, 9, 10), 86400)
@@ -398,9 +404,9 @@ class NationalFlowTest(unittest.TestCase):
         self.assertEqual((notified, suppressed), (["gemini_national:http503"], []))
         d = na.build_embeds(state, later)[0]["news"]["embeds"][0]["description"]
         self.assertIn("Geminiが一時的に混み合っています", d)
-        self.assertIn("・失敗: 要約処理1回（API呼び出し3回、待機12秒）", d)
+        self.assertIn("・失敗: 要約処理1回（API呼び出し3回、待機60秒）", d)
         self.assertIn("・再試行方針: 待ち時間を置いて最大2回まで再試行しましたが回復しませんでした", d)
-        self.assertIn("・次回の再試行: 次回の定期実行（通常30分ごと）。時刻は確定できません", d)
+        self.assertIn("・次回の再試行: 次回の定期実行（通常4時間ごと）。時刻は確定できません", d)
         self.assertNotIn("JST以降", d)                              # 確定できない時刻は出さない
 
     def test_transient_error_recovers_within_run(self):

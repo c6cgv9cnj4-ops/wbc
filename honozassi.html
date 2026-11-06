@@ -475,6 +475,19 @@
 
 /* 映像除外・あらすじ・読む順番 v6 */
 .order-line { font-size: 0.8rem; color: var(--text-muted); font-weight: 700; }
+
+/* 表紙サムネイル（取得できない場合はジャンル色の題名プレート） */
+.card-main { display: flex; gap: 12px; align-items: flex-start; }
+.card-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.cover { flex: 0 0 76px; width: 76px; height: 108px; border-radius: 4px 6px 6px 4px; overflow: hidden; background: #475569; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 10px 6px; box-sizing: border-box; text-align: center; overflow-wrap: anywhere; box-shadow: inset 4px 0 0 rgba(0, 0, 0, 0.18), 0 1px 3px rgba(15, 23, 42, 0.2); }
+.cover-award { font-size: 0.5rem; letter-spacing: 0.02em; opacity: 0.9; line-height: 1.3; }
+.cover-title { font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif; font-size: 0.78rem; line-height: 1.45; font-weight: 700; }
+.cover-author { font-size: 0.55rem; opacity: 0.85; line-height: 1.3; }
+.cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cover.has-img { background: #f1f5f9; padding: 0; }
+@media (max-width: 600px) {
+    .cover { flex-basis: 64px; width: 64px; height: 92px; }
+}
 </style>
 </head>
 <body>
@@ -1846,11 +1859,16 @@
                         ${isSelected ? '✓' : '✛'}
                     </button>
                 </div>
-                <div class="title">${book.title}</div>
-                <div class="meta">著者: ${authorHtml}${ageText}</div>
-                <div class="pub-line" title="${book.pubSource || ''}">刊行: ${pubText}</div>
-                <div class="order-line">${book.parentId ? `${book.relationText}（順番未確認）` : '元の本'}</div>
-                <div class="synopsis">${book.synopsisStatus === '確認済み' ? book.synopsis : 'あらすじ未確認'}</div>
+                <div class="card-main">
+                    <div class="cover" id="cover-${book.id}" style="background:${GENRE_COLORS[book.genre] || '#475569'}"><span class="cover-award">${book.awardLabel}</span><strong class="cover-title">${book.title}</strong><span class="cover-author">${book.author}</span></div>
+                    <div class="card-text">
+                        <div class="title">${book.title}</div>
+                        <div class="meta">著者: ${authorHtml}${ageText}</div>
+                        <div class="pub-line" title="${book.pubSource || ''}">刊行: ${pubText}</div>
+                        <div class="order-line">${book.parentId ? `${book.relationText}（順番未確認）` : '元の本'}</div>
+                        <div class="synopsis">${book.synopsisStatus === '確認済み' ? book.synopsis : 'あらすじ未確認'}</div>
+                    </div>
+                </div>
                 <div class="want-row">
                     <button class="want-toggle ${wanted ? 'on' : ''}" aria-pressed="${wanted}" onclick="toggleWant('${book.id}')">
                         ${wanted ? '📌 読みたい（チェック済み）' : '📌 読みたい'}
@@ -1874,6 +1892,28 @@
         container.innerHTML = groups.map(g => g.length === 1
             ? cardHtml(g[0])
             : `<div class="book-group">${g.map(cardHtml).join('')}</div>`).join('');
+        hydrateCovers(list);
+    }
+
+    // 表紙画像: 作品ID→表紙URLの静的な対応表（日本語版Wikipediaの記事画像から作成）。
+    // 閲覧者のブラウザから外部APIは呼ばない。対応がない作品はジャンル色の題名プレートのまま。
+    const COVER_URLS = {};
+
+    function showCover(book, url) {
+        const el = document.getElementById("cover-" + book.id);
+        if (!el || !url) return;
+        const img = new Image();
+        img.alt = "『" + book.title + "』の表紙";
+        img.decoding = "async";
+        img.referrerPolicy = "no-referrer";
+        img.onload = () => { el.classList.add("has-img"); el.style.background = ""; el.textContent = ""; el.appendChild(img); };
+        img.src = url;
+    }
+
+    function hydrateCovers(books) {
+        books.forEach(book => {
+            if (COVER_URLS[book.id]) showCover(book, COVER_URLS[book.id]);
+        });
     }
 
     function toggleSelect(id) {

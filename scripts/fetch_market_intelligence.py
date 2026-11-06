@@ -5,7 +5,7 @@ fetch_market_intelligence.py — 市場朝夕サマリー（日経CNBC動画の�
 一次資料と市場数値をPythonで構造化して集約し、Gemini は「重要材料がある回だけ」1回呼ぶ。
 
   1. 市場数値: yfinance で日経平均(^N225)・TOPIX(1306.T)・ドル円(JPY=X)・米10年債(^TNX)の終値と前日比。
-  2. 一次材料: 日本銀行・JPX の公式RSS(財務省はRSS URLを確認できていないため未接続・設定で追加可能)。
+  2. 一次材料: 日本銀行・JPX・金融庁の公式RSS(URLが None の資料だけ「RSS未接続」と表示する)。
      タイトルに重要キーワード(金融政策・金利・為替・介入・総裁・臨時 等)を含むものを「重要材料」とする。
   3. ゼロ枠切替: 未配信の重要材料が無ければ Gemini を呼ばず、「市場数値＋新着リンク」の軽量Embedで完了。
   4. Gemini分析: 重要材料がある時だけ1回呼ぶ(重要材料最大5件・波及経路(株/為替/金利)・注目イベント)。
@@ -68,7 +68,8 @@ FEED_SOURCES = [
     ("日本銀行", "https://www.boj.or.jp/rss/whatsnew.xml"),
     ("JPX", "https://www.jpx.co.jp/rss/jpx-news.xml"),
     ("JPX マーケット", "https://www.jpx.co.jp/rss/markets_news.xml"),
-    ("財務省", None),  # 公式RSSのURLを確認できていない(2026-10-12時点)。確認後にここへ追加する
+    # 金融庁: 公式RSS(報道発表・政策等)。2026-11-06 に HTTP 200・15件を確認
+    ("金融庁", "https://www.fsa.go.jp/fsaNewsListAll_rss2.xml"),
 ]
 
 # 「重要(Gemini分析対象)」とする真の政策イベント。単語の単純部分一致はしない(「金利」単独は統計にも当たるため採用しない)

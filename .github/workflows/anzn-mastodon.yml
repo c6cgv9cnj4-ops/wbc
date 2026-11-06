@@ -1,0 +1,47 @@
+name: あんぜんねっと(公式Mastodon経由・30分間隔)
+
+# 2026-11-06追加。自宅Macの取得(あんぜんねっと本体)が403などで失敗したときの代替経路。
+# news.yml(4時間ごと)より高頻度で動き、Gemini は使わない。Mac経路が無事なら Mac が先に送る(猶予30分)。
+on:
+  schedule:
+    # 30分ごと。:07 と :37 にずらし、news.yml(:03)や他の定期ジョブと集中しないようにする。
+    - cron: "7,37 * * * *"
+  workflow_dispatch: {}  # 手動実行用
+
+permissions:
+  contents: write  # state/news_seen.json(既送信記録)のコミット用
+
+jobs:
+  anzn-mastodon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      # news.yml と同じ group を使い、既送信記録(state/news_seen.json)の書き込みを直列化する
+      group: fetch-news
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      - name: あんぜんねっと(公式Mastodon経由)を配信
+        env:
+          DISCORD_WEBHOOK_LOCAL: ${{ secrets.WEBHOOK_LOCAL }}
+        run: python scripts/anzn_mastodon_only.py
+
+      - name: 既送信記録をコミット
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state/news_seen.json
+          git diff --cached --quiet || git commit -m "あんぜんねっと(Mastodon経路)の既送信記録を更新"
+          git pull --rebase origin main
+          git push

@@ -65,12 +65,37 @@ def nikkei_slot_due(run, now):
     return True, f"{due:%H:%M}スロット"
 
 
+RESCUE_START_HOUR_JST = (6, 30)  # 朝の定時実行(06:05/06:13)が出ていなければ、この時刻以降に救済起動
+RESCUE_END_HOUR_JST = 12         # この時刻を過ぎたら救済しない(昼以降に朝の分を後追いしない)
+
+
+def daily_rescue_rule(run, now):
+    """1日1回の定時ワークフロー用の判定(2026-11-04 追加)。
+    朝の cron が実行漏れ(GitHub Actions の遅延・スキップ)した場合だけ、救済起動する。
+    判定: 今日(JST)の06:00以降に作られた run が1件も無ければ起動。
+    既に今日の run があれば(成功・失敗・実行中を問わず)起動しない(失敗の再試行はしない・無限ループ防止)。"""
+    now_jst = now.astimezone(JST)
+    if (now_jst.hour, now_jst.minute) < RESCUE_START_HOUR_JST:
+        return False, "朝の定時実行を待機中(救済は06:30以降)"
+    if now_jst.hour >= RESCUE_END_HOUR_JST:
+        return False, "救済時間外(12時以降)"
+    today_start = now_jst.replace(hour=6, minute=0, second=0, microsecond=0)
+    if run is not None:
+        created = datetime.datetime.fromisoformat(run["createdAt"].replace("Z", "+00:00")).astimezone(JST)
+        if created >= today_start:
+            return False, f"本日の実行あり({created:%H:%M}作成・{run.get('status')})"
+    return True, "本日06:00以降の実行が無いため救済起動(実行漏れ)"
+
+
 WORKFLOWS = [
     ("jma_alerts.yml", 10),
-    ("news.yml", 120),   # 2026-10-11: 30分→120分(Gemini無料枠の削減。news.ymlのcronも2時間ごと)
+    ("news.yml", 240),   # 2026-10-27: 120分→240分(Gemini無料枠の削減。news.ymlのcronも4時間ごと)
     # 2026-10-13 停止: 日経CNBCは廃止。代替は market_intelligence.yml(平日08:15/16:15 JST)。
     # 起動係からの起動を止める。旧 nikkei_cnbc_digest.yml の手動実行(workflow_dispatch)は残す。
     # ("nikkei_cnbc_digest.yml", nikkei_slot_due),
+    # 2026-11-04: 1日1回(朝6時)のワークフローの実行漏れ救済。
+    ("badminton_alerts.yml", daily_rescue_rule),
+    ("culture_news.yml", daily_rescue_rule),
 ]
 BUSY_STATUSES = {"queued", "in_progress", "waiting", "requested", "pending"}
 

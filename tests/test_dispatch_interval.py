@@ -21,19 +21,19 @@ def run_at(minutes_ago, status="completed"):
 
 
 class DispatcherIntervalTest(unittest.TestCase):
-    def test_news_interval_is_120_minutes(self):
-        self.assertEqual(dict(dw.WORKFLOWS)["news.yml"], 120)
+    def test_news_interval_is_240_minutes(self):
+        self.assertEqual(dict(dw.WORKFLOWS)["news.yml"], 240)
 
-    def test_news_not_dispatched_before_120_minutes(self):
-        go, _ = dw.decide(run_at(90), 120, NOW)
+    def test_news_not_dispatched_before_240_minutes(self):
+        go, _ = dw.decide(run_at(180), 240, NOW)
         self.assertFalse(go)
 
-    def test_news_dispatched_after_120_minutes(self):
-        go, _ = dw.decide(run_at(125), 120, NOW)
+    def test_news_dispatched_after_240_minutes(self):
+        go, _ = dw.decide(run_at(245), 240, NOW)
         self.assertTrue(go)
 
     def test_no_run_yet_dispatches(self):
-        self.assertTrue(dw.decide(None, 120, NOW)[0])
+        self.assertTrue(dw.decide(None, 240, NOW)[0])
 
 
 class DispatcherGapAlertTest(unittest.TestCase):
@@ -49,15 +49,16 @@ class DispatcherGapAlertTest(unittest.TestCase):
             fn.check_dispatcher_gap(state, NOW)
         return [i["kind"] for i in na.issues()]
 
-    def test_normal_two_hour_cadence_does_not_alert(self):
-        self.assertEqual(self.gap_alert(125), [])
-        self.assertEqual(self.gap_alert(135), [])
+    def test_normal_four_hour_cadence_does_not_alert(self):
+        # 2026-10-27: news.yml を4時間間隔に変更。通常の間隔(約240分)では通知しない
+        self.assertEqual(self.gap_alert(245), [])
+        self.assertEqual(self.gap_alert(265), [])
 
     def test_real_stop_still_alerts(self):
-        self.assertEqual(self.gap_alert(240), ["dispatcher_gap"])
+        self.assertEqual(self.gap_alert(330), ["dispatcher_gap"])
 
     def test_threshold_value(self):
-        self.assertEqual(fn.DISPATCHER_GAP_ALERT_MINUTES, 150)
+        self.assertEqual(fn.DISPATCHER_GAP_ALERT_MINUTES, 270)
 
 
 if __name__ == "__main__":

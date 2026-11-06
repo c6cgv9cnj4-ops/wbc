@@ -95,6 +95,7 @@ class MainTest(unittest.TestCase):
                 mock.patch.object(w, "fetch_ff_events", (lambda: (_ for _ in ()).throw(RuntimeError("HTTP 403"))) if ff_fail
                                   else (lambda: [ev("2026-10-05T08:30:00-04:00")])), \
                 mock.patch.object(w.fn, "send_to_discord", lambda url, msg: send_ok) as _, \
+                mock.patch.object(w.fn, "send_embed_to_discord", lambda url, embed: send_ok), \
                 mock.patch.dict(os.environ, {"DISCORD_WEBHOOK_MARKET": "https://discord.com/api/webhooks/1/T"}, clear=False):
             os.environ.pop("GEMINI_API_KEY", None)
             news_alerts.reset()

@@ -86,6 +86,7 @@ import discord_style
 import kitamoto_origin
 import local_news_filter
 import mastodon_anzn
+import gemini_budget
 import gemini_guard
 import news_alerts
 
@@ -434,6 +435,9 @@ SPORTS_KEYWORDS = [
     "阪神", "巨人", "読売ジャイアンツ", "ロッテ", "ソフトバンク", "楽天イーグルス",
     "オリックス", "DeNA", "ベイスターズ", "ヤクルト", "広島東洋カープ", "中日ドラゴンズ",
     "Jリーグ", "サッカー", "J1", "J2", "バドミントン", "F1", "MotoGP", "モータースポーツ",
+    # 2026-10-29: 少年・高校の競技と、埼玉の地元チーム名を追加(「野球」「サッカー」の部分一致で漏れていた分)
+    "少年野球", "少年サッカー", "高校野球", "高校サッカー", "浦和ビッグウェイブ", "浦和レッズ",
+    "ベルマーレ", "アルビレックス", "ブラウブリッツ",
 ]
 
 
@@ -458,9 +462,26 @@ def normalize_url(url):
         return url
     try:
         parts = urllib.parse.urlsplit(url)
-        return urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
+        # 2026-10-13: http/https・ホスト名の大文字小文字・末尾スラッシュの違いを同一記事とみなす
+        scheme = "https" if parts.scheme in ("http", "https") else parts.scheme
+        path = parts.path.rstrip("/") if parts.path not in ("", "/") else parts.path
+        return urllib.parse.urlunsplit((scheme, parts.netloc.lower(), path, "", ""))
     except ValueError:
         return url
+
+
+class StateCorruptError(Exception):
+    """既送信記録(news_seen.json)が壊れている。空として扱うと全件を再送するため、送信せず停止する。"""
+
+
+def migrate_url_keys(state):
+    """http:// で保存された既送信キーを normalize_url() の形へ移す(既存のhttps記録があれば残す)。"""
+    for key in [k for k in state if k.startswith("http://")]:
+        canon = normalize_url(key)
+        if canon not in state:
+            state[canon] = state[key]
+        del state[key]
+    return state
 
 
 def load_seen_state():
@@ -468,10 +489,12 @@ def load_seen_state():
         return {}
     try:
         with open(STATE_PATH, encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
     except (json.JSONDecodeError, OSError) as err:
-        print(f"[WARN] {STATE_PATH} の読み込みに失敗したため、空の状態から開始します: {err}")
-        return {}
+        raise StateCorruptError(f"{STATE_PATH} を読み込めません: {err}") from err
+    if not isinstance(data, dict):
+        raise StateCorruptError(f"{STATE_PATH} の形式が想定外です(dictではありません)")
+    return migrate_url_keys(data)
 
 
 def save_seen_state(state):
@@ -479,9 +502,52 @@ def save_seen_state(state):
     atomic_io.write_json_atomic(STATE_PATH, state, ensure_ascii=False, indent=2, sort_keys=True)
 
 
+def parse_seen_at(value):
+    """既送信記録の日時を aware な datetime にする。解析できなければ None。
+
+    値は ISO 8601 文字列(末尾に「|投稿ID」が付くことがある)。タイムゾーンの無い値は JST とみなす。
+    """
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.datetime.fromisoformat(value.split("|", 1)[0])
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=JST_TZ)
+    return parsed
+
+
 def prune_old_entries(state, now):
-    cutoff = (now - datetime.timedelta(days=STATE_RETENTION_DAYS)).isoformat()
-    return {key: seen_at for key, seen_at in state.items() if seen_at >= cutoff}
+    """STATE_RETENTION_DAYS より古い既送信記録を削除し、残った state を返す。
+
+    2026-10-29: 全項目を文字列として比較していたため、整数の管理項目(_gemini_budget:YYYY-MM-DD)で
+    TypeError となり実行が止まった。以下の方針に変更する。
+      - "_" で始まるキーは管理項目(カーソル・アラート時刻・予算カウンタ等)なので触らない。
+      - 日時として解析できる既送信記録だけ、期限(タイムゾーン込みの時刻比較)で判定する。
+      - 解析できない値は「送信済みか分からない」ので削除しない(削除すると再配信につながるため)。件数を表示する。
+    """
+    cutoff = now - datetime.timedelta(days=STATE_RETENTION_DAYS)
+    kept = {}
+    removed = 0
+    unparsed = []
+    for key, value in state.items():
+        if key.startswith("_"):
+            kept[key] = value
+            continue
+        seen_at = parse_seen_at(value)
+        if seen_at is None:
+            kept[key] = value
+            unparsed.append(key)
+        elif seen_at >= cutoff:
+            kept[key] = value
+        else:
+            removed += 1
+    if removed:
+        print(f"[INFO] 既送信記録を{removed}件削除しました({STATE_RETENTION_DAYS}日より古いもの)")
+    if unparsed:
+        print(f"[WARN] 日時として解析できない既送信記録を{len(unparsed)}件残しました(再配信防止のため削除しない)")
+    return kept
 
 
 def dedupe_new_items(items, key_field, state, now):
@@ -1010,6 +1076,28 @@ def mark_bousai_shown(items, state, now):
             state[key] = now.isoformat()
 
 
+# 2026-10-27: 防災・緊急情報のまとめは「一晩に1回」(細川さんの指定)。
+# 区切りは JST 18:00。同じ晩の2回目以降の実行では防災セクションを載せない(速報の赤枠通知は別送のまま)。
+BOUSAI_NIGHT_START_HOUR = 18
+BOUSAI_NIGHT_KEY_PREFIX = "bousai-night:"
+
+
+def bousai_night_start(now):
+    """now が属する「晩」の開始時刻(JST 18:00。18時より前は前日の晩)。"""
+    jst = now.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
+    start = jst.replace(hour=BOUSAI_NIGHT_START_HOUR, minute=0, second=0, microsecond=0)
+    return start if jst >= start else start - datetime.timedelta(days=1)
+
+
+def bousai_section_due(state, now):
+    """今の晩にまだ防災セクションを載せていなければ True。"""
+    return (BOUSAI_NIGHT_KEY_PREFIX + bousai_night_start(now).isoformat()) not in state
+
+
+def mark_bousai_section_shown(state, now):
+    state[BOUSAI_NIGHT_KEY_PREFIX + bousai_night_start(now).isoformat()] = now.isoformat()
+
+
 def build_bousai_section(bousai_items, status="ok", hidden=0):
     """ローカルニュースメッセージの最上部に必ず入れる「防災・緊急情報」
     セクション。該当情報が無くても省略せず、その旨を明記する
@@ -1060,10 +1148,33 @@ LOCAL_TITLE_MIN_LEN = 8
 _LOCAL_TITLE_STRIP_RE = re.compile(r"[\s【】\[\]「」『』（）()・、。,.!！?？:：;；\"'“”‘’\-‐―－〜~…]+")
 
 
+_LOCAL_TITLE_LEAD_TAG_RE = re.compile(r"^\s*【(画像|動画|写真|事故|速報|独自)】\s*")
+_LOCAL_TITLE_DATE_RE = re.compile(r"\d{4}年\d{1,2}月\d{1,2}日掲載")
+_LOCAL_TITLE_CAPTION_RE = re.compile(r"(?:写真|画像|動画)+[0-9]*(?:/[0-9]+)?$")  # 末尾の写真・画像キャプション
+
+
+_KNOWN_MEDIA_NAMES = {"infoseekニュース", "infoseek"}  # 10文字を超えても媒体名として除く（NFKC後の小文字比較）
+
+
+def _strip_trailing_site_name(body):
+    """末尾の「|媒体名」だけを外す。途中の「|」は別の出来事の区切りなので残す（誤抑制を防ぐ）。
+    末尾の区切り以降が10文字を超える場合は、既知の媒体名（_KNOWN_MEDIA_NAMES）のときだけ外す。"""
+    head, sep, tail = body.rpartition("|")
+    if sep and (tail.strip().lower() in _KNOWN_MEDIA_NAMES or 0 < len(tail.strip()) <= 10):
+        return head
+    return body
+
+
 def local_title_key(title):
-    """比較用の正規化見出し(媒体名・記号・空白を除き、全角半角と大小文字をそろえる)。"""
+    """比較用の正規化見出し(媒体名・記号・空白を除き、全角半角と大小文字をそろえる)。
+    2026-10-13: 先頭の【画像】【事故】等の種別タグと「○年○月○日掲載」は表記違いなので除く。
+    末尾の「|媒体名」（Google News 以外の表記）と、末尾の写真・画像のキャプション（「写真画像1/1」等）も表記違いとして除く。"""
     body = local_news_filter.split_source(title)[0]
-    return _LOCAL_TITLE_STRIP_RE.sub("", unicodedata.normalize("NFKC", body).lower())
+    body = _strip_trailing_site_name(unicodedata.normalize("NFKC", body))
+    body = _LOCAL_TITLE_LEAD_TAG_RE.sub("", body)
+    body = _LOCAL_TITLE_DATE_RE.sub("", body)
+    body = _LOCAL_TITLE_CAPTION_RE.sub("", body)
+    return _LOCAL_TITLE_STRIP_RE.sub("", body.lower())
 
 
 def is_same_local_story(a, b):
@@ -1085,22 +1196,44 @@ def has_local_update_keyword(title):
     return any(w in body for w in LOCAL_UPDATE_KEYWORDS)
 
 
+LOCAL_NEW_INFO_CHARS = 4   # 既出見出しより増えた文字数の下限(重複は0〜2、追加情報は6以上)
+
+
+def _added_chars(new_key, old_key):
+    """new_key が old_key より増やした文字数(difflib の挿入・置換の合計)。"""
+    sm = difflib.SequenceMatcher(None, old_key, new_key, autojunk=False)
+    return sum(j2 - j1 for tag, _i1, _i2, j1, j2 in sm.get_opcodes() if tag in ("insert", "replace"))
+
+
 def dedupe_local_items(items, state, now):
-    """直近の配信済み見出しと、今回の一覧内の類似見出しを除く。戻り値: (残す項目, 除いた件数)。state は変更しない。"""
+    """直近の配信済み見出しと、今回の一覧内の類似見出しを除く。戻り値: (残す項目, 除いた件数)。state は変更しない。
+    2026-10-13: 「死亡」「負傷」などを含むだけで通していたため、同じ事故の表記違いが繰り返し配信されていた。
+    続報(「続報」)は常に通す。それ以外は、同じ出来事の既出見出しに無い新しい情報語(容疑者・鎮火など)が増えた場合だけ通す。"""
     cutoff = (now - datetime.timedelta(days=LOCAL_RECENT_DAYS)).isoformat()
     recent = [k[len(LOCAL_TITLE_KEY_PREFIX):] for k, v in state.items()
               if k.startswith(LOCAL_TITLE_KEY_PREFIX) and v >= cutoff]
     kept, kept_keys, dropped = [], [], 0
     for item in items:
         key = local_title_key(item["title"])
-        if has_local_update_keyword(item["title"]):
-            kept.append(item)                      # 続報・結末などは重複排除しない(誤って落とさない)
+        body = local_news_filter.split_source(item["title"])[0]
+        if "続報" in body:
+            kept.append(item)                      # 続報は重複排除しない(誤って落とさない)。既存の要件として維持
+            kept_keys.append(key)
             continue
-        if any(is_same_local_story(key, r) for r in recent) or any(is_same_local_story(key, k) for k in kept_keys):
-            dropped += 1
+        matches = [r for r in recent + kept_keys if is_same_local_story(key, r)]
+        if not matches:
+            kept.append(item)
+            kept_keys.append(key)
             continue
-        kept.append(item)
-        kept_keys.append(key)
+        new_info = any(w in key and not any(w in m for m in matches) for w in LOCAL_UPDATE_KEYWORDS)
+        # 語彙に無い追加情報(「原因は○○」など)も、既出の全候補より4文字以上増えていれば新情報として通す。
+        # 実データの重複は追加 0〜2 文字、追加情報は 6 文字以上で分かれた(2026-10-13 測定)。
+        new_info = new_info or all(_added_chars(key, m) >= LOCAL_NEW_INFO_CHARS for m in matches)
+        if new_info:
+            kept.append(item)                      # 既出の出来事に、新しい情報(容疑者・鎮火など)が加わった
+            kept_keys.append(key)
+            continue
+        dropped += 1
     return kept, dropped
 
 
@@ -1225,16 +1358,25 @@ def build_local_news_message(state, now):
     # 2026-10-11: 直近24時間の防災情報は、既に掲載したものを除いて載せる(同一内容の多重配信を防ぐ)
     bousai_total = len(bousai_items)
     bousai_items, bousai_hidden = filter_bousai_already_shown(bousai_items, state, now)
+    # 2026-10-27: 防災セクションの見出しは今の晩に1回。同じ晩でも未掲載の新着は載せる(細川さんの指定)。
+    section_due = bousai_section_due(state, now)
+    has_new_bousai = bool(bousai_items)
     if not anzn_via_mac():
-        # 新着ローカルニュースも、新しい防災アクティブ情報も無ければ送信しない
-        # (防災セクションが「異常なし」だけの空更新を毎回送るのは避ける)。
-        if not saitama_general and not bousai_items:
+        # 新着ローカルニュースも、新しい防災情報も、今晩まだ載せていない見出しも無ければ送信しない。
+        if not saitama_general and not section_due and not has_new_bousai:
             return None, sports_items
 
     now_jst = now.strftime("%Y-%m-%d %H:%M")
     lines = [f"# 🗾 埼玉・県央ローカルニュース ({now_jst} JST時点)", ""]
-    lines.append(build_bousai_section(bousai_items, bousai_status, hidden=bousai_hidden))
-    mark_bousai_shown(bousai_items[:BOUSAI_SUMMARY_MAX_ITEMS], state, now)
+    if section_due or has_new_bousai:
+        lines.append(build_bousai_section(bousai_items, bousai_status, hidden=bousai_hidden))
+        mark_bousai_shown(bousai_items[:BOUSAI_SUMMARY_MAX_ITEMS], state, now)
+    elif anzn_via_mac():
+        # 公式Mastodon経路は従来どおり毎回送る。今晩は掲載済みである旨だけ1行残す(空投稿を避ける)。
+        lines.append("（防災・緊急情報: 今晩のまとめは掲載済み。新着はありません）")
+        lines.append("")
+    if section_due:
+        mark_bousai_section_shown(state, now)
 
     if saitama_general:
         lines.append("")
@@ -1302,15 +1444,16 @@ def record_gemini_failure(base_kind, channel, target, err, delivery, held=None):
             policy = f"利用上限のため再試行せず、待ち時間{wait_text}が終わるまでAPIを呼びません"
             nxt = _next_retry_text(err.backoff_until, getattr(err, "basis", "")) if err.backoff_until else None
         elif info.kind in ("rate", "transient"):
-            policy = f"待ち時間を置いて最大{gemini_guard.MAX_RETRIES}回まで再試行しましたが回復しませんでした"
-            nxt = "次回の定期実行（通常30分ごと）。時刻は確定できません"
+            retry_limit = gemini_guard.TRANSIENT_MAX_RETRIES if info.kind == "transient" else gemini_guard.MAX_RETRIES
+            policy = f"待ち時間を置いて最大{retry_limit}回まで再試行しましたが回復しませんでした"
+            nxt = "次回の定期実行（通常4時間ごと）。時刻は確定できません"
         else:
             policy = "再試行しても直らないエラーのため再試行していません"
-            nxt = "次回の定期実行（通常30分ごと）。同じ原因なら再度失敗します"
+            nxt = "次回の定期実行（通常4時間ごと）。同じ原因なら再度失敗します"
     else:
         lines.append("失敗: 要約処理1回（応答を処理できませんでした）")
         policy = "再試行は次回の定期実行で行います"
-        nxt = "次回の定期実行（通常30分ごと）。時刻は確定できません"
+        nxt = "次回の定期実行（通常4時間ごと）。時刻は確定できません"
     if code:
         lines.append(f"HTTP {code}" + (f" {status}" if status else ""))
     if held is not None:
@@ -1359,7 +1502,8 @@ Yahoo!ニュースが無料公開しているリード文(本文の一部)が付
     guard.last_error = None
     try:
         # 2026-10-09: 再試行・待機は gemini_guard に任せる(429の待ち時間を尊重し、日次上限では呼び出しを控える)
-        resp = guard.call(lambda: client.models.generate_content(model=GEMINI_MODEL_NAME, contents=prompt))
+        resp = guard.call(lambda: client.models.generate_content(model=GEMINI_MODEL_NAME, contents=prompt),
+                          priority=gemini_budget.PRIORITY_HIGH)
     except (gemini_guard.GeminiBlocked, gemini_guard.GeminiCallError) as err:
         print(f"[WARN] Gemini主要ニュース要約を実行できませんでした: {news_alerts.short_error(err)}")
         guard.last_error = err
@@ -1521,7 +1665,8 @@ def _build_market_critical_only(state, now, gemini_client, guard):
     if not fresh:
         return "[INFO] マーケット: 便の合間で、急変判定が未実施の新着はありません(次の便で配信)。", True
     guard = guard or gemini_guard.Guard(state)
-    curated = market_news_curation.curate(fresh, gemini_client, GEMINI_MODEL_NAME, caller=guard.call)
+    curated = market_news_curation.curate(fresh, gemini_client, GEMINI_MODEL_NAME,
+                                          caller=lambda fn: guard.call(fn, priority=gemini_budget.PRIORITY_CRITICAL))
     if curated is None:
         if market_news_curation.LAST_ERROR:
             record_gemini_failure("gemini_market", "market", "経済ニュースの急変判定(Gemini)", market_news_curation.LAST_ERROR,
@@ -1643,7 +1788,8 @@ def build_market_message(state, now, gemini_client=None, guard=None):
         # 2026-09-25追加: 同じ材料の記事をグループ化し、カテゴリ・重要度順に整理する
         # (market_news_curation.py)。失敗時は None が返り、従来の箇条書きに戻す。
         guard = guard or gemini_guard.Guard(state)
-        curated = market_news_curation.curate(biz_new, gemini_client, GEMINI_MODEL_NAME, caller=guard.call)
+        curated = market_news_curation.curate(biz_new, gemini_client, GEMINI_MODEL_NAME,
+                                              caller=lambda fn: guard.call(fn, priority=gemini_budget.PRIORITY_HIGH))
         if curated is None and market_news_curation.LAST_ERROR:
             record_gemini_failure("gemini_market", "market", "経済ニュースの材料整理(Gemini)", market_news_curation.LAST_ERROR,
                                   "継続(従来の箇条書き表示で配信)")
@@ -1683,12 +1829,26 @@ def build_sports_leak_message(sports_items, now):
     """
     if not sports_items:
         return None
+    # 2026-10-27: 同じ見出しが媒体違い・URL違いで複数入るため、見出しで1件にまとめる(重複通知の防止)。
+    seen, unique = set(), []
+    for item in sports_items:
+        key = _sports_title_key(item["title"])
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(item)
     # 2026-10-06: 巨大な「#」見出し+絵文字をやめ、太字1行+小さな補足に整理(共通原則は discord_style.py)。
     lines = [discord_style.heading("スポーツ記事"),
              discord_style.subtext(f"一般ニュースフィードで検知 ・ {now.strftime('%m/%d %H:%M')} JST")]
-    for item in sports_items:
+    for item in unique:
         lines.append(discord_style.bullet_link(item["title"], item["url"]))
     return "\n".join(lines)
+
+
+def _sports_title_key(title):
+    """媒体名(末尾の「 - 媒体」)と記号・空白・全半角の違いを除いた見出しの比較キー。"""
+    body = local_news_filter.split_source(title)[0]
+    return re.sub(r"[\s　]+", "", unicodedata.normalize("NFKC", body)).lower()
 
 
 ANZN_EMBED_COLOR = 0xE53E3E  # 赤枠(Discord Embedの左側カラーバー)
@@ -1839,7 +1999,7 @@ def send_to_discord(webhook_url, message):
 # 30分程度ごとに実行される。MAC_DISPATCHER=on のときだけ前回実行時刻を記録し、間隔が
 # 大きく空いた場合(Macの停止・スリープ・gh認証切れ)を異常通知する。未設定なら何もしない。
 LAST_RUN_KEY = "_last_run_at"
-DISPATCHER_GAP_ALERT_MINUTES = 150   # 2026-10-11: news.yml の起動間隔が2時間になったため 60→150分(2時間+余裕)。これ以下だと毎回誤検知する
+DISPATCHER_GAP_ALERT_MINUTES = 270   # 2026-10-27: news.yml の起動間隔が4時間になったため 150→270分(4時間+余裕)。これ以下だと毎回誤検知する
 
 
 def check_dispatcher_gap(state, now):
@@ -1874,27 +2034,18 @@ def _rollback_new_keys(state, keys_before, keep_items=()):
 
 
 def _handle_sports_leak(sports_items, sports_webhook, now, source_label):
-    """ローカル/全国いずれかのフィードに混入していたスポーツ記事を
-    #webhook_sports_culture へ振り分ける共通処理。戻り値はhad_errorか否か。
+    """ローカル/全国いずれかのフィードに混入していたスポーツ記事を扱う共通処理。戻り値はhad_errorか否か。
+
+    2026-10-29: スポーツ記事は配信対象外(細川さんの指示)。#webhook_sports_culture へも送らず、ここで除外する。
+    記事は既送信として記録されたままなので、次回以降に再び拾われることはない。
+    (build_sports_leak_message と sports_webhook は後方互換のため残しているが、ここからは使わない。)
     """
     if not sports_items:
         return False
-    # 2026-10-06: 北本ゆかり型(台帳の人物の重要な記事)は地域ニュース側で配信するため、スポーツ側へは送らない
-    origin_dup = [i for i in sports_items if kitamoto_origin.match(i["title"])]
-    if origin_dup:
-        print(f"[INFO] 北本ゆかり型のため地域ニュース側を優先し、スポーツ側へは送りません: {len(origin_dup)}件")
-        sports_items = [i for i in sports_items if i not in origin_dup]
-        if not sports_items:
-            return False
-    print(f"=== {source_label}からスポーツ記事を検知: {len(sports_items)}件 ===")
+    print(f"[INFO] スポーツ記事は配信対象外のため送信しません({source_label}): {len(sports_items)}件")
     for item in sports_items:
-        print(f"  {item['title']}")
-    sports_message = build_sports_leak_message(sports_items, now)
-    if not sports_webhook:
-        print("[WARN] DISCORD_WEBHOOK_SPORTS_CULTURE が未設定のため、"
-              "検知したスポーツ記事の振り分け送信をスキップします(誤配信は防止済み)。")
-        return False
-    return not send_to_discord(sports_webhook, sports_message)
+        print(f"  除外: {item['title']}")
+    return False
 
 
 def main():
@@ -1920,7 +2071,12 @@ def main():
         gemini_client = genai.Client(api_key=gemini_api_key)
 
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
-    state = load_seen_state()
+    try:
+        state = load_seen_state()
+    except StateCorruptError as err:
+        # 2026-10-13: 壊れた状態を空として扱うと既送信記録が消え、全件を再送する。送信せず停止し、ファイルはそのまま残す。
+        print(f"[ERROR] {err}。配信を中止します(既送信記録は変更していません)。")
+        sys.exit(1)
     state = prune_old_entries(state, now)
     check_dispatcher_gap(state, now)
     gemini_guard_obj = gemini_guard.Guard(state)     # 2026-10-09: 全国ニュース要約・経済ニュース整理で共有(待機状態はstateに保存)

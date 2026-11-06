@@ -81,15 +81,16 @@ class SharedFeaturesKeptTest(unittest.TestCase):
         self.assertTrue((ROOT / "scripts" / "fetch_badminton_alerts.py").exists())
         self.assertIn("fetch_badminton_alerts.py", (ROOT / ".github" / "workflows" / "badminton_alerts.yml").read_text(encoding="utf-8"))
 
-    def test_dispatcher_120_minute_guard_and_display_are_kept(self):
+    def test_dispatcher_interval_guard_and_display_are_kept(self):
+        # 2026-10-27: news.yml の起動間隔を120分→240分に変更(4時間ごと)
         import dispatch_workflows as dw
         import datetime as dt
         now = dt.datetime(2026, 10, 13, 12, 0, tzinfo=dt.timezone.utc)
         created = (now - dt.timedelta(minutes=30)).isoformat().replace("+00:00", "Z")
-        go, reason = dw.decide({"status": "completed", "createdAt": created, "event": "schedule"}, 120, now)
+        go, reason = dw.decide({"status": "completed", "createdAt": created, "event": "schedule"}, 240, now)
         self.assertFalse(go)
-        self.assertIn("次回実行まで約90分", reason)
-        self.assertEqual(dict(dw.WORKFLOWS)["news.yml"], 120)
+        self.assertIn("次回実行まで約210分", reason)
+        self.assertEqual(dict(dw.WORKFLOWS)["news.yml"], 240)
 
     def test_shared_webhook_secret_still_used_by_other_notifications(self):
         users = [wf.name for wf in WORKFLOWS if "WEBHOOK_LOCAL" in wf.read_text(encoding="utf-8")]

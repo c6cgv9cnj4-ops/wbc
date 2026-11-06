@@ -72,7 +72,7 @@ class GuardCancelTest(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             with self.assertRaises(gg.GeminiCallError):
                 guard.call(fn, task="t")
-        self.assertEqual(sleeps, [1.5, 3.0])
+        self.assertEqual(sleeps, [15.0, 45.0])   # 2026-11-05: 503は固定の15秒・45秒で再試行
         self.assertEqual(fn.call_count, 3)
 
     def test_default_base_delay_unchanged(self):

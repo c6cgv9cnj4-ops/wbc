@@ -22,6 +22,8 @@ import re
 import threading
 import time
 
+import gemini_budget
+
 try:
     from zoneinfo import ZoneInfo
     _PACIFIC = ZoneInfo("America/Los_Angeles")
@@ -35,13 +37,18 @@ except Exception:  # noqa: BLE001  時刻帯データが無い環境では下の
 FALLBACK_BOUNDARY_JST_HOUR = 17
 BACKOFF_PREFIX = "_gemini_backoff:"
 BASIS_PREFIX = "_gemini_backoff_basis:"       # state キー。値はISO日時(この時刻まで呼び出さない)。サフィックスは理由(quota)
-MAX_RETRIES = 2
+MAX_RETRIES = 1   # 2026-10-27: 再試行を2回→1回に削減(1回の依頼で最大2回の呼び出し)。日次枠の消費を抑える
+# 2026-11-05: 503(混雑・一時的な過負荷)は数分続くことがあるため、待ちを長くして再試行を2回まで行う。
+# 429(枠切れ)は従来どおり再試行しない(日次上限は待っても戻らないため)。
+TRANSIENT_MAX_RETRIES = 2
+TRANSIENT_WAIT_SECONDS = (15.0, 45.0)   # 1回目の再試行は15秒後、2回目は45秒後(合計60秒)
 BASE_DELAY_SECONDS = 4.0
 MAX_SINGLE_WAIT_SECONDS = 60.0
 WAIT_BUDGET_SECONDS = 120.0
 DEFAULT_QUOTA_BACKOFF_MINUTES = 60        # 日次上限なのに待ち時間が返らなかったときの控え時間(Googleの案内ではなく当方の方針)
 JST = datetime.timezone(datetime.timedelta(hours=9))
 BASIS_RETRY_INFO = "Googleの待ち時間(境界より前のため採用)"
+DAILY_EARLY_MARGIN = datetime.timedelta(minutes=15)   # 境界の直前にこれ以内で終わる待ち時間は採らず境界を使う
 BASIS_BOUNDARY = "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)"
 BASIS_DEFAULT = "既定の控え時間(Googleの待ち時間なし。境界より前)"
 BASIS_MINUTE = "分あたり上限のGoogle待ち時間(日次境界は適用しない)"
@@ -237,6 +244,10 @@ def daily_retry_until(now, retry_after):
         basis = BASIS_DEFAULT
     else:
         candidate = now.astimezone(JST) + datetime.timedelta(seconds=retry_after)
+        # 2026-11-04: Googleの待ち時間が境界の直前(16:59)を指し、リセット(17:00)前に再試行して失敗した。
+        # 境界の直前(DAILY_EARLY_MARGIN_SECONDS以内)に当たる待ち時間は、境界まで待つ。
+        if boundary - DAILY_EARLY_MARGIN <= candidate <= boundary:
+            return boundary, BASIS_BOUNDARY + "／" + boundary_basis
         basis = BASIS_RETRY_INFO
     if candidate > boundary:
         return boundary, BASIS_BOUNDARY + "／" + boundary_basis
@@ -296,18 +307,25 @@ class Guard:
             self.state.pop(key, None)
 
     # ----- 呼び出し -----
-    def call(self, fn, task="gemini"):
+    def call(self, fn, task="gemini", priority=None):
         """fn() を実行する。成功すれば結果を返す。待機中は GeminiBlocked、失敗は GeminiCallError。
-        task は計測ログ(GEMINI_CALL/GEMINI_429)に出す呼び出し元の名前。"""
+        task は計測ログ(GEMINI_CALL/GEMINI_429)に出す呼び出し元の名前。
+        priority(gemini_budget の PRIORITY_*)を渡すと、日次予算を確認し、試行ごとに state へ記録する。
+        予算外なら呼び出さずに GeminiBlocked(reason="budget") を返す(呼び出し側は従来の縮退経路になる)。"""
         blocked = self.blocked()
         if blocked:
             raise GeminiBlocked(blocked[0], blocked[1], blocked[2])
+        if priority is not None and not gemini_budget.allowed(self.state, self.clock(), priority):
+            until, basis = next_daily_boundary(self.clock())
+            raise GeminiBlocked(until, "budget", f"日次予算の上限に達したため(優先度{priority})。{basis}")
         attempts, waited = 0, 0.0
         while True:
             if self._cancelled():
                 raise GeminiCancelled(f"キャンセル済みのため呼び出しを打ち切り(task={task})")
             attempts += 1
             self.calls += 1
+            if priority is not None:
+                gemini_budget.record(self.state, self.clock())
             try:
                 result = fn()
             except Exception as err:  # noqa: BLE001
@@ -327,9 +345,15 @@ class Guard:
                         until, basis = now.astimezone(JST) + datetime.timedelta(minutes=DEFAULT_QUOTA_BACKOFF_MINUTES), BASIS_DEFAULT
                     self._set_backoff(until, "quota", basis)
                     raise GeminiCallError(info, attempts, waited, err, backoff_until=until, basis=basis) from err
-                if attempts > self.max_retries:
-                    raise GeminiCallError(info, attempts, waited, err) from err
-                wait = info.retry_after if info.retry_after is not None else self.base_delay * (2 ** (attempts - 1))
+                if info.kind == "transient":
+                    if attempts > TRANSIENT_MAX_RETRIES:
+                        raise GeminiCallError(info, attempts, waited, err) from err
+                    default_wait = TRANSIENT_WAIT_SECONDS[min(attempts - 1, len(TRANSIENT_WAIT_SECONDS) - 1)]
+                else:
+                    if attempts > self.max_retries:
+                        raise GeminiCallError(info, attempts, waited, err) from err
+                    default_wait = self.base_delay * (2 ** (attempts - 1))
+                wait = info.retry_after if info.retry_after is not None else default_wait
                 wait = min(wait, MAX_SINGLE_WAIT_SECONDS)
                 if self.waited_total + wait > self.wait_budget:
                     raise GeminiCallError(info, attempts, waited, err) from err

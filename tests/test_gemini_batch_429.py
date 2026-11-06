@@ -85,9 +85,9 @@ class NikkeiBatchTest(unittest.TestCase):
         self.assertTrue(any(k.startswith(gg.BACKOFF_PREFIX) for k in state))   # 待機状態をstateに保存
 
     def test_transient_503_retried_with_backoff_then_succeeds(self):
-        client = FakeClient(busy_503(), busy_503(), mock.Mock(text=json.dumps([{"index": 0, "lines": ["・ok"]}])))
+        client = FakeClient(busy_503(), mock.Mock(text=json.dumps([{"index": 0, "lines": ["・ok"]}])))
         res, _, _ = self.run_batch(client, items(1))
-        self.assertEqual(client.calls, 3)
+        self.assertEqual(client.calls, 2)                              # 2026-10-27: 再試行は1回(MAX_RETRIES=1)
         self.assertEqual(res, [["・ok"]])
 
     def test_transient_gives_up_after_limited_retries(self):

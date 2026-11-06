@@ -1,6 +1,6 @@
 name: 週次観測（モーニングジャーナル）
 
-# 毎週日曜 20:00 JST に、モーニングジャーナル(直近8週分)を Python で計数して
+# 毎週日曜 17:00 JST に、モーニングジャーナル(直近8週分)を Python で計数して
 # 「書いた量・語の新規/増減/不在/継続・表現の出現率」の変化を検出し、Gemini はその観測に
 # 対する仮説だけを返す(scripts/weekly_mindmap.py + scripts/journal_observe.py)。
 # 出力は Discord #週間まとめ(PNG付き) と スプレッドシート「週次観測」タブのみ。
@@ -11,7 +11,7 @@ name: 週次観測（モーニングジャーナル）
 
 on:
   schedule:
-    - cron: "0 11 * * 0"        # 日曜 11:00 UTC = 20:00 JST
+    - cron: "0 8 * * 0"         # 日曜 08:00 UTC = 17:00 JST（GitHub の定期実行は遅れることがある）
   workflow_dispatch:
     inputs:
       week:

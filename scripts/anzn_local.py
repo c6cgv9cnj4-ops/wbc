@@ -122,10 +122,81 @@ def import_state(src_path, state):
     return added
 
 
+def _anzn_keys_from_state_urls(state):
+    """Mac経路の既送信キー(URL形式)を、Mastodon経路と共通の記事キー(anzn:地域:記事ID)に変換する。"""
+    out = set()
+    for k in state:
+        if isinstance(k, str) and "anzn.net" in k:
+            key = mastodon_anzn.anzn_key_from_url(k)
+            if key:
+                out.add(key)
+    return out
+
+
+def run_mastodon_fallback(state, now, webhook, anzn_ok, dry_run=False,
+                          posts_fetch=mastodon_anzn.fetch_since, remote_sent=fetch_actions_sent_keys):
+    """2026-11-06: あんぜんねっと本体(Mac)が取れないとき、公式Mastodonから県央の災害発生情報を即時代替配信する。
+
+    - 本体が取れている回: カーソルだけ進める(送らない)。失敗時に「直近の投稿」から送れるようにするため。
+    - 本体が取れない回: カーソル以降の投稿を、猶予なし(grace 0)で送る。既送信は Mac・Actions 両方の記録で除外。
+    - 送信に成功した記事だけ state(anzn:キー)とGitHubの Mac送信記録へ書く。失敗時はカーソルを進めない(次回再送)。
+    送信も記録もしない dry_run では、候補の表示だけ行う。
+    """
+    cursor = mastodon_anzn.get_cursor(state)
+    try:
+        posts, _truncated = posts_fetch(cursor)
+    except Exception as err:  # noqa: BLE001
+        print(f"[WARN] 代替経路(公式Mastodon)の取得に失敗しました: {news_alerts.short_error(err)}")
+        return
+    if cursor is None:
+        # 初回はカーソルの合わせ込みだけ(過去分を一斉に送らない)
+        if posts and not dry_run:
+            mastodon_anzn.set_cursor(state, posts[0]["id"], now)
+        print(f"[INFO] 公式Mastodon(代替経路): 初回のためカーソルを最新に合わせました({len(posts)}件は送信しません)。")
+        return
+    if anzn_ok:
+        if posts and not dry_run:
+            mastodon_anzn.set_cursor(state, posts[0]["id"], now)
+        return
+
+    # 本体が取れない回: 送信候補を作る(既送信は Mac・Actions の両記録で除外)
+    known = {k: "" for k in _anzn_keys_from_state_urls(state)}
+    known.update({k: "" for k in state if isinstance(k, str) and k.startswith("anzn:")})
+    remote = remote_sent()
+    if remote:
+        known.update({k: "" for k in remote})
+    send, cursor_to, waiting = mastodon_anzn.select_to_send(posts, known, set(), now, grace_minutes=0)
+    print(f"[INFO] あんぜんねっと本体が取得失敗のため公式Mastodonで代替: 未配信{len(send)}件 / 新着投稿{len(posts)}件")
+    for item in send:
+        print(f"  - [代替] {item.get('datetime')} [{item.get('city')}] {item.get('summary', '')[:40]}")
+    if dry_run:
+        return
+    if send:
+        embed = fetch_news.build_anzn_alert_embed(send, now)
+        embed["embeds"][0]["footer"]["text"] = embed["embeds"][0]["footer"]["text"].replace(
+            "あんぜんねっと(埼玉県央)", "あんぜんねっと(埼玉県央)・公式Mastodon経由(本体取得失敗の代替)")
+        if not fetch_news.send_embed_to_discord(webhook, embed):
+            print("[WARN] 代替配信の送信に失敗しました。既送信にせず次回再送します。")
+            return
+        keys = []
+        for item in send:
+            state[item["key"]] = now.isoformat()
+            if item["key"].startswith("anzn:"):
+                keys.append(item["key"])
+        publish_mac_sent(set(keys), now)  # Actions(Mastodon経路)の重複送信を防ぐ
+    if cursor_to:
+        mastodon_anzn.set_cursor(state, cursor_to, now)
+
+
 def run(args):
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
     fetch_news.STATE_PATH = args.state  # 既存の load/save_seen_state をMac専用stateに向ける
-    state = fetch_news.prune_old_entries(fetch_news.load_seen_state(), now)
+    try:
+        state = fetch_news.prune_old_entries(fetch_news.load_seen_state(), now)
+    except fetch_news.StateCorruptError as err:
+        # 壊れた状態を空として扱うと全件を再送するため、送信も保存もせず終了する(ファイルは変更しない)
+        print(f"[ERROR] 既送信記録が読めないため中止しました(送信・保存なし。ファイルはそのまま): {err}")
+        return 1
 
     if args.import_state:
         added = import_state(args.import_state, state)
@@ -150,6 +221,16 @@ def run(args):
             if dup:
                 print(f"[INFO] Actions(公式Mastodon経由)で配信済みのため{len(dup)}件は送りません。")
                 new_items = [i for i in new_items if i not in dup]
+    # 本体が取れなかった間に代替(Mastodon)で送った記事は、本体が復旧しても送らない
+    fallback_sent = {k for k in state if isinstance(k, str) and k.startswith("anzn:")}
+    if fallback_sent:
+        before = len(new_items)
+        new_items = [i for i in new_items if mastodon_anzn.anzn_key_from_url(i.get("url")) not in fallback_sent]
+        if len(new_items) != before:
+            print(f"[INFO] 代替経路で送信済みのため{before - len(new_items)}件は送りません。")
+
+    run_mastodon_fallback(state, now, webhook, anzn_ok=bool(fetch_news.ANZN_LAST_FETCH_OK),
+                          dry_run=args.dry_run)
 
     if args.dry_run:
         issues = news_alerts.issues()

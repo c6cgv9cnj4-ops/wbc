@@ -275,7 +275,7 @@ DIRECT_RSS_HEADERS = {
 }
 
 
-def fetch_direct_rss(feed_url, limit=15, retries=2):
+def fetch_direct_rss(feed_url, limit=30, retries=2):
     """専門メディア自身のRSSフィードを直接取得する(Google News検索を
     経由しないため、Yahoo!ニュース転載記事が混入する余地がない)。
     一部サイトはCloudflare等でクラウド系IP(GitHub Actionsランナー含む)を
@@ -295,6 +295,10 @@ def fetch_direct_rss(feed_url, limit=15, retries=2):
     if resp is None:
         return []
     feed = feedparser.parse(resp.content)
+    # 2026-11-04: 1日1回の実行のため、フィードの件数を記録し、上限で切り捨てた場合は警告する
+    print(f"[INFO] 専門メディアRSS: {feed_url} は{len(feed.entries)}件(取得上限{limit}件)")
+    if len(feed.entries) > limit:
+        print(f"[WARN] 取りこぼしの可能性: {feed_url} は{len(feed.entries)}件中{limit}件のみ取得しました")
     return [
         {"title": e.title, "url": e.link}
         for e in feed.entries[:limit]
@@ -338,7 +342,8 @@ def filter_quality_articles(client, candidates, max_items=3, extra_instruction=N
         return None
 
 
-TOPIC_FALLBACK_MAX_ITEMS = 3  # AI選別が使えないときに見出しのみで出す件数(トピックごと)
+TOPIC_MAX_ITEMS = 5  # トピックごとの1回の上限(2026-11-04: 3→5。1日1回の実行で取りこぼさないため)
+TOPIC_FALLBACK_MAX_ITEMS = TOPIC_MAX_ITEMS  # AI選別が使えないときに見出しのみで出す件数(トピックごと)
 EXHIBITION_FALLBACK_MAX_ITEMS = 5  # 展覧会の抽出が使えないときに見出しのみで出す件数(1回の実行で)
 
 
@@ -362,12 +367,17 @@ def build_topic_embeds(client, state, now, guard=None):
             extra_instruction = APPLE_SV_INSTRUCTION
         else:
             extra_instruction = None
-        selected = filter_quality_articles(client, uniq_candidates, extra_instruction=extra_instruction, guard=guard)
+        selected = filter_quality_articles(client, uniq_candidates, max_items=TOPIC_MAX_ITEMS,
+                                           extra_instruction=extra_instruction, guard=guard)
         title = topic_label
         if selected is None:
             # Gemini失敗時: 既存の箇条書き形式で見出しとリンクだけ出す(選別なしであることを見出しに明記)
             selected = uniq_candidates[:TOPIC_FALLBACK_MAX_ITEMS]
             title = f"{topic_label}（AI選別なし・未確認）"
+        print(f"[INFO] {topic_label}: 未読候補{len(uniq_candidates)}件 → 送信{len(selected)}件(上限{TOPIC_MAX_ITEMS}件)")
+        if selected is not None and len(selected) >= TOPIC_MAX_ITEMS and len(uniq_candidates) > len(selected):
+            # 上限に達した分は既読にしないため、次回の実行で候補として残る(フィードから流れなければ拾える)
+            print(f"[WARN] {topic_label}: 上限到達のため残りの候補は次回以降に持ち越します(既読にしていません)")
         if not selected:
             continue
         lines = [f"- [{a['title']}]({a['url']})" for a in selected]

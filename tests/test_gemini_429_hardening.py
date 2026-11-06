@@ -164,8 +164,8 @@ class CultureFallbackTest(unittest.TestCase):
                 mock.patch.object(fc, "fetch_direct_rss", return_value=items), \
                 contextlib.redirect_stdout(io.StringIO()):
             embeds = fc.build_topic_embeds(client, state, NOW, guard=gg.Guard(state, sleep=sleeps.append))
-        self.assertEqual(client.models.generate_content.call_count, gg.MAX_RETRIES + 1)
-        self.assertEqual(len(sleeps), gg.MAX_RETRIES)
+        self.assertEqual(client.models.generate_content.call_count, gg.TRANSIENT_MAX_RETRIES + 1)
+        self.assertEqual(len(sleeps), gg.TRANSIENT_MAX_RETRIES)
         self.assertEqual(len(embeds), 1)
 
     def test_exhibition_extraction_failure_falls_back_to_unverified_list(self):
