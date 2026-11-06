@@ -220,5 +220,53 @@ class RunTest(unittest.TestCase):
         self.assertEqual(b.run_snapshot(year_month="2026-13", urls=self.urls, snapshot_dir=self.dir), 1)
 
 
+class RealHtmlTest(unittest.TestCase):
+    """実HTML（tests/fixtures/real の原本）で解析する。合成HTMLではない。"""
+    REAL = ROOT / "tests" / "fixtures" / "real"
+
+    def _real(self, code):
+        raw = (self.REAL / f"badspi_world_{code}_20261103.html").read_bytes()
+        return b.decode_body(raw, "utf-8")
+
+    def test_five_real_pages_are_complete_and_match_recorded_rows(self):
+        for code in ("MS", "WS", "MD", "WD", "XD"):
+            snap = b.build_snapshot(self._real(code), year=2026, month=11, discipline_code=code,
+                                    source_url="x", fetched_at=NOW.isoformat())
+            self.assertTrue(snap["complete"], code)
+            self.assertEqual(snap["row_count"], 20, code)
+            self.assertEqual(snap["basis_date"], "2026-11-03", code)
+            fixture_rows = [(r["rank"], r["country"], r["name"], r["points"], r["tournaments"])
+                            for r in FIXTURE["pages"][code]["rows"]]
+            real_rows = [(r["rank"], r["country"], r["name"], r["points"], r["tournaments"])
+                         for r in snap["rows"]]
+            self.assertEqual(real_rows, fixture_rows, code)
+
+    def test_real_page_for_other_discipline_is_rejected(self):
+        with self.assertRaises(b.ParseError):
+            b.build_snapshot(self._real("WS"), year=2026, month=11, discipline_code="MS",
+                             source_url="x", fetched_at=NOW.isoformat())
+
+    def test_real_page_month_mismatch_is_waiting_not_error(self):
+        with self.assertRaises(b.BasisMismatch):
+            b.build_snapshot(self._real("MS"), year=2026, month=12, discipline_code="MS",
+                             source_url="x", fetched_at=NOW.isoformat())
+
+    def test_run_with_mismatch_is_wait_and_returns_zero(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = b.run_snapshot(year_month="2026-12", urls={"MS": "https://example.invalid/MS"},
+                                snapshot_dir=Path(tmp.name) / "d",
+                                fetch=lambda u: (self._real("MS"), u))
+        self.assertEqual(rc, 0)
+        self.assertIn("[WAIT] MS", buf.getvalue())
+        self.assertFalse((Path(tmp.name) / "d").exists())
+
+    def test_year_is_never_read_from_page_and_real_title_has_no_year(self):
+        title = b.parse_title(self._real("MS"))
+        self.assertNotRegex(title, r"\d{4}年")
+
+
 if __name__ == "__main__":
     unittest.main()

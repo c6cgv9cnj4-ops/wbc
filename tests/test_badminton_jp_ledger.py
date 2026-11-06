@@ -198,5 +198,61 @@ class CliTest(unittest.TestCase):
             self.assertEqual(json.loads(rpath.read_text(encoding="utf-8"))["players"], [])
 
 
+class QuotaAndRobustnessTest(unittest.TestCase):
+    def _many(self, n):
+        return {"candidates": [{"jba_detail_id": str(i), "name": f"候補{i}", "team": "", "prefecture": "",
+                                "pages": ["x"], "source_urls": [SRC], "status": "UNMATCHED",
+                                "search": None, "same_name_count": 1} for i in range(n)]}
+
+    def test_default_and_over_limit_are_capped_at_20(self):
+        self.assertEqual(L.SEARCH_MAX_PER_RUN, 20)
+        doc = self._many(49)
+        fetch = mock.Mock(return_value=(200, _search_payload([])))
+        out = L.search_candidates(doc, "KEY", lambda k, q: fetch(k, q), max_calls=500, sleep=lambda s: None)
+        self.assertEqual(out["searched"], 20)
+        self.assertEqual(out["remaining"], 29)
+
+    def test_resume_next_day_continues_from_unsearched_only(self):
+        doc = self._many(30)
+        L.search_candidates(doc, "KEY", lambda k, q: (200, _search_payload([])), sleep=lambda s: None)
+        calls = []
+        out = L.search_candidates(doc, "KEY", lambda k, q: (calls.append(q) or (200, _search_payload([]))),
+                                  sleep=lambda s: None)
+        self.assertEqual(out["searched"], 10)
+        self.assertEqual(calls[0], "候補20", "検索済みの候補は再検索しない")
+
+    def test_429_stops_the_day_with_explicit_reason_and_no_retry(self):
+        doc = self._many(5)
+        fetch = mock.Mock(return_value=(429, {"error": {"code": "rate_limited"}}))
+        out = L.search_candidates(doc, "KEY", lambda k, q: fetch(k, q), sleep=lambda s: None)
+        self.assertEqual(fetch.call_count, 1)
+        self.assertIn("429", out["stopped"])
+        self.assertEqual(out["remaining"], 5)
+
+    def test_malformed_search_items_do_not_crash_and_are_safe(self):
+        doc = _doc()
+        items = [
+            {"kind": "player", "id": "pl_a", "name": None, "country": 123, "score": "high"},
+            {"kind": "player", "id": "pl_b", "name": "B", "country": "JPN", "score": True},
+            "not-a-dict",
+            {"kind": "player"},
+        ]
+        L.search_candidates(doc, "KEY", lambda k, q: (200, _search_payload(items)), max_calls=1, sleep=lambda s: None)
+        res = doc["candidates"][0]["search"]["results"]
+        self.assertEqual([r["id"] for r in res], ["pl_a", "pl_b"])
+        self.assertIsNone(res[0]["country"], "数値の国コードは採用しない")
+        self.assertIsNone(res[0]["score"])
+        self.assertEqual(res[0]["name"], "")
+
+    def test_jp_confirm_refused_when_country_is_not_string_jpn(self):
+        doc = _doc()
+        L.search_candidates(doc, "KEY", lambda k, q: (200, _search_payload([
+            {"kind": "player", "id": "pl_x", "name": "保木", "country": ["JPN"], "score": 90}])),
+            max_calls=1, sleep=lambda s: None)
+        with self.assertRaises(L.LedgerError):
+            L.confirm(doc, {"players": []}, detail_id="1", player_id="pl_x", decision="JP", source_url=SRC,
+                      confirmed_by="細川", confirmed_at="2026-11-06")
+
+
 if __name__ == "__main__":
     unittest.main()

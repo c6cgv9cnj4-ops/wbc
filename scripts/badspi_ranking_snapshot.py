@@ -60,6 +60,10 @@ class ParseError(ValueError):
     pass
 
 
+class BasisMismatch(ParseError):
+    """ページの基準月が、保存対象の年月と一致しない（ページ未更新など）。失敗ではなく「待ち」。"""
+
+
 def html_to_lines(text: str) -> list[str]:
     """HTMLを、空行を除いたテキスト行の並びにする（タグは改行に置き換える）。"""
     text = re.sub(r"(?is)<(script|style)\b.*?</\1>", "", text)
@@ -131,7 +135,7 @@ def build_snapshot(html_text: str, *, year: int, month: int, discipline_code: st
         raise ParseError(f"ページの種目が一致しない（{discipline_code}を期待、タイトル: {title[:40]}）")
     basis_month, basis_day = parse_basis_month_day(title)
     if basis_month != month:
-        raise ParseError(f"基準月（{basis_month}月）が指定月（{month}月）と一致しない")
+        raise BasisMismatch(f"基準月（{basis_month}月）が指定月（{month}月）と一致しない")
     try:
         basis_date = dt.date(year, basis_month, basis_day).isoformat()   # 年は指定値。推測しない
     except ValueError as err:
@@ -226,6 +230,10 @@ def run_snapshot(*, year_month: str, urls: dict, snapshot_dir: Path, fetch=fetch
             text, final_url = fetch(url)
             snap = build_snapshot(text, year=year, month=month, discipline_code=code,
                                   source_url=final_url, fetched_at=fetched_at)
+        except BasisMismatch as err:
+            # 保存しない。ページが対象月に更新されるまで待つ（前月データを推測して保存しない）
+            print(f"[WAIT] {code} {DISCIPLINE_NAMES[code]}: {err}。保存せず次回の実行で再確認します")
+            continue
         except (requests.RequestException, OSError, ParseError) as err:
             print(f"[ERROR] {code} {DISCIPLINE_NAMES[code]}: 取得・解析に失敗（{type(err).__name__}: {err}）")
             rc = 1

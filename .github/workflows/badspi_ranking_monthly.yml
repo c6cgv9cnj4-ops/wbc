@@ -1,19 +1,16 @@
-name: badspi 月次ランキング スナップショット（実HTML未検証）
+name: badspi 世界ランキング 月次スナップショット
 
-# 注意: badspi の実URL・実HTML構造は未検証。config/badminton_results.json の badspi_ranking_urls が
-# 全て null の間は、警告を出して何もせず終了する（取得・保存・コミットは行わない）。
-# 状態は専用ブランチ badminton-results-state（badspi_ranking/ 配下）に保存する。
-# 不完全データは .incomplete.json に別保存され、完全版は上書きされない。
+# 取得URLは config/badminton_results.json の badspi_ranking_urls（5種目。2026-11-06 に実HTMLで確認した正規URL）。
+# 保存条件: ページの基準月（タイトルの「○月○日付」）が、実行時点のUTC月と一致した場合だけ保存する。
+#   年はページに無いため「実行時点の年」を指定する。基準月一致が条件なので、年の取り違えは保存されない。
+#   一致しない場合は [WAIT] として保存せず、次週の実行で再確認する（前月データを推測して取得しない）。
+# 1種目の失敗は他種目を止めない。完全版は上書きされず、不完全版は .incomplete.json に別保存される。
+# 状態は専用ブランチ badminton-results-state（state/badspi_ranking/ 配下）に保存する。
 
 on:
   schedule:
-    - cron: "0 1 2 * *"   # 毎月2日 01:00 UTC（JST 10:00）。前月分を取得する
+    - cron: "0 1 * * 1"   # 毎週月曜 01:00 UTC（JST 10:00）
   workflow_dispatch:
-    inputs:
-      year_month:
-        description: "対象年月 YYYY-MM（空欄なら前月）"
-        required: false
-        default: ""
 
 permissions:
   contents: write
@@ -23,7 +20,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: コードを取得（main）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 状態ブランチが無ければ初期化（既存は変更しない）
+        run: bash scripts/ensure_state_branch.sh
+        env:
+          STATE_BRANCH: badminton-results-state
+
   snapshot:
+    needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -43,25 +55,20 @@ jobs:
       - name: 依存パッケージをインストール
         run: pip install requests
 
-      - name: 月次スナップショットを取得・保存
-        env:
-          INPUT_YEAR_MONTH: ${{ inputs.year_month }}
+      - name: 世界ランキングを取得・保存（基準月が実行月と一致する場合のみ）
         run: |
-          YM="$INPUT_YEAR_MONTH"
-          if [ -z "$YM" ]; then
-            YM=$(date -u -d "$(date -u +%Y-%m-01) -1 day" +%Y-%m)
-          fi
-          echo "対象年月: $YM"
-          python scripts/badspi_ranking_snapshot.py --year-month "$YM" --snapshot-dir state_branch/state/badspi_ranking
+          YM=$(date -u +%Y-%m)
+          echo "対象年月（実行時点のUTC月）: ${YM}"
+          python scripts/badspi_ranking_snapshot.py --year-month "${YM}" --snapshot-dir state_branch/state/badspi_ranking
 
-      - name: 状態ブランチへ保存（対象のJSONだけをステージ）
+      - name: 状態ブランチへ保存（state/badspi_ranking の JSON のみ・競合時は取り込み直して再試行）
         if: always()
         working-directory: state_branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if [ ! -d state/badspi_ranking ]; then
-            echo "保存対象なし（URL未設定など）"
+            echo "保存対象なし（基準月不一致などで未作成）"
             exit 0
           fi
           find state/badspi_ranking -name '*.json' -print0 | xargs -0 -r git add --
@@ -69,7 +76,7 @@ jobs:
             echo "変更なし"
             exit 0
           fi
-          git commit -m "badspi 月次ランキングのスナップショットを更新"
+          git commit -m "badspi 世界ランキングのスナップショットを更新"
           for i in 1 2 3; do
             if git push origin HEAD:badminton-results-state; then
               exit 0

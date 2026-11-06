@@ -232,9 +232,13 @@ class ClassifyAndRetryTest(unittest.TestCase):
             status, payload = m.fetch_page("KEY123", "c-9")
         self.assertEqual(status, 200)
         args, kwargs = get.call_args
+        resp2 = SimpleNamespace(status_code=200, json=lambda: {"data": []})
+        with mock.patch.object(m.requests, "get", return_value=resp2) as get_first:
+            m.fetch_page("KEY123", None)
+        self.assertEqual(get_first.call_args.kwargs["params"], {}, "初回は無パラメータ（422 unknown_parameter を避ける）")
         self.assertEqual(args[0], "https://api.badmintonapi.com/v1/results/yesterday")
         self.assertEqual(kwargs["headers"], {"Authorization": "Bearer KEY123"})
-        self.assertEqual(kwargs["params"], {"per_page": 50, "cursor": "c-9"})
+        self.assertEqual(kwargs["params"], {"cursor": "c-9"})
         self.assertEqual(kwargs["timeout"], m.REQUEST_TIMEOUT)
         self.assertEqual(m.REQUEST_TIMEOUT, 20)
 
@@ -605,6 +609,68 @@ class SaveStateTest(unittest.TestCase):
             m.save_state(p, {"schema_version": 2, "matches": {"a": {}}, "quarantine": {}, "runs": []})
             self.assertEqual(m.load_state(p)["matches"], {"a": {}})
             self.assertFalse((Path(d) / "s.json.tmp").exists())
+
+
+class StartParsingTest(unittest.TestCase):
+    """start は文書上の形式・タイムゾーンが未記載。タイムゾーンが明示されたものだけ日時として扱う。"""
+
+    def test_utc_z_suffix_is_parsed_as_utc(self):
+        self.assertEqual(m.parse_start("2026-11-04T12:00:00Z"), dt.datetime(2026, 11, 4, 12, tzinfo=UTC))
+
+    def test_offset_is_converted_to_utc(self):
+        # JST 21:00 = UTC 12:00
+        self.assertEqual(m.parse_start("2026-11-04T21:00:00+09:00"), dt.datetime(2026, 11, 4, 12, tzinfo=UTC))
+
+    def test_naive_datetime_is_none_not_assumed_utc(self):
+        self.assertIsNone(m.parse_start("2026-11-04T12:00:00"))
+        self.assertIsNone(m.parse_start("2026-11-04"))
+
+    def test_invalid_or_non_string_is_none(self):
+        for bad in ("not-a-date", "", None, 12345, ["2026-11-04T12:00:00Z"]):
+            self.assertIsNone(m.parse_start(bad), repr(bad))
+
+    def test_naive_start_makes_match_date_unknown_and_not_notifiable(self):
+        norm = m.normalize_match(_item("ev_naive", s1=("pl_jp1", "pl_x"), start="2026-11-04T12:00:00"))
+        rec = m.build_record(norm, "2026-11-04")
+        self.assertEqual(rec["date_status"], "unknown")
+        self.assertFalse(m.is_notifiable(rec, JP_ROSTER))
+
+
+class AnomalyWarningTest(RunTestBase):
+    def test_items_present_but_none_normalizable_warns_and_is_not_empty_wording(self):
+        bad = {"data": [{"id": "ev_bad", "discipline": "MD"}], "meta": {}}  # side1/side2 欠損
+        buf = io.StringIO()
+        post = FakePost()
+        with contextlib.redirect_stdout(buf):
+            self.run_once([bad], cfg=_cfg(discord_output_enabled=True), post=post)
+        self.assertIn("::warning::取得件数はあるが正規化できた試合が0件", buf.getvalue())
+        text = json.dumps(post.payloads, ensure_ascii=False)
+        self.assertIn("正規化 0件", text)
+        self.assertIn("対象試合なしとは扱いません", text)
+        self.assertNotIn("対象試合なし（期間内の結果は0件）", text)
+
+    def test_unknown_discipline_is_counted_and_warned(self):
+        page = {"data": [_item("ev_x", discipline="ZZ", s1=("pl_jp1", "pl_x"))], "meta": {}}
+        buf = io.StringIO()
+        post = FakePost()
+        with contextlib.redirect_stdout(buf):
+            self.run_once([page], cfg=_cfg(discord_output_enabled=True), post=post)
+        self.assertIn("未知の種目表記 1件", buf.getvalue())
+        text = json.dumps(post.payloads, ensure_ascii=False)
+        self.assertIn("未知種目 1件", text)
+
+    def test_counts_line_present_on_normal_run(self):
+        page = {"data": [_item("ev_ok", s1=("pl_jp1", "pl_x"))], "meta": {}}
+        post = FakePost()
+        self.run_once([page], cfg=_cfg(discord_output_enabled=True), post=post)
+        text = json.dumps(post.payloads, ensure_ascii=False)
+        self.assertIn("取得 1件 ／ 正規化 1件 ／ 対象 1件 ／ 未知種目 0件", text)
+
+    def test_zero_items_is_still_empty_not_anomaly(self):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            self.run_once([{"data": [], "meta": {}}], cfg=_cfg(discord_output_enabled=True))
+        self.assertNotIn("::warning::", buf.getvalue())
 
 
 if __name__ == "__main__":

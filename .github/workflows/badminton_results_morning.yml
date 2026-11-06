@@ -2,16 +2,15 @@ name: バドミントン前日結果（06:05 JST・独立配信）
 
 # 既存の badminton_alerts.yml（同じ 06:05 JST）には一切触れない独立workflow。
 # - concurrency group は既存と別（badminton-results-morning）。cancel-in-progress は false（朝の配信を途中で止めない）。
-# - 状態は専用ブランチ badminton-results-state に保存し、main へは書き込まない（main 側の競合を避ける）。
+# - 状態は専用ブランチ badminton-results-state に保存する（main へは書き込まない）。
+#   状態ブランチが無ければ prepare ジョブが空の初期コミットだけを持つブランチを作る（main・既存データは変更しない）。
 # - Discord 出力は config/badminton_results.json の discord_output_enabled（既定 false）で制御する。
-# - APIキー（BADMINTON_API_KEY）が未設定なら、モジュールは何も取得・保存・送信せず終了する。
-#
-# 事前準備（人が一度だけ行う）: 専用ブランチ badminton-results-state を作成する。
-# 無ければ、このworkflowの「状態ブランチを取得」が失敗する。
+# - APIキー（BADMINTON_API_KEY）が未設定なら、モジュールは警告を出して何も取得・保存・送信せず終了する。
+# - 保存は対象の状態JSONだけを add する（git add -A は使わない）。push は fast-forward のみ（force しない）。
 
 on:
   schedule:
-    - cron: "5 21 * * *"   # JST 06:05（UTC 21:05）。GitHub Actions の遅延があり得る
+    - cron: "5 21 * * *"   # JST 06:05（UTC 21:05）。GitHub Actions の schedule は遅延し得る
   workflow_dispatch:
 
 permissions:
@@ -22,7 +21,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: コードを取得（main）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 状態ブランチが無ければ初期化（既存は変更しない）
+        run: bash scripts/ensure_state_branch.sh
+        env:
+          STATE_BRANCH: badminton-results-state
+
   results:
+    needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -49,13 +63,12 @@ jobs:
           BADMINTON_STATE_PATH: state_branch/state/badminton_results_state.json
         run: python scripts/badminton_results_free.py
 
-      - name: 状態ブランチへ保存（競合時は取り込み直して再試行）
+      - name: 状態ブランチへ保存（対象の状態JSONのみ・競合時は取り込み直して再試行）
         if: always()
         working-directory: state_branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # 対象の状態JSONだけをステージする（git add -A は使わない。一時ファイルの混入を防ぐ）
           if [ ! -f state/badminton_results_state.json ]; then
             echo "状態ファイルなし（APIキー未設定などで未作成）"
             exit 0

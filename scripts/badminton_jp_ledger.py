@@ -37,6 +37,7 @@ API_BASE = "https://api.badmintonapi.com"
 SEARCH_PATH = "/v1/search"
 REQUEST_TIMEOUT = 20
 SEARCH_INTERVAL_SEC = 6.0   # 10回/分の制限に合わせる
+SEARCH_MAX_PER_RUN = 20     # 1回の実行で検索する上限（Free: 50回/日。朝の結果取得・再試行・ページングの枠を残す）
 JBA_CARD_RE = re.compile(r'<li class="p-player__item">([\s\S]*?)</li>')
 JBA_HREF_RE = re.compile(r'href="(https://www\.badminton\.or\.jp/national/player/view/(\d+))"')
 JBA_NAME_RE = re.compile(r'<p class="p-player__name">([^<]+)</p>')
@@ -128,9 +129,16 @@ def fetch_search(api_key: str, q: str) -> tuple[int, object]:
     return resp.status_code, payload
 
 
-def search_candidates(doc: dict, api_key: str, fetch, *, max_calls: int, sleep=time.sleep,
-                      now_iso: str | None = None) -> dict:
-    """未検索の候補だけを検索する。戻り値: {"searched": n, "stopped": 理由 or None}"""
+def _num(value) -> float:
+    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else 0.0
+
+
+def search_candidates(doc: dict, api_key: str, fetch, *, max_calls: int = SEARCH_MAX_PER_RUN,
+                      sleep=time.sleep, now_iso: str | None = None) -> dict:
+    """未検索の候補だけを検索する（1回最大 SEARCH_MAX_PER_RUN 件。超過分は次回に回す）。
+    429 を受けたら、その日の検索を停止する（無理な再試行はしない）。
+    戻り値: {"searched": n, "stopped": 理由 or None, "remaining": 未検索の件数}"""
+    max_calls = min(int(max_calls), SEARCH_MAX_PER_RUN)
     done = 0
     stopped = None
     for c in doc["candidates"]:
@@ -142,6 +150,9 @@ def search_candidates(doc: dict, api_key: str, fetch, *, max_calls: int, sleep=t
             sleep(SEARCH_INTERVAL_SEC)
         code, payload = fetch(api_key, c["name"])
         done += 1
+        if code == 429:
+            stopped = "429（分または日次の上限）: 本日の検索を停止しました。翌日に未検索分から再開してください"
+            break
         if code != 200 or not isinstance(payload, dict) or not isinstance(payload.get("data"), list):
             stopped = f"HTTP {code} または形式不一致（検索を中止。キー・上限を確認）"
             break
@@ -149,11 +160,14 @@ def search_candidates(doc: dict, api_key: str, fetch, *, max_calls: int, sleep=t
         for item in payload["data"]:
             if not isinstance(item, dict) or item.get("kind") != "player" or not item.get("id"):
                 continue
+            country = item.get("country")
             results.append({"id": str(item["id"]), "name": str(item.get("name") or ""),
-                            "country": item.get("country"), "score": item.get("score")})
-        results.sort(key=lambda r: (-(r["score"] or 0), r["id"]))
+                            "country": country if isinstance(country, str) else None,
+                            "score": item.get("score") if isinstance(item.get("score"), (int, float)) else None})
+        results.sort(key=lambda r: (-_num(r["score"]), r["id"]))
         c["search"] = {"searched_at": now_iso or _now(), "results": results[:5]}
-    return {"searched": done, "stopped": stopped}
+    remaining = sum(1 for c in doc["candidates"] if c.get("search") is None)
+    return {"searched": done, "stopped": stopped, "remaining": remaining}
 
 
 def _find(doc: dict, detail_id: str) -> dict:
@@ -253,8 +267,8 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="日本人選手ID台帳の候補作成・照合・確定")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("build", help="JBA代表選手ページから候補一覧を作る（公開ページの取得）")
-    s = sub.add_parser("search", help="候補をAPI検索で照合（APIキーが必要）")
-    s.add_argument("--max-calls", type=int, default=40)
+    s = sub.add_parser("search", help="候補をAPI検索で照合（APIキーが必要。1回最大20件）")
+    s.add_argument("--max-calls", type=int, default=SEARCH_MAX_PER_RUN)
     c = sub.add_parser("confirm", help="人が確認した結果を台帳に入れる")
     c.add_argument("--detail-id", required=True)
     c.add_argument("--player-id", required=True)
@@ -287,10 +301,13 @@ def main(argv: list[str] | None = None) -> int:
         if not api_key:
             print("::warning::BADMINTON_API_KEY が未設定のため、照合（search）は実行しません。候補は未照合のままです。")
             return 0
+        if args.max_calls > SEARCH_MAX_PER_RUN:
+            print(f"[WARN] --max-calls {args.max_calls} は上限超過のため {SEARCH_MAX_PER_RUN} に制限します")
         result = search_candidates(doc, api_key, fetch_search, max_calls=args.max_calls)
         _write_json(CANDIDATES_PATH, doc)
         REVIEW_PATH.write_text(review_markdown(doc), encoding="utf-8")
-        print(f"[OK] 検索 {result['searched']} 件" + (f"（中止: {result['stopped']}）" if result["stopped"] else ""))
+        print(f"[OK] 検索 {result['searched']} 件 / 未検索の残り {result['remaining']} 件"
+              + (f"（中止: {result['stopped']}）" if result["stopped"] else ""))
         return 1 if result["stopped"] else 0
 
     if args.cmd == "confirm":

@@ -19,8 +19,11 @@
   人が --ack-correction で解除する。
 - APIキー（BADMINTON_API_KEY）が無ければ、警告を出して何もせず終了する。
 - 既存の scripts/fetch_badminton_alerts.py や既存の状態ファイルには依存しない。
-- 注意: API の item 構造（start の形式、meta.next_cursor、per_page の挙動）は文書からの想定であり、
-  実データでは未検証。
+- 文書確認（OpenAPI・マニュアル、2026-11-06）と未確認事項:
+  - /v1/results/yesterday はパラメータなし。UTC の前日の結果。ページングは next_cursor を cursor で渡し null で終了（一覧の共通仕様）
+  - discipline は MS/WS/MD/WD/XD。side1/side2 は「players and seed」（キー名は未記載）。winner は「1 or 2、または選手」（型未記載）
+  - start の形式・タイムゾーンは未記載 → タイムゾーンの無い値は日付不明（通知対象外）
+  - 実データでの検証は未実施（APIキー未設定）
 """
 from __future__ import annotations
 
@@ -211,7 +214,10 @@ def fetch_all_pages(api_key: str, fetch, cfg: dict, sleep=time.sleep) -> tuple[s
 
 
 def fetch_page(api_key: str, cursor: str | None) -> tuple[int, object]:
-    params: dict = {"per_page": 50}
+    """文書（OpenAPI・マニュアル）では /v1/results/yesterday はパラメータなし。
+    per_page 等を送ると 422 unknown_parameter になり得るため、初回は無パラメータで呼ぶ。
+    next_cursor が返った場合のみ cursor を付ける（一覧の共通ページング仕様。実データ未検証）。"""
+    params: dict = {}
     if cursor:
         params["cursor"] = cursor
     resp = requests.get(
@@ -284,15 +290,19 @@ def normalize_match(item) -> dict | None:
 
 
 def parse_start(value) -> dt.datetime | None:
-    """開始日時を読む。タイムゾーンが無ければ UTC とみなす（実データ未確認）。読めなければ None。"""
-    if not value:
+    """開始日時を UTC の aware datetime として返す。
+    - "Z" 付き・UTCオフセット付きは受け付ける。
+    - タイムゾーンが無い日時は None（UTCとは決めつけない。文書は start の形式・タイムゾーンを明記していない）。
+    - 文字列でない・読めない値は None。
+    戻り値が None の試合は日付不明（通知対象外）として扱う。"""
+    if not isinstance(value, str) or not value.strip():
         return None
     try:
-        parsed = dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        parsed = dt.datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
     except ValueError:
         return None
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=UTC)
+        return None
     return parsed.astimezone(UTC)
 
 
@@ -569,7 +579,8 @@ def build_embed(entry: dict, roster: dict, window: dict, attempt_no: int = 1, re
 def build_header(window: dict, status: str, *, reason: str | None = None, jp: int = 0,
                  notified: int = 0, unknown: int = 0, roster_size: int = 0,
                  corrections: int = 0, pending_extra: int = 0, date_counts: dict | None = None,
-                 shifted_day: str | None = None, start_range: str | None = None) -> dict:
+                 shifted_day: str | None = None, start_range: str | None = None,
+                 counts: dict | None = None, anomalies: list[str] | None = None) -> dict:
     period = (f"取得対象期間：JST {window['jst_range'][0]} 〜 {window['jst_range'][1]}"
               f"（API前日はUTC {window['api_day_utc']}）")
     if status == "error":
@@ -580,6 +591,11 @@ def build_header(window: dict, status: str, *, reason: str | None = None, jp: in
     if status == "empty":
         lines.append("対象試合なし（期間内の結果は0件）")
     lines.append(period)
+    if counts is not None:
+        lines.append(f"取得 {counts.get('fetched', 0)}件 ／ 正規化 {counts.get('normalized', 0)}件 ／ "
+                     f"対象 {counts.get('target', 0)}件 ／ 未知種目 {counts.get('unmapped', 0)}件")
+    for note in anomalies or []:
+        lines.append(f"⚠ 注意：{note}")
     if shifted_day:
         lines.append(f"⚠ 予定対象日 UTC {shifted_day} の結果は取得できませんでした（欠落）。"
                      "実行が UTC 日付をまたいで遅延したためです。取得分は日付未確定として保存し、通知していません。")
@@ -699,10 +715,24 @@ def run_once(*, api_key: str, webhook: str, now_utc: dt.datetime, state_path: Pa
     corrections = sum(1 for e in state["matches"].values() if e.get("correction_pending"))
     pending, extra = pending_notifications(state, roster, now_utc,
                                            config["backlog_days"], config["max_backlog_per_run"])
+    counts_summary = {"fetched": len(items), "normalized": len(normalized),
+                      "target": len(targets), "unmapped": run_log["unmapped_discipline"]}
+    anomalies = []
+    if items and not normalized:
+        anomalies.append("取得件数はあるが正規化できた試合が0件（応答形式が想定と異なる可能性）。対象試合なしとは扱いません")
+    elif len(normalized) < len(items):
+        anomalies.append(f"正規化できない試合 {len(items) - len(normalized)}件（必須項目の欠損または形式不一致）")
+    if run_log["unmapped_discipline"]:
+        anomalies.append(f"未知の種目表記 {run_log['unmapped_discipline']}件（対象外。種目の語彙を確認してください）")
+    if date_counts["unknown"]:
+        anomalies.append(f"開始日時を読めない試合 {date_counts['unknown']}件（日付不明のため通知対象外）")
+    run_log["anomalies"] = anomalies
+    for note in anomalies:
+        print(f"::warning::{note}")
     header_kwargs = dict(jp=verdicts["jp"], unknown=verdicts["unknown"], roster_size=len(roster),
                          corrections=corrections, date_counts=date_counts,
                          shifted_day=drift["intended_api_day_utc"] if drift["shifted"] else None,
-                         start_range=start_range)
+                         start_range=start_range, counts=counts_summary, anomalies=anomalies)
 
     # --- 通知（notified）---
     rc = 0
