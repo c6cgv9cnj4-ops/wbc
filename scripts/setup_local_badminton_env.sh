@@ -41,5 +41,5 @@ PY
 
 # plist の展開（venvのPythonに固定）と検証。登録は行わない
 PYTHON_BIN="${VENV_DIR}/bin/python" BADMINTON_LOCAL_DIR="${LOCAL_DIR}" BADMINTON_VENV_DIR="${VENV_DIR}" \
-  "${HERE}/scripts/install_local_badminton_launchd.sh" ${PLIST_TARGET:+--target "${PLIST_TARGET}"} ${1:+"$1"}
-echo "セットアップ完了（登録はしていません）"
+  "${HERE}/scripts/install_local_badminton_launchd.sh" ${PLIST_TARGET:+--target "${PLIST_TARGET}"}
+echo "セットアップ完了（launchd へは未登録・LaunchAgents へは未配置）"

@@ -234,10 +234,11 @@ def fetch_html(url: str) -> tuple[str, str]:
     return decode_body(resp.content, m.group(1) if m else None), resp.url
 
 
-def run_snapshot(*, urls: dict, snapshot_dir: Path, fetch=fetch_html,
+def run_snapshot(*, urls: dict, snapshot_dir: Path, fetch=None,
                  now_utc: dt.datetime | None = None) -> int:
     """種目ごとに独立して取得・保存する。戻り値: 1つでも失敗があれば 1、無ければ 0。
-    全種目がURL未設定のときは警告を出して 0 で終了する。"""
+    全種目がURL未設定のときは警告を出して 0 で終了する。fetch 未指定時は呼び出し時に fetch_html を解決する。"""
+    fetch = fetch or fetch_html
     fetched_at = (now_utc or dt.datetime.now(dt.timezone.utc)).isoformat()
     configured = {c: urls.get(c) for c in DISCIPLINE_NAMES}
     if not any(configured.values()):
@@ -269,7 +270,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--snapshot-dir", default=str(DEFAULT_SNAPSHOT_DIR))
     args = ap.parse_args(argv)
     config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    return run_snapshot(urls=config.get("badspi_ranking_urls", {}), snapshot_dir=Path(args.snapshot_dir))
+    # 取得関数は呼び出し時に解決する（既定引数は定義時に束縛され、テストでの差し替えが効かないため）
+    return run_snapshot(urls=config.get("badspi_ranking_urls", {}), snapshot_dir=Path(args.snapshot_dir),
+                        fetch=fetch_html)
 
 
 if __name__ == "__main__":

@@ -6,6 +6,10 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+import os as _os  # noqa: E402
+import sys as _sys  # noqa: E402
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import offline_guard  # noqa: E402,F401  (テスト中の実通信を遮断)
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
