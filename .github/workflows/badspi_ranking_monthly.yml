@@ -1,0 +1,79 @@
+name: badspi 月次ランキング スナップショット（実HTML未検証）
+
+# 注意: badspi の実URL・実HTML構造は未検証。config/badminton_results.json の badspi_ranking_urls が
+# 全て null の間は、警告を出して何もせず終了する（取得・保存・コミットは行わない）。
+# 状態は専用ブランチ badminton-results-state（badspi_ranking/ 配下）に保存する。
+# 不完全データは .incomplete.json に別保存され、完全版は上書きされない。
+
+on:
+  schedule:
+    - cron: "0 1 2 * *"   # 毎月2日 01:00 UTC（JST 10:00）。前月分を取得する
+  workflow_dispatch:
+    inputs:
+      year_month:
+        description: "対象年月 YYYY-MM（空欄なら前月）"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: badspi-ranking-monthly
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: コードを取得（main）
+        uses: actions/checkout@v4
+
+      - name: 状態ブランチを取得（state_branch フォルダへ）
+        uses: actions/checkout@v4
+        with:
+          ref: badminton-results-state
+          path: state_branch
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install requests
+
+      - name: 月次スナップショットを取得・保存
+        env:
+          INPUT_YEAR_MONTH: ${{ inputs.year_month }}
+        run: |
+          YM="$INPUT_YEAR_MONTH"
+          if [ -z "$YM" ]; then
+            YM=$(date -u -d "$(date -u +%Y-%m-01) -1 day" +%Y-%m)
+          fi
+          echo "対象年月: $YM"
+          python scripts/badspi_ranking_snapshot.py --year-month "$YM" --snapshot-dir state_branch/state/badspi_ranking
+
+      - name: 状態ブランチへ保存（対象のJSONだけをステージ）
+        if: always()
+        working-directory: state_branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ ! -d state/badspi_ranking ]; then
+            echo "保存対象なし（URL未設定など）"
+            exit 0
+          fi
+          find state/badspi_ranking -name '*.json' -print0 | xargs -0 -r git add --
+          if git diff --cached --quiet; then
+            echo "変更なし"
+            exit 0
+          fi
+          git commit -m "badspi 月次ランキングのスナップショットを更新"
+          for i in 1 2 3; do
+            if git push origin HEAD:badminton-results-state; then
+              exit 0
+            fi
+            git pull --rebase origin badminton-results-state || exit 1
+          done
+          exit 1

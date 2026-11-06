@@ -55,8 +55,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          mkdir -p state
-          git add -A state
+          # 対象の状態JSONだけをステージする（git add -A は使わない。一時ファイルの混入を防ぐ）
+          if [ ! -f state/badminton_results_state.json ]; then
+            echo "状態ファイルなし（APIキー未設定などで未作成）"
+            exit 0
+          fi
+          git add -- state/badminton_results_state.json
           if git diff --cached --quiet; then
             echo "状態の変更なし"
             exit 0

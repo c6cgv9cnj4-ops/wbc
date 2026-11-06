@@ -4,19 +4,27 @@
 
 確定仕様の要点:
 - 取得元は Badminton API Free の /v1/results/yesterday（UTC基準の前日）。
-- 日本人判定は選手IDのみ。判定は3値: JP_CONFIRMED / NON_JP_CONFIRMED / UNKNOWN。
-  未登録・情報不足は UNKNOWN（非日本人とみなさない）。
-- ダブルスは構成選手ごとに判定を保持する。
-- 取得（fetched）・保存（persisted）・通知（notified）の時刻を試合ごとに別管理する。
-- Discord出力は config/badminton_results.json の discord_output_enabled で制御（既定 false）。
-  OFF中は通知済みにしない。ONにすると、保存済みで未通知の試合を通知する（バックログ日数で上限）。
-- 訂正（同一試合IDで内容が変わった）は別バージョンとして保存し、自動再送しない。
-- 状態は専用ブランチの checkout 配下（BADMINTON_STATE_PATH）に保存する。
-- APIキー（BADMINTON_API_KEY）が無ければ、何も取得・保存・送信せず終了する。
+- 取得: タイムアウト・HTTP 5xx のみ最大3回リトライ。401/403 等はリトライしない。
+  取得失敗（0件ではない）のときは既存データを一切更新しない（prune も行わない）。
+- 日本人判定は選手IDのみ。JP_CONFIRMED / NON_JP_CONFIRMED / UNKNOWN の3値。
+  JP_CONFIRMED / NON_JP_CONFIRMED は出典URL・確認者・確認日が揃う場合のみ（欠ければ UNKNOWN）。
+- 日付: 予定実行（schedule）が UTC 日付をまたいで遅延した場合、予定対象日を確定できないため
+  その取得分は日付未確定（unconfirmed）として保存し、通知しない。欠落期間をヘッダーに明示する。
+  試合の開始日時が取得窓の日付と一致しないものは outside、読めないものは unknown。
+- 通知: 送信「前」に attempt を保存し、送信後に結果を保存する。結果が不明（例外・送信後の中断）の
+  試合は次回再送する（通知漏れ防止を優先）。再試行履歴に「重複の可能性」を残す。
+- Discord出力は config/badminton_results.json の discord_output_enabled（既定 false）。OFF中は送信も通知済み化もしない。
+- 保存: 専用ブランチの checkout 配下（BADMINTON_STATE_PATH）。persisted_at が読めない試合は削除せず quarantine に隔離。
+- 訂正（同一ID・内容変更）は別バージョンとして保存し自動再送しない。correction_pending は
+  人が --ack-correction で解除する。
+- APIキー（BADMINTON_API_KEY）が無ければ、警告を出して何もせず終了する。
 - 既存の scripts/fetch_badminton_alerts.py や既存の状態ファイルには依存しない。
+- 注意: API の item 構造（start の形式、meta.next_cursor、per_page の挙動）は文書からの想定であり、
+  実データでは未検証。
 """
 from __future__ import annotations
 
+import argparse
 import datetime as dt
 import hashlib
 import json
@@ -32,6 +40,10 @@ RESULTS_YESTERDAY_PATH = "/v1/results/yesterday"
 SOURCE_DOC_URL = "https://badmintonapi.com/documentation"
 REQUEST_TIMEOUT = 20
 DISCORD_BATCH = 10
+RETRY_MAX = 3
+RETRY_WAIT_SEC = (2, 4, 8)
+SCHEDULE_HOUR_UTC = 21   # JST 06:05 = UTC 21:05
+SCHEDULE_MINUTE_UTC = 5
 
 JST = dt.timezone(dt.timedelta(hours=9))
 UTC = dt.timezone.utc
@@ -60,8 +72,8 @@ DISCIPLINE_MAP = {
 }
 TARGET_DISCIPLINES = {"男子シングルス", "女子シングルス", "男子ダブルス", "女子ダブルス", "混合ダブルス"}
 
-# 内容の同一性判定に使う項目（訂正検知）
-CONTENT_KEYS = ("discipline", "side1", "side2", "games", "winner", "status")
+# 内容の同一性判定に使う項目（訂正検知）。選手は表示名ではなくIDで比較する。
+CONTENT_KEYS = ("discipline", "side1", "side2", "games", "winner", "status", "start")
 
 DEFAULT_CONFIG = {
     "discord_output_enabled": False,
@@ -93,10 +105,10 @@ def load_config(path: Path = CONFIG_PATH) -> dict:
 
 
 # ------------------------------------------------------------
-# 1. 取得窓（UTC基準・JST換算）
+# 1. 取得窓と予定実行のずれ
 # ------------------------------------------------------------
 def compute_window(run_utc: dt.datetime) -> dict:
-    """実行時刻から、/v1/results/yesterday が返す UTC 日と JST 換算期間を返す。"""
+    """実行時刻から、/v1/results/yesterday が返す UTC 日と JST 換算期間を返す（API日付は実行時点のサーバー時刻に依存）。"""
     api_day_utc = run_utc.astimezone(UTC).date() - dt.timedelta(days=1)
     start_utc = dt.datetime(api_day_utc.year, api_day_utc.month, api_day_utc.day, tzinfo=UTC)
     end_utc = start_utc + dt.timedelta(days=1)
@@ -110,13 +122,32 @@ def compute_window(run_utc: dt.datetime) -> dict:
     }
 
 
+def schedule_drift(now_utc: dt.datetime, event: str) -> dict:
+    """予定実行（schedule）の予定時刻を求め、UTC日付をまたいで遅延したかを判定する。
+    手動実行（workflow_dispatch 等）は予定時刻を持たないため、ずれの判定対象外。
+    予定時刻は now に最も近い 21:05 UTC（早着でも前日扱いにしない）。
+    注意: 判定は「UTC日付をまたいだか」で行う（仕様の3時間より厳しい。またぐには約2時間55分以上の遅延が必要）。"""
+    now_utc = now_utc.astimezone(UTC)
+    base = now_utc.replace(hour=SCHEDULE_HOUR_UTC, minute=SCHEDULE_MINUTE_UTC, second=0, microsecond=0)
+    candidates = [base - dt.timedelta(days=1), base, base + dt.timedelta(days=1)]
+    slot = min(candidates, key=lambda c: abs((now_utc - c).total_seconds()))
+    intended_api_day = slot.date() - dt.timedelta(days=1)
+    crossed = now_utc.date() != slot.date()
+    return {
+        "slot_utc": slot.isoformat(),
+        "delay_min": int((now_utc - slot).total_seconds() // 60),
+        "intended_api_day_utc": intended_api_day.isoformat(),
+        "shifted": event == "schedule" and crossed,
+    }
+
+
 # ------------------------------------------------------------
-# 2. 取得（ページング・0件と失敗の区別）
+# 2. 取得（リトライ・ページング・0件と失敗の区別）
 # ------------------------------------------------------------
 def classify_response(status_code: int, payload) -> tuple[str, object]:
     """戻り値: ("ok", items) / ("empty", []) / ("error", 理由)"""
     if status_code != 200:
-        hint = "（キー不正の可能性）" if status_code == 401 else ""
+        hint = "（キー不正・権限の可能性）" if status_code in (401, 403) else ""
         return "error", f"HTTP {status_code}{hint}"
     if not isinstance(payload, dict) or not isinstance(payload.get("data"), list):
         return "error", "レスポンス形式が想定と異なる（data が配列ではない）"
@@ -136,8 +167,25 @@ def next_cursor(payload) -> str | None:
     return None
 
 
+def _fetch_with_retry(api_key, cursor, fetch, sleep):
+    """タイムアウト・接続失敗・HTTP 5xx のみ最大 RETRY_MAX 回再試行する。401/403 等は即失敗。
+    戻り値: (code, payload, 通信例外名 or None, 呼び出し回数)"""
+    attempts = 0
+    while True:
+        try:
+            code, payload = fetch(api_key, cursor)
+            err_name = None
+        except (requests.Timeout, requests.ConnectionError) as err:
+            code, payload, err_name = None, None, type(err).__name__
+        transient = err_name is not None or (code is not None and code >= 500)
+        if not transient or attempts >= RETRY_MAX:
+            return code, payload, err_name, attempts + 1
+        sleep(RETRY_WAIT_SEC[attempts])
+        attempts += 1
+
+
 def fetch_all_pages(api_key: str, fetch, cfg: dict, sleep=time.sleep) -> tuple[str, list, str | None, int]:
-    """全ページを取得する。戻り値: (status, items, 失敗理由, API呼び出し回数)"""
+    """全ページを取得する。戻り値: (status, items, 失敗理由, API呼び出し回数（再試行を含む）)"""
     items: list = []
     cursor = None
     calls = 0
@@ -145,8 +193,10 @@ def fetch_all_pages(api_key: str, fetch, cfg: dict, sleep=time.sleep) -> tuple[s
     for page in range(max_pages):
         if page > 0:
             sleep(float(cfg["api_min_interval_sec"]))  # 10回/分の制限を守る
-        code, payload = fetch(api_key, cursor)
-        calls += 1
+        code, payload, err_name, n = _fetch_with_retry(api_key, cursor, fetch, sleep)
+        calls += n
+        if err_name is not None:
+            return "error", [], f"通信エラー（{err_name}、再試行{RETRY_MAX}回後も失敗）", calls
         status, data = classify_response(code, payload)
         if status == "error":
             return "error", [], str(data), calls
@@ -156,7 +206,7 @@ def fetch_all_pages(api_key: str, fetch, cfg: dict, sleep=time.sleep) -> tuple[s
         if not nxt:
             return ("ok" if items else "empty"), items, None, calls
         cursor = nxt
-    # ページ上限に達しても次ページがある → 取得不完全。0件扱いにしない。
+    # ページ上限に達しても次ページがある → 取得不完全。0件扱いにも、部分成功にもしない。
     return "error", [], f"ページ上限{max_pages}回に達したため取得が不完全", calls
 
 
@@ -219,6 +269,7 @@ def normalize_match(item) -> dict | None:
         return None
     tournament = item.get("tournament") if isinstance(item.get("tournament"), dict) else {}
     winner = item.get("winner")
+    start = item.get("start") if isinstance(item.get("start"), str) else None
     return {
         "id": str(item["id"]),
         "tournament": {"name": str(tournament.get("name") or "") or None, "year": tournament.get("year")},
@@ -228,14 +279,29 @@ def normalize_match(item) -> dict | None:
         "games": _games_of(item),
         "winner": winner if winner in (1, 2) else None,
         "status": item.get("status") if isinstance(item.get("status"), str) else None,
+        "start": start,
     }
 
 
+def parse_start(value) -> dt.datetime | None:
+    """開始日時を読む。タイムゾーンが無ければ UTC とみなす（実データ未確認）。読めなければ None。"""
+    if not value:
+        return None
+    try:
+        parsed = dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
 # ------------------------------------------------------------
-# 4. 日本人判定（3値・選手IDのみ）
+# 4. 日本人判定（3値・選手IDのみ・根拠必須）
 # ------------------------------------------------------------
 def load_roster(path: Path = ROSTER_PATH) -> dict:
-    """{player_id: {"name", "status"}}。読めない・不正なエントリは載せない（＝判定不能になる）。"""
+    """{player_id: {"name", "status", "source_url", "confirmed_by", "confirmed_at"}}。
+    JP_CONFIRMED / NON_JP_CONFIRMED のどちらも、出典URL・確認者・確認日が揃わない行は載せない（＝UNKNOWN）。"""
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
@@ -248,13 +314,23 @@ def load_roster(path: Path = ROSTER_PATH) -> dict:
         if not isinstance(p, dict):
             continue
         pid, status = p.get("player_id"), p.get("status")
-        if pid and status in (JP_CONFIRMED, NON_JP_CONFIRMED):
-            roster[str(pid)] = {"name": str(p.get("name") or ""), "status": status}
+        if not pid or status not in (JP_CONFIRMED, NON_JP_CONFIRMED):
+            continue
+        source_url = p.get("source_url")
+        confirmed_by = p.get("confirmed_by")
+        confirmed_at = p.get("confirmed_at")
+        if not (isinstance(source_url, str) and source_url.startswith("http")
+                and isinstance(confirmed_by, str) and confirmed_by.strip()
+                and isinstance(confirmed_at, str) and confirmed_at.strip()):
+            continue  # 根拠が欠ける → UNKNOWN
+        roster[str(pid)] = {"name": str(p.get("name") or ""), "status": status,
+                            "source_url": source_url, "confirmed_by": confirmed_by,
+                            "confirmed_at": confirmed_at}
     return roster
 
 
 def judge_side(players: list[dict], roster: dict) -> list[dict]:
-    """サイドの構成選手ごとに判定を付ける。未登録は UNKNOWN。"""
+    """サイドの構成選手ごとに判定を付ける。未登録・根拠不足は UNKNOWN。"""
     judged = []
     for p in players:
         entry = roster.get(p["id"])
@@ -273,24 +349,38 @@ def classify_match(entry: dict, roster: dict) -> str:
     return "unknown"
 
 
+def is_notifiable(entry: dict, roster: dict) -> bool:
+    """通知対象: 日本人確認済みを含み、かつ日付が取得窓と確認できたもの。"""
+    return entry.get("date_status") == "confirmed" and classify_match(entry, roster) == "jp"
+
+
 # ------------------------------------------------------------
-# 5. 記録（内容ハッシュ・訂正検知）
+# 5. 記録（内容ハッシュ・日付判定）
 # ------------------------------------------------------------
 def content_hash(rec: dict) -> str:
-    """内容の同一性。選手は表示名ではなくIDで比較する（表記揺れで訂正扱いにしない）。"""
     payload = {k: rec.get(k) for k in CONTENT_KEYS}
     for side in ("side1", "side2"):
         payload[side] = [p["id"] for p in (rec.get(side) or [])]
     return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
 
 
-def build_record(norm: dict, api_day_utc: str) -> dict:
+def date_status_for(start_value, api_day_utc: str | None) -> str:
+    if api_day_utc is None:
+        return "unconfirmed"          # 予定対象日を確定できない
+    start = parse_start(start_value)
+    if start is None:
+        return "unknown"              # 開始日時が読めない
+    return "confirmed" if start.date().isoformat() == api_day_utc else "outside"
+
+
+def build_record(norm: dict, api_day_utc: str | None) -> dict:
     """保存用の最小限の記録。生の応答は保存しない。"""
     def _side(side):
         return [{"id": p["id"], "name": p["name"]} for p in side]
     rec = {
         "id": norm["id"],
         "api_day_utc": api_day_utc,
+        "date_status": date_status_for(norm.get("start"), api_day_utc),
         "tournament": norm["tournament"],
         "discipline": norm["discipline"],
         "side1": _side(norm["side1"]),
@@ -298,20 +388,21 @@ def build_record(norm: dict, api_day_utc: str) -> dict:
         "games": norm["games"],
         "winner": norm["winner"],
         "status": norm["status"],
+        "start": norm.get("start"),
     }
     rec["content_hash"] = content_hash(rec)
     return rec
 
 
 # ------------------------------------------------------------
-# 6. 状態（保存・読み込み・取り込み・整理）
+# 6. 状態（保存・読み込み・取り込み・整理・訂正の解除）
 # ------------------------------------------------------------
 class StateError(RuntimeError):
     pass
 
 
 def empty_state() -> dict:
-    return {"schema_version": 1, "matches": {}, "runs": []}
+    return {"schema_version": 2, "matches": {}, "quarantine": {}, "runs": []}
 
 
 def load_state(path: Path) -> dict:
@@ -324,6 +415,7 @@ def load_state(path: Path) -> dict:
     if not isinstance(data, dict) or not isinstance(data.get("matches"), dict):
         raise StateError("状態ファイルの形式が想定と異なります（上書きしません）")
     data.setdefault("runs", [])
+    data.setdefault("quarantine", {})
     return data
 
 
@@ -338,7 +430,7 @@ def save_state(path: Path, state: dict) -> None:
 def parse_iso(value) -> dt.datetime | None:
     try:
         return dt.datetime.fromisoformat(str(value))
-    except ValueError:
+    except (ValueError, TypeError):
         return None
 
 
@@ -356,6 +448,7 @@ def ingest(state: dict, records: list[dict], now_iso: str) -> dict:
                 "persisted_at": now_iso,
                 "notified_at": None,
                 "notify_error": None,
+                "notify_attempts": [],
                 "correction_pending": False,
                 "versions": [],
             }
@@ -364,7 +457,7 @@ def ingest(state: dict, records: list[dict], now_iso: str) -> dict:
             cur.setdefault("versions", []).append(
                 {**{k: cur.get(k) for k in CONTENT_KEYS}, "content_hash": cur.get("content_hash"),
                  "superseded_at": now_iso})
-            for k in CONTENT_KEYS:
+            for k in CONTENT_KEYS + ("api_day_utc", "date_status"):
                 cur[k] = rec[k]
             cur["content_hash"] = rec["content_hash"]
             cur["correction_pending"] = True
@@ -377,12 +470,18 @@ def ingest(state: dict, records: list[dict], now_iso: str) -> dict:
 
 
 def prune(state: dict, now_utc: dt.datetime, retention_days: int, run_keep: int) -> int:
-    """保存期間を過ぎた試合と古い実行ログを削除する。戻り値は削除件数。"""
+    """保存期間を過ぎた試合と古い実行ログを削除する。persisted_at が読めない試合は削除せず quarantine に隔離する。
+    戻り値は削除件数。"""
     cutoff = now_utc - dt.timedelta(days=int(retention_days))
     removed = 0
     for mid in list(state["matches"]):
-        persisted = parse_iso(state["matches"][mid].get("persisted_at"))
-        if persisted is None or persisted < cutoff:
+        entry = state["matches"][mid]
+        persisted = parse_iso(entry.get("persisted_at"))
+        if persisted is None:
+            state["quarantine"][mid] = entry   # 削除しない（人が確認する）
+            del state["matches"][mid]
+            continue
+        if persisted < cutoff:
             del state["matches"][mid]
             removed += 1
     state["runs"] = state["runs"][-int(run_keep):]
@@ -391,7 +490,8 @@ def prune(state: dict, now_utc: dt.datetime, retention_days: int, run_keep: int)
 
 def pending_notifications(state: dict, roster: dict, now_utc: dt.datetime,
                           backlog_days: int, cap: int) -> tuple[list[dict], int]:
-    """未通知で、保存期間内（バックログ日数内）かつ日本人確認済みを含む試合。戻り値: (今回通知分, 残件数)"""
+    """未通知・保存期間内・通知対象。送信結果が不明（最後の attempt の result が None）のものも含める。
+    戻り値: (今回通知分, 残件数)"""
     cutoff = now_utc - dt.timedelta(days=int(backlog_days))
     cands = []
     for entry in state["matches"].values():
@@ -400,12 +500,22 @@ def pending_notifications(state: dict, roster: dict, now_utc: dt.datetime,
         persisted = parse_iso(entry.get("persisted_at"))
         if persisted is None or persisted < cutoff:
             continue
-        if classify_match(entry, roster) != "jp":
+        if not is_notifiable(entry, roster):
             continue
         cands.append(entry)
-    cands.sort(key=lambda e: (e.get("api_day_utc", ""), e["id"]))
+    cands.sort(key=lambda e: (e.get("api_day_utc") or "", e["id"]))
     cap = int(cap)
     return cands[:cap], max(0, len(cands) - cap)
+
+
+def ack_correction(state: dict, match_id: str, by: str, at_iso: str) -> bool:
+    """人が訂正内容を確認したあとに correction_pending を解除する。解除できたら True。"""
+    entry = state["matches"].get(match_id)
+    if not entry or not entry.get("correction_pending"):
+        return False
+    entry["correction_pending"] = False
+    entry["correction_acknowledged"] = {"by": by, "at": at_iso}
+    return True
 
 
 # ------------------------------------------------------------
@@ -428,7 +538,7 @@ def _count_line(j1: list[dict], j2: list[dict]) -> str:
     return f"判定内訳：日本人確認{jp}名／非日本人確認{non}名／判定不能{unk}名"
 
 
-def build_embed(entry: dict, roster: dict, window: dict) -> dict:
+def build_embed(entry: dict, roster: dict, window: dict, attempt_no: int = 1, retry_note: bool = False) -> dict:
     j1 = judge_side(entry["side1"], roster)
     j2 = judge_side(entry["side2"], roster)
     games = entry.get("games")
@@ -447,69 +557,84 @@ def build_embed(entry: dict, roster: dict, window: dict) -> dict:
         f"情報取得時刻：{_fmt_jst(entry.get('fetched_at'))}",
         f"出典：{SOURCE_DOC_URL}",
     ]
+    if retry_note:
+        lines.append("※ 前回の送信結果が未確定のため、重複して届く可能性があります。")
     tname = (entry.get("tournament") or {}).get("name") or "大会名：取得不可"
     return {"title": f"{tname}（{entry['discipline']}）"[:250],
             "description": "\n".join(lines)[:4000],
             "color": 0x2E86C1,
-            "footer": {"text": f"試合ID {entry['id']}"}}
+            "footer": {"text": f"試合ID {entry['id']} ／ 送信試行 {attempt_no}回目"}}
 
 
 def build_header(window: dict, status: str, *, reason: str | None = None, jp: int = 0,
                  notified: int = 0, unknown: int = 0, roster_size: int = 0,
-                 corrections: int = 0, pending_extra: int = 0) -> dict:
+                 corrections: int = 0, pending_extra: int = 0, date_counts: dict | None = None,
+                 shifted_day: str | None = None, start_range: str | None = None) -> dict:
     period = (f"取得対象期間：JST {window['jst_range'][0]} 〜 {window['jst_range'][1]}"
               f"（API前日はUTC {window['api_day_utc']}）")
     if status == "error":
         return {"title": "バドミントン結果：取得失敗",
-                "description": f"取得失敗：{reason}\n{period}\n※ 0件ではなく、取得自体が失敗しています。",
+                "description": f"取得失敗：{reason}\n{period}\n※ 0件ではなく、取得自体が失敗しています。既存データは更新していません。",
                 "color": 0x7F8C8D}
     lines = []
     if status == "empty":
         lines.append("対象試合なし（期間内の結果は0件）")
     lines.append(period)
+    if shifted_day:
+        lines.append(f"⚠ 予定対象日 UTC {shifted_day} の結果は取得できませんでした（欠落）。"
+                     "実行が UTC 日付をまたいで遅延したためです。取得分は日付未確定として保存し、通知していません。")
+    if start_range:
+        lines.append(f"取得した試合の開始時刻の範囲：{start_range}")
     if roster_size == 0:
         lines.append("※ 日本人確認済みの選手IDが0件のため、日本人の判定は行っていません（全件 判定不能）。")
     lines.append(f"日本人確認済みの試合：{jp}件（今回通知：{notified}件、未通知の過去分を含む）")
     lines.append(f"判定不能を含む試合：{unknown}件（日本人である可能性を否定できない試合を含みます）")
+    dc = date_counts or {}
+    if dc.get("outside") or dc.get("unknown") or dc.get("unconfirmed"):
+        lines.append(f"日付の確認：取得窓の外 {dc.get('outside', 0)}件／開始時刻不明 {dc.get('unknown', 0)}件／"
+                     f"日付未確定 {dc.get('unconfirmed', 0)}件（いずれも通知していません）")
     if corrections:
-        lines.append(f"訂正候補：{corrections}件（自動再送していません。保存版を確認してください）")
+        lines.append(f"訂正候補：{corrections}件（自動再送していません。人が確認して解除してください）")
     if pending_extra:
         lines.append(f"未通知の残り{pending_extra}件は次回以降に送信します")
     return {"title": "バドミントン結果（前日取得分）", "description": "\n".join(lines), "color": 0x7F8C8D}
 
 
-def send_batches(webhook: str, header: dict, items: list[tuple[str, dict]], post) -> tuple[set, set]:
-    """ヘッダーを送ったあと、試合embedを10件ずつ送る。戻り値: (送信成功ID, 送信失敗ID)"""
+def send_batches(webhook: str, header: dict, items: list[tuple[str, dict]], post) -> dict:
+    """ヘッダーを送ったあと、試合embedを10件ずつ送る。
+    戻り値: {"ok": 送信成功ID, "failed": HTTPエラーで不達のID, "unknown": 例外で結果不明のID}"""
     try:
         r = post(webhook, json={"embeds": [header]}, timeout=REQUEST_TIMEOUT)
         if r.status_code >= 300:
             print(f"[WARN] ヘッダー送信に失敗（HTTP {r.status_code}）")
     except requests.RequestException as err:
-        print(f"[WARN] ヘッダー送信に失敗（{type(err).__name__}）")
-    ok, failed = set(), set()
+        print(f"[WARN] ヘッダー送信の結果が不明（{type(err).__name__}）")
+    result = {"ok": set(), "failed": set(), "unknown": set()}
     for i in range(0, len(items), DISCORD_BATCH):
         chunk = items[i:i + DISCORD_BATCH]
         ids = {mid for mid, _ in chunk}
         try:
             r = post(webhook, json={"embeds": [embed for _, embed in chunk]}, timeout=REQUEST_TIMEOUT)
-            if r.status_code < 300:
-                ok |= ids
-                continue
-            print(f"[ERROR] Discord送信に失敗（HTTP {r.status_code}）")
         except requests.RequestException as err:
-            print(f"[ERROR] Discord送信に失敗（{type(err).__name__}）")
-        failed |= ids
-    return ok, failed
+            print(f"[ERROR] Discord送信の結果が不明（{type(err).__name__}）。次回再送します")
+            result["unknown"] |= ids
+            continue
+        if r.status_code < 300:
+            result["ok"] |= ids
+        else:
+            print(f"[ERROR] Discord送信に失敗（HTTP {r.status_code}）")
+            result["failed"] |= ids
+    return result
 
 
 # ------------------------------------------------------------
 # 8. 実行本体
 # ------------------------------------------------------------
 def run_once(*, api_key: str, webhook: str, now_utc: dt.datetime, state_path: Path, config: dict,
-             roster: dict, fetch, post, sleep=time.sleep) -> int:
+             roster: dict, fetch, post, sleep=time.sleep, event: str = "manual") -> int:
     """1回分の処理。戻り値は終了コード（0: 正常、1: 失敗）。"""
     if not api_key:
-        print("[SKIP] BADMINTON_API_KEY 未設定のため、取得・保存・配信は行いません。")
+        print("::warning::BADMINTON_API_KEY が未設定のため、取得・保存・配信は行いません（未稼働）")
         return 0
     try:
         state = load_state(state_path)
@@ -520,6 +645,7 @@ def run_once(*, api_key: str, webhook: str, now_utc: dt.datetime, state_path: Pa
     now_utc = now_utc.astimezone(UTC)
     now_iso = now_utc.isoformat()
     window = compute_window(now_utc)
+    drift = schedule_drift(now_utc, event)
     discord_on = bool(config["discord_output_enabled"])
 
     try:
@@ -527,11 +653,15 @@ def run_once(*, api_key: str, webhook: str, now_utc: dt.datetime, state_path: Pa
     except requests.RequestException as err:
         status, items, reason, calls = "error", [], f"通信エラー（{type(err).__name__}）", 0
 
+    run_log = {"run_at": now_iso, "event": event, "api_day_utc": window["api_day_utc"],
+               "api_calls": calls, "discord_output_enabled": discord_on,
+               "schedule_slot_utc": drift["slot_utc"], "delay_min": drift["delay_min"],
+               "shifted": drift["shifted"]}
+
     if status == "error":
-        state["runs"].append({"run_at": now_iso, "api_day_utc": window["api_day_utc"],
-                              "status": "error", "reason": reason, "api_calls": calls,
-                              "discord_output_enabled": discord_on})
-        prune(state, now_utc, config["state_retention_days"], config["run_log_keep"])
+        # 取得失敗: 既存の試合データには触れない（prune も行わない）。実行ログのみ追記する。
+        run_log.update({"status": "error", "reason": reason})
+        state["runs"].append(run_log)
         save_state(state_path, state)
         print(f"[ERROR] 取得失敗：{reason}")
         if discord_on and webhook:
@@ -539,29 +669,39 @@ def run_once(*, api_key: str, webhook: str, now_utc: dt.datetime, state_path: Pa
         return 1
 
     # --- 取得（fetched）→ 保存（persisted）---
+    api_day = None if drift["shifted"] else window["api_day_utc"]
     normalized = [m for m in (normalize_match(i) for i in items) if m is not None]
     targets = [m for m in normalized if m["discipline"] in TARGET_DISCIPLINES]
-    records = [build_record(m, window["api_day_utc"]) for m in targets]
+    records = [build_record(m, api_day) for m in targets]
     counts = ingest(state, records, now_iso)
     verdicts = {"jp": 0, "non_jp": 0, "unknown": 0}
+    date_counts = {"confirmed": 0, "outside": 0, "unknown": 0, "unconfirmed": 0}
     for rec in records:
         verdicts[classify_match(rec, roster)] += 1
+        date_counts[rec["date_status"]] += 1
+    starts = sorted(s for s in (parse_start(i.get("start")) for i in items if isinstance(i, dict)) if s)
+    start_range = (f"{_fmt_jst(starts[0].isoformat())} 〜 {_fmt_jst(starts[-1].isoformat())}"
+                   if starts else None)
     removed = prune(state, now_utc, config["state_retention_days"], config["run_log_keep"])
+    run_log.update({
+        "status": status, "fetched_items": len(items), "normalized": len(normalized),
+        "target": len(targets), "new": counts["new"], "corrected": counts["corrected"],
+        "unchanged": counts["unchanged"], "jp_confirmed": verdicts["jp"],
+        "non_jp_confirmed": verdicts["non_jp"], "unknown": verdicts["unknown"],
+        "date_status": date_counts, "roster_size": len(roster), "pruned": removed,
+        "quarantined_total": len(state["quarantine"]),
+    })
     save_state(state_path, state)  # 保存完了後にのみ通知へ進む
 
-    run_log = {
-        "run_at": now_iso, "api_day_utc": window["api_day_utc"], "status": status,
-        "api_calls": calls, "discord_output_enabled": discord_on,
-        "fetched_items": len(items), "normalized": len(normalized), "target": len(targets),
-        "new": counts["new"], "corrected": counts["corrected"], "unchanged": counts["unchanged"],
-        "jp_confirmed": verdicts["jp"], "non_jp_confirmed": verdicts["non_jp"],
-        "unknown": verdicts["unknown"], "roster_size": len(roster), "pruned": removed,
-    }
     corrections = sum(1 for e in state["matches"].values() if e.get("correction_pending"))
     pending, extra = pending_notifications(state, roster, now_utc,
                                            config["backlog_days"], config["max_backlog_per_run"])
+    header_kwargs = dict(jp=verdicts["jp"], unknown=verdicts["unknown"], roster_size=len(roster),
+                         corrections=corrections, date_counts=date_counts,
+                         shifted_day=drift["intended_api_day_utc"] if drift["shifted"] else None,
+                         start_range=start_range)
 
-    # --- 通知（notified）：Discord OFF中は一切送らず、通知済みにもしない ---
+    # --- 通知（notified）---
     rc = 0
     if not discord_on:
         print(f"[INFO] Discord出力OFF：通知は行いません（未通知の対象候補 {len(pending) + extra}件は保存済み）")
@@ -569,28 +709,48 @@ def run_once(*, api_key: str, webhook: str, now_utc: dt.datetime, state_path: Pa
         print("[ERROR] Discord出力はONですが DISCORD_WEBHOOK_OSHI が未設定です（通知していません）")
         rc = 1
     else:
-        header = build_header(window, status, jp=verdicts["jp"], notified=len(pending),
-                              unknown=verdicts["unknown"], roster_size=len(roster),
-                              corrections=corrections, pending_extra=extra)
-        items_out = [(e["id"], build_embed(e, roster, window)) for e in pending]
-        ok_ids, failed_ids = send_batches(webhook, header, items_out, post)
+        now_send = dt.datetime.now(UTC).isoformat()
+        # 1) 送信前に attempt を保存する（送信後に中断しても、試行の事実が残る）
+        prior_unknown = {}
+        for e in pending:
+            attempts = e.setdefault("notify_attempts", [])
+            # 結果が不明（未記録・unknown）の過去試行があれば、重複の可能性を明記して再送する
+            prior_unknown[e["id"]] = any(a.get("result") in (None, "unknown") for a in attempts)
+            attempts.append({"run_at": now_send, "result": None})
+        save_state(state_path, state)
+        # 2) 送信
+        header = build_header(window, status, notified=len(pending), **header_kwargs)
+        items_out = [(e["id"], build_embed(e, roster, window, attempt_no=len(e["notify_attempts"]),
+                                           retry_note=prior_unknown[e["id"]])) for e in pending]
+        res = send_batches(webhook, header, items_out, post)
+        # 3) 結果を保存する
         sent_at = dt.datetime.now(UTC).isoformat()
-        for mid in ok_ids:
-            state["matches"][mid]["notified_at"] = sent_at
-            state["matches"][mid]["notify_error"] = None
-        for mid in failed_ids:
-            state["matches"][mid]["notify_error"] = f"送信失敗 {sent_at}"
-        run_log["notified"] = len(ok_ids)
-        run_log["notify_failed"] = len(failed_ids)
+        for e in pending:
+            last = e["notify_attempts"][-1]
+            if e["id"] in res["ok"]:
+                last["result"] = "ok"
+                e["notified_at"] = sent_at
+                e["notify_error"] = None
+            elif e["id"] in res["failed"]:
+                last["result"] = "failed"
+                e["notify_error"] = f"送信失敗（HTTP）{sent_at}"
+            elif e["id"] in res["unknown"]:
+                last["result"] = "unknown"
+                e["notify_error"] = f"送信結果不明 {sent_at}（次回再送。重複の可能性あり）"
+        run_log["notified"] = len(res["ok"])
+        run_log["notify_failed"] = len(res["failed"])
+        run_log["notify_unknown"] = len(res["unknown"])
+        run_log["duplicate_possible_resends"] = sum(1 for e in pending if prior_unknown[e["id"]])
 
     state["runs"].append(run_log)
     save_state(state_path, state)
     print(f"[OK] 取得{len(items)}件 / 対象{len(targets)}件 / 新規{counts['new']}件 / "
-          f"訂正候補{counts['corrected']}件 / 日本人確認{verdicts['jp']}件 / 判定不能{verdicts['unknown']}件")
+          f"訂正候補{counts['corrected']}件 / 日本人確認{verdicts['jp']}件 / 判定不能{verdicts['unknown']}件 / "
+          f"日付未確定{date_counts['unconfirmed']}件")
     return rc
 
 
-def run() -> int:
+def run(event: str | None = None) -> int:
     api_key = os.environ.get("BADMINTON_API_KEY", "").strip()
     webhook = os.environ.get("DISCORD_WEBHOOK_OSHI", "").strip()
     state_path = Path(os.environ.get("BADMINTON_STATE_PATH", "").strip() or DEFAULT_STATE_PATH)
@@ -603,8 +763,34 @@ def run() -> int:
         roster=load_roster(),
         fetch=fetch_page,
         post=requests.post,
+        event=event or os.environ.get("GITHUB_EVENT_NAME", "manual"),
     )
 
 
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description="日本人選手の前日結果の独立配信")
+    ap.add_argument("--ack-correction", metavar="MATCH_ID", help="訂正候補を人が確認して解除する")
+    ap.add_argument("--by", help="--ack-correction の確認者名（必須）")
+    ap.add_argument("--state", default=os.environ.get("BADMINTON_STATE_PATH") or str(DEFAULT_STATE_PATH))
+    args = ap.parse_args(argv)
+    if args.ack_correction:
+        if not args.by:
+            print("[ERROR] --by（確認者名）が必要です")
+            return 1
+        state_path = Path(args.state)
+        try:
+            state = load_state(state_path)
+        except StateError as err:
+            print(f"[ERROR] {err}")
+            return 1
+        if not ack_correction(state, args.ack_correction, args.by, dt.datetime.now(UTC).isoformat()):
+            print("[ERROR] 訂正候補として見つからないため、解除していません")
+            return 1
+        save_state(state_path, state)
+        print(f"[OK] 訂正候補を解除しました: {args.ack_correction}")
+        return 0
+    return run()
+
+
 if __name__ == "__main__":
-    sys.exit(run())
+    sys.exit(main())
