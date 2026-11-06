@@ -1,0 +1,25 @@
+{
+  "_comment": "バドミントン前日結果の独立配信の設定。discord_output_enabled が false の間は Discord へ送らず、通知済みにもしない。",
+  "discord_output_enabled": false,
+  "backlog_days": 3,
+  "max_backlog_per_run": 30,
+  "state_retention_days": 30,
+  "run_log_keep": 90,
+  "max_api_pages": 5,
+  "api_min_interval_sec": 6.0,
+  "jp_roster_source_urls": [
+    "https://www.badminton.or.jp/national/player?gender=male",
+    "https://www.badminton.or.jp/national/player?gender=female",
+    "https://www.badminton.or.jp/national/player?gender=male&category[]=u24",
+    "https://www.badminton.or.jp/national/player?gender=female&category[]=u24"
+  ],
+  "badspi_ranking_urls": {
+    "MS": "https://www.badspi.jp/ranking/%e4%b8%96%e7%95%8c%e3%83%a9%e3%83%b3%e3%82%ad%e3%83%b3%e3%82%b0-%e7%94%b7%e5%ad%90%e3%82%b7%e3%83%b3%e3%82%b0%e3%83%ab%e3%82%b9/",
+    "WS": "https://www.badspi.jp/ranking/%e4%b8%96%e7%95%8c%e3%83%a9%e3%83%b3%e3%82%ad%e3%83%b3%e3%82%b0-%e5%a5%b3%e5%ad%90%e3%82%b7%e3%83%b3%e3%82%b0%e3%83%ab%e3%82%b9/",
+    "MD": "https://www.badspi.jp/ranking/%e4%b8%96%e7%95%8c%e3%83%a9%e3%83%b3%e3%82%ad%e3%83%b3%e3%82%b0-%e7%94%b7%e5%ad%90%e3%83%80%e3%83%96%e3%83%ab%e3%82%b9/",
+    "WD": "https://www.badspi.jp/ranking/%e4%b8%96%e7%95%8c%e3%83%a9%e3%83%b3%e3%82%ad%e3%83%b3%e3%82%b0-%e5%a5%b3%e5%ad%90%e3%83%80%e3%83%96%e3%83%ab%e3%82%b9/",
+    "XD": "https://www.badspi.jp/ranking/%e4%b8%96%e7%95%8c%e3%83%a9%e3%83%b3%e3%82%ad%e3%83%b3%e3%82%b0-%e3%83%9f%e3%83%83%e3%82%af%e3%82%b9%e3%83%80%e3%83%96%e3%83%ab%e3%82%b9/"
+  },
+  "_badspi_note": "世界ランキング（海外）の正規URL。2026-11-06に5種目とも実HTMLで確認（旧URL /ranking/男子海外シングルス/ は301で正規URLへ転送）。国内ランキングは対象外。",
+  "_results_note": "結果取得は /v1/results/yesterday（文書上のFree）。/v1/results（date指定, Free表記）は実データ未検証のため未採用。"
+}
