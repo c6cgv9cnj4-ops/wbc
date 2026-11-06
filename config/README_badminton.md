@@ -1,7 +1,9 @@
 # バドミントン結果配信・世界ランキング：運用手順
 
 ## 0. 実行系統（確定）
-- **収集・配信は Mac mini のローカル実行（launchd・毎朝06:05）に一本化**。GitHub Actions は定時実行しない（テスト専用）。
+- **Discord へ投稿するのは既存 `badminton_alerts.yml`（毎朝06:05 JST）の1本だけ**。
+- Mac mini のローカルジョブ（launchd・毎朝06:05）は **試合結果JSONの生成だけ**を行い、Discord へは送らない（`DISCORD_DELIVERY_ENABLED = False` で封じ込め）。
+- GitHub Actions の `バドミントン新規モジュールのテスト` はテスト専用（定時実行・Secrets 参照なし）。
 - APIキーは **macOS キーチェーン**から読む。GitHub Secrets には登録しない。
 - Discord は既定で無効（`discord_output_enabled: false`）。ローカル実行は Discord の認証情報を読まない。
 - 実行時の生成物（状態・ランキング・台帳・一覧・ログ・venv）は `~/Library/Application Support/ricky-kogyo/badminton/` に置く（リポジトリには置かない）。
@@ -57,3 +59,25 @@ scripts/install_local_badminton_launchd.sh --load
 ## 5. 結果通知（朝06:05 JST）
 - `discord_output_enabled` は既定 `false`。true にするまで Discord へは送らない。
 - 警告（取得件数はあるが正規化0件・未知の種目表記・開始日時不明）は、ログとヘッダーに出る。「対象試合なし」とは区別される。
+
+## 6. 試合結果の受け渡し（ハンドオフ）
+
+### 方式と選定理由
+- **Mac → GitHub の直接 push（main）は採用しない**。main にブランチ保護がなく、Mac に書き込み権限付きの資格情報を置くと漏えい時に main を直接書き換えられるため。
+- 採用する方式：Mac が JSON を専用ブランチ `badminton-results-data` へ **fast-forward push のみ**で公開し、既存ワークフローが `git fetch` で読む（`scripts/publish_badminton_handoff.sh`）。
+- 公開に使う資格情報は **そのブランチへの書き込み制限を掛けたディプロイキー**を想定。権限の制限（ブランチ単位の保護）は GitHub の設定で行う必要があり、未設定の間は公開しない。
+
+### 安全策
+- JSON は `schema_version`・生成時刻（26時間で失効）・`api_day_utc`（取得窓の一致）・`status`・`format_verified` を検証。1つでも満たさなければ新規結果は0件。
+- 試合は1件ずつ検証（勝者と得点の整合、終了済み `finished` のみ、タイムゾーン必須、取得窓内、得点の範囲）。不正な試合は除外して理由を記録。
+- 指定選手（既存の大会記事が担当）を含む試合は除外し、二重投稿を防ぐ。
+- 既送信記録は既存の `state/badminton_alerts_seen.json` の新しいキー空間（`intl::<試合ID>`）に保存。内容が変わった場合は「（訂正）」として1回だけ送る。
+- 既存配信への追加は **朝06:05の実行（morning 帯）のみ**。送信成功後にだけ既送信として記録（失敗時は次回再試行）。
+- 取り込みの例外・JSONの欠落・破損・期限切れ・取得失敗は、既存配信を止めない（既存の送信内容は従来どおり）。
+
+### 応答形式の未検証
+- `config/badminton_results.json` の `api_format_verified` が `false` の間、ローカルジョブは試合を1件も書き出さない（推測で補完しない）。
+- 実APIの応答（start の形式、side のキー名、winner の型、games の型、status の意味、ページング）を実データで確認した後に、この値を `true` にする変更を PR で行う。
+
+### 未解決（本番前に必要）
+- 国内大会（JBA 結果ページで配信される試合）が API に含まれる場合、既存の JBA 結果配信と重複し得る。実データで含有を確認し、必要なら除外規則を追加する。

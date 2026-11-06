@@ -21,5 +21,7 @@
     "XD": "https://www.badspi.jp/ranking/%e4%b8%96%e7%95%8c%e3%83%a9%e3%83%b3%e3%82%ad%e3%83%b3%e3%82%b0-%e3%83%9f%e3%83%83%e3%82%af%e3%82%b9%e3%83%80%e3%83%96%e3%83%ab%e3%82%b9/"
   },
   "_badspi_note": "世界ランキング（海外）の正規URL。2026-11-06に5種目とも実HTMLで確認（旧URL /ranking/男子海外シングルス/ は301で正規URLへ転送）。国内ランキングは対象外。",
-  "_results_note": "結果取得は /v1/results/yesterday（文書上のFree）。/v1/results（date指定, Free表記）は実データ未検証のため未採用。"
+  "_results_note": "結果取得は /v1/results/yesterday（文書上のFree）。/v1/results（date指定, Free表記）は実データ未検証のため未採用。",
+  "api_format_verified": false,
+  "_api_format_note": "実API応答（start・side・winner・games・status・ページング）を実データで確認し終えるまで false。false の間は試合結果JSONに試合を書き出さない。"
 }

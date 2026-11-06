@@ -32,6 +32,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import badminton_results_free as R  # noqa: E402
 import badminton_jp_ledger as L  # noqa: E402
 import badspi_ranking_snapshot as BS  # noqa: E402
+import badminton_handoff as BH  # noqa: E402
 
 KEYCHAIN_SERVICE = "ricky-kogyo-badminton-api-free"
 KEYCHAIN_ACCOUNT = "BADMINTON_API_KEY"
@@ -165,7 +166,8 @@ def run_local(*, local_dir: Path, env: dict, now_utc: dt.datetime | None = None,
                 # Discord の認証情報はこのランナーでは読まない（webhook は空）。出力は設定（既定 OFF）に従う
                 r1 = R.run_once(api_key=api_key, webhook="",
                                 now_utc=now_utc, state_path=state_path, config=config, roster=roster,
-                                fetch=fetch, post=post, sleep=sleep, event="schedule", rankings=rankings)
+                                fetch=fetch, post=post, sleep=sleep, event="schedule", rankings=rankings,
+                                handoff_path=local_dir / "outbox" / BH.DATA_FILENAME)
                 rc = max(rc, r1)
             # 2) 台帳の照合（確定はしない・日次上限あり）
             s = search_step(local_dir, api_key, fetch_search=fetch_search, now_utc=now_utc, sleep=sleep)
