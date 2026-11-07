@@ -9,7 +9,8 @@ on:
 
 jobs:
   fetch-deals:
-    runs-on: ubuntu-latest
+    # Playwrightのchromium導入がubuntu-26.04で非対応のため、24.04に固定
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
