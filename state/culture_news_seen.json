@@ -1,13 +1,5 @@
 {
   "seen_urls": {
-    "https://www.itmedia.co.jp/news/article/2610/26/2000002578/": "2026-10-26T17:47:35.079426+09:00",
-    "https://www.itmedia.co.jp/news/article/2610/26/2000002573/": "2026-10-26T17:47:35.079426+09:00",
-    "https://news.google.com/rss/articles/CBMiakFVX3lxTE01Rkw5Q1djOWlxcTR3aG5VNTFVR3B1d2xpWmE0N3NOcVpJWmp6Rl9xR3JyRHhNWWJyVkhjSzdVVFVJUlZWMUx0VDBxQ0JJRzhXZ1ZpRUZPRWU2WVphMDgwQTdzMURMek14dWc?oc=5": "2026-10-26T17:47:35.079426+09:00",
-    "https://news.google.com/rss/articles/CBMiggFBVV95cUxQQnpVYkE0ZTBHWWkteGl5Mm9zemxJUVVJdU52VWJuejJmYk5td0N6bzU2VEVyVHNrbnZCTjZYY1YyX29HdEVRUm0xM0Jqd25ibHJYTWlIa25XUk5ibTNvRHBZZ0F6MVNDZGF0Y0tsdnRMb0RFOG94bWU3M1Y4SUJabVJR?oc=5": "2026-10-27T01:06:18.650892+09:00",
-    "https://news.google.com/rss/articles/CBMihgFBVV95cUxPSXFfVnh1d1lQUzN2UlVpRkhSX19IdElCb1JqTDQ1cldaNW00VHNNcndJMkVEWG56TU10eVpsRFZycVNfSUlrTW11Y0YwMEVJWnNBcmZZRnFCQWJwcjJOVlNISnhFdHNzSWJVQkpkNnRQM2ZBMWhod1RLTEdwWEE5MFFVOTV2QQ?oc=5": "2026-10-27T01:06:18.650892+09:00",
-    "https://news.google.com/rss/articles/CBMibkFVX3lxTE9kNkFZRGpKbmt3MnNXZl9zeWFPYTI5T0Vrc2o4aEg4RHlORnpkZDkxclVJLURsQU81NVZwc2ZFRjlKUG5Mbm9LZWRNLVVJc1FnbUZjT3N5S3dJc2RlU193ekF1MUVIN2JtUXA5T293?oc=5": "2026-10-27T01:06:18.650892+09:00",
-    "https://news.google.com/rss/articles/CBMidEFVX3lxTE16S2N6YjBRWXpWR0ZELTQ5RU00enNpdkktMEp3ajdQdkNkeE93THZYbW9Mb0h3RmQtYkFCSDZ0Y1BOeDFCQjE1TjJkczRuWmlqZFotdVNGMnV2dGdQbjFkRUhPdGVQNXBCVWE4Ul8tSHgySmFW?oc=5": "2026-10-27T01:06:18.650892+09:00",
-    "https://news.google.com/rss/articles/CBMia0FVX3lxTE9HTlQ1SXFWblAxM09pZFBXdnhqZzdta001dUdvNDVmVWZCbXFLdWpvTlVLVW9oblROeFZvTmtPeUlkUHRZcExIbDgxUS13azA2SHVCQTA5bHNSTzhLVzF2U0FUdk9SakxTRU9B?oc=5": "2026-10-27T01:06:18.650892+09:00",
     "https://www.itmedia.co.jp/news/article/2610/27/2000002605/": "2026-10-27T10:28:40.400851+09:00",
     "https://www.itmedia.co.jp/news/article/2610/27/2000002604/": "2026-10-27T10:28:40.400851+09:00",
     "https://gigazine.net/news/20261027-no-signs-ai-payoff-outside-tech/": "2026-10-27T10:28:40.400851+09:00",
@@ -129,6 +121,11 @@
     "https://postcoffee.co/magazine/coffee/howtobrew/hoop-how-to-brew/": "2026-11-09T06:32:44.140288+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE41Y1d4RGZMUXVvUGI2ZVh5RVdRaXR5YXF6NVpyQ1hZcXZwdVFlTlhCdDVIVkgySUVReVJCUklaZ1Y4LV82b2h1V3cxSzdCbjVybFIweG9URkRqSllKN3pVTTBLSVgwOWlp?oc=5": "2026-11-09T06:32:44.140288+09:00",
     "https://gigazine.net/news/20261108-ripple-65b-preview/": "2026-11-09T09:48:10.175314+09:00",
-    "https://gigazine.net/news/20261107-apple-how-turn-off-macbook-glowing-logo/": "2026-11-09T09:48:10.175314+09:00"
+    "https://gigazine.net/news/20261107-apple-how-turn-off-macbook-glowing-logo/": "2026-11-09T09:48:10.175314+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/09/2000003001/": "2026-11-10T06:35:18.360697+09:00",
+    "https://gigazine.net/news/20261109-ai-dreaming-agent-memory/": "2026-11-10T06:35:18.360697+09:00",
+    "https://gigazine.net/news/20261109-macos-personal-knowledge-graph/": "2026-11-10T06:35:18.360697+09:00",
+    "https://gigazine.net/news/20261109-tesla-cybertruck/": "2026-11-10T06:35:18.360697+09:00",
+    "https://gigazine.net/news/20261109-anthropic-psi-aaronson-ambainis/": "2026-11-10T06:35:18.360697+09:00"
   }
 }
