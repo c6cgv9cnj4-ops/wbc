@@ -1,11 +1,5 @@
 {
   "seen_urls": {
-    "https://gigazine.net/news/20261027-anthropic-ipo-s1/": "2026-10-27T17:53:23.532925+09:00",
-    "https://gigazine.net/news/20261027-intel-to-acquire-classiq-computing/": "2026-10-27T17:53:23.532925+09:00",
-    "https://gigazine.net/news/20261027-microsoft-offers-buy-out-quarter-of-workforce/": "2026-10-27T17:53:23.532925+09:00",
-    "https://postcoffee.co/magazine/coffee/coffee-showroom-specialty-coffee/": "2026-10-27T17:53:23.532925+09:00",
-    "https://www.itmedia.co.jp/news/article/2610/27/2000002644/": "2026-10-28T00:20:09.882424+09:00",
-    "https://gigazine.net/news/20261027-openai-three-new-discoveries/": "2026-10-28T00:20:09.882424+09:00",
     "https://gigazine.net/news/20261028-kv-cache-exposure-remediation/": "2026-10-28T10:19:58.574827+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBFZ3hqcmJvcXozQmdMSE51NnVKaHVHZ05PUlA1aEVTaU1uWFhhZS1QUE0zQ0RSZWdMdkV3azBkLW1BbkRHT3BZTkZ3aDhZSFpWcDlXRUlpLUs5ZmRVU05fLU4zRjNQQUVS?oc=5": "2026-10-28T10:19:58.574827+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTFB2eFpNZURSSUVGUTFqOWNrdGs4elhNSElrcVlOSWxiYkJwb3JBZlBHN2ZwaUpISzU2OHFMMTFaMHNCcHpQZDNDVjhQakJIS0RPNFluUW50ZDRkN2lPMG9FOTlYSjdCMlIy?oc=5": "2026-10-28T10:19:58.574827+09:00",
@@ -155,6 +149,11 @@
     "https://news.google.com/rss/articles/CBMiY0FVX3lxTFBSczNMcmIxWHlERmZMVVFFS2JSTVZkQi1kN2dzMWNpb29hSEZxNFZ5MzNKVHBlMVkzWEJlVmdZdjZRZ3FiNDZ3b2E3NDNla3BNd1Q0dnU1V0JLMXNLLVhSajM1SQ?oc=5": "2026-11-10T12:28:57.023124+09:00",
     "https://news.google.com/rss/articles/CBMiU0FVX3lxTE5TNjkyZU1KbXhTSDFRSEFEVGp1Q0pGTllqajRLTW9ZRzhsMVFnNzRUMTAzcHVhQ0lQWFBYdC1HUk9XZkw1c2pGbEUzbkI0OVFmTEd3?oc=5": "2026-11-10T12:28:57.023124+09:00",
     "https://news.google.com/rss/articles/CBMiU0FVX3lxTE92STIwcm9LVEZfM1c2VG1YcW91c1RFTEN2Qm1fWDIyTk45MUZTNllBdlF0Y0VTYjNYOWstdzdfRFNGalI1WTRzR0dFY1c0MFlkNlZj?oc=5": "2026-11-10T12:28:57.023124+09:00",
-    "https://news.google.com/rss/articles/CBMiX0FVX3lxTE5aQlVFTllCT2lFaXNKR0tFbkY2am80MDdLNkRWUUJJVkZTZk9mcjYxNXc3Qk9VNUhhQUZlMV84TmhsNGJkZ3hZeTRaWi1NbGNWSFZPc3RrUWs2ajlhU0sw?oc=5": "2026-11-10T12:28:57.023124+09:00"
+    "https://news.google.com/rss/articles/CBMiX0FVX3lxTE5aQlVFTllCT2lFaXNKR0tFbkY2am80MDdLNkRWUUJJVkZTZk9mcjYxNXc3Qk9VNUhhQUZlMV84TmhsNGJkZ3hZeTRaWi1NbGNWSFZPc3RrUWs2ajlhU0sw?oc=5": "2026-11-10T12:28:57.023124+09:00",
+    "https://gigazine.net/news/20261110-jensen-huang-has-a-tight-grip-on-nvidia/": "2026-11-11T06:33:29.438030+09:00",
+    "https://gigazine.net/news/20261110-claude-opus-nerf/": "2026-11-11T06:33:29.438030+09:00",
+    "https://gigazine.net/news/20261110-meta-muse-ember-benchmark/": "2026-11-11T06:33:29.438030+09:00",
+    "https://gigazine.net/news/20261110-anthropic-claude-fable-mythos-5-2/": "2026-11-11T06:33:29.438030+09:00",
+    "https://postcoffee.co/magazine/coffee/coffee-showroom-specialty-coffee/": "2026-11-11T06:33:29.438030+09:00"
   }
 }
