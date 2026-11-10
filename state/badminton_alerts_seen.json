@@ -14,7 +14,6 @@
     "https://www.sposoku.com/malaysiaopen/::×緑川・松山　1－2　〇CHENG・ZHANG(中国)": "2026-10-25T01:26:22.122922+09:00"
   },
   "seen_badspi_urls": {
-    "https://www.badspi.jp/202610112249/?utm_source=rss&utm_medium=rss&utm_campaign=202610112249": "2026-10-12T01:33:47.106216+09:00",
     "https://www.badspi.jp/202610142349/?utm_source=rss&utm_medium=rss&utm_campaign=202610142349": "2026-10-14T23:30:43.245488+09:00",
     "https://www.badspi.jp/202610142237/?utm_source=rss&utm_medium=rss&utm_campaign=202610142237": "2026-10-14T23:30:43.245488+09:00",
     "https://www.badspi.jp/202610142222/?utm_source=rss&utm_medium=rss&utm_campaign=202610142222": "2026-10-14T23:30:43.245488+09:00",
@@ -74,7 +73,13 @@
     "https://www.badspi.jp/202611081732/?utm_source=rss&utm_medium=rss&utm_campaign=202611081732": "2026-11-09T06:32:45.552772+09:00",
     "https://www.badspi.jp/202611081721/?utm_source=rss&utm_medium=rss&utm_campaign=202611081721": "2026-11-09T06:32:45.552772+09:00",
     "https://www.badspi.jp/202611081940/?utm_source=rss&utm_medium=rss&utm_campaign=202611081940": "2026-11-09T06:32:45.552772+09:00",
-    "https://www.badspi.jp/202611081223/?utm_source=rss&utm_medium=rss&utm_campaign=202611081223": "2026-11-09T06:32:45.552772+09:00"
+    "https://www.badspi.jp/202611081223/?utm_source=rss&utm_medium=rss&utm_campaign=202611081223": "2026-11-09T06:32:45.552772+09:00",
+    "https://www.badspi.jp/202611102225/?utm_source=rss&utm_medium=rss&utm_campaign=202611102225": "2026-11-11T06:33:33.558018+09:00",
+    "https://www.badspi.jp/202611102057/?utm_source=rss&utm_medium=rss&utm_campaign=202611102057": "2026-11-11T06:33:33.558018+09:00",
+    "https://www.badspi.jp/202611102041/?utm_source=rss&utm_medium=rss&utm_campaign=202611102041": "2026-11-11T06:33:33.558018+09:00",
+    "https://www.badspi.jp/202611101742/?utm_source=rss&utm_medium=rss&utm_campaign=202611101742": "2026-11-11T06:33:33.558018+09:00",
+    "https://www.badspi.jp/202611101401/?utm_source=rss&utm_medium=rss&utm_campaign=202611101401": "2026-11-11T06:33:33.558018+09:00",
+    "https://www.badspi.jp/202611101243/?utm_source=rss&utm_medium=rss&utm_campaign=202611101243": "2026-11-11T06:33:33.558018+09:00"
   },
   "seen_national_summaries": {
     "https://www.sposoku.com/kokuspo-badminton-026/::優勝：神奈川県準優勝：埼玉県第三位：富山県第四位：滋賀県": "2026-10-14T18:01:59.543009+09:00",
@@ -101,8 +106,6 @@
     "https://www.sposoku.com/kokuspo-badminton-2/::優勝：青森県準優勝：山口県第三位：大阪府第四位：埼玉県": "2026-11-10T06:35:22.712848+09:00"
   },
   "seen_gnews_urls": {
-    "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE5kWTVhZHMtMDM5QWlETl8zS3NHUlZudzhZSVlBS002WFBNeHc5V25IYV92c09CVGlhWGMxS3lRQlN0eUFYc3ZvRmREbnFnMGZZalZzMGF6cng0X1B2eTItLTNkMkZPNms?oc=5": "2026-10-11T13:07:41.778941+09:00",
-    "https://news.google.com/rss/articles/CBMiXEFVX3lxTE81MzNuTWgxR05nZmktbWN1OEdGQ2ZSbUxxaFNVbnhMS1dyOWFzbGVFbHFHejZnRkR4UnRENGdzd19TVHdNYzlDS0RUeVBKS3praFpvdENFMGdkdUNI?oc=5": "2026-10-12T01:33:47.106216+09:00",
     "https://news.google.com/rss/articles/CBMiV0FVX3lxTE5INW1zZjBjTnhMWVdNMFhNNzBJVlpvMjJ1dElJZWlfSkx6UDNQSklVTlJTMmxPVVFMVTZFa2dnVE9xNWJ2NklmY1BZTWFSNlFvaGZucnhidw?oc=5": "2026-10-12T08:10:35.329378+09:00",
     "https://news.google.com/rss/articles/CBMibkFVX3lxTE1zN3ItRFowWklxSndONFd3NWJEZkNpSkNOVGxZQ19VLVdBRGZUc1MzaGd0ckgxVlpQRjdIaWRzdDNHWmlhQll3RmVPZDVLMzQtc2RXRDI2UXkyazU5d21Ja1h4Tk5vOGM1dXF3ejR3?oc=5": "2026-10-12T21:19:18.833614+09:00",
     "https://news.google.com/rss/articles/CBMiX0FVX3lxTE1NSm55Mm1NQmNCNTItZ1RaVVFxUlpScWdoRXJSYXpFOVhIak9iS25LSFJ5RDlTeDkzRVZ0NnhMNFY0TkoyLUxNUE4yUnJ2N19DNHVmeWxDYkw2UHc3aENR0gFvQVVfeXFMT0Y3M3VoejNzNDBZeGR6MjFTLS11LTdCYzVYRFV3RjBGcTNkTzA3SnZlUjk4X3lHRjY0a3pjdzJwNG03YVVsT1BHRDNvcFFiVW9abnRTNlNqdDFlMG1BcjlNbEo2YmpGVXpxQ0NVUmNZ?oc=5": "2026-10-13T06:21:41.663487+09:00",
@@ -184,7 +187,10 @@
     "https://news.google.com/rss/articles/CBMia0FVX3lxTE5FQnFoNGJlZ01pYjJBX1N6WVUxOGdJUW9GV1c5aXdDdVZ0dHgwUE9jTXJVTlJhWWw5S0Q3dUxzVTl3cVVoVHllR0VCS0dxOTM4UXBVWTlEMkxsTGtUVkJmejRVQlVMRUpjQ044?oc=5": "2026-11-09T06:32:45.552772+09:00",
     "https://news.google.com/rss/articles/CBMic0FVX3lxTE8wZjdfNEJJSHVyTmYzbWJKSUZkT1hheTlVU3NIMU1lWml0NXdMZ0dqY041b0ExdTNmTTM1LU0tMS1vUzdwVTY1cUdCT0FqcUxwSUswMUNiOEZkMzY3bDJKREpOVnpQZFo2TEZ0ZWItNGhCZTQ?oc=5": "2026-11-09T09:41:03.050664+09:00",
     "https://news.google.com/rss/articles/CBMic0FVX3lxTE9ORmFCS095VmhqQ2poMmsxc3BsNHFBNmNkNlcxd3VWRzhBOWFlRWQxOHpxdU04SE1JMndrS0lUX2pXRkZWT0h6Ty1CNkhUcUs3TzNiNmJTNzZfa2dfa1o2QXozRmlHc0wwNmdhd3BQTjdmclk?oc=5": "2026-11-10T06:35:22.712848+09:00",
-    "https://news.google.com/rss/articles/CBMibEFVX3lxTE5kX3c0X0hlelVjaHdiVC1zU1BNMk84U1NrZzR5MnIzRFJLVHNzVzVodGhMaDMzcGFWNzY0VlBVS2phNkN3NHRzS0lkcmk2QnVDNU9GYWstY1BaSUMxZ21oNGpiNmR2d2dOMW5wTw?oc=5": "2026-11-10T06:35:22.712848+09:00"
+    "https://news.google.com/rss/articles/CBMibEFVX3lxTE5kX3c0X0hlelVjaHdiVC1zU1BNMk84U1NrZzR5MnIzRFJLVHNzVzVodGhMaDMzcGFWNzY0VlBVS2phNkN3NHRzS0lkcmk2QnVDNU9GYWstY1BaSUMxZ21oNGpiNmR2d2dOMW5wTw?oc=5": "2026-11-10T06:35:22.712848+09:00",
+    "https://news.google.com/rss/articles/CBMif0FVX3lxTE50eHhxV2pXLTc5czR6ekdzdmtIVjZxSUtGd2F5SFhKUkU1aC1aSG11QUNKemhOWE4tcVFVT0YzbzlVNkhVMU1GOWExYmtEZ3YxU0k1YV95d0FqVHEtWFhMbE9YRjZNRWl2R0RpUVFXTGNuV0dYUHl3N1JvUmhjRFk?oc=5": "2026-11-11T06:33:33.558018+09:00",
+    "https://news.google.com/rss/articles/CBMiRkFVX3lxTE1YMUExY2dyX09BaFJTMjhmelZWUU8xZGpqbFFUcEp3Z0F0QlJZWks4Sl9ZcC1UQzNRMVlhSVNHMkxZWHVrTlE?oc=5": "2026-11-11T06:33:33.558018+09:00",
+    "https://news.google.com/rss/articles/CBMihAFBVV95cUxONi1NNmJxdDk3YTNVb2lxSml6RjRrUnIxR0FZZ1RObVIyYjlycTBXZDF4eWlXc0N6N0RERnE1SEhGWWUyZDB6ak4zWDBXeUl3RERhcF9pY0xpZ0lJNTRMNU1vU1NWVzdHa1B1bkl4UzMwMTQybUZtNHRhM0c1ZW1oVEdOV2HSAYoBQVVfeXFMT1Nabkk4S1M2YktaTms5VlB0OGNONG5jS19lOXlHRGpQQzhYYjdqeVVsUjdlTGhqRW1oSGY2Q2tvYm0zSUNUeUZ1N2NNQzRRUHFQWWZmT19VVVV1dTZ3RWx5RzRDTEFLRVNINnJNV0E2aFVES0dtaTNjdDhUZ0VlU3doVVlvREMtQVJ3?oc=5": "2026-11-11T06:33:33.558018+09:00"
   },
   "seen_nba_result_ids": {
     "853": "2026-11-06T06:30:56.401852+09:00",
