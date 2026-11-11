@@ -1,14 +1,5 @@
 {
   "seen_urls": {
-    "https://gigazine.net/news/20261028-kv-cache-exposure-remediation/": "2026-10-28T10:19:58.574827+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBFZ3hqcmJvcXozQmdMSE51NnVKaHVHZ05PUlA1aEVTaU1uWFhhZS1QUE0zQ0RSZWdMdkV3azBkLW1BbkRHT3BZTkZ3aDhZSFpWcDlXRUlpLUs5ZmRVU05fLU4zRjNQQUVS?oc=5": "2026-10-28T10:19:58.574827+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFB2eFpNZURSSUVGUTFqOWNrdGs4elhNSElrcVlOSWxiYkJwb3JBZlBHN2ZwaUpISzU2OHFMMTFaMHNCcHpQZDNDVjhQakJIS0RPNFluUW50ZDRkN2lPMG9FOTlYSjdCMlIy?oc=5": "2026-10-28T10:19:58.574827+09:00",
-    "https://news.google.com/rss/articles/CBMiogFBVV95cUxPMldGT3RBcDZTcFcwWnliN2FrYXlxZ1RSRnNmeTV1R3Z2R2hXRHpxenA1UThZTHRtZHFWazNMUzZpdHp3SGdaVDJ1bm1ON0ZlaFpDV3dWc0cwclVPVWpITkU0ZDdnSkQ5YmJZYXhFa1dOR29qQ1NzUDlBbDRKS0Fhd2ZWVGpaa1RiSVdYOW5ZUkd1dGFIT1JVVHFPTDVHdXEzZHc?oc=5": "2026-10-28T10:19:58.574827+09:00",
-    "https://news.google.com/rss/articles/CBMidEFVX3lxTE8wSUoySm9naUFPMG1uOGhXSExrQTNTYmZOclY5UG5yS1REQjZvTTVfNGVMbmZVcjY1VnQ2c0gyV0JEblhZTml3cWpxX0NsazIzSW5EWmsyWmpDRVl0Xzhid3JaSzB0QzlDb1JpUVR3V3JFTlV3?oc=5": "2026-10-28T18:33:37.504375+09:00",
-    "https://news.google.com/rss/articles/CBMiTEFVX3lxTE1BVXJJU005LWkwV2lYTkVVNThtNDRSZlhMWXI5Q2E5VkdBU2dnNXlpWHF0Rmh2VC05ZVFIa1U2R0NMZUpZeW5QSHpJR1c?oc=5": "2026-10-28T18:33:37.504375+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1oWlVzNnAxYkRmS1gzVVhRTEJESFRKNDg5NEJnci1qZldZZmFQUURXSW5BQjhVRGlvMTNtNW9xUC1mbWZrU3RnenVFSVNEX1V0NGlFc3BOVGo0cGlGdE9xeDJTVXhWVVVm?oc=5": "2026-10-28T18:33:37.504375+09:00",
-    "https://gigazine.net/news/20261028-claude-mythos-5-failure/": "2026-10-29T00:59:39.268123+09:00",
-    "https://gigazine.net/news/20261028-apple-creator-studio-ai-features-openai-models/": "2026-10-29T00:59:39.268123+09:00",
     "https://gigazine.net/news/20261029-openai-anthropic-llm-price-cuts/": "2026-10-29T10:47:22.367736+09:00",
     "https://gigazine.net/news/20261029-eclipsa-audio-technology/": "2026-10-30T01:06:18.798738+09:00",
     "https://gigazine.net/news/20261029-anthropic-stanford-professors/": "2026-10-30T01:06:18.798738+09:00",
@@ -160,8 +151,13 @@
     "https://news.google.com/rss/articles/CBMia0FVX3lxTFA2aWRpdk9vcFF3cmZERWltTXFOY2lfYzhadzhEbTFwMnoxUFNaQmsxUjc5WjRYcmpydjJhQ0pYTUJZLXpPNWtMUFZpLVFRSlJhNmVHeWFJUFVDNHROcWc3YnBLRFFlY01kYlZR?oc=5": "2026-11-11T10:13:02.201048+09:00",
     "https://news.google.com/rss/articles/CBMiTEFVX3lxTFBwZXE3Zm0wdndHQ2I5TjZzdksyVXNXZDh2SHdRS1oyM0ZUZFhQR2JTOFdVbWhzTDRrZ0owRWZyazl6UHFBa2hCSUNMU18?oc=5": "2026-11-11T10:13:02.201048+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBzY2Q1eEFuZTFIYW4tTnZsazBYX1daRzVmczJTRFFScElNd0dNUWJ5UEtwTXBGRWVsN3N6Q3ZFWVNVa2xzTm9BOEpQdlQyTWFGc2d6OGdQYUhFamo0OG1yajJ3X2pJRXR0?oc=5": "2026-11-11T10:13:02.201048+09:00",
-    "https://news.google.com/rss/articles/CBMinwFBVV95cUxPN1hZeWdmbWNNOVpzb1VoRFh0bjZxZmFnZW1makFENEFRY1UzbEhWT05sUmZRekRLRXQ2NV8tRmMyZVVXNDlDT0w3TTRFZWRiNEVGaWZZdm8yc3JCMTFWU0tLNHJlSnBRSWFuVFZ5TzlORS04SmxSVzFacWVFQV80VEFGX3hQMWxtOFU0S0MtS2FFdGZpOEVrcEhpX1hETHM?oc=5": "2026-11-11T10:13:02.201048+09:00"
-  },
-  "_gemini_backoff:quota": "2026-11-11T17:00:00+09:00",
-  "_gemini_backoff_basis:quota": "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)／日次境界(太平洋時間0時・推定)"
+    "https://news.google.com/rss/articles/CBMinwFBVV95cUxPN1hZeWdmbWNNOVpzb1VoRFh0bjZxZmFnZW1makFENEFRY1UzbEhWT05sUmZRekRLRXQ2NV8tRmMyZVVXNDlDT0w3TTRFZWRiNEVGaWZZdm8yc3JCMTFWU0tLNHJlSnBRSWFuVFZ5TzlORS04SmxSVzFacWVFQV80VEFGX3hQMWxtOFU0S0MtS2FFdGZpOEVrcEhpX1hETHM?oc=5": "2026-11-11T10:13:02.201048+09:00",
+    "https://gigazine.net/news/20261111-amazon-claude-sonnet-4-6-strands-decider/": "2026-11-12T06:31:35.367828+09:00",
+    "https://gigazine.net/news/20261111-superhuman-ai-researcher-2027/": "2026-11-12T06:31:35.367828+09:00",
+    "https://gigazine.net/news/20261111-google-deepmind-alphaproof-code-verification/": "2026-11-12T06:31:35.367828+09:00",
+    "https://news.google.com/rss/articles/CBMidEFVX3lxTE8wSUoySm9naUFPMG1uOGhXSExrQTNTYmZOclY5UG5yS1REQjZvTTVfNGVMbmZVcjY1VnQ2c0gyV0JEblhZTml3cWpxX0NsazIzSW5EWmsyWmpDRVl0Xzhid3JaSzB0QzlDb1JpUVR3V3JFTlV3?oc=5": "2026-11-12T06:31:35.367828+09:00",
+    "https://news.google.com/rss/articles/CBMiXkFVX3lxTFBENFk4R0lTZ1NwUE9KRjZvMGdyU3ZjMk96VEJfNWVrUkloMHI2SDlDYUdOXzZOSmNQWVQ2X3cwNFlSendHal9pRUhKNC1uWlc4TE1HcEFQYTBzRVFjUlE?oc=5": "2026-11-12T06:31:35.367828+09:00",
+    "https://news.google.com/rss/articles/CBMiakFVX3lxTE9Oa05LNlczSk5jMl9uNGp4UVRqdlJoX0hMYktNa3gwcDQwM3J5XzU4dU1PU3pUY0xOMEY1SUx6ejRNbGZtUC1ONHpIT3N6MnVhdjFjcHRZRThfLTNfWXNDSUxuVEVJbTJ1Y0E?oc=5": "2026-11-12T06:31:35.367828+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1oWlVzNnAxYkRmS1gzVVhRTEJESFRKNDg5NEJnci1qZldZZmFQUURXSW5BQjhVRGlvMTNtNW9xUC1mbWZrU3RnenVFSVNEX1V0NGlFc3BOVGo0cGlGdE9xeDJTVXhWVVVm?oc=5": "2026-11-12T06:31:35.367828+09:00"
+  }
 }
