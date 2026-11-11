@@ -154,6 +154,14 @@
     "https://gigazine.net/news/20261110-claude-opus-nerf/": "2026-11-11T06:33:29.438030+09:00",
     "https://gigazine.net/news/20261110-meta-muse-ember-benchmark/": "2026-11-11T06:33:29.438030+09:00",
     "https://gigazine.net/news/20261110-anthropic-claude-fable-mythos-5-2/": "2026-11-11T06:33:29.438030+09:00",
-    "https://postcoffee.co/magazine/coffee/coffee-showroom-specialty-coffee/": "2026-11-11T06:33:29.438030+09:00"
-  }
+    "https://postcoffee.co/magazine/coffee/coffee-showroom-specialty-coffee/": "2026-11-11T06:33:29.438030+09:00",
+    "https://gigazine.net/news/20261111-not-convinced-ai-bubble-exists/": "2026-11-11T10:13:02.201048+09:00",
+    "https://news.google.com/rss/articles/CBMif0FVX3lxTE5xV05OODRQdk1zMHRpWDhMeGVGMlg2bFU0ZkhMb0h5T01zSjBtSXdUQ2lBRXdYSXFLOHBjaUJBUDhxX2ZJM1plNGpoZmlua3YzNHhaZ0d6NHN0NmtScHVlaFV0LXRkejR1ZUtiMzFhTjFlZklKS0dTOXVxYVh1OTA?oc=5": "2026-11-11T10:13:02.201048+09:00",
+    "https://news.google.com/rss/articles/CBMia0FVX3lxTFA2aWRpdk9vcFF3cmZERWltTXFOY2lfYzhadzhEbTFwMnoxUFNaQmsxUjc5WjRYcmpydjJhQ0pYTUJZLXpPNWtMUFZpLVFRSlJhNmVHeWFJUFVDNHROcWc3YnBLRFFlY01kYlZR?oc=5": "2026-11-11T10:13:02.201048+09:00",
+    "https://news.google.com/rss/articles/CBMiTEFVX3lxTFBwZXE3Zm0wdndHQ2I5TjZzdksyVXNXZDh2SHdRS1oyM0ZUZFhQR2JTOFdVbWhzTDRrZ0owRWZyazl6UHFBa2hCSUNMU18?oc=5": "2026-11-11T10:13:02.201048+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBzY2Q1eEFuZTFIYW4tTnZsazBYX1daRzVmczJTRFFScElNd0dNUWJ5UEtwTXBGRWVsN3N6Q3ZFWVNVa2xzTm9BOEpQdlQyTWFGc2d6OGdQYUhFamo0OG1yajJ3X2pJRXR0?oc=5": "2026-11-11T10:13:02.201048+09:00",
+    "https://news.google.com/rss/articles/CBMinwFBVV95cUxPN1hZeWdmbWNNOVpzb1VoRFh0bjZxZmFnZW1makFENEFRY1UzbEhWT05sUmZRekRLRXQ2NV8tRmMyZVVXNDlDT0w3TTRFZWRiNEVGaWZZdm8yc3JCMTFWU0tLNHJlSnBRSWFuVFZ5TzlORS04SmxSVzFacWVFQV80VEFGX3hQMWxtOFU0S0MtS2FFdGZpOEVrcEhpX1hETHM?oc=5": "2026-11-11T10:13:02.201048+09:00"
+  },
+  "_gemini_backoff:quota": "2026-11-11T17:00:00+09:00",
+  "_gemini_backoff_basis:quota": "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)／日次境界(太平洋時間0時・推定)"
 }
