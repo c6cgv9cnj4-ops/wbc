@@ -1,16 +1,5 @@
 {
   "seen": {
-    "http://www.boj.or.jp/statistics/dl/depo/kashi/kasi2609.pdf": "2026-10-13T11:15:28.764383+09:00",
-    "http://www.boj.or.jp/statistics/pi/cgpi_release/cgpi2609.pdf": "2026-10-13T11:15:28.764383+09:00",
-    "https://www.boj.or.jp/intl_finance/meeting/group/gro261013a.htm": "2026-10-14T00:02:05.834172+09:00",
-    "https://www.boj.or.jp/intl_finance/meeting/group/gro261013c.htm": "2026-10-14T00:02:05.834172+09:00",
-    "https://www.boj.or.jp/statistics/set/bffail/sjgb2609.pdf": "2026-10-14T00:02:05.834172+09:00",
-    "https://www.boj.or.jp/research/o_survey/ishiki2610.htm": "2026-10-14T00:02:05.834172+09:00",
-    "https://www.boj.or.jp/statistics/dl/depo/kashi/kasi2609.pdf": "2026-10-14T00:02:05.834172+09:00",
-    "https://www.boj.or.jp/statistics/pi/cgpi_release/cgpi2609.pdf": "2026-10-14T00:02:05.834172+09:00",
-    "https://www.jpx.co.jp/news/1023/20261013-11.html": "2026-10-14T00:02:05.834172+09:00",
-    "https://www.jpx.co.jp/listing/stocks/transfers/index.html": "2026-10-14T00:02:05.834172+09:00",
-    "https://www.jpx.co.jp/news/1023/20261013-12.html": "2026-10-14T00:02:05.834172+09:00",
     "http://www.boj.or.jp/intl_finance/meeting/group/gro261013a.htm": "2026-10-14T08:56:46.317056+09:00",
     "http://www.boj.or.jp/statistics/money/ms/ms2609.pdf": "2026-10-14T08:56:46.317056+09:00",
     "http://www.boj.or.jp/intl_finance/meeting/group/gro261013c.htm": "2026-10-14T08:56:46.317056+09:00",
@@ -200,6 +189,13 @@
     "http://www.boj.or.jp/statistics/boj/other/acmai/release/2026/ac261110.htm": "2026-11-12T11:01:31.932633+09:00",
     "http://www.boj.or.jp/statistics/pi/cgpi_release/cgpi2610.pdf": "2026-11-12T11:01:31.932633+09:00",
     "http://www.boj.or.jp/statistics/outline/notice_2026/not261112a.htm": "2026-11-12T11:01:31.932633+09:00",
-    "https://www.jpx.co.jp/corporate/news/news-releases/6020/20261112-01.html": "2026-11-12T11:01:31.932633+09:00"
+    "https://www.jpx.co.jp/corporate/news/news-releases/6020/20261112-01.html": "2026-11-12T11:01:31.932633+09:00",
+    "http://www.boj.or.jp/statistics/boj/other/mei/release/2026/mei261110.xlsx": "2026-11-13T00:57:45.759427+09:00",
+    "http://www.boj.or.jp/finsys/intlact_fs/kisei/kis261112a.htm": "2026-11-13T00:57:45.759427+09:00",
+    "http://www.boj.or.jp/statistics/set/bffail/sjgb2610.pdf": "2026-11-13T00:57:45.759427+09:00",
+    "https://www.jpx.co.jp/news/1023/20261112-11.html": "2026-11-13T00:57:45.759427+09:00",
+    "https://www.jpx.co.jp/listing/stocks/transfers/index.html": "2026-11-13T00:57:45.759427+09:00",
+    "https://www.jpx.co.jp/news/1030/20261112-01.html": "2026-11-13T00:57:45.759427+09:00",
+    "https://www.jpx.co.jp/news/2040/20261112-01.html": "2026-11-13T00:57:45.759427+09:00"
   }
 }
