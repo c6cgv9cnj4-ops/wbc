@@ -1,19 +1,5 @@
 {
   "seen_urls": {
-    "https://www.itmedia.co.jp/news/article/2610/30/2000002735/": "2026-10-30T10:57:20.935102+09:00",
-    "https://gigazine.net/news/20261030-openai-detect-frontier-model-misalignment/": "2026-10-30T10:57:20.935102+09:00",
-    "https://gigazine.net/news/20261030-ai-sleep-knowledge/": "2026-10-30T10:57:20.935102+09:00",
-    "https://news.google.com/rss/articles/CBMiekFVX3lxTE5wVGV2TXRBYjFGalprMGZYTUd0Y1JyLVZGR1BDbWJJTWE3WTlKWmlXVHZHR1lfMFgteXVzTWdaNEwzSDE0TGVuVml6QTdBNVNmZHVScTFBQ3hIeWdGNVFCZy1wZ3pramNKODJadjFGeWY1TTl4QWVLY2hn?oc=5": "2026-10-30T10:57:20.935102+09:00",
-    "https://news.google.com/rss/articles/CBMiywJBVV95cUxPZHpyM3BYMXRUOE4xOXV5SXhkS09SMmNVWFBIOGR3eEVHeHBxVVJxUnRDSk1sTkhvbUptNGlRN2hYNE5QSnUxUjdHWHFldFhzWUhTTjg4dUxFdkExMWxXWVNHV2Vhem91MDNlX3hWa0hXVXBqdkZidWVqbklSVnpUVzlUeGUxcV9WOXpxUGU5dlMtOVBJMVV5cENRWVJ5Mk5YRXp3eHZsSjEySkc1NnFtZVdkWlFhbW5uMVoteEg0enNxaUFkTTI1WnVoemJBTEFPVzhGZExRSjFBM0pCZ3dmUE15Q1FRblRpeDIwbmd1cFlfSWlEdkozeTY4d2lORDljNWt4ZHFvT0kwc1JIRmUzeU1oQV9MelZCbVN4Uzh0RVREc0xoWUlZcFdsS19SMjBvM1hHbWtqcXVPWXBZeThoaWltZEdrS3JPUU1v?oc=5": "2026-10-30T10:57:20.935102+09:00",
-    "https://gigazine.net/news/20261030-openai-model-spec-five-principles/": "2026-10-30T18:54:53.634151+09:00",
-    "https://news.google.com/rss/articles/CBMiXkFVX3lxTFBSbW1rajhQaUtOWldELWtndXFpNG9kWTZPQTFfb2FVcWNUNnFud1J4UnF0ekhCQnY4UnZVOXhWRFRZTlB5cTFtSEVWN2FRWG5Ta0RYWkpkZXFJU3E4UGc?oc=5": "2026-10-30T18:54:53.634151+09:00",
-    "https://gigazine.net/news/20261030-google-search-alphabet-revenue/": "2026-10-31T00:55:12.563732+09:00",
-    "https://gigazine.net/news/20261030-apple-chip-sellers-impact/": "2026-10-31T00:55:12.563732+09:00",
-    "https://news.google.com/rss/articles/CBMikwFBVV95cUxNOGYwVGpfQkpDQjN4ZFI5X2tfTEdqRkI2eUFuTDBTd0hFRHRZNk5waHdVS0dpM0xpRlZUV1luamR1akhmT3ZONGxxNVp5N1dwTHB4eUV5VnI5ZFJXeWlsb3pyMnNmaGNLZlFNRHNBZXEyQ0NyUldIajlBNmRyb1lWQnBlaVh1anN3OXM5XzlaOXRrdzg?oc=5": "2026-10-31T00:55:12.563732+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFA4MlZhVzlycU1HOXJYTURFdFRpdDdNdEx5RG43Vjg3S2FIemtrRzdCXzBnN1hNa3ZwbVpsNHYxcEFPRTUzcENiNWwtcmxXeUdUQXlxQVg5LU1ZMnhpY0pON3YxWmRleUs2?oc=5": "2026-10-31T00:55:12.563732+09:00",
-    "https://news.google.com/rss/articles/CBMiU0FVX3lxTE1UTG1ManpucHJJR3VFeXhOekhNRmpWbFlmdlZ1aWRZYXluRmxUdy1tdkVtWG1uWXc0MEY4b2RzQjlsaVd6aWpUaTExWGRyN04tYlJ3?oc=5": "2026-10-31T00:55:12.563732+09:00",
-    "https://news.google.com/rss/articles/CBMiYEFVX3lxTFBRakVUWGRlR3V1aTZ1T3dqcU1KUnAwRmc3Ujc4eU1OSlU5YWdObzAtcWZyVEZ2RHpweVY4dU5qaXBpMHIyeGpDdzZsb2libHo2VDFRc3J2Y2FqQWE1cko1Xw?oc=5": "2026-10-31T00:55:12.563732+09:00",
-    "https://news.google.com/rss/articles/CBMidkFVX3lxTFBXeTFBdDVKTU5ja0lCUVB2LVZRWXhHZDY5YmhBaDczUGljZXJoTWxhNEozNzdGZnBkdlR0RGI4N05US3dya2FVZG9obnBKQmlMMTJna0xPZ0FXeDg1Wk9wYkhrVjdQNTMxTkVoeTNoNWFqQlN4VEE?oc=5": "2026-10-31T00:55:12.563732+09:00",
     "https://postcoffee.co/magazine/coffee/liquid-coffee-home-iced-coffee/": "2026-10-31T10:35:26.077884+09:00",
     "https://postcoffee.co/magazine/coffee/coffee-tonic-rtd/": "2026-10-31T10:35:26.077884+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE5RNE1hT3BST1ROeE81dXlTZXl0OGI2QTI1amg2dzFxeXFUOTRYY09veTBQbFZwOExpZDJOWnJjQ1NxN0VQcHc1b3pIZENsYkxadXVwX3hWZFU0Y1dpQ2l1RUpNTnExYXNO?oc=5": "2026-10-31T10:35:26.077884+09:00",
@@ -168,8 +154,8 @@
     "https://news.google.com/rss/articles/CBMikgFBVV95cUxNLWVNNURxbnZ1NXFvRGhHZDZ6U1RQR1FuVTZKUDhfa2oxbU5rdFRzVWI3dU9QZWR3T1ZLX1h4ODlyNFkzeTA1SWZycFRObHVNODdIM2pzWF9wUjBYQzBraFRadl90anVoYnRYUG5wbXBwdUoybjJOZzFtOGJCdWlKcll3bDVhT2k5M0prcTlaZ3NxUQ?oc=5": "2026-11-13T10:47:23.676181+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1mYTNVT3FqdXRBTFVwU1lUWlkzcHZKQVh2NnBUVVJZWl9BUHdnMlV1THl4cUR1TVpmX2dZS0ZQQjYtbDJqVVRzWlpkN3Mya1RhVFJrTHVzcURwYWxDWGlNOUgzdEprOEVN?oc=5": "2026-11-13T10:47:23.676181+09:00",
     "https://news.google.com/rss/articles/CBMid0FVX3lxTE0zekRpQnBCZGFOV3U4aXgwVGh1OG5FcnJUSmhnbXdGXzJwdXowY3I3NGJQSWVqaTBLWWpQV0t3LWhpWENpQXBLNDgxRmNRMmg4LUszRUtLUzJOYUxmeUxOeDZpaUotZW4tOThrU3g3YUtpSERVTmtV?oc=5": "2026-11-13T10:47:23.676181+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1WbnBwb1puZVAybmJwUUJYMFlRMVVnUFJnTkI5a1Rta3JQbE5XdkN1V3NPUXVMMUdXZ0w5d3o1RWt1LVo3Z2hxYXY2c05yRDVXTm5ManphWC1WMVcyMGl3alF0VVdGRmZP?oc=5": "2026-11-13T10:47:23.676181+09:00"
-  },
-  "_gemini_backoff:quota": "2026-11-13T17:00:00+09:00",
-  "_gemini_backoff_basis:quota": "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)／日次境界(太平洋時間0時・推定)"
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1WbnBwb1puZVAybmJwUUJYMFlRMVVnUFJnTkI5a1Rta3JQbE5XdkN1V3NPUXVMMUdXZ0w5d3o1RWt1LVo3Z2hxYXY2c05yRDVXTm5ManphWC1WMVcyMGl3alF0VVdGRmZP?oc=5": "2026-11-13T10:47:23.676181+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/13/2000003110/": "2026-11-14T06:32:03.884092+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE82ZkZqOWJ6MjZxcHJwSEJvNWpHNnoxVUJVVUpPU3U0bE1sUHlrX01xZnlYekVPY1E1dk9rc3dMQlpMOHoyVFBac2ppcDlwLXY2eFdyVFhSVGtLdFd2TV95TVZ2QTBHd1hp?oc=5": "2026-11-14T06:32:03.884092+09:00"
+  }
 }
