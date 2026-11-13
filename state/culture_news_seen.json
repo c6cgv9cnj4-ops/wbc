@@ -161,6 +161,15 @@
     "https://gigazine.net/news/20261112-apple-claris-harbor-local-ai/": "2026-11-13T06:35:31.532437+09:00",
     "https://gigazine.net/news/20261112-iphone-duo-benchmark-battery/": "2026-11-13T06:35:31.532437+09:00",
     "https://postcoffee.co/magazine/coffee/howtobrew/specialty-matcha-guide/": "2026-11-13T06:35:31.532437+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE82LW4wMzZlWGF0R1oyd0V3eWdsVEtGRlRPbkRuRnpsZVJVbS04Z2JsVi1NYks0Qk9SYXp0MHVXY09xeWlJTF9ybDh6NUJsb3c5YVJ6SE9JYlJFU1dhanROV0FSSXhSR0NS?oc=5": "2026-11-13T06:35:31.532437+09:00"
-  }
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE82LW4wMzZlWGF0R1oyd0V3eWdsVEtGRlRPbkRuRnpsZVJVbS04Z2JsVi1NYks0Qk9SYXp0MHVXY09xeWlJTF9ybDh6NUJsb3c5YVJ6SE9JYlJFU1dhanROV0FSSXhSR0NS?oc=5": "2026-11-13T06:35:31.532437+09:00",
+    "https://postcoffee.co/magazine/coffee/staff-favorite-coffee-gear/": "2026-11-13T10:47:23.676181+09:00",
+    "https://postcoffee.co/magazine/coffee/coffee-beans-best-time/": "2026-11-13T10:47:23.676181+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1PSW40U2hXVTFMTzVpZ0ZTVjdWZnJkbV91RXhMdUhaanZrOHZXbHVjM2N4dV9Tcjl1SndTV3hEblVjc3hXNnZMa2NuRkZ5QWFER2paQ3poMlBGY2wwcFRoT1Fwb1dRd2RY?oc=5": "2026-11-13T10:47:23.676181+09:00",
+    "https://news.google.com/rss/articles/CBMikgFBVV95cUxNLWVNNURxbnZ1NXFvRGhHZDZ6U1RQR1FuVTZKUDhfa2oxbU5rdFRzVWI3dU9QZWR3T1ZLX1h4ODlyNFkzeTA1SWZycFRObHVNODdIM2pzWF9wUjBYQzBraFRadl90anVoYnRYUG5wbXBwdUoybjJOZzFtOGJCdWlKcll3bDVhT2k5M0prcTlaZ3NxUQ?oc=5": "2026-11-13T10:47:23.676181+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1mYTNVT3FqdXRBTFVwU1lUWlkzcHZKQVh2NnBUVVJZWl9BUHdnMlV1THl4cUR1TVpmX2dZS0ZQQjYtbDJqVVRzWlpkN3Mya1RhVFJrTHVzcURwYWxDWGlNOUgzdEprOEVN?oc=5": "2026-11-13T10:47:23.676181+09:00",
+    "https://news.google.com/rss/articles/CBMid0FVX3lxTE0zekRpQnBCZGFOV3U4aXgwVGh1OG5FcnJUSmhnbXdGXzJwdXowY3I3NGJQSWVqaTBLWWpQV0t3LWhpWENpQXBLNDgxRmNRMmg4LUszRUtLUzJOYUxmeUxOeDZpaUotZW4tOThrU3g3YUtpSERVTmtV?oc=5": "2026-11-13T10:47:23.676181+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1WbnBwb1puZVAybmJwUUJYMFlRMVVnUFJnTkI5a1Rta3JQbE5XdkN1V3NPUXVMMUdXZ0w5d3o1RWt1LVo3Z2hxYXY2c05yRDVXTm5ManphWC1WMVcyMGl3alF0VVdGRmZP?oc=5": "2026-11-13T10:47:23.676181+09:00"
+  },
+  "_gemini_backoff:quota": "2026-11-13T17:00:00+09:00",
+  "_gemini_backoff_basis:quota": "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)／日次境界(太平洋時間0時・推定)"
 }
