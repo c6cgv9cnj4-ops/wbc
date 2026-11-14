@@ -280,12 +280,16 @@ class LaunchdTemplateTest(unittest.TestCase):
                             "--target", str(target)], env=env, capture_output=True, text=True)
         return r, target
 
-    def test_plist_is_0605_runs_runner_and_contains_no_secrets(self):
+    def test_plist_schedule_is_before_github_0605_and_runs_runner(self):
+        import plistlib
         r, target = self.render()
         self.assertEqual(r.returncode, 0, r.stderr)
         text = target.read_text(encoding="utf-8")
-        self.assertIn("<integer>6</integer>", text)
-        self.assertIn("<integer>5</integer>", text)
+        data = plistlib.loads(target.read_bytes())
+        slots = [(d["Hour"], d["Minute"]) for d in data["StartCalendarInterval"]]
+        self.assertEqual(slots, [(5, 30), (5, 40), (5, 50)])          # 初回 + 再試行（いずれも 06:05 より前）
+        self.assertNotIn((6, 5), slots)
+        self.assertFalse(data["RunAtLoad"])
         self.assertIn("local_badminton_run.py", text)
         for forbidden in ("KEY", "WEBHOOK", "DISCORD", "secret", "token"):
             self.assertNotIn(forbidden, text)
@@ -333,3 +337,23 @@ class LaunchdTemplateTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ScheduleOrderingTest(unittest.TestCase):
+    """Mac の公開完了を GitHub の 06:05 取得より前に置く（時刻の衝突の解消）。"""
+
+    def test_github_0605_cron_is_unchanged(self):
+        wf = (ROOT / ".github" / "workflows" / "badminton_alerts.yml").read_text(encoding="utf-8")
+        self.assertIn('- cron: "5 21 * * *"', wf)   # JST 06:05（既存配信。変更しない）
+
+    def test_mac_schedule_and_budget_end_before_github_fetch(self):
+        import plistlib
+        data = plistlib.loads((ROOT / "launchd" / "com.rickykogyo.badminton-results.plist.template").read_bytes()
+                              .replace(b"__PYTHON__", b"x").replace(b"__RUNNER__", b"x")
+                              .replace(b"__WORKDIR__", b"x").replace(b"__LOCALDIR__", b"x").replace(b"__LOGDIR__", b"x"))
+        last = max(d["Hour"] * 60 + d["Minute"] for d in data["StartCalendarInterval"])
+        github = 6 * 60 + 5
+        budget = 15   # 1回の実行の上限（API取得・照合・公開の合計。設計上の上限）
+        self.assertLessEqual(last + budget, github, "最後の実行の上限が GitHub の取得（06:05）までに収まる")
+        import badminton_results_free as R
+        self.assertEqual(R.SCHEDULE_HOUR_UTC * 60 + R.SCHEDULE_MINUTE_UTC, 20 * 60 + 30)  # JST 05:30 = UTC 20:30

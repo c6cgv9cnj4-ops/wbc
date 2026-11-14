@@ -40,6 +40,7 @@ import requests
 
 from badspi_ranking_snapshot import DISCIPLINE_NAMES as RANK_DISCIPLINES
 from badspi_ranking_snapshot import find_rank, load_latest_rankings
+import badminton_handoff as H
 
 API_BASE = "https://api.badmintonapi.com"
 RESULTS_YESTERDAY_PATH = "/v1/results/yesterday"
@@ -48,8 +49,8 @@ REQUEST_TIMEOUT = 20
 DISCORD_BATCH = 10
 RETRY_MAX = 3
 RETRY_WAIT_SEC = (2, 4, 8)
-SCHEDULE_HOUR_UTC = 21   # JST 06:05 = UTC 21:05
-SCHEDULE_MINUTE_UTC = 5
+SCHEDULE_HOUR_UTC = 20   # Mac（launchd）の初回予定 JST 05:30 = UTC 20:30（既存の GitHub 06:05 配信より前に公開を完了させる）
+SCHEDULE_MINUTE_UTC = 30
 
 JST = dt.timezone(dt.timedelta(hours=9))
 UTC = dt.timezone.utc
@@ -100,7 +101,13 @@ DEFAULT_CONFIG = {
     "run_log_keep": 90,
     "max_api_pages": 5,
     "api_min_interval_sec": 6.0,
+    "data_publish_enabled": False,  # 専用ブランチへの自動公開（Deploy Key の範囲をブランチ制限で証明するまで False）
+    "api_format_verified": False,  # 実API応答で形式を確認するまで False（False の間は試合を書き出さない）
 }
+
+# Discord 送信はこのジョブでは行わない（投稿は既存 badminton_alerts.yml の1本に統一）。
+# この定数を True にする変更は、既存配信との二重投稿防止が証明されるまで禁止。
+DISCORD_DELIVERY_ENABLED = False
 
 
 # ------------------------------------------------------------
@@ -680,13 +687,58 @@ def send_batches(webhook: str, header: dict, items: list[tuple[str, dict]], post
     return result
 
 
+def handoff_matches(state: dict, roster: dict, api_day_utc: str) -> list[dict]:
+    """ハンドオフ用の試合: 日本人確認済みを含み、日付が取得窓と確認でき、結果が確定した試合のみ。"""
+    out = []
+    for e in state["matches"].values():
+        if e.get("date_status") != "confirmed" or classify_match(e, roster) != "jp":
+            continue
+        winner = e.get("winner")
+        start = parse_start(e.get("start"))
+        if winner not in (1, 2) or start is None or e.get("games") is None:
+            continue
+        m = {
+            "match_id": str(e["id"]),
+            "tournament": str((e.get("tournament") or {}).get("name") or ""),
+            "discipline": e.get("discipline"),
+            "side_a": [{"name": p["name"]} for p in e["side1"]],
+            "side_b": [{"name": p["name"]} for p in e["side2"]],
+            "games": e["games"],
+            "winner_side": "a" if winner == 1 else "b",
+            "status": e.get("status"),
+            "start_utc": start.astimezone(UTC).isoformat(),
+        }
+        if not H.is_international_tournament(m["tournament"]):
+            continue  # 国内大会は既存のJBA結果配信が担当（重複防止・安全側で除外）
+        if H.validate_match(m, api_day_utc) is None:
+            out.append(m)
+    return out
+
+
+def _write_handoff_safely(handoff_path, now_utc, window, config, status, state, roster) -> None:
+    """結果JSONの書き出し。失敗してもこのジョブの終了コードや既存配信には影響させない。"""
+    if handoff_path is None:
+        return
+    try:
+        if status == "ok" and config.get("api_format_verified") is not True:
+            status = "format_unverified"   # 応答形式が未確認の間は、試合を1件も書き出さない
+        matches = handoff_matches(state, roster, window["api_day_utc"]) if status == "ok" else []
+        payload = H.build_payload(generated_at_utc=now_utc, api_day_utc=window["api_day_utc"],
+                                  format_verified=config.get("api_format_verified") is True,
+                                  status=status, matches=matches)
+        H.write_payload_atomic(Path(handoff_path), payload)
+        print(f"[INFO] 試合結果JSONを書き出しました（status={status}, 試合{len(matches)}件）")
+    except Exception as err:  # noqa: BLE001 - 書き出し失敗は既存配信へ波及させない
+        print(f"[WARN] 試合結果JSONの書き出しに失敗（既存配信へは影響しません）: {type(err).__name__}")
+
+
 # ------------------------------------------------------------
 # 8. 実行本体
 # ------------------------------------------------------------
 def run_once(*, api_key: str, webhook: str, now_utc: dt.datetime, state_path: Path, config: dict,
              roster: dict, fetch, post, sleep=time.sleep, event: str = "manual",
-             rankings: dict | None = None) -> int:
-    """1回分の処理。戻り値は終了コード（0: 正常、1: 失敗）。"""
+             rankings: dict | None = None, handoff_path: Path | None = None) -> int:
+    """1回分の処理。戻り値は終了コード（0: 正常、1: 失敗）。handoff_path があれば試合結果JSONを書き出す（Discordへは送らない）。"""
     if not api_key:
         print("::warning::BADMINTON_API_KEY が未設定のため、取得・保存・配信は行いません（未稼働）")
         return 0
@@ -700,7 +752,7 @@ def run_once(*, api_key: str, webhook: str, now_utc: dt.datetime, state_path: Pa
     now_iso = now_utc.isoformat()
     window = compute_window(now_utc)
     drift = schedule_drift(now_utc, event)
-    discord_on = bool(config["discord_output_enabled"])
+    discord_on = bool(config["discord_output_enabled"]) and DISCORD_DELIVERY_ENABLED
 
     try:
         status, items, reason, calls = fetch_all_pages(api_key, fetch, config, sleep)
@@ -717,6 +769,7 @@ def run_once(*, api_key: str, webhook: str, now_utc: dt.datetime, state_path: Pa
         run_log.update({"status": "error", "reason": reason})
         state["runs"].append(run_log)
         save_state(state_path, state)
+        _write_handoff_safely(handoff_path, now_utc, window, config, "fetch_failed", state, roster)
         print(f"[ERROR] 取得失敗：{reason}")
         if discord_on and webhook:
             send_batches(webhook, build_header(window, "error", reason=reason), [], post)
@@ -750,6 +803,7 @@ def run_once(*, api_key: str, webhook: str, now_utc: dt.datetime, state_path: Pa
         "api_unverified": list(UNVERIFIED_API_ITEMS),
     })
     save_state(state_path, state)  # 保存完了後にのみ通知へ進む
+    _write_handoff_safely(handoff_path, now_utc, window, config, "ok", state, roster)
 
     corrections = sum(1 for e in state["matches"].values() if e.get("correction_pending"))
     pending, extra = pending_notifications(state, roster, now_utc,
