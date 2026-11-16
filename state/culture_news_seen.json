@@ -1,13 +1,5 @@
 {
   "seen_urls": {
-    "https://postcoffee.co/magazine/coffee/coffee-process-washed-natural-honey/": "2026-11-02T10:29:59.614032+09:00",
-    "https://www.itmedia.co.jp/news/article/2611/02/2000002779/": "2026-11-03T04:28:26.914492+09:00",
-    "https://postcoffee.co/magazine/coffee/aeropress-how-to/": "2026-11-03T04:28:26.914492+09:00",
-    "https://news.google.com/rss/articles/CBMiW0FVX3lxTE1HbjN2TlVabGR5RnMtUkFqVDRkNE52bnZTOVR6ckJsLUdBbVpjajVfYURHTDV4MWJYQjVoMDZ5Ty1nNVFCc0xMZzFIU1NqNExPZUc2SFZQdUtQMVk?oc=5": "2026-11-03T04:28:26.914492+09:00",
-    "https://news.google.com/rss/articles/CBMid0FVX3lxTE1yWnZWYUpXZGpxdG12RmxWV1V2WkpDYWhmNEs5WGVoTWFJMmN2TFB5WUhKdlRKWmRyUnhNVXNpdlpMdGpwX2tvTGxIdmZlRlBQZktNTEpRUm5HQjY1MzRJeWJiT2sxTkdNdkY4eEtYTVVHVDdmNWFF0gF8QVVfeXFMT1VUUXlsMGVfdXBCbzUzOXJQVXRSdWFJM0FIZ0tmejRvUHhCWldqOHpqdnNHWUdfdHp0V19ZX21Hc0FEU2ZlR3dOR2NLSFR2TzJicURRbGo0WDBXaEZ0R21oTjRjQmZieDZ5eXhHR3R0ZGxDODQxaEdTaERKdw?oc=5": "2026-11-03T04:28:26.914492+09:00",
-    "https://news.google.com/rss/articles/CBMijAFBVV95cUxNTl9zUkFwTUNZSUx6YzlOTXpXRWVvRFBtaWJUSEJoSjV2aHlpUU9qTGR1ZGZSOXlXUFZIcXpNcS1JUDR1aTdKeFJlQkhxczduNFdNYmxJYWJQemZmbU9VVU1ZYmZ4SkVDdGU3cFZuYnNGVlZlS293Ym9aOEhYX3hvbnNEVlQ5V3BPMThjbQ?oc=5": "2026-11-03T04:28:26.914492+09:00",
-    "https://news.google.com/rss/articles/CBMidEFVX3lxTE1oWGFPbEE2ZXpJZHpfdHRpTWFwal92U1pzNzJYWHlDbHl5ZnlNTHFxYm1nTFR5cG8xRDFiaEN4VDd0REtGek42U3ZjY0JJOFF5d3NJTU50VXlSMVdUeS0yYU9CWGFKaDFnWjdzSGFpRXVrUnNZ?oc=5": "2026-11-03T04:28:26.914492+09:00",
-    "https://news.google.com/rss/articles/CBMikgFBVV95cUxORGtUNWFTZHE1cDhieWdSSkJRXzNwaDBKWmRQNTFaY2RsMFFXTm10OVlINmZVcGdNdlpzbXB5cFp3RTZnb1l1NDFSMkhfNUtmMjJHVFczaUphMkRxSGZMWldxV0lhR1Q0SExqZXdhYmRrTDFTM1FzM1FXSGhVcnZCbkhnM3JJczNPUnhMd3g4RHJBZw?oc=5": "2026-11-03T04:28:26.914492+09:00",
     "https://gigazine.net/news/20261103-evernote-pricing-experiments/": "2026-11-03T12:28:02.109573+09:00",
     "https://news.google.com/rss/articles/CBMie0FVX3lxTE9MUG1KQ0Q1Um5hWldPSk9TaW9tZkhPNjJhSW1CbVBjWVdnRW9DQkpWM3JXUVM3ZVNJQTJnU3pfVV9iN2J6anBQZFJtVm9EbWlFbVNVQW0yeDBUSjIyM0RUdjZmSEczcVlveFhSUDQ1Z1dfN3pEdVNOVERabw?oc=5": "2026-11-03T12:28:02.109573+09:00",
     "https://www.itmedia.co.jp/news/article/2611/03/2000002840/": "2026-11-03T19:44:35.795300+09:00",
@@ -155,6 +147,10 @@
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBHd21lUVQxS1U4YUtTQlNxVU5jOGlOOXpWekhQVjRZSnB6ZUdQX0x5NFVWaFVxV01TSGFzTGxOeDhaQ0xPMm1fYWUweUd1NElOU3JJYk5jUVlaY3AxRmJPaG0wWWV5TnFu?oc=5": "2026-11-16T06:32:43.154647+09:00",
     "https://gigazine.net/news/20261115-ai-isnt-replacing-sres-its-deskilling/": "2026-11-16T09:57:45.938576+09:00",
     "https://gigazine.net/news/20261114-software-used-to-be-horrible/": "2026-11-16T09:57:45.938576+09:00",
-    "https://news.google.com/rss/articles/CBMidkFVX3lxTE0yenlGbHJLM3g2TjA5cG1LcEJkU3dabGlYVFVXY0ZQUlVtZDUwMU54eFdZWDFaa05JOXRTSWhUT3h5RER6QjhMV2ZGaXFJejRQeXBkOXNrb282am9ITkd4WWFKdFJvdnBRZjZMYVlwdDhJUW9aTUE?oc=5": "2026-11-16T09:57:45.938576+09:00"
+    "https://news.google.com/rss/articles/CBMidkFVX3lxTE0yenlGbHJLM3g2TjA5cG1LcEJkU3dabGlYVFVXY0ZQUlVtZDUwMU54eFdZWDFaa05JOXRTSWhUT3h5RER6QjhMV2ZGaXFJejRQeXBkOXNrb282am9ITkd4WWFKdFJvdnBRZjZMYVlwdDhJUW9aTUE?oc=5": "2026-11-16T09:57:45.938576+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/16/2000003226/": "2026-11-17T06:34:12.285046+09:00",
+    "https://gigazine.net/news/20261116-apple-basic-wozniak/": "2026-11-17T06:34:12.285046+09:00",
+    "https://postcoffee.co/magazine/coffee/aeropress-how-to/": "2026-11-17T06:34:12.285046+09:00",
+    "https://news.google.com/rss/articles/CBMiTEFVX3lxTE1BVXJJU005LWkwV2lYTkVVNThtNDRSZlhMWXI5Q2E5VkdBU2dnNXlpWHF0Rmh2VC05ZVFIa1U2R0NMZUpZeW5QSHpJR1c?oc=5": "2026-11-17T06:34:12.285046+09:00"
   }
 }
