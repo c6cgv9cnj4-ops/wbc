@@ -1,8 +1,5 @@
 {
   "seen_urls": {
-    "https://gigazine.net/news/20261104-anthropic-flashprove/": "2026-11-04T11:19:12.236507+09:00",
-    "https://gigazine.net/news/20261104-the-commanding-heights/": "2026-11-04T11:19:12.236507+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE9FYjZBNmhMekZGdVJSWmduRy1oNDJUN0JLckhQc3lHem5WZGhRQkhMbUhLcUZNNDFyNm9RNjhzWHdWUjZyMlVCTUlaakE3MlQ5WUN1ZHVoV1BqcjlFOEw4R2thVXpUZGNt?oc=5": "2026-11-04T11:19:12.236507+09:00",
     "https://www.itmedia.co.jp/news/article/2611/04/2000002855/": "2026-11-05T06:32:56.789931+09:00",
     "https://www.itmedia.co.jp/news/article/2611/03/2000002831/": "2026-11-05T06:32:56.789931+09:00",
     "https://www.itmedia.co.jp/news/article/2611/03/2000002830/": "2026-11-05T06:32:56.789931+09:00",
@@ -152,6 +149,18 @@
     "https://news.google.com/rss/articles/CBMie0FVX3lxTE1zeG9SVDgzZEpjSXoxUU1TbUJiYkJiZ3J4NzdkN0xMamZhckVjYWhVblViLWtyLVNVdk9HY21QdlpYRjcydldvcjBtcUVPakpSM1VsMDg5ejRUaDVHaTZDQV9mbWVFMkFSVE43cXBncklnMDFXWjNQUExHcw?oc=5": "2026-11-18T06:32:35.792505+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1hVnl6WjhvNEZ2bWUxS2YyUlMwbU1hRUhnWHI2QnI4TUVMdTRxSXE3ZnZXUHJONHJHR1RZLVN3aVpYVFZhUVQ4Ynd2N1EtVkYyT29WRi1OZDRTNi1sWXB6TXNiWldwcmdX?oc=5": "2026-11-18T06:32:35.792505+09:00",
     "https://news.google.com/rss/articles/CBMidEFVX3lxTE1oWGFPbEE2ZXpJZHpfdHRpTWFwal92U1pzNzJYWHlDbHl5ZnlNTHFxYm1nTFR5cG8xRDFiaEN4VDd0REtGek42U3ZjY0JJOFF5d3NJTU50VXlSMVdUeS0yYU9CWGFKaDFnWjdzSGFpRXVrUnNZ?oc=5": "2026-11-18T06:32:35.792505+09:00",
-    "https://news.google.com/rss/articles/CBMijAFBVV95cUxNTl9zUkFwTUNZSUx6YzlOTXpXRWVvRFBtaWJUSEJoSjV2aHlpUU9qTGR1ZGZSOXlXUFZIcXpNcS1JUDR1aTdKeFJlQkhxczduNFdNYmxJYWJQemZmbU9VVU1ZYmZ4SkVDdGU3cFZuYnNGVlZlS293Ym9aOEhYX3hvbnNEVlQ5V3BPMThjbQ?oc=5": "2026-11-18T06:32:35.792505+09:00"
-  }
+    "https://news.google.com/rss/articles/CBMijAFBVV95cUxNTl9zUkFwTUNZSUx6YzlOTXpXRWVvRFBtaWJUSEJoSjV2aHlpUU9qTGR1ZGZSOXlXUFZIcXpNcS1JUDR1aTdKeFJlQkhxczduNFdNYmxJYWJQemZmbU9VVU1ZYmZ4SkVDdGU3cFZuYnNGVlZlS293Ym9aOEhYX3hvbnNEVlQ5V3BPMThjbQ?oc=5": "2026-11-18T06:32:35.792505+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/18/2000003284/": "2026-11-18T11:52:12.703877+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/18/2000003281/": "2026-11-18T11:52:12.703877+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/18/2000003280/": "2026-11-18T11:52:12.703877+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/18/2000003279/": "2026-11-18T11:52:12.703877+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/18/2000003278/": "2026-11-18T11:52:12.703877+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFA4MlZhVzlycU1HOXJYTURFdFRpdDdNdEx5RG43Vjg3S2FIemtrRzdCXzBnN1hNa3ZwbVpsNHYxcEFPRTUzcENiNWwtcmxXeUdUQXlxQVg5LU1ZMnhpY0pON3YxWmRleUs2?oc=5": "2026-11-18T11:52:12.703877+09:00",
+    "https://news.google.com/rss/articles/CBMic0FVX3lxTE81ek9CSmRSV1FhTFlvejV1SkVja1RKX0lGdXdoQTFXclplRXBfUXlZSXBDQ2Z6T2JLelBhYVpiNFhiYkdDQlVjUXM3WU5GUkVfTU1HNjhnSzJnSmVoNlVvamNLVFlwRnptTmxQMVIwamVNZTg?oc=5": "2026-11-18T11:52:12.703877+09:00",
+    "https://news.google.com/rss/articles/CBMidkFVX3lxTFBXeTFBdDVKTU5ja0lCUVB2LVZRWXhHZDY5YmhBaDczUGljZXJoTWxhNEozNzdGZnBkdlR0RGI4N05US3dya2FVZG9obnBKQmlMMTJna0xPZ0FXeDg1Wk9wYkhrVjdQNTMxTkVoeTNoNWFqQlN4VEE?oc=5": "2026-11-18T11:52:12.703877+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE95aGE4VW5Ic1ZUQlQ0eW5RcWxEalg4V1c0YUg2Wk5UVnBidVJDbDAxaHFwMHJxaE4xY2ZFWUplSEl6RUtWSDdFYTNyZGxvRk5kbWtBTzZwc3I2UHpQMmhIUUZQYXVXYmZt?oc=5": "2026-11-18T11:52:12.703877+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE94WHNxVU5GTTNQaUJ0eElKc0FMZDFNUVU0b0VNV0lBRERVbEI0MEh5Y21LWUJCTE1MTm1ydnpGVkNaU1pIOVl4eURQeGFleGFpOVNfSTd2MF82ODhyTE81QlpxWUVTbGd1?oc=5": "2026-11-18T11:52:12.703877+09:00"
+  },
+  "_gemini_backoff:quota": "2026-11-18T17:00:00+09:00",
+  "_gemini_backoff_basis:quota": "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)／日次境界(太平洋時間0時・推定)"
 }
