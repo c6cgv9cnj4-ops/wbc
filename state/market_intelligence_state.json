@@ -1,14 +1,5 @@
 {
   "seen": {
-    "http://www.boj.or.jp/about/press/kaiken_2026/kk261020a.pdf": "2026-10-20T21:42:33.231192+09:00",
-    "http://www.boj.or.jp/finsys/intlact_fs/kisei/kis261020a.htm": "2026-10-20T21:42:33.231192+09:00",
-    "http://www.boj.or.jp/research/imes/mes/mes26.htm": "2026-10-20T21:42:33.231192+09:00",
-    "http://www.boj.or.jp/about/services/tame/tame_rate/syorei/hou2611.htm": "2026-10-20T21:42:33.231192+09:00",
-    "http://www.boj.or.jp/about/services/tame/tame_rate/kijun/kiju2611.htm": "2026-10-20T21:42:33.231192+09:00",
-    "https://www.jpx.co.jp/corporate/news/news-releases/0060/20261020-01.html": "2026-10-20T21:42:33.231192+09:00",
-    "https://www.jpx.co.jp/equities/products/reits/issues/index.html": "2026-10-20T21:42:33.231192+09:00",
-    "https://www.jpx.co.jp/news/1023/20261020-11.html": "2026-10-20T21:42:33.231192+09:00",
-    "https://www.jpx.co.jp/news/1023/20261020-12.html": "2026-10-20T21:42:33.231192+09:00",
     "https://www.jpx.co.jp/news/1030/20261021-01.html": "2026-10-21T21:55:21.783499+09:00",
     "https://www.jpx.co.jp/news/2041/20261021-01.html": "2026-10-21T21:55:21.783499+09:00",
     "http://www.boj.or.jp/statistics/boj/other/mei/release/2026/mei261020.xlsx": "2026-10-22T21:57:34.418163+09:00",
@@ -195,6 +186,9 @@
     "http://www.boj.or.jp/intl_finance/meeting/group/gro261118a.htm": "2026-11-19T01:25:47.059246+09:00",
     "https://www.jpx.co.jp/news/2020/20261118-01.html": "2026-11-19T01:25:47.059246+09:00",
     "https://www.jpx.co.jp/news/1070/20261118-51.html": "2026-11-19T01:25:47.059246+09:00",
-    "http://www.boj.or.jp/mopo/diet/d_state/dst261119a.htm": "2026-11-19T11:01:04.611523+09:00"
+    "http://www.boj.or.jp/mopo/diet/d_state/dst261119a.htm": "2026-11-19T11:01:04.611523+09:00",
+    "https://www.jpx.co.jp/news/1023/20261119-11.html": "2026-11-20T01:32:00.736343+09:00",
+    "https://www.jpx.co.jp/news/1030/20261119-01.html": "2026-11-20T01:32:00.736343+09:00",
+    "https://www.jpx.co.jp/news/1031/20261119_01.html": "2026-11-20T01:32:00.736343+09:00"
   }
 }
