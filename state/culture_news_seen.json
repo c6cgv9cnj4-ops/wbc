@@ -1,18 +1,5 @@
 {
   "seen_urls": {
-    "https://www.itmedia.co.jp/news/article/2611/04/2000002855/": "2026-11-05T06:32:56.789931+09:00",
-    "https://www.itmedia.co.jp/news/article/2611/03/2000002831/": "2026-11-05T06:32:56.789931+09:00",
-    "https://www.itmedia.co.jp/news/article/2611/03/2000002830/": "2026-11-05T06:32:56.789931+09:00",
-    "https://gigazine.net/news/20261104-openai-lifeval/": "2026-11-05T06:32:56.789931+09:00",
-    "https://gigazine.net/news/20261104-openai-git-pando/": "2026-11-05T06:32:56.789931+09:00",
-    "https://news.google.com/rss/articles/CBMiVkFVX3lxTFBxZFA1cHlNeC11eERqaEhuWmpUaXZ4dUh6cHloRFpRZ1A0a29ZSWdRaXZpN1hsRC1iWE1aaXloS1dDc0VrZlpMTzNRTVBBdXI5UmlINkxn?oc=5": "2026-11-05T06:32:56.789931+09:00",
-    "https://gigazine.net/news/20261105-macos-vulgar-word-flags/": "2026-11-05T10:27:12.910777+09:00",
-    "https://postcoffee.co/magazine/coffee/daily-coffee/": "2026-11-05T10:27:12.910777+09:00",
-    "https://news.google.com/rss/articles/CBMif0FVX3lxTFBESDk2QUVfTXlQNG1QQnJzS2l5b1JDZW9LQzVOLXMzczh5VjV0cTA0Z29vNXVHS3BRTlJkbnNJbnlBc1RvMkc4S3FtMUs3aTBYVWdXWVNuMXIyVWRWOU1pVk02WFBJRHRXT25RQVlVZnNKWDNRV211azJRemNQUm8?oc=5": "2026-11-05T10:27:12.910777+09:00",
-    "https://news.google.com/rss/articles/CBMilAFBVV95cUxOZmg0b0UyZzNjWENodFBFZVRZU3ZjT05JMVdSRzRGMF81SHZMVG12d3hUQTJwQnBQMVlNS1J4aF9rMFE2SGMtc045N0ZKZmEzUENDVnhoR3NsQlppSU1zV2QzaEQxcmlRUlR0cDBGdGlsZUJxZjB4MExSUTZCV3F5bzNtWkV5YTJjS2J2U1hPNnhZWHVy?oc=5": "2026-11-05T10:27:12.910777+09:00",
-    "https://news.google.com/rss/articles/CBMiYkFVX3lxTE10di1JeUNLRWFUcTktelowZjNaTHhCVmYwTUVGSEk2bUV2U01mUks5X1l2blBuaXRRajlPY0U3aVAwamNZYzRRd2NZWFplaktlaEcxVDhjR2ZSMVFacm80b2RR?oc=5": "2026-11-05T10:27:12.910777+09:00",
-    "https://news.google.com/rss/articles/CBMilgFBVV95cUxOSjdfQkY4anYweVEtamJGMjV3RmQ4VEFYYXVfR2lmak1YRU4tckU1LUlUYXZfcjlNOHIxTF91bGxPYWtVQXZiTFB3MlVuNnJoYk5UMDBRaXBLVy1lRUNFcTJjb09PNTMwZUVMTzBGVFZDVTlNdldDYlVPTUpvVUU3RW9fX2lTRGFwSThVUjVFODRSTmNSdVE?oc=5": "2026-11-05T10:27:12.910777+09:00",
-    "https://news.google.com/rss/articles/CBMidEFVX3lxTE10RlZCeVFJRGhfeXc4bFhpZm5XeXdvbVhfcU10dHE1TzFvR2dhQ0xVeU5LU2QtWlJMOXdBSHl1em1fQ3JONXJlVVlLVzRZaWtVb0ppUTlFTjgwXzZSaEt3TURVXzJKUXNPQlhTdHNBNXBqdkZC?oc=5": "2026-11-05T10:27:12.910777+09:00",
     "https://gigazine.net/news/20261106-ai-in-cybersecurity-php2shell-vulnerability/": "2026-11-06T06:30:57.364961+09:00",
     "https://gigazine.net/news/20261105-apple-cuts-internal-ai-usage/": "2026-11-06T06:30:57.364961+09:00",
     "https://www.itmedia.co.jp/news/article/2611/06/2000002936/": "2026-11-06T10:29:52.512284+09:00",
@@ -159,8 +146,19 @@
     "https://news.google.com/rss/articles/CBMic0FVX3lxTE81ek9CSmRSV1FhTFlvejV1SkVja1RKX0lGdXdoQTFXclplRXBfUXlZSXBDQ2Z6T2JLelBhYVpiNFhiYkdDQlVjUXM3WU5GUkVfTU1HNjhnSzJnSmVoNlVvamNLVFlwRnptTmxQMVIwamVNZTg?oc=5": "2026-11-18T11:52:12.703877+09:00",
     "https://news.google.com/rss/articles/CBMidkFVX3lxTFBXeTFBdDVKTU5ja0lCUVB2LVZRWXhHZDY5YmhBaDczUGljZXJoTWxhNEozNzdGZnBkdlR0RGI4N05US3dya2FVZG9obnBKQmlMMTJna0xPZ0FXeDg1Wk9wYkhrVjdQNTMxTkVoeTNoNWFqQlN4VEE?oc=5": "2026-11-18T11:52:12.703877+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE95aGE4VW5Ic1ZUQlQ0eW5RcWxEalg4V1c0YUg2Wk5UVnBidVJDbDAxaHFwMHJxaE4xY2ZFWUplSEl6RUtWSDdFYTNyZGxvRk5kbWtBTzZwc3I2UHpQMmhIUUZQYXVXYmZt?oc=5": "2026-11-18T11:52:12.703877+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE94WHNxVU5GTTNQaUJ0eElKc0FMZDFNUVU0b0VNV0lBRERVbEI0MEh5Y21LWUJCTE1MTm1ydnpGVkNaU1pIOVl4eURQeGFleGFpOVNfSTd2MF82ODhyTE81QlpxWUVTbGd1?oc=5": "2026-11-18T11:52:12.703877+09:00"
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE94WHNxVU5GTTNQaUJ0eElKc0FMZDFNUVU0b0VNV0lBRERVbEI0MEh5Y21LWUJCTE1MTm1ydnpGVkNaU1pIOVl4eURQeGFleGFpOVNfSTd2MF82ODhyTE81QlpxWUVTbGd1?oc=5": "2026-11-18T11:52:12.703877+09:00",
+    "https://gigazine.net/news/20261119-ai-coding-agents-shifted-bottleneck-code-review/": "2026-11-19T11:30:06.331144+09:00",
+    "https://gigazine.net/news/20261119-anthropic-glasswing-vulnerability-fixes/": "2026-11-19T11:30:06.331144+09:00",
+    "https://gigazine.net/news/20261118-claude-code-test-code-review/": "2026-11-19T11:30:06.331144+09:00",
+    "https://gigazine.net/news/20261118-cloudflare-explain-dns-blocking/": "2026-11-19T11:30:06.331144+09:00",
+    "https://gigazine.net/news/20261118-google-ai-overviews-cut-clicks-websites/": "2026-11-19T11:30:06.331144+09:00",
+    "https://postcoffee.co/magazine/coffee/daily-coffee/": "2026-11-19T11:30:06.331144+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFA4WGdvY2ZkWTlQeWxXLURWLTUxMks2R0ZxNWU5T3REeV83QTVoTHE4YnhBaktteWR3allibEZTMEhxVlp6Y1d4bWtxZlhqdEFTVkpGOU1YbzIwM1JCdTExNzFRR3A5aGVW?oc=5": "2026-11-19T11:30:06.331144+09:00",
+    "https://news.google.com/rss/articles/CBMiWkFVX3lxTFByOEZuMmNMTXJMSGVEMTNnQkJIS0pKSmgwNkQzMFVmaTV0bWEyWTZQWGh6ZEk3MkFHR2Z5RFhGTTJ3X09ERmdZd0NveHdvZmV2elRYMVFpZHlDUQ?oc=5": "2026-11-19T11:30:06.331144+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE90SEJkTEFiXzdQSlRRek1meWhidE9JVmNfWFBhZ3J3aHdOVGlBeS02MEtSa2ZzemVhbGhEY2RDbkw4RkZYY0RyQWdJSEp5d0pCdUlvZXdjS3hsUEtwdjN4MV9iV0lUNUFL?oc=5": "2026-11-19T11:30:06.331144+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE9EdmJmQUxxdDM4bDFsZFNjTWhZd3lmS3dTeUcyLVJtY29yX1NlcUQ1akFTQ3d5bWtiSXh5WHFyQXhob1N5YUZqYjV6MGhyY3FoYVUyRExjbGNCVC1oNFpDWGJVV0xndjRH?oc=5": "2026-11-19T11:30:06.331144+09:00",
+    "https://news.google.com/rss/articles/CBMiTkFVX3lxTE9Cb0hmcVRpeU9td2p0a0RxM0pXTU5aeklOX19BQTZMMEI2YWhLUHBDeU9yYXk4SFFKTG5rcy1mNXYxMVBUNHpKRXhWaEhhQQ?oc=5": "2026-11-19T11:30:06.331144+09:00"
   },
-  "_gemini_backoff:quota": "2026-11-18T17:00:00+09:00",
+  "_gemini_backoff:quota": "2026-11-19T17:00:00+09:00",
   "_gemini_backoff_basis:quota": "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)／日次境界(太平洋時間0時・推定)"
 }
