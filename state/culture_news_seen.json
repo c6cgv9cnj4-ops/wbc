@@ -1,7 +1,5 @@
 {
   "seen_urls": {
-    "https://gigazine.net/news/20261106-ai-in-cybersecurity-php2shell-vulnerability/": "2026-11-06T06:30:57.364961+09:00",
-    "https://gigazine.net/news/20261105-apple-cuts-internal-ai-usage/": "2026-11-06T06:30:57.364961+09:00",
     "https://www.itmedia.co.jp/news/article/2611/06/2000002936/": "2026-11-06T10:29:52.512284+09:00",
     "https://www.itmedia.co.jp/news/article/2611/06/2000002935/": "2026-11-06T10:29:52.512284+09:00",
     "https://www.itmedia.co.jp/news/article/2611/06/2000002934/": "2026-11-06T10:29:52.512284+09:00",
@@ -157,8 +155,12 @@
     "https://news.google.com/rss/articles/CBMiWkFVX3lxTFByOEZuMmNMTXJMSGVEMTNnQkJIS0pKSmgwNkQzMFVmaTV0bWEyWTZQWGh6ZEk3MkFHR2Z5RFhGTTJ3X09ERmdZd0NveHdvZmV2elRYMVFpZHlDUQ?oc=5": "2026-11-19T11:30:06.331144+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE90SEJkTEFiXzdQSlRRek1meWhidE9JVmNfWFBhZ3J3aHdOVGlBeS02MEtSa2ZzemVhbGhEY2RDbkw4RkZYY0RyQWdJSEp5d0pCdUlvZXdjS3hsUEtwdjN4MV9iV0lUNUFL?oc=5": "2026-11-19T11:30:06.331144+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE9EdmJmQUxxdDM4bDFsZFNjTWhZd3lmS3dTeUcyLVJtY29yX1NlcUQ1akFTQ3d5bWtiSXh5WHFyQXhob1N5YUZqYjV6MGhyY3FoYVUyRExjbGNCVC1oNFpDWGJVV0xndjRH?oc=5": "2026-11-19T11:30:06.331144+09:00",
-    "https://news.google.com/rss/articles/CBMiTkFVX3lxTE9Cb0hmcVRpeU9td2p0a0RxM0pXTU5aeklOX19BQTZMMEI2YWhLUHBDeU9yYXk4SFFKTG5rcy1mNXYxMVBUNHpKRXhWaEhhQQ?oc=5": "2026-11-19T11:30:06.331144+09:00"
-  },
-  "_gemini_backoff:quota": "2026-11-19T17:00:00+09:00",
-  "_gemini_backoff_basis:quota": "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)／日次境界(太平洋時間0時・推定)"
+    "https://news.google.com/rss/articles/CBMiTkFVX3lxTE9Cb0hmcVRpeU9td2p0a0RxM0pXTU5aeklOX19BQTZMMEI2YWhLUHBDeU9yYXk4SFFKTG5rcy1mNXYxMVBUNHpKRXhWaEhhQQ?oc=5": "2026-11-19T11:30:06.331144+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/19/2000003321/": "2026-11-20T06:32:33.542637+09:00",
+    "https://gigazine.net/news/20261119-china-ai-data-center-compute-gap/": "2026-11-20T06:32:33.542637+09:00",
+    "https://gigazine.net/news/20261119-openai-jalapeno-amd-advancing-chip/": "2026-11-20T06:32:33.542637+09:00",
+    "https://gigazine.net/news/20261119-openai-rsi-research-acceleration/": "2026-11-20T06:32:33.542637+09:00",
+    "https://gigazine.net/news/20261119-meta-insgtagram-project-gryffindor/": "2026-11-20T06:32:33.542637+09:00",
+    "https://news.google.com/rss/articles/CBMiakFVX3lxTFBTb3hETlVsa08zOTlMaTdLNGVpNndyUDZlMWVWRDA0U283Sk1aeEd3V2NwN3cydDJUdEdUd3pFYUJTdVBoWHFGUjBuUFNSdmZwalJvYXRiRlYxbjd2QWVnN2JyeERwMmNsX1E?oc=5": "2026-11-20T06:32:33.542637+09:00"
+  }
 }
