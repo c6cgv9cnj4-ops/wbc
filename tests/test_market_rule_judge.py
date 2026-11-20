@@ -70,6 +70,12 @@ class CircuitTest(unittest.TestCase):
         with mock.patch.dict(os.environ, {"MARKET_NEWS_CURATION": "off"}):
             self.assertIsNone(mnc.curate(ITEMS, ok(), "m"))
 
+    def test_added_keywords_are_detected(self):
+        # 2026-11-20 追加語: 実データ検証で見逃したもの
+        titles = ["日経平均、大幅下落 終値1000円超安", "東証、乱高下の展開", "NYダウ急反落 利上げ警戒", "米国株、暴騰で最高値更新"]
+        groups, _, _ = mnc.rule_judge([{"title": t} for t in titles])
+        self.assertTrue(all(g["critical_alert"] for g in groups))
+
     def test_render_shows_reason_for_critical(self):
         out = mnc.curate(ITEMS, failing(), "m", rule_fallback=True)
         text = "\n".join(mnc.render_groups(out))
