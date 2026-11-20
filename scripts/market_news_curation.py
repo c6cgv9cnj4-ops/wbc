@@ -246,9 +246,35 @@ def _validate(parsed, n):
     return groups, ungrouped, warnings
 
 
-def curate(items, client, model_name, caller=None):
+CLAUDE_MODEL_DEFAULT = "claude-haiku-5-5"
+
+
+def make_claude_fallback():
+    """2回路目(Claude API)の判定関数を作る。ANTHROPIC_API_KEY が無い・SDKが無い場合は None(2回路目なし)。
+    戻り値: prompt を受け取り応答テキストを返す関数。キーは環境変数からのみ読む(コードに書かない)。"""
+    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if not key:
+        return None
+    try:
+        import anthropic
+    except ImportError:
+        print("[WARN] anthropic が未インストールのため、2回路目(Claude)は使えません。")
+        return None
+    client = anthropic.Anthropic(api_key=key, timeout=60.0, max_retries=0)
+    model = os.environ.get("CLAUDE_MODEL", CLAUDE_MODEL_DEFAULT)
+
+    def judge(prompt):
+        msg = client.messages.create(model=model, max_tokens=4096,
+                                     messages=[{"role": "user", "content": prompt}])
+        return "".join(getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text")
+    return judge
+
+
+def curate(items, client, model_name, caller=None, fallback=None):
     """新着記事をグループ化・分類する。失敗時は None(呼び出し側で従来表示に戻す)。
 
+    回路: Gemini → (失敗したら) fallback(Claude)。両方失敗したら None。
+    LAST_ERROR は Gemini 側の例外(通知の分類に使う)。Claude で判定できた場合は None(Gemini障害の通知は出さない)。
     戻り値: {"groups": [...], "ungrouped": [item, ...], "warnings": [...], "raw": str}
       groups の各要素: {"items": [item, ...], "headline", "category", "importance", "reason"}
     """
@@ -259,20 +285,38 @@ def curate(items, client, model_name, caller=None):
         return None
     if not items:
         return None
-    if client is None:
+    if client is None and fallback is None:
         print("[INFO] Geminiクライアントが無いため、経済ニュースは従来の箇条書きで出力します。")
         return None
 
-    try:
-        prompt = _build_prompt(items)
+    prompt = _build_prompt(items)
+    gemini_error = None
+    groups_idx = None
+    circuits = []
+    if client is not None:
         # caller: Gemini呼び出しの再試行・待機ラッパー(gemini_guard.Guard.call)。無ければ従来どおり直接呼ぶ
-        generate = lambda: client.models.generate_content(model=model_name, contents=prompt)  # noqa: E731
-        resp = caller(generate) if caller else generate()
-        raw = resp.text or ""
-        groups_idx, ungrouped_idx, warnings = _validate(_parse_json(raw), len(items))
-    except Exception as err:  # noqa: BLE001
-        print(f"[WARN] 経済ニュースのグループ化に失敗したため、従来の箇条書きに戻します: {err}")
-        LAST_ERROR = err
+        def gemini_judge():
+            generate = lambda: client.models.generate_content(model=model_name, contents=prompt)  # noqa: E731
+            resp = caller(generate) if caller else generate()
+            return resp.text or ""
+        circuits.append(("Gemini", gemini_judge))
+    if fallback is not None:
+        circuits.append(("Claude", lambda: fallback(prompt)))
+    for name, judge in circuits:
+        try:
+            raw = judge()
+            groups_idx, ungrouped_idx, warnings = _validate(_parse_json(raw), len(items))
+            if name != "Gemini":
+                print(f"[INFO] Geminiで判定できなかったため、2回路目({name})で経済ニュースを判定しました。")
+            break
+        except Exception as err:  # noqa: BLE001
+            if name == "Gemini":
+                gemini_error = err
+            print(f"[WARN] {name}での経済ニュースの判定に失敗しました: {err}")
+            groups_idx = None
+    if groups_idx is None:
+        LAST_ERROR = gemini_error
+        print("[WARN] 全回路で判定できなかったため、従来の箇条書きに戻します。")
         return None
     if not groups_idx:
         print("[WARN] 経済ニュースのグループが0件だったため、従来の箇条書きに戻します。")
