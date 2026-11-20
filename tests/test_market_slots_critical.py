@@ -166,17 +166,30 @@ class BuildMarketMessageTest(unittest.TestCase):
         self.assertIn("https://example.com/a0", st)
         self.assertIsNone(mnc.due_slot(at(9, 3), st))
 
-    def test_offslot_gemini_failure_does_not_send_or_mark(self):
+    def test_offslot_gemini_failure_delivers_unjudged_immediately(self):
+        # 2026-11-20(細川さん承認): 急変判定できなかった記事は次の便まで待たせず、未判定のまま即時配信する
         st = {mnc.slot_key(at(7), "朝"): "x"}
-        with mock.patch.object(fn, "fetch_economy_news_candidates", return_value=[item(0)]), \
+        with mock.patch.object(fn, "fetch_economy_news_candidates", return_value=[item(0, "NY株急落 - ロイター")]), \
                 mock.patch.object(fn, "record_gemini_failure") as rec:
             bad = mock.Mock()
             bad.models.generate_content.side_effect = RuntimeError("429")
             msg, skip = fn.build_market_message(st, at(9, 3), bad, guard=mock.Mock(call=lambda f, **kw: f()))
-        self.assertTrue(skip)
+        self.assertFalse(skip)
         self.assertTrue(rec.called)
-        self.assertEqual([k for k in st if k.startswith(mnc.SCREENED_KEY_PREFIX)], [])
-        self.assertNotIn("https://example.com/a0", st)
+        self.assertIn("急変判定できず", msg)
+        self.assertIn("NY株急落", msg)
+        self.assertIn("https://example.com/a0", st)                # 既送信 → 次の便で二重配信しない
+        self.assertIn(mnc.SCREENED_KEY_PREFIX + "https://example.com/a0", st)
+
+    def test_offslot_gemini_failure_is_not_resent_next_run(self):
+        st = {mnc.slot_key(at(7), "朝"): "x"}
+        with mock.patch.object(fn, "fetch_economy_news_candidates", return_value=[item(0)]), \
+                mock.patch.object(fn, "record_gemini_failure"):
+            bad = mock.Mock()
+            bad.models.generate_content.side_effect = RuntimeError("429")
+            fn.build_market_message(st, at(9, 3), bad, guard=mock.Mock(call=lambda f, **kw: f()))
+            msg, skip = fn.build_market_message(st, at(10, 3), bad, guard=mock.Mock(call=lambda f, **kw: f()))
+        self.assertTrue(skip)                                        # 既送信なので再送しない
 
 
 if __name__ == "__main__":

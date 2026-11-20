@@ -1706,8 +1706,16 @@ def _build_market_critical_only(state, now, gemini_client, guard):
     if curated is None:
         if market_news_curation.LAST_ERROR:
             record_gemini_failure("gemini_market", "market", "経済ニュースの急変判定(Gemini)", market_news_curation.LAST_ERROR,
-                                  "継続(次の便で通常配信)")
-        return "[INFO] マーケット: 便の合間の急変判定ができなかったため送信しません(次の便で配信)。", True
+                                  "継続(判定できなかった記事を未判定のまま即時配信)")
+        # 2026-11-20(細川さん承認): 急変判定できなかった記事を次の便まで待たせない。
+        # AIの判定なしで即時配信し、既送信にする(次の便で二重配信しない)。送信失敗時は呼び出し側がキーを戻す。
+        dedupe_new_items(fresh, "url", state, now)
+        for it in fresh:
+            state[prefix + normalize_url(it["url"])] = now.isoformat()
+        lines = [f"# ⚠️ 市場ニュース（急変判定できず・未判定で配信） ({now.strftime('%Y-%m-%d %H:%M')} JST時点)"]
+        lines.extend(market_news_curation.render_groups({"groups": [], "ungrouped": fresh}))
+        lines.append("-# AIによる急変判定はできていません。内容は各記事で確認してください")
+        return "\n".join(lines), False
     news_alerts.clear(state, "gemini_market")
     for it in fresh:  # 判定済みの印。同じ記事でGeminiを繰り返し呼ばない
         state[prefix + normalize_url(it["url"])] = now.isoformat()
