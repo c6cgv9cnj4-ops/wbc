@@ -596,17 +596,38 @@ def anzn_via_mac():
     return os.environ.get("ANZN_SOURCE", "").strip().lower() == "mac"
 
 
+ANZN_RETRY_WAITS = (5, 15)  # 一時的な5xx・タイムアウト時の再試行間隔(秒)。2026-11-20: HTTP 500が1回で済まず代替経路に落ちていたため追加
+
+
+def _anzn_get_with_retry(waits=ANZN_RETRY_WAITS):
+    """あんぜんねっと本体を取得する。5xx・タイムアウト・接続エラーだけ再試行し、403/404などは即失敗にする
+    (IPブロックは待っても直らないため、待ち時間を無駄にしない)。最大 len(waits)+1 回。"""
+    for attempt in range(len(waits) + 1):
+        try:
+            resp = requests.get(ANZN_URL, headers=ANZN_HEADERS, timeout=REQUEST_TIMEOUT)
+            if resp.status_code < 500:
+                return resp  # 200 はもちろん 4xx も呼び出し側の raise_for_status に任せる
+            err = requests.HTTPError(f"{resp.status_code} Server Error: {resp.reason} for url: {ANZN_URL}")
+        except (requests.Timeout, requests.ConnectionError) as e:
+            err = e
+        if attempt == len(waits):
+            raise err
+        print(f"[WARN] あんぜんねっと取得の一時エラー(再試行 {attempt + 1}/{len(waits)}): {news_alerts.short_error(err)}")
+        time.sleep(waits[attempt])
+
+
 def fetch_anzn_new_arrivals(limit=ANZN_ITEM_LIMIT):
     """あんぜんねっとの新着(鴻巣市・桶川市・北本市の消防出動情報等)を取得する。
     2026-09-06: GitHub ActionsのIPから403(ローカル環境からは200)になる事象を
     確認したため、ブラウザ相当のAccept/Accept-Language/Refererヘッダーを
     追加して再検証した(coffee-station.jp等と同様、クラウドIP自体をブロック
     している場合はヘッダーでは回避できない可能性が高いが、まず試す)。
+    2026-11-20: 5xx・タイムアウトは _anzn_get_with_retry で再試行してから失敗扱いにする。
     """
     global ANZN_LAST_FETCH_OK
     ANZN_LAST_FETCH_OK = False
     try:
-        resp = requests.get(ANZN_URL, headers=ANZN_HEADERS, timeout=REQUEST_TIMEOUT)
+        resp = _anzn_get_with_retry()
         resp.raise_for_status()
         # ページのmeta charsetがEUC-JPなので明示的にデコードする
         html = resp.content.decode("euc-jp", errors="replace")
