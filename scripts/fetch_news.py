@@ -635,7 +635,8 @@ def fetch_anzn_new_arrivals(limit=ANZN_ITEM_LIMIT):
         print(f"[ERROR] あんぜんねっとの取得に失敗しました: {news_alerts.redact(err)}")   # Webhook URL等を伏せてログに出す(2026-10-11)
         news_alerts.record("anzn_fetch", "local", "あんぜんねっと(北本市安全安心情報)",
                            f"取得失敗 {news_alerts.short_error(err)}",
-                           "一部スキップ(安全安心情報の新着を取得できず/地域ニュースは継続)")
+                           ("本体は未取得 → 公式Mastodonで代替確認(地域ニュースは継続)" if anzn_via_mac()
+                            else "一部スキップ(安全安心情報の新着を取得できず/地域ニュースは継続)"))
         return []
 
     ANZN_LAST_FETCH_OK = True
