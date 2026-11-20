@@ -639,7 +639,21 @@ def fetch_anzn_new_arrivals(limit=ANZN_ITEM_LIMIT):
                             else "一部スキップ(安全安心情報の新着を取得できず/地域ニュースは継続)"))
         return []
 
+    # 2026-11-20: 解析の失敗(HTML変更など)も「取得失敗」扱いにする。例外で止まると代替経路(Mastodon)が動かないため。
+    try:
+        items = _parse_anzn_blocks(html, limit)
+    except Exception as err:  # noqa: BLE001
+        print(f"[ERROR] あんぜんねっとの解析に失敗しました: {news_alerts.redact(err)}")
+        news_alerts.record("anzn_fetch", "local", "あんぜんねっと(北本市安全安心情報)",
+                           f"解析失敗 {news_alerts.short_error(err)}",
+                           ("本体は未取得 → 公式Mastodonで代替確認(地域ニュースは継続)" if anzn_via_mac()
+                            else "一部スキップ(安全安心情報の新着を取得できず/地域ニュースは継続)"))
+        return []
     ANZN_LAST_FETCH_OK = True
+    return items
+
+
+def _parse_anzn_blocks(html, limit):
     soup = BeautifulSoup(html, "html.parser")
     items = []
     for block in soup.select('div[data-role="collapsible"]')[:limit]:

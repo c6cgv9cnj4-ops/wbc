@@ -45,7 +45,11 @@ MAC_SENT_RETENTION_DAYS = 14
 
 def _gh(*args, input_text=None):
     exe = shutil.which("gh") or "/opt/homebrew/bin/gh"
-    p = subprocess.run([exe, *args], capture_output=True, text=True, input=input_text, timeout=60)
+    # 例外を投げない: タイムアウト・gh未インストールでも戻り値の失敗として扱い、配信を止めない(2026-11-20)
+    try:
+        p = subprocess.run([exe, *args], capture_output=True, text=True, input=input_text, timeout=60)
+    except (subprocess.TimeoutExpired, OSError) as err:
+        return 124, "", f"gh実行失敗: {type(err).__name__}"
     return p.returncode, p.stdout, p.stderr
 
 
@@ -56,8 +60,8 @@ def fetch_actions_sent_keys(gh=_gh):
         print(f"[WARN] Actions側の既送信記録を取得できませんでした(重複の可能性あり): {err.strip()[:120]}")
         return None
     try:
-        return {k for k in json.loads(out) if k.startswith("anzn:")}
-    except ValueError:
+        return {k for k in json.loads(out) if isinstance(k, str) and k.startswith("anzn:")}
+    except (ValueError, TypeError, AttributeError):
         return None
 
 
@@ -66,6 +70,14 @@ def publish_mac_sent(keys, now, gh=_gh):
     失敗してもMacの配信は成功扱いのまま(Actions側で重複する可能性があるだけ)。"""
     if not keys:
         return True
+    try:
+        return _publish_mac_sent(keys, now, gh)
+    except Exception as err:  # noqa: BLE001 - 記録の失敗で配信・state保存を止めない(2026-11-20)
+        print(f"[WARN] Macの既送信記録の更新で例外(Actions側で重複の可能性あり): {type(err).__name__}")
+        return False
+
+
+def _publish_mac_sent(keys, now, gh=_gh):
     for _ in range(2):  # 同時更新(sha不一致)なら1回だけやり直す
         code, out, _err = gh("api", f"repos/{REPO}/contents/{REMOTE_MAC_SENT}")
         data, sha = {}, None
@@ -209,7 +221,12 @@ def run(args):
         print(f"[ERROR] {WEBHOOK_ENV} が環境変数にも {args.env_file} にもありません。")
         return 1
 
-    new_items = fetch_news.fetch_anzn_new_items(state, now)  # 新着キーをstateへ仮登録する
+    try:
+        new_items = fetch_news.fetch_anzn_new_items(state, now)  # 新着キーをstateへ仮登録する
+    except Exception as err:  # noqa: BLE001 - 想定外の例外でも代替経路(Mastodon)まで必ず到達させる(2026-11-20)
+        print(f"[ERROR] あんぜんねっと本体の処理で想定外の例外: {type(err).__name__}")
+        fetch_news.ANZN_LAST_FETCH_OK = False
+        new_items = []
     print(f"[INFO] {now:%Y-%m-%d %H:%M} 取得{'成功' if fetch_news.ANZN_LAST_FETCH_OK else '失敗'} / 新着{len(new_items)}件")
     for item in new_items:
         print(f"  - {item.get('datetime')} [{item.get('city')}] {item.get('summary', '')[:40]}")
@@ -252,8 +269,11 @@ def run(args):
         print(f"[INFO] あんぜんねっと新着{len(new_items)}件を送信しました。")
         publish_mac_sent({k for k in (mastodon_anzn.anzn_key_from_url(i.get("url")) for i in new_items) if k}, now)
 
-    news_alerts.flush({"local": webhook}, fetch_news.send_to_discord, state, now,
-                      embed_fn=fetch_news.send_embed_to_discord)
+    try:
+        news_alerts.flush({"local": webhook}, fetch_news.send_to_discord, state, now,
+                          embed_fn=fetch_news.send_embed_to_discord)
+    except Exception as err:  # noqa: BLE001 - 異常通知の失敗で既送信記録の保存を止めない(保存しないと次回に重複送信する)
+        print(f"[WARN] 異常通知の送信で例外: {type(err).__name__}")
     fetch_news.save_seen_state(state)
     return exit_code
 
