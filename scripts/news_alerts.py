@@ -28,6 +28,12 @@ import discord_style
 
 ALERT_COOLDOWN_HOURS = 12
 ALERT_STATE_PREFIX = "_alert:"
+# 2026-11-20: Gemini の一時的な混雑(503/UNAVAILABLE)は数時間で自然回復することが多い。1回の失敗で通知すると
+# 「回復すると分かっている異常」で通知が鳴るため、同じ種類が連続してこの回数の実行で失敗したときだけ通知する。
+# 実行間隔は4時間(news.yml)なので、2回連続=約4時間以上の混雑継続で初めて通知する。
+TRANSIENT_CONFIRM_RUNS = 2
+TRANSIENT_KIND_SUFFIXES = (":http503",)   # record_gemini_failure が付ける接尾辞(503のみ対象。429・認証などは即通知)
+STREAK_PREFIX = "_alert_streak:"          # state キー。値は連続で失敗した実行回数(int)。"_" 始まりなので既送信記録の掃除対象外
 CHANNEL_LABELS = {"local": "#webhook_local", "news": "#webhook_news", "market": "#webhook_market"}
 FALLBACK_ORDER = ["market", "news", "local"]
 
@@ -79,9 +85,28 @@ def clear(state, base_kind):
     復旧後に同じ異常が再発したら、すぐ通知できるようにするため。解除した件数を返す。"""
     keys = [k for k in state if k.startswith(ALERT_STATE_PREFIX) and (k[len(ALERT_STATE_PREFIX):] == base_kind
                                                                        or k[len(ALERT_STATE_PREFIX):].startswith(base_kind + ":"))]
+    # 連続失敗の計数も復旧でリセットする(復旧後の最初の失敗は1回目として数え直す)
+    keys += [k for k in state if k.startswith(STREAK_PREFIX) and (k[len(STREAK_PREFIX):] == base_kind
+                                                                 or k[len(STREAK_PREFIX):].startswith(base_kind + ":"))]
     for k in keys:
         state.pop(k, None)
     return len(keys)
+
+
+def _is_transient(kind):
+    return kind.endswith(TRANSIENT_KIND_SUFFIXES)
+
+
+def update_streaks(state):
+    """今回の実行で記録された一時的な異常(503)について連続失敗回数を1つ進める。
+    今回の実行で起きなかった種類の計数は消す(途中で成功した=連続が途切れた)。flush() の先頭で1回だけ呼ぶ。"""
+    current = {it["kind"] for it in _issues.values() if _is_transient(it["kind"])}
+    for k in [k for k in state if k.startswith(STREAK_PREFIX) and k[len(STREAK_PREFIX):] not in current]:
+        state.pop(k, None)
+    for kind in current:
+        key = STREAK_PREFIX + kind
+        state[key] = int(state.get(key, 0)) + 1
+    return {kind: state[STREAK_PREFIX + kind] for kind in current}
 
 
 def issues():
@@ -174,6 +199,9 @@ def _compose(state, now):
         if _in_cooldown(state, issue["kind"], now):
             suppressed.append(issue["kind"])
             continue
+        if _is_transient(issue["kind"]) and int(state.get(STREAK_PREFIX + issue["kind"], 0)) < TRANSIENT_CONFIRM_RUNS:
+            suppressed.append(issue["kind"])   # 連続失敗が閾値未満: 次の実行でも続けば通知する
+            continue
         by_channel.setdefault(issue["channel"], []).append(issue)
         notified.append(issue["kind"])
 
@@ -236,10 +264,11 @@ def flush(webhooks, send_fn, state, now, embed_fn=None):
               失敗したときだけ通常メッセージで再送する(無ければ通常メッセージのみ)
     戻り値: 送信できた通知数
     """
+    update_streaks(state)
     messages, notified, suppressed = build_messages(state, now)
     payloads, _, _ = build_embeds(state, now)
     if suppressed:
-        print(f"[INFO] クールダウン中のため異常通知を抑止: {', '.join(suppressed)}")
+        print(f"[INFO] 異常通知を抑止(クールダウン中・または一時的な混雑の連続失敗がまだ{TRANSIENT_CONFIRM_RUNS}回未満): {', '.join(suppressed)}")
     sent = 0
     for channel, message in messages.items():
         print(f"=== 異常通知({CHANNEL_LABELS.get(channel, channel)}向け) ===")

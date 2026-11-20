@@ -400,6 +400,10 @@ class NationalFlowTest(unittest.TestCase):
         state = {na.ALERT_STATE_PREFIX + "gemini_national:quota": NOW.isoformat()}
         later = NOW + dt.timedelta(hours=2)
         run_national(FakeClient(busy_error(), busy_error(), busy_error()), state, now=later)
+        # 一時的な混雑(503)は連続2回の実行で失敗したときだけ通知する(flush() と同じ順で streak を進める)。
+        # 前回の実行で1回失敗していた、という状態から始める。
+        state[na.STREAK_PREFIX + "gemini_national:http503"] = 1
+        na.update_streaks(state)
         _, notified, suppressed = na.build_embeds(state, later)
         self.assertEqual((notified, suppressed), (["gemini_national:http503"], []))
         d = na.build_embeds(state, later)[0]["news"]["embeds"][0]["description"]
