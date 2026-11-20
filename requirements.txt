@@ -6,4 +6,3 @@ youtube-transcript-api
 playwright
 yfinance
 pypdf
-anthropic==2.10.0

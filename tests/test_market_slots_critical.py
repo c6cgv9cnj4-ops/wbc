@@ -107,8 +107,9 @@ class RenderTest(unittest.TestCase):
         self.assertFalse(any(x.startswith("⚪ その他") for x in old))
         lines = mnc.render_groups(res, low_one_line=True)
         self.assertTrue(lines[0].startswith("🚨【市場急変】【日本市場】NY株急落で取引停止"))
-        self.assertTrue(lines[1].startswith(mnc.CONTINUATION_PREFIX))
-        self.assertTrue(lines[2].startswith("🔴【日本市場】日銀が利上げ決定"))
+        self.assertTrue(lines[1].startswith(mnc.CONTINUATION_PREFIX + "判定理由:"))   # 急変は判定理由を1行表示
+        self.assertTrue(lines[2].startswith(mnc.CONTINUATION_PREFIX))
+        self.assertTrue(lines[3].startswith("🔴【日本市場】日銀が利上げ決定"))
         i = lines.index("⚪ その他（2件・タイトルのみ）")
         self.assertEqual(lines[i + 1:], ["- [A社が新店舗](<https://example.com/a1>)（2本）",
                                          "- [コラム：相場格言](<https://example.com/a3>)"])
@@ -166,8 +167,8 @@ class BuildMarketMessageTest(unittest.TestCase):
         self.assertIn("https://example.com/a0", st)
         self.assertIsNone(mnc.due_slot(at(9, 3), st))
 
-    def test_offslot_gemini_failure_delivers_unjudged_immediately(self):
-        # 2026-11-20(細川さん承認): 急変判定できなかった記事は次の便まで待たせず、未判定のまま即時配信する
+    def test_offslot_gemini_failure_uses_rule_judge_and_sends_critical(self):
+        # 2026-11-20: Gemini失敗 → Python規則判定。キーワードに一致する急変は理由つきで即時配信する
         st = {mnc.slot_key(at(7), "朝"): "x"}
         with mock.patch.object(fn, "fetch_economy_news_candidates", return_value=[item(0, "NY株急落 - ロイター")]), \
                 mock.patch.object(fn, "record_gemini_failure") as rec:
@@ -175,10 +176,10 @@ class BuildMarketMessageTest(unittest.TestCase):
             bad.models.generate_content.side_effect = RuntimeError("429")
             msg, skip = fn.build_market_message(st, at(9, 3), bad, guard=mock.Mock(call=lambda f, **kw: f()))
         self.assertFalse(skip)
-        self.assertTrue(rec.called)
-        self.assertIn("急変判定できず", msg)
-        self.assertIn("NY株急落", msg)
-        self.assertIn("https://example.com/a0", st)                # 既送信 → 次の便で二重配信しない
+        self.assertFalse(rec.called)                 # 2回路目で判定できたので、Gemini障害の通知は出さない(ログには残る)
+        self.assertIn("🚨【市場急変】", msg)
+        self.assertIn("判定理由: キーワード判定", msg)
+        self.assertIn("https://example.com/a0", st)
         self.assertIn(mnc.SCREENED_KEY_PREFIX + "https://example.com/a0", st)
 
     def test_offslot_gemini_failure_is_not_resent_next_run(self):

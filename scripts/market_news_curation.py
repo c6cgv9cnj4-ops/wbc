@@ -246,37 +246,41 @@ def _validate(parsed, n):
     return groups, ungrouped, warnings
 
 
-CLAUDE_MODEL_DEFAULT = "claude-haiku-5-5"
+# 2回路目: Python規則判定(AI・外部APIを使わない。2026-11-20)。Geminiが失敗したときだけ動く。
+# 見出し(タイトル)に急変を示す語が含まれるかで判定し、一致した語を理由として返す。
+# 誤検知(例:「急落を回避」)は起こりうる。判定の表示は「キーワード判定」と明記する。
+RULE_CRITICAL_KEYWORDS = [
+    "暴落", "急落", "大幅安", "急騰", "大幅高", "ストップ安", "ストップ高", "取引停止", "売買停止",
+    "サーキットブレーカー", "緊急利下げ", "緊急利上げ", "緊急会合", "為替介入", "全面安", "パニック",
+    "金融危機", "デフォルト", "債務不履行", "破綻",
+]
 
 
-def make_claude_fallback():
-    """2回路目(Claude API)の判定関数を作る。ANTHROPIC_API_KEY が無い・SDKが無い場合は None(2回路目なし)。
-    戻り値: prompt を受け取り応答テキストを返す関数。キーは環境変数からのみ読む(コードに書かない)。"""
-    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    if not key:
-        return None
-    try:
-        import anthropic
-    except ImportError:
-        print("[WARN] anthropic が未インストールのため、2回路目(Claude)は使えません。")
-        return None
-    client = anthropic.Anthropic(api_key=key, timeout=60.0, max_retries=0)
-    model = os.environ.get("CLAUDE_MODEL", CLAUDE_MODEL_DEFAULT)
-
-    def judge(prompt):
-        msg = client.messages.create(model=model, max_tokens=4096,
-                                     messages=[{"role": "user", "content": prompt}])
-        return "".join(getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text")
-    return judge
+def rule_judge(items):
+    """Pythonの規則で判定する。1記事 = 1グループ(クラスタリングはしない)。
+    急変キーワードが一致した記事は critical_alert=True・重要度 high、理由に一致した語を入れる。
+    戻り値は Gemini 判定と同じ形(_validate の出力と同じ groups / ungrouped / warnings)。"""
+    groups = []
+    for i, it in enumerate(items):
+        title = it.get("title", "")
+        hits = [k for k in RULE_CRITICAL_KEYWORDS if k in title]
+        groups.append({
+            "indices": [i], "representative": i, "category": "その他",
+            "importance": "high" if hits else "low",
+            "critical_alert": bool(hits),
+            "reason": f"キーワード判定: {'・'.join(hits)} を含む" if hits else "キーワード判定: 急変を示す語なし",
+        })
+    return groups, [], []
 
 
-def curate(items, client, model_name, caller=None, fallback=None):
+def curate(items, client, model_name, caller=None, rule_fallback=False):
     """新着記事をグループ化・分類する。失敗時は None(呼び出し側で従来表示に戻す)。
 
-    回路: Gemini → (失敗したら) fallback(Claude)。両方失敗したら None。
-    LAST_ERROR は Gemini 側の例外(通知の分類に使う)。Claude で判定できた場合は None(Gemini障害の通知は出さない)。
+    回路: ① Gemini → ② Python規則判定(rule_judge)。②は rule_fallback=True のときだけ使う(急変判定のみ)。
+    ②は外部通信がないため、失敗しない(例外時のみ None)。③(未判定の即時配信)は呼び出し側が行う。
+    LAST_ERROR は Gemini 側の例外。②で判定できた場合も LAST_ERROR に残す(ログ・通知の判断に使う)。
     戻り値: {"groups": [...], "ungrouped": [item, ...], "warnings": [...], "raw": str}
-      groups の各要素: {"items": [item, ...], "headline", "category", "importance", "reason"}
+      groups の各要素: {"items": [item, ...], "headline", "category", "importance", "critical_alert", "reason"}
     """
     global LAST_ERROR
     LAST_ERROR = None
@@ -285,42 +289,34 @@ def curate(items, client, model_name, caller=None, fallback=None):
         return None
     if not items:
         return None
-    if client is None and fallback is None:
-        print("[INFO] Geminiクライアントが無いため、経済ニュースは従来の箇条書きで出力します。")
-        return None
 
-    prompt = _build_prompt(items)
-    gemini_error = None
-    groups_idx = None
-    circuits = []
+    raw = ""
+    groups_idx = ungrouped_idx = warnings = None
     if client is not None:
-        # caller: Gemini呼び出しの再試行・待機ラッパー(gemini_guard.Guard.call)。無ければ従来どおり直接呼ぶ
-        def gemini_judge():
+        prompt = _build_prompt(items)
+        try:
+            # caller: Gemini呼び出しの再試行・待機ラッパー(gemini_guard.Guard.call)。無ければ従来どおり直接呼ぶ
             generate = lambda: client.models.generate_content(model=model_name, contents=prompt)  # noqa: E731
             resp = caller(generate) if caller else generate()
-            return resp.text or ""
-        circuits.append(("Gemini", gemini_judge))
-    if fallback is not None:
-        circuits.append(("Claude", lambda: fallback(prompt)))
-    for name, judge in circuits:
-        try:
-            raw = judge()
+            raw = resp.text or ""
             groups_idx, ungrouped_idx, warnings = _validate(_parse_json(raw), len(items))
-            if name != "Gemini":
-                print(f"[INFO] Geminiで判定できなかったため、2回路目({name})で経済ニュースを判定しました。")
-            break
         except Exception as err:  # noqa: BLE001
-            if name == "Gemini":
-                gemini_error = err
-            print(f"[WARN] {name}での経済ニュースの判定に失敗しました: {err}")
+            LAST_ERROR = err
+            print(f"[WARN] Geminiでの経済ニュースの判定に失敗しました: {err}")
             groups_idx = None
+        if groups_idx is not None and not groups_idx:
+            print("[WARN] 経済ニュースのグループが0件だったため、従来の箇条書きに戻します。")
+            return None
+    if groups_idx is None and not rule_fallback:
+        return None
     if groups_idx is None:
-        LAST_ERROR = gemini_error
-        print("[WARN] 全回路で判定できなかったため、従来の箇条書きに戻します。")
-        return None
-    if not groups_idx:
-        print("[WARN] 経済ニュースのグループが0件だったため、従来の箇条書きに戻します。")
-        return None
+        try:
+            groups_idx, ungrouped_idx, warnings = rule_judge(items)
+            print("[INFO] 2回路目(Python規則判定)で経済ニュースを判定しました。")
+        except Exception as err:  # noqa: BLE001
+            print(f"[WARN] 規則判定に失敗しました: {err}")
+            return None
+        raw = ""
 
     groups = []
     for g in groups_idx:
@@ -361,6 +357,8 @@ def render_groups(result, low_one_line=False):
         latest = max((it.get("published") or "" for it in g["items"]), default="")
         time_part = f" `{latest}`" if latest else ""
         lines.append(f"{icon}【{g['category']}】{g['headline']}{count}{time_part}")
+        if g.get("critical_alert") and g.get("reason"):   # 急変の判定理由(Gemini または キーワード判定)を明記する
+            lines.append(CONTINUATION_PREFIX + f"判定理由: {g['reason']}")
         links = [f"[{label}](<{it['url']}>)" for label, it in zip(_source_labels(g["items"]), g["items"])]
         # Google NewsのURLは1本250字前後あるため、1行に並べるリンク数を制限して
         # 1行がDiscordの2000字上限を超えないようにする(超えると投稿自体が拒否される)。

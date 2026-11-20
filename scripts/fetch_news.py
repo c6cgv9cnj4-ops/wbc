@@ -1703,7 +1703,7 @@ def _build_market_critical_only(state, now, gemini_client, guard):
     guard = guard or gemini_guard.Guard(state)
     curated = market_news_curation.curate(fresh, gemini_client, GEMINI_MODEL_NAME,
                                           caller=lambda fn: guard.call(fn, priority=gemini_budget.PRIORITY_CRITICAL),
-                                          fallback=market_news_curation.make_claude_fallback())  # 2回路目(Claude)
+                                          rule_fallback=True)  # 急変判定はGemini失敗時にPython規則判定へ回す
     if curated is None:
         if market_news_curation.LAST_ERROR:
             record_gemini_failure("gemini_market", "market", "経済ニュースの急変判定(Gemini)", market_news_curation.LAST_ERROR,
@@ -1834,8 +1834,7 @@ def build_market_message(state, now, gemini_client=None, guard=None):
         # (market_news_curation.py)。失敗時は None が返り、従来の箇条書きに戻す。
         guard = guard or gemini_guard.Guard(state)
         curated = market_news_curation.curate(biz_new, gemini_client, GEMINI_MODEL_NAME,
-                                              caller=lambda fn: guard.call(fn, priority=gemini_budget.PRIORITY_HIGH),
-                                              fallback=market_news_curation.make_claude_fallback())  # 2回路目(Claude)
+                                              caller=lambda fn: guard.call(fn, priority=gemini_budget.PRIORITY_HIGH))
         if curated is None and market_news_curation.LAST_ERROR:
             record_gemini_failure("gemini_market", "market", "経済ニュースの材料整理(Gemini)", market_news_curation.LAST_ERROR,
                                   "継続(従来の箇条書き表示で配信)")
