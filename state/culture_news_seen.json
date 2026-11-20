@@ -1,8 +1,5 @@
 {
   "seen_urls": {
-    "https://gigazine.net/news/20261106-open-closed-weight/": "2026-11-07T06:33:34.329540+09:00",
-    "https://gigazine.net/news/20261106-discord-rebuild-app-in-rust/": "2026-11-07T06:33:34.329540+09:00",
-    "https://news.google.com/rss/articles/CBMiR0FVX3lxTFBwRkpsTEMyY3Y4MWxHbUJYaFpFWWVzU0FSd3dMT005OE4xVVlfRXJCbHVlMUtDQkpLS2I0MkJhc19uWlRYNU1J?oc=5": "2026-11-07T06:33:34.329540+09:00",
     "https://www.itmedia.co.jp/news/article/2611/06/2000002928/": "2026-11-07T09:52:05.333329+09:00",
     "https://gigazine.net/news/20261106-openai-responsible-ai-infrastructure/": "2026-11-07T09:52:05.333329+09:00",
     "https://gigazine.net/news/20261106-openai-built-linux-vulnerability/": "2026-11-07T09:52:05.333329+09:00",
@@ -152,6 +149,16 @@
     "https://gigazine.net/news/20261119-meta-insgtagram-project-gryffindor/": "2026-11-20T06:32:33.542637+09:00",
     "https://news.google.com/rss/articles/CBMiakFVX3lxTFBTb3hETlVsa08zOTlMaTdLNGVpNndyUDZlMWVWRDA0U283Sk1aeEd3V2NwN3cydDJUdEdUd3pFYUJTdVBoWHFGUjBuUFNSdmZwalJvYXRiRlYxbjd2QWVnN2JyeERwMmNsX1E?oc=5": "2026-11-20T06:32:33.542637+09:00",
     "https://www.itmedia.co.jp/news/article/2611/20/2000003358/": "2026-11-20T11:15:01.535102+09:00",
-    "https://gigazine.net/news/20261119-elon-musk-says-jensen-huang-michael-jordan/": "2026-11-20T11:15:01.535102+09:00"
+    "https://gigazine.net/news/20261119-elon-musk-says-jensen-huang-michael-jordan/": "2026-11-20T11:15:01.535102+09:00",
+    "https://gigazine.net/news/20261120-uk-government-apple-secret-encryption-order/": "2026-11-21T06:34:10.640297+09:00",
+    "https://gigazine.net/news/20261120-openai-chatgpt-performance-factory/": "2026-11-21T06:34:10.640297+09:00",
+    "https://gigazine.net/news/20261120-siri-recap-hands-on/": "2026-11-21T06:34:10.640297+09:00",
+    "https://news.google.com/rss/articles/CBMijgFBVV95cUxQYnFQeHpQb1llaXBEckN2TGsybUNuZDEzaWh0Z1RkVEljRGRNMUFNY0ZfQU81WnVVNE9BMUlNNzNCdU5hc1c2R09IYU03YnRFNGtQRDFBUEd4blQxdENXYW15ZElhX3dpc1VpdVhPcHdUQzIwWUFObmI1aUREbWZ1UE9XWE5kaGxNM05HWTNn?oc=5": "2026-11-21T06:34:10.640297+09:00",
+    "https://news.google.com/rss/articles/CBMiVkFVX3lxTE5NWS02dE9XN09YbU5obG05UHFleUlUZXVPeFNab1pXQTBndlE5NmVnSHMwb2psM29vLWtLM3E0RUxzNF8tckM4bVNWODZvVVdaUldqMkRB0gFbQVVfeXFMTS1JbVgtSUktOEloUVhpZXFlRGlUTEw5YXhwc3JmY0pxcTZ6M0E5WUxIZHpJNHExQWs5UGplREZwM2ozaGFnRVRMRDFwRDhRVFAxSThPejJLRk9xNA?oc=5": "2026-11-21T06:34:10.640297+09:00",
+    "https://news.google.com/rss/articles/CBMiWEFVX3lxTE5OOF9LMDJXeGNReTFOVGE3blR2cm5LZFp2T2lkVmVRSjZJQmUzc2VaTEVxUTMwVUtwcEhERVRHRlJWcERDakdVdkZlT3ZpT2hiVVBZdERsemw?oc=5": "2026-11-21T06:34:10.640297+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE9SdEN0S3o2UjNCalBmZmFsam1kMkFienE0bS12YzE4R2NucUZhVGJjczY5TlZWVnZaTDFTOFE1LVREM0wySzdqZVVDRVNvQWV2OU53UmFobUZlN0d6MFRBTWZMRWVYT0dq?oc=5": "2026-11-21T06:34:10.640297+09:00",
+    "https://news.google.com/rss/articles/CBMiywJBVV95cUxPZHpyM3BYMXRUOE4xOXV5SXhkS09SMmNVWFBIOGR3eEVHeHBxVVJxUnRDSk1sTkhvbUptNGlRN2hYNE5QSnUxUjdHWHFldFhzWUhTTjg4dUxFdkExMWxXWVNHV2Vhem91MDNlX3hWa0hXVXBqdkZidWVqbklSVnpUVzlUeGUxcV9WOXpxUGU5dlMtOVBJMVV5cENRWVJ5Mk5YRXp3eHZsSjEySkc1NnFtZVdkWlFhbW5uMVoteEg0enNxaUFkTTI1WnVoemJBTEFPVzhGZExRSjFBM0pCZ3dmUE15Q1FRblRpeDIwbmd1cFlfSWlEdkozeTY4d2lORDljNWt4ZHFvT0kwc1JIRmUzeU1oQV9MelZCbVN4Uzh0RVREc0xoWUlZcFdsS19SMjBvM1hHbWtqcXVPWXBZeThoaWltZEdrS3JPUU1v?oc=5": "2026-11-21T06:34:10.640297+09:00",
+    "https://news.google.com/rss/articles/CBMiTEFVX3lxTE9xXzNKNTZzY05SNW9pX1BaWHdDeDc4UmRVTE1mRElhM3ptYjZIRGxROEliVkRQelRCOUZnVW16WXhZWUNJY2dMSV9NM2c?oc=5": "2026-11-21T06:34:10.640297+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE9GUDh4eUVXbmJUQk9IQ0tNNmdWaWVMYy1SXzZaQzB0V0t2VXVEd0tVa0hvb1V6OVgxeXhOVTdmbVBqdW1NWFQza0ZqTWF2WWZ2djR3NGNRazV4RWxJYnY4Y0dIMXlrYVJ0?oc=5": "2026-11-21T06:34:10.640297+09:00"
   }
 }
