@@ -2,8 +2,6 @@
   "_alert:dispatcher_gap": "2026-11-20T08:00:05.814008+09:00",
   "_alert:google_news_fetch": "2026-11-18T12:33:01.254898+09:00",
   "_alert:mastodon_anzn_fetch": "2026-10-29T14:05:16.794629+09:00",
-  "_gemini_backoff:quota": "2026-11-20T17:00:00+09:00",
-  "_gemini_backoff_basis:quota": "日次境界の推定時刻(Googleの待ち時間が境界を越えるため短縮。回復は保証されない)／日次境界(太平洋時間0時・推定)",
   "_gemini_budget:2026-11-17": 12,
   "_gemini_budget:2026-11-18": 15,
   "_gemini_budget:2026-11-19": 7,
