@@ -110,6 +110,7 @@ import requests
 from bs4 import BeautifulSoup
 
 import badminton_tournament_master as tournament_master
+import badminton_handoff as BH
 import atomic_io
 
 JST = datetime.timezone(datetime.timedelta(hours=9))
@@ -2212,6 +2213,8 @@ def main():
     seen_gnews = state.setdefault("seen_gnews_urls", {})
     seen_nba = state.setdefault("seen_nba_result_ids", {})
     pool = state.setdefault("digest_pool", dict(EMPTY_DIGEST_POOL))
+    intl_seen = state.setdefault("intl_results_seen", {})
+    BH.prune_seen(intl_seen, now)
     for key, default in EMPTY_DIGEST_POOL.items():
         pool.setdefault(key, list(default))
 
@@ -2412,8 +2415,27 @@ def main():
             + build_google_news_badminton_embeds(new_gnews_articles, wr_rankings)
             + build_nba_result_embeds(new_nba_results)
         )
+        # 試合結果ハンドオフ（ローカルジョブのJSON）は朝の配信にだけ同じメッセージへ追加する。
+        # 読めない・古い・未検証などの場合は新規0件として扱い、既存配信は従来どおり送る。
+        intl_marks = []
+        if band == "morning":
+            try:
+                handoff_path = os.environ.get("BADMINTON_HANDOFF_PATH", "").strip()
+                if handoff_path:
+                    intl_embeds, intl_marks, intl_reason = BH.collect_embeds(
+                        handoff_path, now, intl_seen, exclude_player=is_target_player)
+                else:
+                    intl_embeds, intl_reason = [], "no_path"
+                if intl_reason != "ok":
+                    print(f"[INFO] 試合結果ハンドオフは使用しません（{intl_reason}）。既存配信のみ送ります。")
+                embeds = embeds + intl_embeds
+            except Exception as err:  # noqa: BLE001 - 新機能の障害で既存配信を止めない
+                intl_marks = []
+                print(f"[WARN] 試合結果ハンドオフの処理で例外（既存配信は継続）: {type(err).__name__}")
         if embeds:
-            if not send_embeds_to_discord(webhook, embeds):
+            if send_embeds_to_discord(webhook, embeds):
+                BH.apply_marks(intl_seen, intl_marks, now)  # 送信成功後にのみ既送信として記録
+            else:
                 had_error = True
         else:
             print("[INFO] 配信対象の新着はありませんでした。")
