@@ -1,7 +1,5 @@
 {
   "seen_urls": {
-    "https://postcoffee.co/magazine/coffee/howtobrew/hoop-how-to-brew/": "2026-11-09T06:32:44.140288+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE41Y1d4RGZMUXVvUGI2ZVh5RVdRaXR5YXF6NVpyQ1hZcXZwdVFlTlhCdDVIVkgySUVReVJCUklaZ1Y4LV82b2h1V3cxSzdCbjVybFIweG9URkRqSllKN3pVTTBLSVgwOWlp?oc=5": "2026-11-09T06:32:44.140288+09:00",
     "https://gigazine.net/news/20261108-ripple-65b-preview/": "2026-11-09T09:48:10.175314+09:00",
     "https://gigazine.net/news/20261107-apple-how-turn-off-macbook-glowing-logo/": "2026-11-09T09:48:10.175314+09:00",
     "https://www.itmedia.co.jp/news/article/2611/09/2000003001/": "2026-11-10T06:35:18.360697+09:00",
@@ -166,6 +164,14 @@
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1uSEFnVTNtZElKbktJUUVDekVNd0dmN0wyb1ZUTHVhaUxxb3JmampZU3NncDRXQ29McWNsQlVnTkN4eXJGSVNRY2Y4NnJEWWxGeHk0aEdtMTktcTRKR0dwNTJiTTYzX01r?oc=5": "2026-11-22T06:34:37.431272+09:00",
     "https://www.itmedia.co.jp/news/article/2611/22/2000003388/": "2026-11-22T10:11:30.833830+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1RX2sxWjFDdGtFWFoxd3JBTDN1VTMtd3FrTEs5a1pNV2ZEM0JuQks4NlFhaVhqTUtMTXRDX19wOEZKNnlOdTJJTzBZRW5qQ0F1MUk1b2FjT2xEdDBBRW15N2hKTWstd2U0?oc=5": "2026-11-22T10:11:30.833830+09:00",
-    "https://news.google.com/rss/articles/CBMiT0FVX3lxTE1jN0tieXhZanhjREVGTGZNc2k2c1A1YmhsdDhRWnVVSU0yUkc1ZVZQSS1ReWpnR0FYeWJMTGwxQXZiV3JDX01sQUdhZ1FVVDA?oc=5": "2026-11-22T10:11:30.833830+09:00"
+    "https://news.google.com/rss/articles/CBMiT0FVX3lxTE1jN0tieXhZanhjREVGTGZNc2k2c1A1YmhsdDhRWnVVSU0yUkc1ZVZQSS1ReWpnR0FYeWJMTGwxQXZiV3JDX01sQUdhZ1FVVDA?oc=5": "2026-11-22T10:11:30.833830+09:00",
+    "https://gigazine.net/news/20261122-ai-will-not-make-you-rich/": "2026-11-23T06:35:38.463493+09:00",
+    "https://gigazine.net/news/20261122-anthropic-claude-said-riemann-hypothesis-solved/": "2026-11-23T06:35:38.463493+09:00",
+    "https://postcoffee.co/magazine/coffee/what-is-coffee-roaster/": "2026-11-23T06:35:38.463493+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE41Y1d4RGZMUXVvUGI2ZVh5RVdRaXR5YXF6NVpyQ1hZcXZwdVFlTlhCdDVIVkgySUVReVJCUklaZ1Y4LV82b2h1V3cxSzdCbjVybFIweG9URkRqSllKN3pVTTBLSVgwOWlp?oc=5": "2026-11-23T06:35:38.463493+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE81dTNZekp1YWxQdjIyak80ZFlwVnNRdmFydnBmejUwNFhhOXBsZDF2MEZtVjJJUWYwNkpURnh4bTI3T01VeUxRQTEwcTdTWTJ2Y29nZHhJWDY2OThrbGFrYjVKcE1ZaWxP?oc=5": "2026-11-23T06:35:38.463493+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBLV19mdFA2LW43aDg5YVhWTHNUQ1kwR1Vtek1URFVDWnd4Vm9FeFE3aDhMYkN6RWh6UVFsOFN3OGhCdm5BMXZkNGN2QkJrcVVhYjJ0U3NNWTg3YjctSzFQT0FVZEc3SmpD?oc=5": "2026-11-23T06:35:38.463493+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1YS014TUU0TTdSd0ZmVVF6TG5UZmtscjlBaUNpNjJxQmVFcTRyd05OZUJKaWctTXpZX2JMQnNMSWVGY2FjX0R0NHFFN1lMTzVjQUVwMnFkaUVtWmFPZXF4M25IR0czd1Rf?oc=5": "2026-11-23T06:35:38.463493+09:00",
+    "https://news.google.com/rss/articles/CBMiakFVX3lxTE9XMDM1NFI5Yy1uTDRuS2t0NEtKY3lQS1Zzc0hNUlc4MkxHR1NZNmFSSXdYa0J5Smp5VUUyX0FmLWhkRGJPWmJJX2FKUWlxQlE1blJuSUtUX0tWWk4xRVFLXzcwSmg4WkgybWc?oc=5": "2026-11-23T06:35:38.463493+09:00"
   }
 }
