@@ -32,7 +32,7 @@ ALERT_STATE_PREFIX = "_alert:"
 # 「回復すると分かっている異常」で通知が鳴るため、同じ種類が連続してこの回数の実行で失敗したときだけ通知する。
 # 実行間隔は4時間(news.yml)なので、2回連続=約4時間以上の混雑継続で初めて通知する。
 TRANSIENT_CONFIRM_RUNS = 2
-TRANSIENT_KIND_SUFFIXES = (":http503",)   # record_gemini_failure が付ける接尾辞(503のみ対象。429・認証などは即通知)
+TRANSIENT_KIND_SUFFIXES = (":http503", ":http5xx")   # 503(Gemini)・あんぜんねっとの5xx(2026-11-24追加)。429・認証などは即通知
 STREAK_PREFIX = "_alert_streak:"          # state キー。値は連続で失敗した実行回数(int)。"_" 始まりなので既送信記録の掃除対象外
 CHANNEL_LABELS = {"local": "#webhook_local", "news": "#webhook_news", "market": "#webhook_market"}
 FALLBACK_ORDER = ["market", "news", "local"]

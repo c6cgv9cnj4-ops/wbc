@@ -633,7 +633,9 @@ def fetch_anzn_new_arrivals(limit=ANZN_ITEM_LIMIT):
         html = resp.content.decode("euc-jp", errors="replace")
     except Exception as err:  # noqa: BLE001
         print(f"[ERROR] あんぜんねっとの取得に失敗しました: {news_alerts.redact(err)}")   # Webhook URL等を伏せてログに出す(2026-10-11)
-        news_alerts.record("anzn_fetch", "local", "あんぜんねっと(北本市安全安心情報)",
+        # 2026-11-24: 取得側のHTTP 5xx(サーバー側の一時障害)は、連続2回失敗したときだけ通知する(Gemini 503と同じ扱い)
+        kind = "anzn_fetch:http5xx" if re.search(r"\b5\d\d\b", str(err)) else "anzn_fetch"
+        news_alerts.record(kind, "local", "あんぜんねっと(北本市安全安心情報)",
                            f"取得失敗 {news_alerts.short_error(err)}",
                            ("本体は未取得 → 公式Mastodonで代替確認(地域ニュースは継続)" if anzn_via_mac()
                             else "一部スキップ(安全安心情報の新着を取得できず/地域ニュースは継続)"))

@@ -344,6 +344,9 @@ def curate(items, client, model_name, caller=None, rule_fallback=False):
     }
 
 
+LOW_LINK_LIMIT = 3  # ⚪ その他のうち青リンクにする件数(2026-11-24)
+
+
 def render_groups(result, low_one_line=False):
     """整理結果をDiscord向けの行リストにする。1グループ = 見出し行 + 媒体リンク行。
     low_one_line=True(#webhook_market の定時便。2026-10-12 A案)のとき、⚪ は「⚪ その他」の下にタイトル1行ずつ
@@ -352,7 +355,12 @@ def render_groups(result, low_one_line=False):
     for g in result["groups"]:
         count = f"（{len(g['items'])}本）" if len(g["items"]) > 1 else ""
         if low_one_line and g["importance"] == "low" and not g.get("critical_alert"):
-            low.append(f"- [{g['headline']}](<{g['items'][0]['url']}>){count}")
+            # 2026-11-24(B案): 上位LOW_LINK_LIMIT件だけリンク、残りは青リンクを使わず「媒体名」付きのプレーン表示
+            if len(low) < LOW_LINK_LIMIT:
+                low.append(f"- [{g['headline']}](<{g['items'][0]['url']}>){count}")
+            else:
+                source = _source_labels(g["items"])[0]
+                low.append(f"- {g['headline']}{count}（{source}）")
             continue
         icon = f"{CRITICAL_ICON}【市場急変】" if g.get("critical_alert") else IMPORTANCE_ICON[g["importance"]]
         latest = max((it.get("published") or "" for it in g["items"]), default="")
