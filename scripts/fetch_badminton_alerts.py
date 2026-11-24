@@ -111,7 +111,10 @@ from bs4 import BeautifulSoup
 
 JST = datetime.timezone(datetime.timedelta(hours=9))
 STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "state", "badminton_alerts_seen.json")
-STATE_RETENTION_DAYS = 30
+# 既送信記録の保持日数。sposoku.comは過去の大会記事を再掲示するため、30日で
+# 記録を消すと古い結果が「新着」として再送される(2026-11-24に発生)。
+# 再掲示されうる期間を超えるよう365日保持する。
+STATE_RETENTION_DAYS = 365
 REQUEST_TIMEOUT = 15
 BADSPI_RSS_URL = "https://www.badspi.jp/feed/"
 BADSPI_ITEM_LIMIT = 20
@@ -447,9 +450,63 @@ def extract_national_summary_results(lines, now):
     return results
 
 
+STALE_MATCH_DAYS = 7  # 試合日がこの日数より前の結果は配信しない(2026-11-24細川さん指定)
+
+
+def is_stale_match_date(date_estimate, now):
+    """「M/D」形式の推定試合日(年なし)が、現在から STALE_MATCH_DAYS 日より前
+    なら True。年は「今日以前で最も新しい該当日」を採用する(結果記事は過去の
+    試合を扱うため。例: 11/24時点の「1/6」は2026年1月6日と解釈)。
+    日付が無い・解釈できない場合は判定できないので False を返す。"""
+    if not date_estimate:
+        return False
+    try:
+        month, day = (int(x) for x in date_estimate.split("/"))
+    except ValueError:
+        return False
+    today = now.date()
+    past_dates = []
+    for year in (today.year - 1, today.year):
+        try:
+            d = datetime.date(year, month, day)
+        except ValueError:
+            continue
+        if d <= today:
+            past_dates.append(d)
+    if not past_dates:
+        return False
+    match_date = max(past_dates)
+    return (today - match_date).days > STALE_MATCH_DAYS
+
+
+def entry_published_iso(entry):
+    """RSSエントリの公開日時をJSTのISO文字列にする(取得できなければ None)。"""
+    st = entry.get("published_parsed")
+    if not st:
+        return None
+    utc = datetime.datetime(*st[:6], tzinfo=datetime.timezone.utc)
+    return utc.astimezone(JST).isoformat()
+
+
+def is_stale_article(published_iso, now):
+    """記事の公開日(JST)が現在から STALE_MATCH_DAYS 日より前なら True。
+    公開日が無い・解釈できない記事は判定できないので False を返す。
+    ※記事の公開日は試合日の代用(試合当日〜翌日に出ることが多い)。"""
+    if not published_iso:
+        return False
+    try:
+        published = datetime.datetime.fromisoformat(published_iso)
+    except ValueError:
+        return False
+    return (now.date() - published.astimezone(JST).date()).days > STALE_MATCH_DAYS
+
+
 def build_badminton_embeds(matches, now):
     embeds = []
     for m in matches:
+        if is_stale_match_date(m["date_estimate"], now):
+            print(f"[SKIP] 試合日が{STALE_MATCH_DAYS}日以上前の結果のため配信しない: {m['date_estimate']} {m['winner']} vs {m['loser']}")
+            continue
         winner_display = m["winner"] + (f"({m['winner_country']})" if m["winner_country"] else "")
         loser_display = m["loser"] + (f"({m['loser_country']})" if m["loser_country"] else "")
 
@@ -537,7 +594,8 @@ def fetch_badspi_articles(limit=BADSPI_ITEM_LIMIT):
         if is_league_excluded(title) or is_league_excluded(summary):
             print(f"[INFO] S/Jリーグ(実業団)関連記事のため除外します: {title}")
             continue
-        items.append({"title": title, "url": entry.get("link", "")})
+        items.append({"title": title, "url": entry.get("link", ""),
+                      "published": entry_published_iso(entry)})
     return items
 
 
@@ -954,6 +1012,14 @@ def build_article_embeds(articles, wr_rankings, color):
     「(この対戦のスコアは前の通知に掲載済み)」Embedを連投していた)、
     tie判定できない記事(個人戦の速報等)は従来どおり1記事1Embedのまま出す。"""
     wr = wr_rankings or {}
+    now = datetime.datetime.now(JST)
+    fresh = []
+    for a in articles:
+        if is_stale_article(a.get("published"), now):
+            print(f"[SKIP] 記事公開から{STALE_MATCH_DAYS}日以上経過のため配信しない: {a['title']}")
+            continue
+        fresh.append(a)
+    articles = fresh
     enriched = [(a, enrich_article(a)) for a in articles]
 
     embeds = []
@@ -1041,7 +1107,8 @@ def fetch_google_news_badminton(limit=GOOGLE_NEWS_BADMINTON_ITEM_LIMIT, retries=
             continue
         seen_titles_in_batch.add(title)
 
-        items.append({"title": title, "url": url_})
+        items.append({"title": title, "url": url_,
+                      "published": entry_published_iso(entry)})
     return items
 
 
