@@ -1,11 +1,5 @@
 {
   "seen_urls": {
-    "https://gigazine.net/news/20261111-not-convinced-ai-bubble-exists/": "2026-11-11T10:13:02.201048+09:00",
-    "https://news.google.com/rss/articles/CBMif0FVX3lxTE5xV05OODRQdk1zMHRpWDhMeGVGMlg2bFU0ZkhMb0h5T01zSjBtSXdUQ2lBRXdYSXFLOHBjaUJBUDhxX2ZJM1plNGpoZmlua3YzNHhaZ0d6NHN0NmtScHVlaFV0LXRkejR1ZUtiMzFhTjFlZklKS0dTOXVxYVh1OTA?oc=5": "2026-11-11T10:13:02.201048+09:00",
-    "https://news.google.com/rss/articles/CBMia0FVX3lxTFA2aWRpdk9vcFF3cmZERWltTXFOY2lfYzhadzhEbTFwMnoxUFNaQmsxUjc5WjRYcmpydjJhQ0pYTUJZLXpPNWtMUFZpLVFRSlJhNmVHeWFJUFVDNHROcWc3YnBLRFFlY01kYlZR?oc=5": "2026-11-11T10:13:02.201048+09:00",
-    "https://news.google.com/rss/articles/CBMiTEFVX3lxTFBwZXE3Zm0wdndHQ2I5TjZzdksyVXNXZDh2SHdRS1oyM0ZUZFhQR2JTOFdVbWhzTDRrZ0owRWZyazl6UHFBa2hCSUNMU18?oc=5": "2026-11-11T10:13:02.201048+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBzY2Q1eEFuZTFIYW4tTnZsazBYX1daRzVmczJTRFFScElNd0dNUWJ5UEtwTXBGRWVsN3N6Q3ZFWVNVa2xzTm9BOEpQdlQyTWFGc2d6OGdQYUhFamo0OG1yajJ3X2pJRXR0?oc=5": "2026-11-11T10:13:02.201048+09:00",
-    "https://news.google.com/rss/articles/CBMinwFBVV95cUxPN1hZeWdmbWNNOVpzb1VoRFh0bjZxZmFnZW1makFENEFRY1UzbEhWT05sUmZRekRLRXQ2NV8tRmMyZVVXNDlDT0w3TTRFZWRiNEVGaWZZdm8yc3JCMTFWU0tLNHJlSnBRSWFuVFZ5TzlORS04SmxSVzFacWVFQV80VEFGX3hQMWxtOFU0S0MtS2FFdGZpOEVrcEhpX1hETHM?oc=5": "2026-11-11T10:13:02.201048+09:00",
     "https://gigazine.net/news/20261111-amazon-claude-sonnet-4-6-strands-decider/": "2026-11-12T06:31:35.367828+09:00",
     "https://gigazine.net/news/20261111-superhuman-ai-researcher-2027/": "2026-11-12T06:31:35.367828+09:00",
     "https://gigazine.net/news/20261111-google-deepmind-alphaproof-code-verification/": "2026-11-12T06:31:35.367828+09:00",
@@ -150,6 +144,12 @@
     "https://gigazine.net/news/20261124-what-comes-after-agi/": "2026-11-25T06:33:35.027794+09:00",
     "https://gigazine.net/news/20261124-superintelligence-is-arriving/": "2026-11-25T06:33:35.027794+09:00",
     "https://postcoffee.co/magazine/coffee/coffee-showroom-specialty-coffee/": "2026-11-25T06:33:35.027794+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE9hWVJmWkRLYU1EaDBBdHo0RmpkMVVmX3BCcE9OVWZBdVIyMVcyaWRHU3JfaHZINWdReURRZnp4aFZwQWxYTk9LMjNwcy01Vld2aHQ1LUNVMFFxUmdyQk4xby1sWktEOFdB?oc=5": "2026-11-25T06:33:35.027794+09:00"
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE9hWVJmWkRLYU1EaDBBdHo0RmpkMVVmX3BCcE9OVWZBdVIyMVcyaWRHU3JfaHZINWdReURRZnp4aFZwQWxYTk9LMjNwcy01Vld2aHQ1LUNVMFFxUmdyQk4xby1sWktEOFdB?oc=5": "2026-11-25T06:33:35.027794+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/25/2000003430/": "2026-11-25T13:06:40.559257+09:00",
+    "https://gigazine.net/news/20261125-openai-gpt-6-protein/": "2026-11-25T13:06:40.559257+09:00",
+    "https://gigazine.net/news/20261125-anthropic-ai-data-centers-fossil-fuels/": "2026-11-25T13:06:40.559257+09:00",
+    "https://gigazine.net/news/20261124-google-ai-tv-channel/": "2026-11-25T13:06:40.559257+09:00",
+    "https://news.google.com/rss/articles/CBMiekFVX3lxTE5wVGV2TXRBYjFGalprMGZYTUd0Y1JyLVZGR1BDbWJJTWE3WTlKWmlXVHZHR1lfMFgteXVzTWdaNEwzSDE0TGVuVml6QTdBNVNmZHVScTFBQ3hIeWdGNVFCZy1wZ3pramNKODJadjFGeWY1TTl4QWVLY2hn?oc=5": "2026-11-25T13:06:40.559257+09:00",
+    "https://news.google.com/rss/articles/CBMia0FVX3lxTFBLOWZtLWhncE1jNE55ZmxBbzVvYVM3MFZMRFUtUG9qNm9sQjlhaWNHRjhFcTdUbXoteURmSE1mT0JVSk1BSHdFd2xkNHdiNzZvM0pkWjNSQk1YYndGZFpOaHQzbHI2QmwwOGtz?oc=5": "2026-11-25T13:06:40.559257+09:00"
   }
 }
