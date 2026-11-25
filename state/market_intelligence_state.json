@@ -1,7 +1,5 @@
 {
   "seen": {
-    "https://www.jpx.co.jp/corporate/news/news-releases/0060/20261026-01.html": "2026-10-26T23:14:11.527374+09:00",
-    "https://www.jpx.co.jp/news/1030/20261026-01.html": "2026-10-26T23:14:11.527374+09:00",
     "http://www.boj.or.jp/statistics/pi/cspi_release/sppi2609.pdf": "2026-10-27T09:06:12.386661+09:00",
     "http://www.boj.or.jp/research/research_data/cpi/index.htm": "2026-10-27T22:11:29.106725+09:00",
     "http://www.boj.or.jp/about/release_2026/rel261027a.htm": "2026-10-27T22:11:29.106725+09:00",
@@ -198,6 +196,14 @@
     "https://www.fsa.go.jp/common/recruit/r8/kanbohisyo-02/kanbohisyo-02.html": "2026-11-25T03:52:32.715939+09:00",
     "http://www.boj.or.jp/statistics/boj/other/acmai/release/2026/ac261120.htm": "2026-11-25T12:46:06.739647+09:00",
     "http://www.boj.or.jp/statistics/dl/loan/yaku/yaku2609.pdf": "2026-11-25T12:46:06.739647+09:00",
-    "http://www.boj.or.jp/statistics/pi/cspi_release/sppi2610.pdf": "2026-11-25T12:46:06.739647+09:00"
+    "http://www.boj.or.jp/statistics/pi/cspi_release/sppi2610.pdf": "2026-11-25T12:46:06.739647+09:00",
+    "http://www.boj.or.jp/statistics/boj/other/mei/release/2026/mei261120.xlsx": "2026-11-26T02:57:09.013122+09:00",
+    "https://www.jpx.co.jp/corporate/news/news-releases/0060/20261125-01.html": "2026-11-26T02:57:09.013122+09:00",
+    "https://www.jpx.co.jp/news/1030/20261125-02.html": "2026-11-26T02:57:09.013122+09:00",
+    "https://www.jpx.co.jp/news/1030/20261125-04.html": "2026-11-26T02:57:09.013122+09:00",
+    "https://www.jpx.co.jp/news/1030/20261125-03.html": "2026-11-26T02:57:09.013122+09:00",
+    "https://www.jpx.co.jp/news/1030/20261125-01.html": "2026-11-26T02:57:09.013122+09:00",
+    "https://www.jpx.co.jp/news/1070/20261125.html": "2026-11-26T02:57:09.013122+09:00",
+    "https://www.jpx.co.jp/news/1030/20261125-05.html": "2026-11-26T02:57:09.013122+09:00"
   }
 }
