@@ -14,7 +14,6 @@
     "https://www.sposoku.com/malaysiaopen/::×緑川・松山　1－2　〇CHENG・ZHANG(中国)": "2026-11-24T06:34:09.005736+09:00"
   },
   "seen_badspi_urls": {
-    "https://www.badspi.jp/202610260845/?utm_source=rss&utm_medium=rss&utm_campaign=202610260845": "2026-10-26T09:43:20.274285+09:00",
     "https://www.badspi.jp/202610261740/?utm_source=rss&utm_medium=rss&utm_campaign=202610261740": "2026-10-26T18:15:12.088107+09:00",
     "https://www.badspi.jp/202610261804/?utm_source=rss&utm_medium=rss&utm_campaign=202610261804": "2026-10-27T01:11:07.531311+09:00",
     "https://www.badspi.jp/202610261857/?utm_source=rss&utm_medium=rss&utm_campaign=202610261857": "2026-10-27T01:11:07.531311+09:00",
@@ -93,7 +92,9 @@
     "https://www.badspi.jp/202611151551/?utm_source=rss&utm_medium=rss&utm_campaign=202611151551": "2026-11-16T06:32:39.054845+09:00",
     "https://www.badspi.jp/202611161331/?utm_source=rss&utm_medium=rss&utm_campaign=202611161331": "2026-11-17T06:34:11.908006+09:00",
     "https://www.badspi.jp/202612231808/?utm_source=rss&utm_medium=rss&utm_campaign=202612231808": "2026-11-24T06:34:09.005736+09:00",
-    "https://www.badspi.jp/202611241212/?utm_source=rss&utm_medium=rss&utm_campaign=202611241212": "2026-11-24T14:12:36.011673+09:00"
+    "https://www.badspi.jp/202611241212/?utm_source=rss&utm_medium=rss&utm_campaign=202611241212": "2026-11-24T14:12:36.011673+09:00",
+    "https://www.badspi.jp/202611251212/?utm_source=rss&utm_medium=rss&utm_campaign=202611251212": "2026-11-25T13:02:25.976485+09:00",
+    "https://www.badspi.jp/202611241547/?utm_source=rss&utm_medium=rss&utm_campaign=202611241547": "2026-11-25T13:02:25.976485+09:00"
   },
   "seen_national_summaries": {
     "https://www.sposoku.com/interhigh-badminton/::優勝：ふたば未来学園(福島)準優勝：埼玉栄(埼玉)第三位：東大阪大柏原(大阪)、高岡第一(富山)": "2026-11-05T06:32:58.123129+09:00",
@@ -120,7 +121,6 @@
     "https://www.sposoku.com/kokuspo-badminton-026/::優勝：青森県準優勝：山口県第三位：埼玉県第四位：大阪府": "2026-11-14T06:32:04.922346+09:00"
   },
   "seen_gnews_urls": {
-    "https://news.google.com/rss/articles/CBMicEFVX3lxTFBqaU5aSmNudExGMl9mdkFTZVo5dE9xQ2VTTmpxeTZ1c0w3RGswaG5lbVdkZzhzdms4VFpGOHBKa3pqZ2lMalFJV3l6X3FxbFVHekptOWJIQ3JMbVBzeTQxUGtDcTVMeE82WEJWbzMxQjM?oc=5": "2026-10-26T08:07:40.909083+09:00",
     "https://news.google.com/rss/articles/CBMicEFVX3lxTE5PemZ1SmNLd3B6UGxXUUdKTEQzd2FnVUhjQmpiMHg2NkJwcUJkLUJ0bWJScWxDSGJ6WmxqQmJoZVB4ZldEUjBiSWYzd2RmWTBpUnNVY294UGU2cHpYMllodHFIZmJHRFlVeVVabzc4THM?oc=5": "2026-10-27T09:05:28.591579+09:00",
     "https://news.google.com/rss/articles/CBMie0FVX3lxTE9KMFA4dkJtbW5FM0didWRZOFFxdUJCc2NmazNxZmRldkxvTFJMOXlZZjlQTENEMTBDX3N2cFk1NGJtdkN6aG9rdXVZbTJ6YlRxbzdBZ3c2ZkxsMG1aVWo5cnMyeWxyLWdIRFJ4LW1hZkk5cmtJWXlBMFRrcw?oc=5": "2026-10-28T00:33:17.406119+09:00",
     "https://news.google.com/rss/articles/CBMif0FVX3lxTE9xd05FOTNVWEFCOW9zZkc0aFU2N1M3clpuQ2N2VE93Tm9KNnltUXhaZlF1YUY4QTNsemFiWnlyXzMwVFJ4N0l4VWR0Q290TDk1V1dfcHhvd0lVdHh4aS1EcGxNYmZrcjgyUXpnc3I0QmtsVlNxaE5iRVJ5NUdBTE0?oc=5": "2026-10-28T19:34:44.507528+09:00",
@@ -240,7 +240,11 @@
     "https://news.google.com/rss/articles/CBMif0FVX3lxTE13TEhSSXo5cVdZQk1qcTVKRFExZF90U1VhajBKUzg0T0lwNVROV2JPczZYNVNNbHUweW5XbzJCMkhQZmpxcTc3U3AzMklhQnF2RTBHaHpJUGhLUG9pNTBNUUI0UmFIT1NaMnRHUEkyYUM2a3IxR2ZLZlFMMGlhSzA?oc=5": "2026-11-24T06:34:09.005736+09:00",
     "https://news.google.com/rss/articles/CBMibEFVX3lxTFBJZXFrOFR4cXBVUlMxVE1fS2xsUFB6NXlMYVhkanNjbXpXNF81bm1xTVRzU1VpS3BzVTU4dmZfWjE1WGtVeEpyR3JvQldweUVpcDF6MllUSTN2Q2pYVWRKRWVSaXZjeEQ4aFR5ag?oc=5": "2026-11-24T14:12:36.011673+09:00",
     "https://news.google.com/rss/articles/CBMigwFBVV95cUxOb0hESDV3NW9rNi1uNFNPVnY4ODQ4a3N1YURZNUpmYUVSNktRNGF1Q0g1UnRWS043U2FybmpPSlg0OHR5alU2aEpfUVNBRjRaYjR0Rzd2QTY3MW9aNDBCUXZmV1E1WThJMVhJaTJpRnFTZVlrQjNfR2FjUVNuVUlDcFI2RdIBiAFBVV95cUxQT3FXMzJobTdlTTN4dDFQelZid0M4b05UbS1nR3ctVmlWR01sYlc4RW9oSmxSMVBteFJYZ2k4R3BTdFpjd1FwREZOYmFwNC1JTThCREhTeFd6Z0dfMzhRMloxc084bVRyTVB4VWVVdnhPMUZFazZ6endHUEotTC1QVW1JQm9lcHRH?oc=5": "2026-11-25T06:33:37.511640+09:00",
-    "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE9GYktCWHNkaFdUTEx5TmRIa1BVSE5kb05HREZia0N0RGJaWW9Hb3UybktkSkJqamUyWER2WVpzVngyV1g5QUdiNm5HNmUxUjR0N2YwdWplTFdKclI4YzY1N2Y2V2F1N3M?oc=5": "2026-11-25T06:33:37.511640+09:00"
+    "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE9GYktCWHNkaFdUTEx5TmRIa1BVSE5kb05HREZia0N0RGJaWW9Hb3UybktkSkJqamUyWER2WVpzVngyV1g5QUdiNm5HNmUxUjR0N2YwdWplTFdKclI4YzY1N2Y2V2F1N3M?oc=5": "2026-11-25T06:33:37.511640+09:00",
+    "https://news.google.com/rss/articles/CBMif0FVX3lxTFAzT1RFZllESkhsOHdrSkhua29NRGlUMk1tazFIS2lUekt1Rjc4OWctRXRISmlSTGFOVzlxYXJOSktEQ3JuWDhDalp4QVd1WEc4Tmg3Z2p5eUpVZk4wOFJ2b1ZmdzBISVR4Mk9QdU56WWNWSFl5VHZWY0pJYXZuR2M?oc=5": "2026-11-25T13:02:25.976485+09:00",
+    "https://news.google.com/rss/articles/CBMifEFVX3lxTE9JTlZmcEtxQ2pYVDlvcmx4bkVMblg3RWxpM1lKRW10RERZQUVzVjlxb3FQUmZIOE14NXIwOXQtRmY3dGhuMWZvdEx5UldFRUdvX2pDekd3YjBkNVBfVDE2dTNURmRqYTVvdTBybDRuc3FvbVdxTTE1dUVkdGc?oc=5": "2026-11-25T13:02:25.976485+09:00",
+    "https://news.google.com/rss/articles/CBMic0FVX3lxTFBBUnphNTRoajFGbGlqMU1obUdVSFpBMGU0TW56UnRvVFdTSTUyaFIzNS0zbHF6UWRyU3dMZG5TelVQcng0VnJBRGozQWRHN01CNkVKMDJmMEZyeGE4MEdqazRLeG5DZ3VaUTF3cFlaZ2c5TEU?oc=5": "2026-11-25T13:02:25.976485+09:00",
+    "https://news.google.com/rss/articles/CBMif0FVX3lxTFB3cUMwRHVyNDVkWG4tOXB2blphcWtLWkVlTjU0UGFJMElYWlF3SmJsZnRQQ1M2aExIb2dzdnVjNGlOR01ST1VHd3pCR1NMUmpGcE5ham5zX2tVYzBER0dfVV9wMDhIYW9wa1FLUS1kM1hRMmtaTklwWWdPeVpGSkk?oc=5": "2026-11-25T13:02:25.976485+09:00"
   },
   "seen_nba_result_ids": {
     "853": "2026-11-06T06:30:56.401852+09:00",
