@@ -1,16 +1,5 @@
 {
   "seen": {
-    "http://www.boj.or.jp/research/research_data/cpi/index.htm": "2026-10-27T22:11:29.106725+09:00",
-    "http://www.boj.or.jp/about/release_2026/rel261027a.htm": "2026-10-27T22:11:29.106725+09:00",
-    "https://www.jpx.co.jp/corporate/news/news-releases/1020/20261027-01.html": "2026-10-27T22:11:29.106725+09:00",
-    "https://www.jpx.co.jp/corporate/news/news-releases/0063/t13vrt000002hjok-att/J_ER_Q2FY2026.pdf": "2026-10-27T22:11:29.106725+09:00",
-    "https://www.jpx.co.jp/corporate/news/news-releases/0063/t13vrt000002hjs8-att/J_EM_Q2FY2026.pdf": "2026-10-27T22:11:29.106725+09:00",
-    "https://www.jpx.co.jp/corporate/news/news-releases/0063/t13vrt000002hjvo-att/20261027_j_1.pdf": "2026-10-27T22:11:29.106725+09:00",
-    "https://www.jpx.co.jp/corporate/news/news-releases/0020/t13vrt0000029o12-att/t13vrt0000029o3m.pdf": "2026-10-27T22:11:29.106725+09:00",
-    "https://www.jpx.co.jp/corporate/news/news-releases/0060/20261027-02.html": "2026-10-27T22:11:29.106725+09:00",
-    "https://www.jpx.co.jp/corporate/news/news-releases/0060/20261027-01.html": "2026-10-27T22:11:29.106725+09:00",
-    "https://www.jpx.co.jp/news/2040/20261027-02.html": "2026-10-27T22:11:29.106725+09:00",
-    "https://www.jpx.co.jp/news/2040/20261027-01.html": "2026-10-27T22:11:29.106725+09:00",
     "http://www.boj.or.jp/mopo/measures/select/s_release/srel261028a.htm": "2026-10-28T22:59:52.965168+09:00",
     "http://www.boj.or.jp/finsys/intlact_fs/risk/ris261028a.htm": "2026-10-28T22:59:52.965168+09:00",
     "https://www.jpx.co.jp/news/2020/20261028-01.html": "2026-10-28T22:59:52.965168+09:00",
@@ -204,6 +193,18 @@
     "https://www.jpx.co.jp/news/1030/20261125-01.html": "2026-11-26T02:57:09.013122+09:00",
     "https://www.jpx.co.jp/news/1070/20261125.html": "2026-11-26T02:57:09.013122+09:00",
     "https://www.jpx.co.jp/news/1030/20261125-05.html": "2026-11-26T02:57:09.013122+09:00",
-    "http://www.boj.or.jp/about/press/koen_2026/ko261126a.htm": "2026-11-26T12:10:17.048259+09:00"
+    "http://www.boj.or.jp/about/press/koen_2026/ko261126a.htm": "2026-11-26T12:10:17.048259+09:00",
+    "http://www.boj.or.jp/finsys/intlact_fs/kisei/kis261126a.htm": "2026-11-27T02:41:52.289773+09:00",
+    "http://www.boj.or.jp/statistics/boj/other/other_gai/gai2609.pdf": "2026-11-27T02:41:52.289773+09:00",
+    "http://www.boj.or.jp/finsys/rfs/rfs261126.pdf": "2026-11-27T02:41:52.289773+09:00",
+    "http://www.boj.or.jp/research/research_data/cpi/index.htm": "2026-11-27T02:41:52.289773+09:00",
+    "https://www.jpx.co.jp/news/2020/20261126-01.html": "2026-11-27T02:41:52.289773+09:00",
+    "https://www.jpx.co.jp/news/1021/20261126-23.html": "2026-11-27T02:41:52.289773+09:00",
+    "https://www.jpx.co.jp/news/1030/20261126-01.html": "2026-11-27T02:41:52.289773+09:00",
+    "https://www.jpx.co.jp/news/1023/20261126-11.html": "2026-11-27T02:41:52.289773+09:00",
+    "https://www.fsa.go.jp/status/kasikin/20261126/index.html": "2026-11-27T02:41:52.289773+09:00",
+    "https://www.fsa.go.jp/inter/fsf/20261126/20261126.html": "2026-11-27T02:41:52.289773+09:00",
+    "https://www.fsa.go.jp/common/conference/minister/2026b/20261120-1.html": "2026-11-27T02:41:52.289773+09:00",
+    "https://www.fsa.go.jp/news/r8/singi/20261125.html": "2026-11-27T02:41:52.289773+09:00"
   }
 }
