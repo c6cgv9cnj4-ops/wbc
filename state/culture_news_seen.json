@@ -1,16 +1,5 @@
 {
   "seen_urls": {
-    "https://gigazine.net/news/20261111-amazon-claude-sonnet-4-6-strands-decider/": "2026-11-12T06:31:35.367828+09:00",
-    "https://gigazine.net/news/20261111-superhuman-ai-researcher-2027/": "2026-11-12T06:31:35.367828+09:00",
-    "https://gigazine.net/news/20261111-google-deepmind-alphaproof-code-verification/": "2026-11-12T06:31:35.367828+09:00",
-    "https://news.google.com/rss/articles/CBMidEFVX3lxTE8wSUoySm9naUFPMG1uOGhXSExrQTNTYmZOclY5UG5yS1REQjZvTTVfNGVMbmZVcjY1VnQ2c0gyV0JEblhZTml3cWpxX0NsazIzSW5EWmsyWmpDRVl0Xzhid3JaSzB0QzlDb1JpUVR3V3JFTlV3?oc=5": "2026-11-12T06:31:35.367828+09:00",
-    "https://news.google.com/rss/articles/CBMiXkFVX3lxTFBENFk4R0lTZ1NwUE9KRjZvMGdyU3ZjMk96VEJfNWVrUkloMHI2SDlDYUdOXzZOSmNQWVQ2X3cwNFlSendHal9pRUhKNC1uWlc4TE1HcEFQYTBzRVFjUlE?oc=5": "2026-11-12T06:31:35.367828+09:00",
-    "https://news.google.com/rss/articles/CBMiakFVX3lxTE9Oa05LNlczSk5jMl9uNGp4UVRqdlJoX0hMYktNa3gwcDQwM3J5XzU4dU1PU3pUY0xOMEY1SUx6ejRNbGZtUC1ONHpIT3N6MnVhdjFjcHRZRThfLTNfWXNDSUxuVEVJbTJ1Y0E?oc=5": "2026-11-12T06:31:35.367828+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1oWlVzNnAxYkRmS1gzVVhRTEJESFRKNDg5NEJnci1qZldZZmFQUURXSW5BQjhVRGlvMTNtNW9xUC1mbWZrU3RnenVFSVNEX1V0NGlFc3BOVGo0cGlGdE9xeDJTVXhWVVVm?oc=5": "2026-11-12T06:31:35.367828+09:00",
-    "https://www.itmedia.co.jp/news/article/2611/11/2000002913/": "2026-11-12T11:14:35.499650+09:00",
-    "https://news.google.com/rss/articles/CBMiYkFVX3lxTE5nODB6N1hSazN6M1J1SzBaZ2hlVTdoMXFQTDdrWXg1c3dpN3ZZOFFpZWZ4cTYzaVBqSFdsLS10RDNYZmFjSFZuMEZwNDhRUlpUN0JuY3VGUFBkbFlxMmppSWFB?oc=5": "2026-11-12T11:14:35.499650+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE55WXlEMTdMekdzNEwzWG9BMEpicWRJUHZralBLc1dzbUFsb1lmcjJaTWEycTl1UTVBVXEyQ0ZTTnNtQzl1aVB5cVZ0VFd5MkpYMFNmbWNsZkJ3NzB1ZnZmenNYeVp6YlF5?oc=5": "2026-11-12T11:14:35.499650+09:00",
-    "https://news.google.com/rss/articles/CBMiU0FVX3lxTE5RUW84Yl83UmhCN3pUVFBVc0c2Q0V5Q3N3WmJBa2dCUE4ydXdpQWFoUnczVm02Z0JGdGh6ajFKQ3BYRXg1T1htMk04dHpGeGlDazFF?oc=5": "2026-11-12T11:14:35.499650+09:00",
     "https://gigazine.net/news/20261112-apple-claris-harbor-local-ai/": "2026-11-13T06:35:31.532437+09:00",
     "https://gigazine.net/news/20261112-iphone-duo-benchmark-battery/": "2026-11-13T06:35:31.532437+09:00",
     "https://postcoffee.co/magazine/coffee/howtobrew/specialty-matcha-guide/": "2026-11-13T06:35:31.532437+09:00",
@@ -150,6 +139,12 @@
     "https://gigazine.net/news/20261125-anthropic-ai-data-centers-fossil-fuels/": "2026-11-25T13:06:40.559257+09:00",
     "https://gigazine.net/news/20261124-google-ai-tv-channel/": "2026-11-25T13:06:40.559257+09:00",
     "https://news.google.com/rss/articles/CBMiekFVX3lxTE5wVGV2TXRBYjFGalprMGZYTUd0Y1JyLVZGR1BDbWJJTWE3WTlKWmlXVHZHR1lfMFgteXVzTWdaNEwzSDE0TGVuVml6QTdBNVNmZHVScTFBQ3hIeWdGNVFCZy1wZ3pramNKODJadjFGeWY1TTl4QWVLY2hn?oc=5": "2026-11-25T13:06:40.559257+09:00",
-    "https://news.google.com/rss/articles/CBMia0FVX3lxTFBLOWZtLWhncE1jNE55ZmxBbzVvYVM3MFZMRFUtUG9qNm9sQjlhaWNHRjhFcTdUbXoteURmSE1mT0JVSk1BSHdFd2xkNHdiNzZvM0pkWjNSQk1YYndGZFpOaHQzbHI2QmwwOGtz?oc=5": "2026-11-25T13:06:40.559257+09:00"
+    "https://news.google.com/rss/articles/CBMia0FVX3lxTFBLOWZtLWhncE1jNE55ZmxBbzVvYVM3MFZMRFUtUG9qNm9sQjlhaWNHRjhFcTdUbXoteURmSE1mT0JVSk1BSHdFd2xkNHdiNzZvM0pkWjNSQk1YYndGZFpOaHQzbHI2QmwwOGtz?oc=5": "2026-11-25T13:06:40.559257+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/26/2000003474/": "2026-11-26T12:30:36.582600+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/26/2000003473/": "2026-11-26T12:30:36.582600+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/26/2000003472/": "2026-11-26T12:30:36.582600+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/26/2000003446/": "2026-11-26T12:30:36.582600+09:00",
+    "https://www.itmedia.co.jp/news/article/2611/26/2000003469/": "2026-11-26T12:30:36.582600+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE55WXlEMTdMekdzNEwzWG9BMEpicWRJUHZralBLc1dzbUFsb1lmcjJaTWEycTl1UTVBVXEyQ0ZTTnNtQzl1aVB5cVZ0VFd5MkpYMFNmbWNsZkJ3NzB1ZnZmenNYeVp6YlF5?oc=5": "2026-11-26T12:30:36.582600+09:00"
   }
 }
