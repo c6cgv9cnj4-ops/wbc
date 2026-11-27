@@ -1,16 +1,5 @@
 {
   "seen_urls": {
-    "https://gigazine.net/news/20261112-apple-claris-harbor-local-ai/": "2026-11-13T06:35:31.532437+09:00",
-    "https://gigazine.net/news/20261112-iphone-duo-benchmark-battery/": "2026-11-13T06:35:31.532437+09:00",
-    "https://postcoffee.co/magazine/coffee/howtobrew/specialty-matcha-guide/": "2026-11-13T06:35:31.532437+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE82LW4wMzZlWGF0R1oyd0V3eWdsVEtGRlRPbkRuRnpsZVJVbS04Z2JsVi1NYks0Qk9SYXp0MHVXY09xeWlJTF9ybDh6NUJsb3c5YVJ6SE9JYlJFU1dhanROV0FSSXhSR0NS?oc=5": "2026-11-13T06:35:31.532437+09:00",
-    "https://postcoffee.co/magazine/coffee/staff-favorite-coffee-gear/": "2026-11-13T10:47:23.676181+09:00",
-    "https://postcoffee.co/magazine/coffee/coffee-beans-best-time/": "2026-11-13T10:47:23.676181+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1PSW40U2hXVTFMTzVpZ0ZTVjdWZnJkbV91RXhMdUhaanZrOHZXbHVjM2N4dV9Tcjl1SndTV3hEblVjc3hXNnZMa2NuRkZ5QWFER2paQ3poMlBGY2wwcFRoT1Fwb1dRd2RY?oc=5": "2026-11-13T10:47:23.676181+09:00",
-    "https://news.google.com/rss/articles/CBMikgFBVV95cUxNLWVNNURxbnZ1NXFvRGhHZDZ6U1RQR1FuVTZKUDhfa2oxbU5rdFRzVWI3dU9QZWR3T1ZLX1h4ODlyNFkzeTA1SWZycFRObHVNODdIM2pzWF9wUjBYQzBraFRadl90anVoYnRYUG5wbXBwdUoybjJOZzFtOGJCdWlKcll3bDVhT2k5M0prcTlaZ3NxUQ?oc=5": "2026-11-13T10:47:23.676181+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1mYTNVT3FqdXRBTFVwU1lUWlkzcHZKQVh2NnBUVVJZWl9BUHdnMlV1THl4cUR1TVpmX2dZS0ZQQjYtbDJqVVRzWlpkN3Mya1RhVFJrTHVzcURwYWxDWGlNOUgzdEprOEVN?oc=5": "2026-11-13T10:47:23.676181+09:00",
-    "https://news.google.com/rss/articles/CBMid0FVX3lxTE0zekRpQnBCZGFOV3U4aXgwVGh1OG5FcnJUSmhnbXdGXzJwdXowY3I3NGJQSWVqaTBLWWpQV0t3LWhpWENpQXBLNDgxRmNRMmg4LUszRUtLUzJOYUxmeUxOeDZpaUotZW4tOThrU3g3YUtpSERVTmtV?oc=5": "2026-11-13T10:47:23.676181+09:00",
-    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1WbnBwb1puZVAybmJwUUJYMFlRMVVnUFJnTkI5a1Rta3JQbE5XdkN1V3NPUXVMMUdXZ0w5d3o1RWt1LVo3Z2hxYXY2c05yRDVXTm5ManphWC1WMVcyMGl3alF0VVdGRmZP?oc=5": "2026-11-13T10:47:23.676181+09:00",
     "https://www.itmedia.co.jp/news/article/2611/13/2000003110/": "2026-11-14T06:32:03.884092+09:00",
     "https://news.google.com/rss/articles/CBMiaEFVX3lxTE82ZkZqOWJ6MjZxcHJwSEJvNWpHNnoxVUJVVUpPU3U0bE1sUHlrX01xZnlYekVPY1E1dk9rc3dMQlpMOHoyVFBac2ppcDlwLXY2eFdyVFhSVGtLdFd2TV95TVZ2QTBHd1hp?oc=5": "2026-11-14T06:32:03.884092+09:00",
     "https://gigazine.net/news/20261113-china-ai-nvidia-blackwell-gpu/": "2026-11-14T10:25:23.764493+09:00",
@@ -149,6 +138,16 @@
     "https://gigazine.net/news/20261126-dario-amodei-ai-human/": "2026-11-27T06:32:01.935622+09:00",
     "https://gigazine.net/news/20261126-openai-matrix-multiplication/": "2026-11-27T06:32:01.935622+09:00",
     "https://gigazine.net/news/20261126-cogentic-6-research-papers/": "2026-11-27T06:32:01.935622+09:00",
-    "https://gigazine.net/news/20261126-anthropic-claude-api-rust/": "2026-11-27T06:32:01.935622+09:00"
+    "https://gigazine.net/news/20261126-anthropic-claude-api-rust/": "2026-11-27T06:32:01.935622+09:00",
+    "https://gigazine.net/news/20261127-amd-epyc-performance/": "2026-11-27T12:37:05.577140+09:00",
+    "https://gigazine.net/news/20261126-muse-amazon-discuss/": "2026-11-27T12:37:05.577140+09:00",
+    "https://gigazine.net/news/20261126-frostbite-cpu/": "2026-11-27T12:37:05.577140+09:00",
+    "https://postcoffee.co/magazine/coffee/staff-favorite-coffee-gear/": "2026-11-27T12:37:05.577140+09:00",
+    "https://postcoffee.co/magazine/coffee/howtobrew/specialty-matcha-guide/": "2026-11-27T12:37:05.577140+09:00",
+    "https://news.google.com/rss/articles/CBMidEFVX3lxTE8wSUoySm9naUFPMG1uOGhXSExrQTNTYmZOclY5UG5yS1REQjZvTTVfNGVMbmZVcjY1VnQ2c0gyV0JEblhZTml3cWpxX0NsazIzSW5EWmsyWmpDRVl0Xzhid3JaSzB0QzlDb1JpUVR3V3JFTlV3?oc=5": "2026-11-27T12:37:05.577140+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE82LW4wMzZlWGF0R1oyd0V3eWdsVEtGRlRPbkRuRnpsZVJVbS04Z2JsVi1NYks0Qk9SYXp0MHVXY09xeWlJTF9ybDh6NUJsb3c5YVJ6SE9JYlJFU1dhanROV0FSSXhSR0NS?oc=5": "2026-11-27T12:37:05.577140+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1oWlVzNnAxYkRmS1gzVVhRTEJESFRKNDg5NEJnci1qZldZZmFQUURXSW5BQjhVRGlvMTNtNW9xUC1mbWZrU3RnenVFSVNEX1V0NGlFc3BOVGo0cGlGdE9xeDJTVXhWVVVm?oc=5": "2026-11-27T12:37:05.577140+09:00",
+    "https://news.google.com/rss/articles/CBMiakFVX3lxTFAyc0lzR1Y4WjBmVVdjR0N1d3RDQ250aXFkZTM0TjNCZGV2MUhhMS1lNHV6QU5vZjFFdW9CLUhFWVBvV0ppRmpndnVDTnl3OE1WZ1RyUnBjN1hiNm1XemtibC13NG1kcHBqSEE?oc=5": "2026-11-27T12:37:05.577140+09:00",
+    "https://news.google.com/rss/articles/CBMiaEFVX3lxTE9ObnhyMk5BZWk2WklGVkpRNUNTU044VVRCLV83Wlhka0ZDWHhJdmdnY1ZEd0MyYUlROGppTHA5VzF5MWdhb1NQUURpT3hHVHg2UkVPb0laTHJuRkVHS2NoQVFwZlNxTFJz?oc=5": "2026-11-27T12:37:05.577140+09:00"
   }
 }
