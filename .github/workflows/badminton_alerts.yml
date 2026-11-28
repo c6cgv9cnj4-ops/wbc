@@ -34,6 +34,18 @@ jobs:
       - name: 依存パッケージをインストール
         run: pip install -r requirements.txt
 
+      - name: 試合結果ハンドオフを取得（無くても既存配信は従来どおり）
+        continue-on-error: true
+        run: |
+          OUT="$RUNNER_TEMP/badminton_results_handoff.json"
+          if git fetch --depth=1 origin badminton-results-data && git show FETCH_HEAD:badminton_results_handoff.json > "$OUT"; then
+            echo "試合結果ハンドオフを取得しました"
+          else
+            echo "[INFO] 試合結果ハンドオフなし（既存配信のみ）"
+            rm -f "$OUT"
+          fi
+          echo "BADMINTON_HANDOFF_PATH=$OUT" >> "$GITHUB_ENV"
+
       - name: 指定選手の試合結果を取得してDiscordへ配信
         env:
           DISCORD_WEBHOOK_OSHI: ${{ secrets.WEBHOOK_OSHI }}  # 2026-09-22、#推しチャンネルへ統合

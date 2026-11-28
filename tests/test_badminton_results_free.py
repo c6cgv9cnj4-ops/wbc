@@ -73,6 +73,19 @@ def _fake_fetch(pages):
     return fetch
 
 
+# Discord 送信ロジックの検証を維持するため、このモジュールだけ送信の定数を一時的に有効化する。
+# 本番（DISCORD_DELIVERY_ENABLED = False）の封じ込めは tests/test_badminton_handoff.py で別途検証する。
+_DISCORD_PATCH = mock.patch.object(m, "DISCORD_DELIVERY_ENABLED", True)
+
+
+def setUpModule():
+    _DISCORD_PATCH.start()
+
+
+def tearDownModule():
+    _DISCORD_PATCH.stop()
+
+
 class FakePost:
     """Discord 投稿の代わり。raise_for が真の番号の呼び出しで例外を投げ、status で応答を決める。"""
 

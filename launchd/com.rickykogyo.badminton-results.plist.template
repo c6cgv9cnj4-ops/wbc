@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!-- 注意: APIキーは含めない（macOS キーチェーンから読む）。Discord の認証情報も含めない。 -->
-<!-- 時刻は Mac mini のシステム時刻帯（Asia/Tokyo）で 06:05 に起動する。スリープ中の場合は起床後に実行される。 -->
+<!-- 時刻は Mac mini のシステム時刻帯（Asia/Tokyo）。05:30 に初回実行し、公開が失敗していれば 05:40・05:50 に再試行する（1回の上限は15分。最後の実行が 06:05 までに終わる）。
+     GitHub Actions の既存 06:05 配信より前に公開を完了させるため、06:05 には起動しない。スリープ中の場合は起床後に実行される。 -->
 <plist version="1.0">
 <dict>
     <key>Label</key>
@@ -14,12 +15,26 @@
     <key>WorkingDirectory</key>
     <string>__WORKDIR__</string>
     <key>StartCalendarInterval</key>
-    <dict>
-        <key>Hour</key>
-        <integer>6</integer>
-        <key>Minute</key>
-        <integer>5</integer>
-    </dict>
+    <array>
+        <dict>
+            <key>Hour</key>
+            <integer>5</integer>
+            <key>Minute</key>
+            <integer>30</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>5</integer>
+            <key>Minute</key>
+            <integer>40</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>5</integer>
+            <key>Minute</key>
+            <integer>50</integer>
+        </dict>
+    </array>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PYTHONUNBUFFERED</key>
